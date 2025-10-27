@@ -100,6 +100,11 @@ bool APU::initializeAudio() {
 
 void APU::closeAudio() {
     if (m_audioStream) {
+        // Pause the audio device before destroying the stream
+        SDL_PauseAudioStreamDevice(m_audioStream);
+        // Flush any remaining audio data
+        SDL_FlushAudioStream(m_audioStream);
+        // Now safely destroy the stream
         SDL_DestroyAudioStream(m_audioStream);
         m_audioStream = nullptr;
     }

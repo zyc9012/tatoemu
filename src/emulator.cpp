@@ -256,6 +256,11 @@ void Emulator::render() {
 }
 
 void Emulator::shutdown() {
+    // Close audio first to prevent segfaults
+    if (m_apu) {
+        m_apu->closeAudio();
+    }
+    
     if (m_texture) {
         SDL_DestroyTexture(m_texture);
         m_texture = nullptr;
