@@ -54,6 +54,8 @@ make
 - **Enter** - Start Button
 - **Shift** - Select Button
 - **ESC** - Quit emulator
+- **F5** - Quick save
+- **F9** - Quick load
 
 ## Supported Cartridge Types
 

@@ -1,6 +1,7 @@
 #include "emulator.h"
 #include <SDL3/SDL.h>
 #include <iostream>
+#include <fstream>
 
 Emulator::Emulator()
     : m_window(nullptr)
@@ -95,6 +96,8 @@ bool Emulator::loadROM(const std::string& filename) {
     if (!m_cartridge->load(filename)) {
         return false;
     }
+
+    m_currentROMPath = filename;
 
     // Reset CPU after loading ROM
     m_cpu->reset();
@@ -193,6 +196,20 @@ void Emulator::handleInput() {
                     case SDLK_RIGHT:
                         m_joypad->releaseButton(BUTTON_RIGHT);
                         break;
+                    case SDLK_F5: // Save state
+                        if (!m_currentROMPath.empty()) {
+                            std::string saveFilename = m_currentROMPath.substr(0, m_currentROMPath.find_last_of('.')) + ".sav";
+                            saveState(saveFilename);
+                            std::cout << "State saved to " << saveFilename << std::endl;
+                        }
+                        break;
+                    case SDLK_F9: // Load state
+                        if (!m_currentROMPath.empty()) {
+                            std::string saveFilename = m_currentROMPath.substr(0, m_currentROMPath.find_last_of('.')) + ".sav";
+                            loadState(saveFilename);
+                            std::cout << "State loaded from " << saveFilename << std::endl;
+                        }
+                        break;
                 }
                 break;
         }
@@ -255,5 +272,70 @@ void Emulator::shutdown() {
     }
 
     SDL_Quit();
+}
+
+void Emulator::saveState(const std::string& filename) {
+    std::ofstream file(filename, std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open save state file: " << filename << std::endl;
+        return;
+    }
+    
+    // Write a simple header
+    const char* header = "GBEMU";
+    file.write(header, 5);
+    u32 version = 1;
+    file.write(reinterpret_cast<const char*>(&version), sizeof(version));
+    
+    // Save all component states
+    m_cpu->saveState(file);
+    m_mmu->saveState(file);
+    m_ppu->saveState(file);
+    m_timer->saveState(file);
+    m_joypad->saveState(file);
+    m_apu->saveState(file);
+    m_cartridge->saveState(file);
+    
+    // Save emulator state
+    file.write(reinterpret_cast<const char*>(&m_cyclesThisFrame), sizeof(m_cyclesThisFrame));
+    
+    file.close();
+}
+
+void Emulator::loadState(const std::string& filename) {
+    std::ifstream file(filename, std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open save state file: " << filename << std::endl;
+        return;
+    }
+    
+    // Read and verify header
+    char header[6] = {0};
+    file.read(header, 5);
+    if (std::string(header) != "GBEMU") {
+        std::cerr << "Invalid save state file format" << std::endl;
+        return;
+    }
+    
+    u32 version;
+    file.read(reinterpret_cast<char*>(&version), sizeof(version));
+    if (version != 1) {
+        std::cerr << "Unsupported save state version" << std::endl;
+        return;
+    }
+    
+    // Load all component states
+    m_cpu->loadState(file);
+    m_mmu->loadState(file);
+    m_ppu->loadState(file);
+    m_timer->loadState(file);
+    m_joypad->loadState(file);
+    m_apu->loadState(file);
+    m_cartridge->loadState(file);
+    
+    // Load emulator state
+    file.read(reinterpret_cast<char*>(&m_cyclesThisFrame), sizeof(m_cyclesThisFrame));
+    
+    file.close();
 }
 

@@ -16,6 +16,34 @@ Cartridge::Cartridge()
 Cartridge::~Cartridge() {
 }
 
+void Cartridge::saveState(std::ofstream& file) const {
+    // Save RAM (if present)
+    size_t ramSize = m_ram.size();
+    file.write(reinterpret_cast<const char*>(&ramSize), sizeof(ramSize));
+    if (ramSize > 0) {
+        file.write(reinterpret_cast<const char*>(m_ram.data()), ramSize);
+    }
+    // Save MBC state
+    file.write(reinterpret_cast<const char*>(&m_currentRomBank), sizeof(m_currentRomBank));
+    file.write(reinterpret_cast<const char*>(&m_currentRamBank), sizeof(m_currentRamBank));
+    file.write(reinterpret_cast<const char*>(&m_ramEnabled), sizeof(m_ramEnabled));
+    file.write(reinterpret_cast<const char*>(&m_bankingMode), sizeof(m_bankingMode));
+}
+
+void Cartridge::loadState(std::ifstream& file) {
+    // Load RAM
+    size_t ramSize;
+    file.read(reinterpret_cast<char*>(&ramSize), sizeof(ramSize));
+    if (ramSize > 0 && ramSize == m_ram.size()) {
+        file.read(reinterpret_cast<char*>(m_ram.data()), ramSize);
+    }
+    // Load MBC state
+    file.read(reinterpret_cast<char*>(&m_currentRomBank), sizeof(m_currentRomBank));
+    file.read(reinterpret_cast<char*>(&m_currentRamBank), sizeof(m_currentRamBank));
+    file.read(reinterpret_cast<char*>(&m_ramEnabled), sizeof(m_ramEnabled));
+    file.read(reinterpret_cast<char*>(&m_bankingMode), sizeof(m_bankingMode));
+}
+
 bool Cartridge::load(const std::string& filename) {
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {

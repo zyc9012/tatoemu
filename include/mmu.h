@@ -3,6 +3,7 @@
 #include "types.h"
 #include <memory>
 #include <array>
+#include <fstream>
 
 class Cartridge;
 class PPU;
@@ -26,6 +27,10 @@ public:
 
     u8 readIO(u16 address) const;
     void writeIO(u16 address, u8 value);
+    
+    // Save/Load state
+    void saveState(std::ofstream& file) const;
+    void loadState(std::ifstream& file);
 
 private:
     Cartridge* m_cartridge;

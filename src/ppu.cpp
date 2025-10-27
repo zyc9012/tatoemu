@@ -31,6 +31,45 @@ PPU::PPU()
 PPU::~PPU() {
 }
 
+void PPU::saveState(std::ofstream& file) const {
+    file.write(reinterpret_cast<const char*>(m_vram.data()), m_vram.size());
+    file.write(reinterpret_cast<const char*>(m_oam.data()), m_oam.size());
+    file.write(reinterpret_cast<const char*>(&m_lcdc), sizeof(m_lcdc));
+    file.write(reinterpret_cast<const char*>(&m_stat), sizeof(m_stat));
+    file.write(reinterpret_cast<const char*>(&m_scy), sizeof(m_scy));
+    file.write(reinterpret_cast<const char*>(&m_scx), sizeof(m_scx));
+    file.write(reinterpret_cast<const char*>(&m_ly), sizeof(m_ly));
+    file.write(reinterpret_cast<const char*>(&m_lyc), sizeof(m_lyc));
+    file.write(reinterpret_cast<const char*>(&m_dma), sizeof(m_dma));
+    file.write(reinterpret_cast<const char*>(&m_bgp), sizeof(m_bgp));
+    file.write(reinterpret_cast<const char*>(&m_obp0), sizeof(m_obp0));
+    file.write(reinterpret_cast<const char*>(&m_obp1), sizeof(m_obp1));
+    file.write(reinterpret_cast<const char*>(&m_wy), sizeof(m_wy));
+    file.write(reinterpret_cast<const char*>(&m_wx), sizeof(m_wx));
+    file.write(reinterpret_cast<const char*>(&m_mode), sizeof(m_mode));
+    file.write(reinterpret_cast<const char*>(&m_modeCycles), sizeof(m_modeCycles));
+}
+
+void PPU::loadState(std::ifstream& file) {
+    file.read(reinterpret_cast<char*>(m_vram.data()), m_vram.size());
+    file.read(reinterpret_cast<char*>(m_oam.data()), m_oam.size());
+    file.read(reinterpret_cast<char*>(&m_lcdc), sizeof(m_lcdc));
+    file.read(reinterpret_cast<char*>(&m_stat), sizeof(m_stat));
+    file.read(reinterpret_cast<char*>(&m_scy), sizeof(m_scy));
+    file.read(reinterpret_cast<char*>(&m_scx), sizeof(m_scx));
+    file.read(reinterpret_cast<char*>(&m_ly), sizeof(m_ly));
+    file.read(reinterpret_cast<char*>(&m_lyc), sizeof(m_lyc));
+    file.read(reinterpret_cast<char*>(&m_dma), sizeof(m_dma));
+    file.read(reinterpret_cast<char*>(&m_bgp), sizeof(m_bgp));
+    file.read(reinterpret_cast<char*>(&m_obp0), sizeof(m_obp0));
+    file.read(reinterpret_cast<char*>(&m_obp1), sizeof(m_obp1));
+    file.read(reinterpret_cast<char*>(&m_wy), sizeof(m_wy));
+    file.read(reinterpret_cast<char*>(&m_wx), sizeof(m_wx));
+    file.read(reinterpret_cast<char*>(&m_mode), sizeof(m_mode));
+    file.read(reinterpret_cast<char*>(&m_modeCycles), sizeof(m_modeCycles));
+    m_frameReady = false;
+}
+
 void PPU::setCPU(CPU* cpu) {
     m_cpu = cpu;
 }

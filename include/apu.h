@@ -3,6 +3,7 @@
 #include "types.h"
 #include <array>
 #include <SDL3/SDL.h>
+#include <fstream>
 
 class CPU;
 
@@ -26,6 +27,10 @@ public:
     
     // Audio callback
     void generateSamples(float* stream, int length);
+    
+    // Save/Load state
+    void saveState(std::ofstream& file) const;
+    void loadState(std::ifstream& file);
 
 private:
     // Sound Channel 1: Square wave with sweep

@@ -14,6 +14,24 @@ Timer::Timer()
 Timer::~Timer() {
 }
 
+void Timer::saveState(std::ofstream& file) const {
+    file.write(reinterpret_cast<const char*>(&m_dividerCounter), sizeof(m_dividerCounter));
+    file.write(reinterpret_cast<const char*>(&m_timerCounter), sizeof(m_timerCounter));
+    file.write(reinterpret_cast<const char*>(&m_div), sizeof(m_div));
+    file.write(reinterpret_cast<const char*>(&m_tima), sizeof(m_tima));
+    file.write(reinterpret_cast<const char*>(&m_tma), sizeof(m_tma));
+    file.write(reinterpret_cast<const char*>(&m_tac), sizeof(m_tac));
+}
+
+void Timer::loadState(std::ifstream& file) {
+    file.read(reinterpret_cast<char*>(&m_dividerCounter), sizeof(m_dividerCounter));
+    file.read(reinterpret_cast<char*>(&m_timerCounter), sizeof(m_timerCounter));
+    file.read(reinterpret_cast<char*>(&m_div), sizeof(m_div));
+    file.read(reinterpret_cast<char*>(&m_tima), sizeof(m_tima));
+    file.read(reinterpret_cast<char*>(&m_tma), sizeof(m_tma));
+    file.read(reinterpret_cast<char*>(&m_tac), sizeof(m_tac));
+}
+
 void Timer::setCPU(CPU* cpu) {
     m_cpu = cpu;
 }

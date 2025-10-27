@@ -19,6 +19,30 @@ APU::~APU() {
     closeAudio();
 }
 
+void APU::saveState(std::ofstream& file) const {
+    file.write(reinterpret_cast<const char*>(&m_channel1), sizeof(m_channel1));
+    file.write(reinterpret_cast<const char*>(&m_channel2), sizeof(m_channel2));
+    file.write(reinterpret_cast<const char*>(&m_channel3), sizeof(m_channel3));
+    file.write(reinterpret_cast<const char*>(&m_channel4), sizeof(m_channel4));
+    file.write(reinterpret_cast<const char*>(&m_nr50), sizeof(m_nr50));
+    file.write(reinterpret_cast<const char*>(&m_nr51), sizeof(m_nr51));
+    file.write(reinterpret_cast<const char*>(&m_nr52), sizeof(m_nr52));
+    file.write(reinterpret_cast<const char*>(&m_frameSequencerCounter), sizeof(m_frameSequencerCounter));
+    file.write(reinterpret_cast<const char*>(&m_frameSequencer), sizeof(m_frameSequencer));
+}
+
+void APU::loadState(std::ifstream& file) {
+    file.read(reinterpret_cast<char*>(&m_channel1), sizeof(m_channel1));
+    file.read(reinterpret_cast<char*>(&m_channel2), sizeof(m_channel2));
+    file.read(reinterpret_cast<char*>(&m_channel3), sizeof(m_channel3));
+    file.read(reinterpret_cast<char*>(&m_channel4), sizeof(m_channel4));
+    file.read(reinterpret_cast<char*>(&m_nr50), sizeof(m_nr50));
+    file.read(reinterpret_cast<char*>(&m_nr51), sizeof(m_nr51));
+    file.read(reinterpret_cast<char*>(&m_nr52), sizeof(m_nr52));
+    file.read(reinterpret_cast<char*>(&m_frameSequencerCounter), sizeof(m_frameSequencerCounter));
+    file.read(reinterpret_cast<char*>(&m_frameSequencer), sizeof(m_frameSequencer));
+}
+
 void APU::setCPU(CPU* cpu) {
     m_cpu = cpu;
 }

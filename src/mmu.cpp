@@ -20,6 +20,18 @@ MMU::MMU()
 MMU::~MMU() {
 }
 
+void MMU::saveState(std::ofstream& file) const {
+    file.write(reinterpret_cast<const char*>(m_wram.data()), m_wram.size());
+    file.write(reinterpret_cast<const char*>(m_hram.data()), m_hram.size());
+    file.write(reinterpret_cast<const char*>(&m_ie), sizeof(m_ie));
+}
+
+void MMU::loadState(std::ifstream& file) {
+    file.read(reinterpret_cast<char*>(m_wram.data()), m_wram.size());
+    file.read(reinterpret_cast<char*>(m_hram.data()), m_hram.size());
+    file.read(reinterpret_cast<char*>(&m_ie), sizeof(m_ie));
+}
+
 void MMU::setCartridge(Cartridge* cartridge) {
     m_cartridge = cartridge;
 }

@@ -18,6 +18,22 @@ void CPU::setMMU(MMU* mmu) {
     m_mmu = mmu;
 }
 
+void CPU::saveState(std::ofstream& file) const {
+    file.write(reinterpret_cast<const char*>(&m_regs), sizeof(m_regs));
+    file.write(reinterpret_cast<const char*>(&m_halted), sizeof(m_halted));
+    file.write(reinterpret_cast<const char*>(&m_ime), sizeof(m_ime));
+    file.write(reinterpret_cast<const char*>(&m_enableIMENextInstruction), sizeof(m_enableIMENextInstruction));
+    file.write(reinterpret_cast<const char*>(&m_if), sizeof(m_if));
+}
+
+void CPU::loadState(std::ifstream& file) {
+    file.read(reinterpret_cast<char*>(&m_regs), sizeof(m_regs));
+    file.read(reinterpret_cast<char*>(&m_halted), sizeof(m_halted));
+    file.read(reinterpret_cast<char*>(&m_ime), sizeof(m_ime));
+    file.read(reinterpret_cast<char*>(&m_enableIMENextInstruction), sizeof(m_enableIMENextInstruction));
+    file.read(reinterpret_cast<char*>(&m_if), sizeof(m_if));
+}
+
 void CPU::reset() {
     // Initialize registers to post-boot values
     m_regs.af = 0x01B0;

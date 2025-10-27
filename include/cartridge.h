@@ -3,6 +3,7 @@
 #include "types.h"
 #include <string>
 #include <vector>
+#include <fstream>
 
 class Cartridge {
 public:
@@ -15,6 +16,10 @@ public:
 
     bool isLoaded() const { return m_loaded; }
     const std::string& getTitle() const { return m_title; }
+    
+    // Save/Load state
+    void saveState(std::ofstream& file) const;
+    void loadState(std::ifstream& file);
 
 private:
     void parseHeader();

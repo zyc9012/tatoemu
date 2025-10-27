@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include <memory>
+#include <fstream>
 
 class MMU;
 
@@ -73,6 +74,10 @@ public:
     bool isHalted() const { return m_halted; }
     
     Registers& getRegisters() { return m_regs; }
+    
+    // Save/Load state
+    void saveState(std::ofstream& file) const;
+    void loadState(std::ifstream& file);
 
 private:
     void executeInstruction(u8 opcode);

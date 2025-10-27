@@ -24,6 +24,10 @@ public:
     bool loadROM(const std::string& filename);
     void run();
     void shutdown();
+    
+    // Save/Load state
+    void saveState(const std::string& filename);
+    void loadState(const std::string& filename);
 
 private:
     void handleInput();
@@ -50,5 +54,7 @@ private:
     // Frame timing
     u64 m_lastFrameTime;
     const double m_targetFrameTime = 1000.0 / TARGET_FPS;
+    
+    std::string m_currentROMPath;
 };
 

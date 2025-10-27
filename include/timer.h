@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+#include <fstream>
 
 class CPU;
 
@@ -15,6 +16,10 @@ public:
 
     u8 read(u16 address) const;
     void write(u16 address, u8 value);
+    
+    // Save/Load state
+    void saveState(std::ofstream& file) const;
+    void loadState(std::ifstream& file);
 
 private:
     void updateDivider(u32 cycles);
