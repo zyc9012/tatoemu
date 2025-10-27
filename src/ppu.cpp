@@ -350,12 +350,12 @@ void PPU::renderSprites(u8 line) {
 u32 PPU::getColor(u8 colorId, u8 palette) const {
     u8 colorIndex = (palette >> (colorId * 2)) & 0x03;
     
-    // GameBoy color palette (grayscale)
+    // GameBoy color palette
     static const u32 colors[4] = {
-        0xFFFFFFFF,  // White
-        0xFFAAAAAA,  // Light gray
-        0xFF555555,  // Dark gray
-        0xFF000000   // Black
+        0xFFEFFFDE,  // Lightest green
+        0xFFADD794,  // Light green
+        0xFF529273,  // Dark green
+        0xFF183442   // Darkest green
     };
     
     return colors[colorIndex];
