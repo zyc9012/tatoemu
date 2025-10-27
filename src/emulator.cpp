@@ -112,19 +112,37 @@ void Emulator::run() {
     m_running = true;
     m_cyclesThisFrame = 0;
     m_lastFrameTime = SDL_GetTicks();
-
+    
     while (m_running) {
         handleInput();
         update();
         render();
         
-        // Frame rate limiting - sleep if we're running too fast
         double frameTime = SDL_GetTicks() - m_lastFrameTime;
-        if (frameTime < m_targetFrameTime) {
-            SDL_Delay(static_cast<u32>(m_targetFrameTime - frameTime));
-        }
         
-        m_lastFrameTime = SDL_GetTicks();
+        // Detect if we've been paused (e.g., window dragging)
+        if (frameTime > m_targetFrameTime * 2.0) {
+            // Clear audio buffer to prevent desync
+            if (m_apu) {
+                m_apu->clearAudioBuffer();
+            }
+            m_lastFrameTime = SDL_GetTicks();
+        // Frame rate limiting based on target time
+        } else if (frameTime < m_targetFrameTime) {
+            double remaining = m_targetFrameTime - frameTime;
+            if (remaining > 0) {
+                SDL_Delay(static_cast<u32>(remaining));
+            }
+            if (m_apu) {
+                int queuedAudio = m_apu->getQueuedAudioSize();
+                if (queuedAudio > m_targetAudioBufferSize) {
+                    // Audio buffer is too full, we're running too fast
+                    SDL_Delay(2);
+                }
+            }
+            
+            m_lastFrameTime = SDL_GetTicks();
+        }
     }
 }
 

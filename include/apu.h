@@ -13,6 +13,8 @@ public:
     APU();
     ~APU();
 
+    static constexpr int SAMPLE_RATE = 44100;
+
     void setCPU(CPU* cpu);
     void reset();
     void step(u32 cycles);
@@ -24,6 +26,10 @@ public:
     // SDL Audio initialization
     bool initializeAudio();
     void closeAudio();
+    
+    // Audio synchronization
+    void clearAudioBuffer();
+    int getQueuedAudioSize() const;
     
     // Audio callback
     void generateSamples(float* stream, int length);
@@ -121,13 +127,12 @@ private:
     // Timing
     u32 m_frameSequencerCounter;
     u8 m_frameSequencer;
+    u32 m_sampleCounter;  // Track sample generation timing
     
     // Audio
     SDL_AudioStream* m_audioStream;
     CPU* m_cpu;
     
-    // Sample rate and buffer
-    static constexpr int SAMPLE_RATE = 44100;
     static constexpr int BUFFER_SIZE = 2048;
     
     // Helper methods

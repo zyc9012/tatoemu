@@ -54,6 +54,9 @@ private:
     // Frame timing
     u64 m_lastFrameTime;
     const double m_targetFrameTime = 1000.0 / TARGET_FPS;
+
+    // Target audio buffer size (in bytes) - about 3 frames worth
+    const int m_targetAudioBufferSize = (APU::SAMPLE_RATE * 2 * sizeof(float) / TARGET_FPS) * 3;
     
     std::string m_currentROMPath;
 };

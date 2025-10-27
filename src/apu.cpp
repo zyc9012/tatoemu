@@ -10,6 +10,7 @@ APU::APU()
     , m_nr52(0xF1)
     , m_frameSequencerCounter(0)
     , m_frameSequencer(0)
+    , m_sampleCounter(0)
     , m_audioStream(nullptr)
     , m_cpu(nullptr) {
     reset();
@@ -29,6 +30,7 @@ void APU::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_nr52), sizeof(m_nr52));
     file.write(reinterpret_cast<const char*>(&m_frameSequencerCounter), sizeof(m_frameSequencerCounter));
     file.write(reinterpret_cast<const char*>(&m_frameSequencer), sizeof(m_frameSequencer));
+    file.write(reinterpret_cast<const char*>(&m_sampleCounter), sizeof(m_sampleCounter));
 }
 
 void APU::loadState(std::ifstream& file) {
@@ -41,6 +43,10 @@ void APU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_nr52), sizeof(m_nr52));
     file.read(reinterpret_cast<char*>(&m_frameSequencerCounter), sizeof(m_frameSequencerCounter));
     file.read(reinterpret_cast<char*>(&m_frameSequencer), sizeof(m_frameSequencer));
+    file.read(reinterpret_cast<char*>(&m_sampleCounter), sizeof(m_sampleCounter));
+    
+    // Clear audio buffer after loading state to prevent audio glitches
+    clearAudioBuffer();
 }
 
 void APU::setCPU(CPU* cpu) {
@@ -108,6 +114,21 @@ void APU::closeAudio() {
         SDL_DestroyAudioStream(m_audioStream);
         m_audioStream = nullptr;
     }
+}
+
+void APU::clearAudioBuffer() {
+    if (m_audioStream) {
+        SDL_ClearAudioStream(m_audioStream);
+    }
+    // Reset sample counter to prevent timing issues
+    m_sampleCounter = 0;
+}
+
+int APU::getQueuedAudioSize() const {
+    if (m_audioStream) {
+        return SDL_GetAudioStreamQueued(m_audioStream);
+    }
+    return 0;
 }
 
 void APU::step(u32 cycles) {
@@ -180,13 +201,12 @@ void APU::step(u32 cycles) {
     // Generate audio samples at the appropriate rate
     // Game Boy CPU runs at ~4.194 MHz, we want 44.1 kHz samples
     // So we generate a sample approximately every 95 cycles
-    static u32 sampleCounter = 0;
-    sampleCounter += cycles;
+    m_sampleCounter += cycles;
     
     const u32 cyclesPerSample = CLOCK_SPEED / SAMPLE_RATE;  // ~95 cycles
     
-    while (sampleCounter >= cyclesPerSample) {
-        sampleCounter -= cyclesPerSample;
+    while (m_sampleCounter >= cyclesPerSample) {
+        m_sampleCounter -= cyclesPerSample;
         
         // Generate stereo samples
         float samples[2];
