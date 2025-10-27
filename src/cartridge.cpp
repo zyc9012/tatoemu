@@ -9,6 +9,8 @@ Cartridge::Cartridge()
     , m_ramSize(0)
     , m_loaded(false)
     , m_mbcType(MBCType::ROM_ONLY)
+    , m_isGBC(false)
+    , m_isGBCOnly(false)
     , m_currentRomBank(1)
     , m_currentRamBank(0)
     , m_ramEnabled(false)
@@ -106,16 +108,22 @@ bool Cartridge::load(const std::string& filename) {
 
     std::cout << "Loaded ROM: " << m_title << std::endl;
     std::cout << "Cartridge Type: 0x" << std::hex << (int)m_cartridgeType << std::dec << std::endl;
+    std::cout << "Mode: " << (m_isGBCOnly ? "GBC Only" : (m_isGBC ? "GBC Compatible" : "DMG")) << std::endl;
     
     return true;
 }
 
 void Cartridge::parseHeader() {
-    // Title is at 0x0134-0x0143
+    // Title is at 0x0134-0x0143 (or 0x0134-0x013E for GBC games)
     m_title.clear();
     for (int i = 0x0134; i <= 0x0143 && m_rom[i] != 0; i++) {
         m_title += static_cast<char>(m_rom[i]);
     }
+
+    // Check GBC flag at 0x0143
+    u8 gbcFlag = m_rom[0x0143];
+    m_isGBC = (gbcFlag == 0x80 || gbcFlag == 0xC0);
+    m_isGBCOnly = (gbcFlag == 0xC0);
 
     m_cartridgeType = m_rom[0x0147];
     m_romSize = m_rom[0x0148];
@@ -617,7 +625,7 @@ void Cartridge::writeMBC7(u16 address, u8 value) {
     } else if (address < 0x6000) {
         // RAM Bank Number or Accelerometer Register Select
         m_currentRamBank = value;
-        if (value >= 0x00 && value <= 0x05) {
+        if (value <= 0x05) {
             m_accelRegister = value;
         }
     } else if (address >= 0xA000 && address < 0xC000) {

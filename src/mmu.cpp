@@ -12,7 +12,11 @@ MMU::MMU()
     , m_joypad(nullptr)
     , m_timer(nullptr)
     , m_apu(nullptr)
-    , m_ie(0) {
+    , m_ie(0)
+    , m_gbcMode(false)
+    , m_wramBank(1)
+    , m_speedSwitch(0)
+    , m_doubleSpeed(false) {
     std::fill(m_wram.begin(), m_wram.end(), 0);
     std::fill(m_hram.begin(), m_hram.end(), 0);
 }
@@ -24,12 +28,20 @@ void MMU::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(m_wram.data()), m_wram.size());
     file.write(reinterpret_cast<const char*>(m_hram.data()), m_hram.size());
     file.write(reinterpret_cast<const char*>(&m_ie), sizeof(m_ie));
+    file.write(reinterpret_cast<const char*>(&m_gbcMode), sizeof(m_gbcMode));
+    file.write(reinterpret_cast<const char*>(&m_wramBank), sizeof(m_wramBank));
+    file.write(reinterpret_cast<const char*>(&m_speedSwitch), sizeof(m_speedSwitch));
+    file.write(reinterpret_cast<const char*>(&m_doubleSpeed), sizeof(m_doubleSpeed));
 }
 
 void MMU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(m_wram.data()), m_wram.size());
     file.read(reinterpret_cast<char*>(m_hram.data()), m_hram.size());
     file.read(reinterpret_cast<char*>(&m_ie), sizeof(m_ie));
+    file.read(reinterpret_cast<char*>(&m_gbcMode), sizeof(m_gbcMode));
+    file.read(reinterpret_cast<char*>(&m_wramBank), sizeof(m_wramBank));
+    file.read(reinterpret_cast<char*>(&m_speedSwitch), sizeof(m_speedSwitch));
+    file.read(reinterpret_cast<char*>(&m_doubleSpeed), sizeof(m_doubleSpeed));
 }
 
 void MMU::setCartridge(Cartridge* cartridge) {
@@ -52,6 +64,13 @@ void MMU::setAPU(APU* apu) {
     m_apu = apu;
 }
 
+void MMU::setGBCMode(bool enabled) {
+    m_gbcMode = enabled;
+    if (enabled) {
+        m_wramBank = 1; // Default to bank 1 in GBC mode
+    }
+}
+
 u8 MMU::read(u16 address) const {
     // ROM (0x0000 - 0x7FFF) and Cartridge RAM (0xA000 - 0xBFFF)
     if (address < 0x8000 || (address >= 0xA000 && address < 0xC000)) {
@@ -69,11 +88,28 @@ u8 MMU::read(u16 address) const {
     }
     // Work RAM (0xC000 - 0xDFFF)
     else if (address < 0xE000) {
-        return m_wram[address - 0xC000];
+        if (address < 0xD000) {
+            // Bank 0 (0xC000-0xCFFF)
+            return m_wram[address - 0xC000];
+        } else {
+            // Switchable bank (0xD000-0xDFFF)
+            // In DMG mode, always use bank 1; in GBC mode, use current bank
+            u8 bank = m_gbcMode ? m_wramBank : 1;
+            u16 offset = (bank * 0x1000) + (address - 0xD000);
+            return m_wram[offset];
+        }
     }
     // Echo RAM (0xE000 - 0xFDFF) - mirror of WRAM
     else if (address < 0xFE00) {
-        return m_wram[address - 0xE000];
+        if (address < 0xF000) {
+            // Mirror of bank 0
+            return m_wram[address - 0xE000];
+        } else {
+            // Mirror of switchable bank
+            u8 bank = m_gbcMode ? m_wramBank : 1;
+            u16 offset = (bank * 0x1000) + (address - 0xF000);
+            return m_wram[offset];
+        }
     }
     // OAM (0xFE00 - 0xFE9F)
     else if (address < 0xFEA0) {
@@ -115,11 +151,27 @@ void MMU::write(u16 address, u8 value) {
     }
     // Work RAM (0xC000 - 0xDFFF)
     else if (address < 0xE000) {
-        m_wram[address - 0xC000] = value;
+        if (address < 0xD000) {
+            // Bank 0 (0xC000-0xCFFF)
+            m_wram[address - 0xC000] = value;
+        } else {
+            // Switchable bank (0xD000-0xDFFF)
+            u8 bank = m_gbcMode ? m_wramBank : 1;
+            u16 offset = (bank * 0x1000) + (address - 0xD000);
+            m_wram[offset] = value;
+        }
     }
     // Echo RAM (0xE000 - 0xFDFF)
     else if (address < 0xFE00) {
-        m_wram[address - 0xE000] = value;
+        if (address < 0xF000) {
+            // Mirror of bank 0
+            m_wram[address - 0xE000] = value;
+        } else {
+            // Mirror of switchable bank
+            u8 bank = m_gbcMode ? m_wramBank : 1;
+            u16 offset = (bank * 0x1000) + (address - 0xF000);
+            m_wram[offset] = value;
+        }
     }
     // OAM (0xFE00 - 0xFE9F)
     else if (address < 0xFEA0) {
@@ -181,6 +233,19 @@ u8 MMU::readIO(u16 address) const {
         case 0xFF4A: // WY
         case 0xFF4B: // WX
             return m_ppu ? m_ppu->readRegister(address) : 0xFF;
+        // GBC Speed switch
+        case 0xFF4D:
+            return m_speedSwitch | (m_doubleSpeed ? 0x80 : 0x00);
+        // GBC VRAM bank
+        case 0xFF4F:
+        // GBC HDMA registers
+        case 0xFF51: case 0xFF52: case 0xFF53: case 0xFF54: case 0xFF55:
+        // GBC Color palette registers
+        case 0xFF68: case 0xFF69: case 0xFF6A: case 0xFF6B:
+            return m_ppu ? m_ppu->readRegister(address) : 0xFF;
+        // GBC WRAM bank
+        case 0xFF70:
+            return m_wramBank;
         default:
             return 0xFF;
     }
@@ -232,6 +297,32 @@ void MMU::writeIO(u16 address, u8 value) {
         case 0xFF4B: // WX
             if (m_ppu) {
                 m_ppu->writeRegister(address, value);
+            }
+            break;
+        // GBC Speed switch (KEY1)
+        case 0xFF4D:
+            if (m_gbcMode) {
+                m_speedSwitch = value & 0x01; // Bit 0 = prepare speed switch
+                // Speed switch happens during stop instruction (not implemented here)
+            }
+            break;
+        // GBC VRAM bank
+        case 0xFF4F:
+        // GBC HDMA registers
+        case 0xFF51: case 0xFF52: case 0xFF53: case 0xFF54: case 0xFF55:
+        // GBC Color palette registers
+        case 0xFF68: case 0xFF69: case 0xFF6A: case 0xFF6B:
+            if (m_ppu) {
+                m_ppu->writeRegister(address, value);
+            }
+            break;
+        // GBC WRAM bank
+        case 0xFF70:
+            if (m_gbcMode) {
+                m_wramBank = (value & 0x07);
+                if (m_wramBank == 0) {
+                    m_wramBank = 1; // Bank 0 not valid, use bank 1
+                }
             }
             break;
         default:

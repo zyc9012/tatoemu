@@ -66,6 +66,8 @@ public:
 
     bool isLoaded() const { return m_loaded; }
     const std::string& getTitle() const { return m_title; }
+    bool isGBC() const { return m_isGBC; }
+    bool isGBCOnly() const { return m_isGBCOnly; }
     
     // Save/Load state
     void saveState(std::ofstream& file) const;
@@ -101,6 +103,8 @@ private:
     u8 m_ramSize;
     bool m_loaded;
     MBCType m_mbcType;
+    bool m_isGBC;
+    bool m_isGBCOnly;
     
     // MBC state
     u8 m_currentRomBank;

@@ -24,6 +24,7 @@ public:
     void setMMU(MMU* mmu);
     void step(u32 cycles);
     void reset();
+    void setGBCMode(bool enabled);
 
     // Memory access
     u8 readVRAM(u16 address) const;
@@ -52,14 +53,17 @@ private:
     void renderSprites(u8 line);
     
     u32 getColor(u8 colorId, u8 palette) const;
+    u32 getGBCColor(u8 paletteIndex, u8 colorId, bool isSprite) const;
     void performDMA(u8 value);
+    void performHDMA();
 
     CPU* m_cpu;
     MMU* m_mmu;
 
     // VRAM and OAM
-    std::array<u8, 0x2000> m_vram;  // 8KB Video RAM
+    std::array<u8, 0x4000> m_vram;  // 16KB Video RAM (2 banks for GBC)
     std::array<u8, 0xA0> m_oam;     // 160 bytes OAM (sprite attributes)
+    u8 m_vramBank;                  // Current VRAM bank (0-1)
     
     // LCD Registers
     u8 m_lcdc;  // LCD Control (0xFF40)
@@ -75,11 +79,25 @@ private:
     u8 m_wy;    // Window Y (0xFF4A)
     u8 m_wx;    // Window X (0xFF4B)
     
+    // GBC registers
+    u8 m_bcps;  // Background Color Palette Specification (0xFF68)
+    u8 m_ocps;  // Object Color Palette Specification (0xFF6A)
+    std::array<u8, 64> m_bgPaletteRAM;   // Background palette RAM (8 palettes * 4 colors * 2 bytes)
+    std::array<u8, 64> m_objPaletteRAM;  // Object palette RAM (8 palettes * 4 colors * 2 bytes)
+    
+    // GBC HDMA
+    u8 m_hdma1, m_hdma2, m_hdma3, m_hdma4, m_hdma5;
+    bool m_hdmaActive;
+    u16 m_hdmaSource;
+    u16 m_hdmaDest;
+    u16 m_hdmaRemaining;
+    
     // State
     PPUMode m_mode;
     u32 m_modeCycles;
     std::array<u32, SCREEN_WIDTH * SCREEN_HEIGHT> m_framebuffer;
     std::array<u32, SCREEN_WIDTH> m_scanlineBuffer;
     bool m_frameReady;
+    bool m_gbcMode;
 };
 

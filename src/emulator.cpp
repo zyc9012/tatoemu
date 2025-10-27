@@ -99,6 +99,17 @@ bool Emulator::loadROM(const std::string& filename) {
 
     m_currentROMPath = filename;
 
+    // Enable GBC mode if cartridge supports it
+    bool isGBC = m_cartridge->isGBC();
+    m_ppu->setGBCMode(isGBC);
+    m_mmu->setGBCMode(isGBC);
+    
+    if (isGBC) {
+        SDL_SetWindowTitle(m_window, "GameBoy Color Emulator");
+    } else {
+        SDL_SetWindowTitle(m_window, "GameBoy Emulator");
+    }
+
     // Reset CPU after loading ROM
     m_cpu->reset();
     m_ppu->reset();
