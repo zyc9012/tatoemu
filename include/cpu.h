@@ -7,6 +7,8 @@
 class MMU;
 
 // CPU Registers
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 struct Registers {
     union {
         struct {
@@ -43,6 +45,7 @@ struct Registers {
     u16 sp; // Stack pointer
     u16 pc; // Program counter
 };
+#pragma GCC diagnostic pop
 
 // CPU Flags
 enum CPUFlags {

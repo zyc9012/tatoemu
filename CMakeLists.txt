@@ -64,8 +64,6 @@ else()
         -Wall 
         -Wextra 
         -Wpedantic
-        -Wno-gnu-anonymous-struct
-        -Wno-nested-anon-types
         $<$<CONFIG:Release>:-O3 -DNDEBUG -march=native>
         $<$<CONFIG:Debug>:-O0 -g>
     )
