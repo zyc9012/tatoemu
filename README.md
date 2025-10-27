@@ -59,8 +59,20 @@ make
 
 ## Supported Cartridge Types
 
-- ROM only (Type 0x00)
-- MBC1 (Type 0x01-0x03)
+- **ROM only** (Type 0x00) - No banking, up to 32KB ROM
+- **ROM + RAM** (Type 0x08-0x09) - ROM with external RAM
+- **MBC1** (Type 0x01) - Basic ROM banking, up to 2MB ROM
+- **MBC1 + RAM** (Type 0x02-0x03) - MBC1 with external RAM (8KB-32KB)
+- **MBC1M** - MBC1 with multi-ROM support (enhanced banking)
+- **MBC2** (Type 0x05) - 512x4 bits internal RAM
+- **MBC2 + Battery** (Type 0x06) - MBC2 with battery backup
+- **MBC3** (Type 0x11-0x13) - ROM banking with optional RAM
+- **MBC3 + Timer + Battery** (Type 0x0F-0x10) - MBC3 with Real-Time Clock (RTC)
+- **MBC30** - MBC3 variant with larger ROM/RAM support
+- **MBC5** (Type 0x19) - Up to 8MB ROM, 128KB RAM
+- **MBC5 + RAM** (Type 0x1A-0x1B) - MBC5 with external RAM
+- **MBC5 + Rumble** (Type 0x1C-0x1E) - MBC5 with rumble motor support
+- **MBC7** (Type 0x22) - Accelerometer support with 256KB RAM
 
 ## Resources
 
