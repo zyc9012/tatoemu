@@ -44,5 +44,9 @@ private:
     
     bool m_running;
     u32 m_cyclesThisFrame;
+    
+    // Frame timing
+    u64 m_lastFrameTime;
+    const double m_targetFrameTime = 1000.0 / TARGET_FPS;
 };
 

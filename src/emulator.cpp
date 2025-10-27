@@ -7,7 +7,8 @@ Emulator::Emulator()
     , m_renderer(nullptr)
     , m_texture(nullptr)
     , m_running(false)
-    , m_cyclesThisFrame(0) {
+    , m_cyclesThisFrame(0)
+    , m_lastFrameTime(0) {
 }
 
 Emulator::~Emulator() {
@@ -97,11 +98,20 @@ bool Emulator::loadROM(const std::string& filename) {
 void Emulator::run() {
     m_running = true;
     m_cyclesThisFrame = 0;
+    m_lastFrameTime = SDL_GetTicks();
 
     while (m_running) {
         handleInput();
         update();
         render();
+        
+        // Frame rate limiting - sleep if we're running too fast
+        double frameTime = SDL_GetTicks() - m_lastFrameTime;
+        if (frameTime < m_targetFrameTime) {
+            SDL_Delay(static_cast<u32>(m_targetFrameTime - frameTime));
+        }
+        
+        m_lastFrameTime = SDL_GetTicks();
     }
 }
 
