@@ -8,6 +8,7 @@ class Cartridge;
 class PPU;
 class Joypad;
 class Timer;
+class APU;
 
 class MMU {
 public:
@@ -18,6 +19,7 @@ public:
     void setPPU(PPU* ppu);
     void setJoypad(Joypad* joypad);
     void setTimer(Timer* timer);
+    void setAPU(APU* apu);
 
     u8 read(u16 address) const;
     void write(u16 address, u8 value);
@@ -30,6 +32,7 @@ private:
     PPU* m_ppu;
     Joypad* m_joypad;
     Timer* m_timer;
+    APU* m_apu;
 
     // Memory regions
     std::array<u8, 0x2000> m_wram;     // Work RAM (8KB)

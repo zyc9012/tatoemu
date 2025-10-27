@@ -3,6 +3,7 @@
 #include "ppu.h"
 #include "joypad.h"
 #include "timer.h"
+#include "apu.h"
 #include <algorithm>
 
 MMU::MMU()
@@ -10,6 +11,7 @@ MMU::MMU()
     , m_ppu(nullptr)
     , m_joypad(nullptr)
     , m_timer(nullptr)
+    , m_apu(nullptr)
     , m_ie(0) {
     std::fill(m_wram.begin(), m_wram.end(), 0);
     std::fill(m_hram.begin(), m_hram.end(), 0);
@@ -32,6 +34,10 @@ void MMU::setJoypad(Joypad* joypad) {
 
 void MMU::setTimer(Timer* timer) {
     m_timer = timer;
+}
+
+void MMU::setAPU(APU* apu) {
+    m_apu = apu;
 }
 
 u8 MMU::read(u16 address) const {
@@ -139,6 +145,17 @@ u8 MMU::readIO(u16 address) const {
         case 0xFF0F: // IF (Interrupt Flag)
             // This is handled by CPU
             return 0xFF;
+        // APU registers (0xFF10-0xFF26, 0xFF30-0xFF3F)
+        case 0xFF10: case 0xFF11: case 0xFF12: case 0xFF13: case 0xFF14:
+        case 0xFF16: case 0xFF17: case 0xFF18: case 0xFF19:
+        case 0xFF1A: case 0xFF1B: case 0xFF1C: case 0xFF1D: case 0xFF1E:
+        case 0xFF20: case 0xFF21: case 0xFF22: case 0xFF23:
+        case 0xFF24: case 0xFF25: case 0xFF26:
+        case 0xFF30: case 0xFF31: case 0xFF32: case 0xFF33:
+        case 0xFF34: case 0xFF35: case 0xFF36: case 0xFF37:
+        case 0xFF38: case 0xFF39: case 0xFF3A: case 0xFF3B:
+        case 0xFF3C: case 0xFF3D: case 0xFF3E: case 0xFF3F:
+            return m_apu ? m_apu->readRegister(address) : 0xFF;
         case 0xFF40: // LCDC
         case 0xFF41: // STAT
         case 0xFF42: // SCY
@@ -174,6 +191,20 @@ void MMU::writeIO(u16 address, u8 value) {
             break;
         case 0xFF0F: // IF (Interrupt Flag)
             // This is handled by CPU
+            break;
+        // APU registers (0xFF10-0xFF26, 0xFF30-0xFF3F)
+        case 0xFF10: case 0xFF11: case 0xFF12: case 0xFF13: case 0xFF14:
+        case 0xFF16: case 0xFF17: case 0xFF18: case 0xFF19:
+        case 0xFF1A: case 0xFF1B: case 0xFF1C: case 0xFF1D: case 0xFF1E:
+        case 0xFF20: case 0xFF21: case 0xFF22: case 0xFF23:
+        case 0xFF24: case 0xFF25: case 0xFF26:
+        case 0xFF30: case 0xFF31: case 0xFF32: case 0xFF33:
+        case 0xFF34: case 0xFF35: case 0xFF36: case 0xFF37:
+        case 0xFF38: case 0xFF39: case 0xFF3A: case 0xFF3B:
+        case 0xFF3C: case 0xFF3D: case 0xFF3E: case 0xFF3F:
+            if (m_apu) {
+                m_apu->writeRegister(address, value);
+            }
             break;
         case 0xFF40: // LCDC
         case 0xFF41: // STAT

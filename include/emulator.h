@@ -7,6 +7,7 @@
 #include "joypad.h"
 #include "timer.h"
 #include "cartridge.h"
+#include "apu.h"
 #include <memory>
 #include <string>
 
@@ -41,6 +42,7 @@ private:
     std::unique_ptr<Joypad> m_joypad;
     std::unique_ptr<Timer> m_timer;
     std::unique_ptr<Cartridge> m_cartridge;
+    std::unique_ptr<APU> m_apu;
     
     bool m_running;
     u32 m_cyclesThisFrame;

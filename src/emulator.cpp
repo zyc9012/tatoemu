@@ -65,18 +65,27 @@ bool Emulator::initialize() {
     m_ppu = std::make_unique<PPU>();
     m_joypad = std::make_unique<Joypad>();
     m_timer = std::make_unique<Timer>();
+    m_apu = std::make_unique<APU>();
 
     // Wire up components
     m_mmu->setCartridge(m_cartridge.get());
     m_mmu->setPPU(m_ppu.get());
     m_mmu->setJoypad(m_joypad.get());
     m_mmu->setTimer(m_timer.get());
+    m_mmu->setAPU(m_apu.get());
     
     m_cpu->setMMU(m_mmu.get());
     m_ppu->setCPU(m_cpu.get());
     m_ppu->setMMU(m_mmu.get());
     m_joypad->setCPU(m_cpu.get());
     m_timer->setCPU(m_cpu.get());
+    m_apu->setCPU(m_cpu.get());
+    
+    // Initialize audio
+    if (!m_apu->initializeAudio()) {
+        std::cerr << "Warning: Failed to initialize audio" << std::endl;
+        // Continue anyway - emulator can run without audio
+    }
 
     std::cout << "Emulator initialized successfully" << std::endl;
     return true;
@@ -91,6 +100,7 @@ bool Emulator::loadROM(const std::string& filename) {
     m_cpu->reset();
     m_ppu->reset();
     m_timer->reset();
+    m_apu->reset();
 
     return true;
 }
@@ -196,6 +206,7 @@ void Emulator::update() {
         
         m_ppu->step(cycles);
         m_timer->step(cycles);
+        m_apu->step(cycles);
         
         m_cyclesThisFrame += cycles;
     }

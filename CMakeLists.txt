@@ -18,6 +18,7 @@ set(SOURCES
     src/timer.cpp
     src/emulator.cpp
     src/cartridge.cpp
+    src/apu.cpp
 )
 
 # Header files
@@ -29,6 +30,7 @@ set(HEADERS
     include/timer.h
     include/emulator.h
     include/cartridge.h
+    include/apu.h
     include/types.h
 )
 
