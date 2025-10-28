@@ -525,6 +525,14 @@ u32 PPU::getColor(u8 colorId, u8 palette) const {
 
 u8 PPU::readVRAM(u16 address) const {
     if (address >= 0x8000 && address < 0xA000) {
+        // In GBC mode with LCD enabled, VRAM is not accessible during mode 2 (OAM scan) and mode 3 (drawing)
+        if (m_gbcMode && (m_lcdc & 0x80)) {
+            if (m_mode == MODE_OAM_SCAN || m_mode == MODE_DRAWING) {
+                // Return 0xFF when VRAM is locked
+                return 0xFF;
+            }
+        }
+        
         u16 offset = address - 0x8000;
         // In GBC mode, VRAM bank 1 is at offset 0x2000
         if (m_gbcMode && m_vramBank == 1) {
@@ -537,6 +545,14 @@ u8 PPU::readVRAM(u16 address) const {
 
 void PPU::writeVRAM(u16 address, u8 value) {
     if (address >= 0x8000 && address < 0xA000) {
+        // In GBC mode with LCD enabled, VRAM is not writable during mode 2 (OAM scan) and mode 3 (drawing)
+        if (m_gbcMode && (m_lcdc & 0x80)) {
+            if (m_mode == MODE_OAM_SCAN || m_mode == MODE_DRAWING) {
+                // Ignore writes when VRAM is locked
+                return;
+            }
+        }
+        
         u16 offset = address - 0x8000;
         // In GBC mode, VRAM bank 1 is at offset 0x2000
         if (m_gbcMode && m_vramBank == 1) {
