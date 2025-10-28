@@ -116,16 +116,16 @@ bool Cartridge::load(const std::string& filename) {
 }
 
 void Cartridge::parseHeader() {
-    // Title is at 0x0134-0x0143 (or 0x0134-0x013E for GBC games)
-    m_title.clear();
-    for (int i = 0x0134; i <= 0x0143 && m_rom[i] != 0; i++) {
-        m_title += static_cast<char>(m_rom[i]);
-    }
-
     // Check GBC flag at 0x0143
     u8 gbcFlag = m_rom[0x0143];
     m_isGBC = (gbcFlag == 0x80 || gbcFlag == 0xC0);
     m_isGBCOnly = (gbcFlag == 0xC0);
+
+    // Title is at 0x0134-0x0143 (or 0x0134-0x013E for GBC games)
+    m_title.clear();
+    for (int i = 0x0134; i <= (m_isGBC ? 0x013E : 0x0143) && m_rom[i] != 0; i++) {
+        m_title += static_cast<char>(m_rom[i]);
+    }
 
     m_cartridgeType = m_rom[0x0147];
     m_romSize = m_rom[0x0148];

@@ -106,9 +106,9 @@ bool Emulator::loadROM(const std::string& filename) {
     m_mmu->setGBCMode(isGBC);
     
     if (isGBC) {
-        SDL_SetWindowTitle(m_window, "GameBoy Color Emulator");
+        SDL_SetWindowTitle(m_window, ("GameBoy Color - " + m_cartridge->getTitle()).c_str());
     } else {
-        SDL_SetWindowTitle(m_window, "GameBoy Emulator");
+        SDL_SetWindowTitle(m_window, ("GameBoy - " + m_cartridge->getTitle()).c_str());
     }
 
     // Reset CPU after loading ROM
