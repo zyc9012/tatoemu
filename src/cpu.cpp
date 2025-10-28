@@ -7,7 +7,8 @@ CPU::CPU()
     , m_halted(false)
     , m_ime(false)
     , m_enableIMENextInstruction(false)
-    , m_if(0) {
+    , m_if(0)
+    , m_gbcMode(false) {
     reset();
 }
 
@@ -24,6 +25,7 @@ void CPU::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_ime), sizeof(m_ime));
     file.write(reinterpret_cast<const char*>(&m_enableIMENextInstruction), sizeof(m_enableIMENextInstruction));
     file.write(reinterpret_cast<const char*>(&m_if), sizeof(m_if));
+    file.write(reinterpret_cast<const char*>(&m_gbcMode), sizeof(m_gbcMode));
 }
 
 void CPU::loadState(std::ifstream& file) {
@@ -32,11 +34,16 @@ void CPU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_ime), sizeof(m_ime));
     file.read(reinterpret_cast<char*>(&m_enableIMENextInstruction), sizeof(m_enableIMENextInstruction));
     file.read(reinterpret_cast<char*>(&m_if), sizeof(m_if));
+    file.read(reinterpret_cast<char*>(&m_gbcMode), sizeof(m_gbcMode));
 }
 
 void CPU::reset() {
     // Initialize registers to post-boot values
-    m_regs.af = 0x01B0;
+    if (m_gbcMode) {
+        m_regs.af = 0x11B0;  // GBC mode
+    } else {
+        m_regs.af = 0x01B0;  // DMG mode
+    }
     m_regs.bc = 0x0013;
     m_regs.de = 0x00D8;
     m_regs.hl = 0x014D;

@@ -101,6 +101,7 @@ bool Emulator::loadROM(const std::string& filename) {
 
     // Enable GBC mode if cartridge supports it
     bool isGBC = m_cartridge->isGBC();
+    m_cpu->setGBCMode(isGBC);
     m_ppu->setGBCMode(isGBC);
     m_mmu->setGBCMode(isGBC);
     

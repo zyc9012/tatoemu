@@ -71,6 +71,7 @@ public:
 
     void setMMU(MMU* mmu);
     void reset();
+    void setGBCMode(bool enabled) { m_gbcMode = enabled; }
     u32 step(); // Execute one instruction, return cycles taken
     
     void requestInterrupt(u8 interrupt);
@@ -109,5 +110,6 @@ private:
     bool m_ime; // Interrupt Master Enable
     bool m_enableIMENextInstruction;
     u8 m_if;    // Interrupt Flag register
+    bool m_gbcMode; // Game Boy Color mode
 };
 
