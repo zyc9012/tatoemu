@@ -747,3 +747,167 @@ u32 PPU::getGBCColor(u8 paletteIndex, u8 colorId, bool isSprite) const {
     return 0xFF000000 | (r << 16) | (g << 8) | b;
 }
 
+bool PPU::dumpTilesToBMP(const std::string& filename) const {
+    // DMG: 384 tiles total (256 unsigned + 128 signed)
+    // GBC: 768 tiles total (384 per VRAM bank, 2 banks)
+    const u16 TILES_PER_BANK = 384;
+    const u16 TOTAL_TILES = m_gbcMode ? (TILES_PER_BANK * 2) : TILES_PER_BANK;
+    const u8 TILES_PER_LINE = 32;
+    const u8 TILE_SIZE = 8;
+    const u8 TILES_HEIGHT = (TOTAL_TILES + TILES_PER_LINE - 1) / TILES_PER_LINE; // Ceiling division
+    
+    const u32 IMAGE_WIDTH = TILES_PER_LINE * TILE_SIZE;  // 256 pixels
+    const u32 IMAGE_HEIGHT = TILES_HEIGHT * TILE_SIZE;   // 96 pixels (DMG) or 192 pixels (GBC)
+    
+    // Calculate row padding (BMP requires rows to be aligned to 4-byte boundary)
+    const u32 BYTES_PER_PIXEL = 3; // BGR
+    const u32 ROW_SIZE = ((IMAGE_WIDTH * BYTES_PER_PIXEL + 3) / 4) * 4; // Aligned to 4 bytes
+    const u32 PADDING = ROW_SIZE - (IMAGE_WIDTH * BYTES_PER_PIXEL);
+    
+    // File size calculation
+    const u32 FILE_HEADER_SIZE = 14;
+    const u32 DIB_HEADER_SIZE = 40;
+    const u32 DATA_SIZE = ROW_SIZE * IMAGE_HEIGHT;
+    const u32 FILE_SIZE = FILE_HEADER_SIZE + DIB_HEADER_SIZE + DATA_SIZE;
+    
+    std::ofstream file(filename, std::ios::binary);
+    if (!file.is_open()) {
+        return false;
+    }
+    
+    // BMP File Header (14 bytes)
+    u8 fileHeader[14] = {
+        'B', 'M',           // Signature
+        0, 0, 0, 0,         // File size (filled below)
+        0, 0,               // Reserved
+        0, 0,               // Reserved
+        FILE_HEADER_SIZE + DIB_HEADER_SIZE, 0, 0, 0  // Offset to pixel data
+    };
+    
+    // Fill in file size
+    fileHeader[2] = FILE_SIZE & 0xFF;
+    fileHeader[3] = (FILE_SIZE >> 8) & 0xFF;
+    fileHeader[4] = (FILE_SIZE >> 16) & 0xFF;
+    fileHeader[5] = (FILE_SIZE >> 24) & 0xFF;
+    
+    file.write(reinterpret_cast<const char*>(fileHeader), 14);
+    
+    // DIB Header (BITMAPINFOHEADER - 40 bytes)
+    u8 dibHeader[40] = {
+        40, 0, 0, 0,        // DIB header size
+        0, 0, 0, 0,         // Image width (filled below)
+        0, 0, 0, 0,         // Image height (filled below)
+        1, 0,               // Color planes
+        24, 0,              // Bits per pixel
+        0, 0, 0, 0,         // Compression (0 = none)
+        0, 0, 0, 0,         // Image size (0 for uncompressed)
+        0, 0, 0, 0,         // X pixels per meter
+        0, 0, 0, 0,         // Y pixels per meter
+        0, 0, 0, 0,         // Colors in color table
+        0, 0, 0, 0          // Important colors
+    };
+    
+    // Fill in width
+    dibHeader[4] = IMAGE_WIDTH & 0xFF;
+    dibHeader[5] = (IMAGE_WIDTH >> 8) & 0xFF;
+    dibHeader[6] = (IMAGE_WIDTH >> 16) & 0xFF;
+    dibHeader[7] = (IMAGE_WIDTH >> 24) & 0xFF;
+    
+    // Fill in height (positive = bottom-up)
+    dibHeader[8] = IMAGE_HEIGHT & 0xFF;
+    dibHeader[9] = (IMAGE_HEIGHT >> 8) & 0xFF;
+    dibHeader[10] = (IMAGE_HEIGHT >> 16) & 0xFF;
+    dibHeader[11] = (IMAGE_HEIGHT >> 24) & 0xFF;
+    
+    file.write(reinterpret_cast<const char*>(dibHeader), 40);
+    
+    // Use background palette for rendering tiles
+    u8 palette = m_bgp;
+    
+    // Render tiles (BMP is stored bottom-to-top, so we render from bottom row)
+    for (u32 tileRow = TILES_HEIGHT; tileRow > 0; tileRow--) {
+        for (u32 pixelY = TILE_SIZE; pixelY > 0; pixelY--) {
+            for (u32 tileCol = 0; tileCol < TILES_PER_LINE; tileCol++) {
+                u16 tileIndex = (tileRow - 1) * TILES_PER_LINE + tileCol;
+                
+                if (tileIndex >= TOTAL_TILES) {
+                    // Empty tiles - fill with white
+                    for (u32 x = 0; x < TILE_SIZE; x++) {
+                        u8 padding[3] = {0xFF, 0xFF, 0xFF}; // White in BGR
+                        file.write(reinterpret_cast<const char*>(padding), 3);
+                    }
+                    continue;
+                }
+                
+                // Determine tile data address and VRAM bank
+                // Game Boy tile addressing:
+                // - Unsigned mode (bit 4 of LCDC): tiles 0-255 at VRAM 0x0000-0x0FFF
+                // - Signed mode: tiles -128 to 127, base at 0x1000
+                //   This maps to VRAM 0x0800-0x17FF
+                // For DMG: tiles 0-383 from bank 0 (0x0000-0x1FFF)
+                // For GBC: tiles 0-383 from bank 0, tiles 384-767 from bank 1 (0x2000-0x3FFF)
+                u16 tileDataAddr;
+                u16 vramOffset = 0;
+                
+                if (m_gbcMode && tileIndex >= TILES_PER_BANK) {
+                    // GBC: Tiles 384-767 are in VRAM bank 1
+                    u16 bankTileIndex = tileIndex - TILES_PER_BANK;
+                    vramOffset = 0x2000; // Bank 1 offset
+                    
+                    tileDataAddr = bankTileIndex * 16;
+                } else {
+                    tileDataAddr = tileIndex * 16;
+                }
+                
+                // Ensure we don't go out of bounds
+                u16 totalOffset = vramOffset + tileDataAddr;
+                if (totalOffset >= 0x4000) {
+                    // Fill with white if out of bounds
+                    for (u32 x = 0; x < TILE_SIZE; x++) {
+                        u8 pixel[3] = {0xFF, 0xFF, 0xFF}; // White in BGR
+                        file.write(reinterpret_cast<const char*>(pixel), 3);
+                    }
+                    continue;
+                }
+                
+                // Read tile data for this row (2 bytes per row)
+                // pixelY is now 1-8 (reversed), so convert to 0-7 for VRAM addressing
+                u16 tileLineAddr = totalOffset + (pixelY - 1) * 2;
+                u8 byte1 = m_vram[tileLineAddr];
+                u8 byte2 = m_vram[tileLineAddr + 1];
+                
+                // Render 8 pixels in this row
+                for (u32 pixelX = 0; pixelX < TILE_SIZE; pixelX++) {
+                    u8 bit = 7 - pixelX; // MSB first
+                    u8 colorId = ((byte2 >> bit) & 1) << 1 | ((byte1 >> bit) & 1);
+                    
+                    u32 color;
+                    if (m_gbcMode) {
+                        // Use default background palette 0 for GBC
+                        color = getGBCColor(0, colorId, false);
+                    } else {
+                        color = getColor(colorId, palette);
+                    }
+                    
+                    // Convert ARGB to BGR (BMP format)
+                    u8 r = (color >> 16) & 0xFF;  // Extract R from ARGB
+                    u8 g = (color >> 8) & 0xFF;   // Extract G from ARGB
+                    u8 b = color & 0xFF;          // Extract B from ARGB
+                    
+                    u8 pixel[3] = {b, g, r}; // BGR order for BMP
+                    file.write(reinterpret_cast<const char*>(pixel), 3);
+                }
+            }
+            
+            // Add row padding if needed
+            if (PADDING > 0) {
+                u8 padding[3] = {0, 0, 0};
+                file.write(reinterpret_cast<const char*>(padding), PADDING);
+            }
+        }
+    }
+    
+    file.close();
+    return true;
+}
+

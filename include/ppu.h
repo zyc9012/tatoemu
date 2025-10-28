@@ -3,6 +3,7 @@
 #include "types.h"
 #include <array>
 #include <fstream>
+#include <string>
 
 class MMU;
 class CPU;
@@ -40,6 +41,9 @@ public:
     const u32* getFramebuffer() const { return m_framebuffer.data(); }
     bool isFrameReady() const { return m_frameReady; }
     void clearFrameReady() { m_frameReady = false; }
+    
+    // Debug functions
+    bool dumpTilesToBMP(const std::string& filename) const;
     
     // Save/Load state
     void saveState(std::ofstream& file) const;

@@ -11,6 +11,9 @@ int main(int argc, char* argv[]) {
         std::cout << "  X           - B Button" << std::endl;
         std::cout << "  Enter       - Start" << std::endl;
         std::cout << "  Shift       - Select" << std::endl;
+        std::cout << "  F5          - Save State" << std::endl;
+        std::cout << "  F6          - Dump Tiles to BMP" << std::endl;
+        std::cout << "  F9          - Load State" << std::endl;
         std::cout << "  ESC         - Quit" << std::endl;
         return 1;
     }

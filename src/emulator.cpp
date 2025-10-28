@@ -240,6 +240,16 @@ void Emulator::handleInput() {
                             std::cout << "State loaded from " << saveFilename << std::endl;
                         }
                         break;
+                    case SDLK_F6: // Dump tiles to BMP
+                        {
+                            std::string bmpFilename = "tiles_dump.bmp";
+                            if (m_ppu->dumpTilesToBMP(bmpFilename)) {
+                                std::cout << "Tiles dumped to " << bmpFilename << std::endl;
+                            } else {
+                                std::cerr << "Failed to dump tiles to " << bmpFilename << std::endl;
+                            }
+                        }
+                        break;
                 }
                 break;
         }
