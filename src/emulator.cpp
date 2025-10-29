@@ -155,10 +155,10 @@ void Emulator::run() {
             // Dynamically adjust emulation speed based on audio buffer level
             if (queuedAudio < m_minAudioBufferSize) {
                 // Buffer is running low - speed up slightly to catch up
-                m_emulationSpeed = 1.005;
+                m_emulationSpeed = 1.05;
             } else if (queuedAudio > m_maxAudioBufferSize) {
                 // Buffer is too full - slow down slightly
-                m_emulationSpeed = 0.995;
+                m_emulationSpeed = 0.95;
             } else {
                 // Buffer is in good range - normalize speed gradually
                 if (m_emulationSpeed > 1.0) {
