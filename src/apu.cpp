@@ -144,47 +144,49 @@ void APU::step(u32 cycles) {
     }
     
     // Update all channel frequency counters at CPU clock speed
-    // Note: Game Boy APU uses a timing factor of 2 for DMG, so periods are doubled
+    // In double speed mode, CPU cycles come in at 2x rate, so we need to apply
+    // a speed multiplier to periods to maintain the same real-time audio frequency
+    u32 speedMultiplier = (m_mmu && m_mmu->isDoubleSpeed()) ? 2 : 1;
+    
     for (u32 i = 0; i < cycles; i++) {
         // Channel 1 - Square with sweep
-        // Period = (2048 - frequency) * 4 * timingFactor(2) = (2048 - frequency) * 8
+        // Period = (2048 - frequency) * 4 * speedMultiplier CPU cycles
         if (m_channel1.enabled) {
             m_channel1.frequencyCounter++;
-            if (m_channel1.frequencyCounter >= (2048 - m_channel1.frequency) * 8) {
+            if (m_channel1.frequencyCounter >= (2048 - m_channel1.frequency) * 4 * speedMultiplier) {
                 m_channel1.frequencyCounter = 0;
                 m_channel1.dutyPosition = (m_channel1.dutyPosition + 1) % 8;
             }
         }
         
         // Channel 2 - Square
-        // Period = (2048 - frequency) * 4 * timingFactor(2) = (2048 - frequency) * 8
+        // Period = (2048 - frequency) * 4 * speedMultiplier CPU cycles
         if (m_channel2.enabled) {
             m_channel2.frequencyCounter++;
-            if (m_channel2.frequencyCounter >= (2048 - m_channel2.frequency) * 8) {
+            if (m_channel2.frequencyCounter >= (2048 - m_channel2.frequency) * 4 * speedMultiplier) {
                 m_channel2.frequencyCounter = 0;
                 m_channel2.dutyPosition = (m_channel2.dutyPosition + 1) % 8;
             }
         }
         
         // Channel 3 - Wave
-        // Period = (2048 - frequency) * 2 * timingFactor(2) = (2048 - frequency) * 4
+        // Period = (2048 - frequency) * 2 * speedMultiplier CPU cycles
         if (m_channel3.enabled && (m_channel3.onOff & 0x80)) {
             m_channel3.frequencyCounter++;
-            if (m_channel3.frequencyCounter >= (2048 - m_channel3.frequency) * 4) {
+            if (m_channel3.frequencyCounter >= (2048 - m_channel3.frequency) * 2 * speedMultiplier) {
                 m_channel3.frequencyCounter = 0;
                 m_channel3.wavePosition = (m_channel3.wavePosition + 1) % 32;
             }
         }
         
         // Channel 4 - Noise
-        // Period = (divisor ? 2*divisor : 1) << shift * 8 * timingFactor(2)
-        // Simplifies to: (divisor ? divisor*2 : 1) << shift * 16
+        // Period = (divisor ? divisor*8 : 4) << shift * speedMultiplier CPU cycles
         if (m_channel4.enabled) {
             u8 divisor = m_channel4.polynomial & 0x07;
             u8 shift = (m_channel4.polynomial >> 4) & 0x0F;
-            // Doubled from previous values to account for timingFactor of 2
-            u16 divisorCode = divisor == 0 ? 16 : divisor * 32;
-            u16 period = divisorCode << shift;
+            // Standard Game Boy formula: divisor code is 8 if divisor==0, else divisor*16
+            u16 divisorCode = divisor == 0 ? 8 : divisor * 16;
+            u16 period = (divisorCode << shift) * speedMultiplier;
             
             m_channel4.clockCounter++;
             if (m_channel4.clockCounter >= period) {
@@ -206,7 +208,6 @@ void APU::step(u32 cycles) {
     
     // Frame sequencer runs at 512 Hz (every 8192 cycles in normal speed)
     // In double speed mode, this threshold doubles to maintain real-time rate
-    u32 speedMultiplier = (m_mmu && m_mmu->isDoubleSpeed()) ? 2 : 1;
     m_frameSequencerCounter += cycles;
     u32 frameSequencerThreshold = 8192 * speedMultiplier;
     while (m_frameSequencerCounter >= frameSequencerThreshold) {
