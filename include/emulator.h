@@ -33,6 +33,7 @@ private:
     void handleInput();
     void update();
     void render();
+    void updateWindowStats();
 
     // SDL components
     SDL_Window* m_window;
@@ -55,8 +56,17 @@ private:
     u64 m_lastFrameTime;
     const double m_targetFrameTime = 1000.0 / TARGET_FPS;
 
-    // Target audio buffer size (in bytes) - about 3 frames worth
-    const int m_targetAudioBufferSize = (APU::SAMPLE_RATE * 2 * sizeof(float) / TARGET_FPS) * 3;
+    // Audio-driven synchronization
+    // Audio buffer thresholds: maintain 1.5-4 frames worth of audio for smooth playback
+    const int m_minAudioBufferSize = (APU::SAMPLE_RATE * 2 * sizeof(float) / static_cast<int>(TARGET_FPS)) * 1.5;
+    const int m_maxAudioBufferSize = (APU::SAMPLE_RATE * 2 * sizeof(float) / static_cast<int>(TARGET_FPS)) * 4;
+    
+    // Speed adjustment for audio sync (1.0 = normal speed)
+    double m_emulationSpeed;
+    
+    // Statistics for debugging (optional)
+    u64 m_statsTimer;
+    u64 m_frameCount;
     
     std::string m_currentROMPath;
 };

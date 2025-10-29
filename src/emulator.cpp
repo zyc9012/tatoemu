@@ -9,7 +9,10 @@ Emulator::Emulator()
     , m_texture(nullptr)
     , m_running(false)
     , m_cyclesThisFrame(0)
-    , m_lastFrameTime(0) {
+    , m_lastFrameTime(0)
+    , m_emulationSpeed(1.0)
+    , m_statsTimer(0)
+    , m_frameCount(0) {
 }
 
 Emulator::~Emulator() {
@@ -43,7 +46,8 @@ bool Emulator::initialize() {
         return false;
     }
 
-    SDL_SetRenderVSync(m_renderer, 1);
+    // Disable VSync - we'll sync to audio instead for better compatibility
+    SDL_SetRenderVSync(m_renderer, 0);
 
     // Create texture for framebuffer
     m_texture = SDL_CreateTexture(
@@ -105,11 +109,7 @@ bool Emulator::loadROM(const std::string& filename) {
     m_ppu->setGBCMode(isGBC);
     m_mmu->setGBCMode(isGBC);
     
-    if (isGBC) {
-        SDL_SetWindowTitle(m_window, ("GameBoy Color - " + m_cartridge->getTitle()).c_str());
-    } else {
-        SDL_SetWindowTitle(m_window, ("GameBoy - " + m_cartridge->getTitle()).c_str());
-    }
+    SDL_SetWindowTitle(m_window, m_cartridge->getTitle().c_str());
 
     // Reset CPU after loading ROM
     m_cpu->reset();
@@ -124,37 +124,73 @@ void Emulator::run() {
     m_running = true;
     m_cyclesThisFrame = 0;
     m_lastFrameTime = SDL_GetTicks();
+    m_emulationSpeed = 1.0;
+    m_statsTimer = SDL_GetTicks();
+    m_frameCount = 0;
     
     while (m_running) {
         handleInput();
         update();
         render();
         
-        double frameTime = SDL_GetTicks() - m_lastFrameTime;
+        u64 currentTime = SDL_GetTicks();
+        double frameTime = currentTime - m_lastFrameTime;
         
-        // Detect if we've been paused (e.g., window dragging)
-        if (frameTime > m_targetFrameTime * 2.0) {
-            // Clear audio buffer to prevent desync
+        // Detect if we've been paused (e.g., window dragging, debugging)
+        if (frameTime > m_targetFrameTime * 3.0) {
+            // Clear audio buffer to prevent audio "explosion" after pause
             if (m_apu) {
                 m_apu->clearAudioBuffer();
             }
-            m_lastFrameTime = SDL_GetTicks();
-        // Frame rate limiting based on target time
-        } else if (frameTime < m_targetFrameTime) {
-            double remaining = m_targetFrameTime - frameTime;
-            if (remaining > 0) {
-                SDL_Delay(static_cast<u32>(remaining));
-            }
-            if (m_apu) {
-                int queuedAudio = m_apu->getQueuedAudioSize();
-                if (queuedAudio > m_targetAudioBufferSize) {
-                    // Audio buffer is too full, we're running too fast
-                    SDL_Delay(2);
+            m_lastFrameTime = currentTime;
+            m_emulationSpeed = 1.0;
+            m_statsTimer = currentTime;  // Reset stats timer
+            continue;
+        }
+        
+        // Audio-driven synchronization
+        if (m_apu) {
+            int queuedAudio = m_apu->getQueuedAudioSize();
+            
+            // Dynamically adjust emulation speed based on audio buffer level
+            if (queuedAudio < m_minAudioBufferSize) {
+                // Buffer is running low - speed up slightly to catch up
+                m_emulationSpeed = 1.005;
+            } else if (queuedAudio > m_maxAudioBufferSize) {
+                // Buffer is too full - slow down slightly
+                m_emulationSpeed = 0.995;
+            } else {
+                // Buffer is in good range - normalize speed gradually
+                if (m_emulationSpeed > 1.0) {
+                    m_emulationSpeed = 1.0 + (m_emulationSpeed - 1.0) * 0.95;
+                } else if (m_emulationSpeed < 1.0) {
+                    m_emulationSpeed = 1.0 - (1.0 - m_emulationSpeed) * 0.95;
                 }
             }
-            
-            m_lastFrameTime = SDL_GetTicks();
         }
+        
+        // Calculate target frame time adjusted for emulation speed
+        double adjustedFrameTime = m_targetFrameTime / m_emulationSpeed;
+        
+        // Frame rate limiting with adaptive timing
+        if (frameTime < adjustedFrameTime) {
+            double remaining = adjustedFrameTime - frameTime;
+            if (remaining > 1.0) {
+                // Use high-precision delay for longer waits
+                SDL_Delay(static_cast<u32>(remaining));
+            } else if (remaining > 0.0) {
+                // // Busy-wait for sub-millisecond precision
+                // while ((SDL_GetTicks() - currentTime) < adjustedFrameTime) {
+                //     // Spin
+                // }
+            }
+        }
+        
+        m_lastFrameTime = SDL_GetTicks();
+        m_frameCount++;
+        
+        // Update window title with real-time stats
+        updateWindowStats();
     }
 }
 
@@ -372,5 +408,44 @@ void Emulator::loadState(const std::string& filename) {
     file.read(reinterpret_cast<char*>(&m_cyclesThisFrame), sizeof(m_cyclesThisFrame));
     
     file.close();
+}
+
+void Emulator::updateWindowStats() {
+    u64 currentTime = SDL_GetTicks();
+    u64 elapsed = currentTime - m_statsTimer;
+    
+    // Update window title every second with real-time stats
+    if (elapsed >= 1000) {
+        double actualFPS = (m_frameCount * 1000.0) / elapsed;
+        int queuedAudio = m_apu ? m_apu->getQueuedAudioSize() : 0;
+        
+        // Calculate buffer percentage (0-100%)
+        int bufferRange = m_maxAudioBufferSize - m_minAudioBufferSize;
+        int bufferPosition = queuedAudio - m_minAudioBufferSize;
+        int bufferPercent = (bufferPosition * 100) / bufferRange;
+        
+        // Clamp to 0-100%
+        if (bufferPercent < 0) bufferPercent = 0;
+        if (bufferPercent > 100) bufferPercent = 100;
+        
+        // Build title with ROM name and stats
+        std::string title = m_cartridge->getTitle() + " - ";
+        
+        // Add stats: FPS, Speed, Audio Buffer
+        char stats[128];
+        snprintf(stats, sizeof(stats), "%.1f FPS | Speed: %.1f%% | Audio: %d%%",
+                 actualFPS, 
+                 m_emulationSpeed * 100.0,
+                 bufferPercent);
+        
+        title += stats;
+        
+        // Update window title
+        SDL_SetWindowTitle(m_window, title.c_str());
+        
+        // Reset counters
+        m_statsTimer = currentTime;
+        m_frameCount = 0;
+    }
 }
 
