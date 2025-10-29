@@ -71,6 +71,18 @@ void MMU::setGBCMode(bool enabled) {
     }
 }
 
+void MMU::performSpeedSwitch() {
+    if (!m_gbcMode) {
+        return;
+    }
+    
+    // Only perform switch if bit 0 of KEY1 is set
+    if (m_speedSwitch & 0x01) {
+        m_doubleSpeed = !m_doubleSpeed;
+        m_speedSwitch = 0; // Clear the prepare bit
+    }
+}
+
 u8 MMU::read(u16 address) const {
     // ROM (0x0000 - 0x7FFF) and Cartridge RAM (0xA000 - 0xBFFF)
     if (address < 0x8000 || (address >= 0xA000 && address < 0xC000)) {
@@ -233,9 +245,12 @@ u8 MMU::readIO(u16 address) const {
         case 0xFF4A: // WY
         case 0xFF4B: // WX
             return m_ppu ? m_ppu->readRegister(address) : 0xFF;
-        // GBC Speed switch
+        // GBC Speed switch (KEY1)
         case 0xFF4D:
-            return m_speedSwitch | (m_doubleSpeed ? 0x80 : 0x00);
+            // Bit 7: Current Speed (0=Normal, 1=Double) (Read Only)
+            // Bit 0: Prepare Speed Switch (Read/Write)
+            // Bits 1-6: Always 1 (unused)
+            return 0x7E | m_speedSwitch | (m_doubleSpeed ? 0x80 : 0x00);
         // GBC VRAM bank
         case 0xFF4F:
         // GBC HDMA registers

@@ -30,6 +30,10 @@ public:
     u8 readIO(u16 address) const;
     void writeIO(u16 address, u8 value);
     
+    // GBC speed switching
+    void performSpeedSwitch();
+    bool isDoubleSpeed() const { return m_doubleSpeed; }
+    
     // Save/Load state
     void saveState(std::ofstream& file) const;
     void loadState(std::ifstream& file);

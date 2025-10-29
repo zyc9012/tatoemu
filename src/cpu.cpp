@@ -390,7 +390,15 @@ void CPU::executeInstruction(u8 opcode) {
         }
         
         // STOP
-        case 0x10: fetch8(); break; // STOP 0
+        case 0x10:
+            fetch8(); // STOP takes a 0x00 byte after it
+            if (m_gbcMode && m_mmu) {
+                // In GBC mode, STOP is used for speed switching
+                m_mmu->performSpeedSwitch();
+            }
+            // In DMG mode or if not switching speed, STOP halts until button press
+            // For simplicity, we just continue execution
+            break;
         
         // JR n
         case 0x18: {
