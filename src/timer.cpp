@@ -1,8 +1,10 @@
 #include "timer.h"
 #include "cpu.h"
+#include "mmu.h"
 
 Timer::Timer()
     : m_cpu(nullptr)
+    , m_mmu(nullptr)
     , m_dividerCounter(0)
     , m_div(0)
     , m_tima(0)
@@ -18,6 +20,10 @@ Timer::~Timer() {
 
 void Timer::setCPU(CPU* cpu) {
     m_cpu = cpu;
+}
+
+void Timer::setMMU(MMU* mmu) {
+    m_mmu = mmu;
 }
 
 void Timer::reset() {
@@ -58,11 +64,14 @@ void Timer::step(u32 cycles) {
 
 void Timer::updateDivider(u32 cycles) {
     // DIV register increments at 16384 Hz (CPU clock / 256)
+    // In double speed mode, the threshold is doubled since CPU runs 2x faster
+    // but DIV should increment at the same real-time rate
+    u32 threshold = 256 * getSpeedMultiplier();
     m_dividerCounter += cycles;
     
-    // Update DIV register for every 256 cycles
-    while (m_dividerCounter >= 256) {
-        m_dividerCounter -= 256;
+    // Update DIV register for every threshold cycles
+    while (m_dividerCounter >= threshold) {
+        m_dividerCounter -= threshold;
         m_div++;
     }
 }
@@ -70,7 +79,7 @@ void Timer::updateDivider(u32 cycles) {
 void Timer::updateTimer(u32 cycles) {
     m_timerCounter += cycles;
     
-    u32 frequency = getTimerFrequency();
+    u32 frequency = getTimerFrequency() * getSpeedMultiplier();
     
     while (m_timerCounter >= frequency) {
         m_timerCounter -= frequency;
@@ -80,7 +89,8 @@ void Timer::updateTimer(u32 cycles) {
             // Overflow will occur
             m_tima = 0;
             m_timerOverflow = true;
-            m_overflowDelay = 4; // Interrupt fires after 4 M-cycles (16 T-cycles)
+            // Interrupt fires after 4 M-cycles, adjusted for speed
+            m_overflowDelay = 4 * getSpeedMultiplier();
         } else {
             m_tima++;
         }
@@ -96,6 +106,23 @@ u32 Timer::getTimerFrequency() const {
         case 0x03: return 256;  // CPU Clock / 256 (16384 Hz)
         default: return 1024;
     }
+}
+
+u32 Timer::getSpeedMultiplier() const {
+    // Our timer periods (e.g., 256 cycles for DIV) are defined for normal speed (4.194 MHz).
+    // In double speed mode (8.388 MHz), the CPU runs 2x faster, so to maintain the same
+    // real-time rate for timer events, we need to double the cycle thresholds.
+    // 
+    // Example: DIV increments at 16384 Hz (fixed real-time rate)
+    // - Normal speed: Every 256 CPU cycles (4194304 / 16384 = 256)
+    // - Double speed: Every 512 CPU cycles (8388608 / 16384 = 512)
+    //
+    // Normal speed: multiplier = 1 (use base periods as-is)
+    // Double speed: multiplier = 2 (double all periods)
+    if (m_mmu && m_mmu->isDoubleSpeed()) {
+        return 2;
+    }
+    return 1;
 }
 
 u8 Timer::read(u16 address) const {

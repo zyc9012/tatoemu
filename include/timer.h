@@ -4,6 +4,7 @@
 #include <fstream>
 
 class CPU;
+class MMU;
 
 class Timer {
 public:
@@ -11,6 +12,7 @@ public:
     ~Timer();
 
     void setCPU(CPU* cpu);
+    void setMMU(MMU* mmu);
     void reset();
     void step(u32 cycles);
     
@@ -25,8 +27,10 @@ private:
     void updateDivider(u32 cycles);
     void updateTimer(u32 cycles);
     u32 getTimerFrequency() const;
+    u32 getSpeedMultiplier() const;
 
     CPU* m_cpu;
+    MMU* m_mmu;
     
     // Timer registers
     u16 m_dividerCounter;  // Internal counter for DIV register

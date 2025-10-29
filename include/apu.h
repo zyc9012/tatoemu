@@ -6,6 +6,7 @@
 #include <fstream>
 
 class CPU;
+class MMU;
 
 // APU manages the 4 sound channels of the Game Boy
 class APU {
@@ -16,6 +17,7 @@ public:
     static constexpr int SAMPLE_RATE = 44100;
 
     void setCPU(CPU* cpu);
+    void setMMU(MMU* mmu);
     void reset();
     void step(u32 cycles);
     
@@ -132,6 +134,7 @@ private:
     // Audio
     SDL_AudioStream* m_audioStream;
     CPU* m_cpu;
+    MMU* m_mmu;
     
     static constexpr int BUFFER_SIZE = 2048;
     

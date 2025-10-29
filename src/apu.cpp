@@ -1,5 +1,6 @@
 #include "apu.h"
 #include "cpu.h"
+#include "mmu.h"
 #include <cstring>
 #include <cmath>
 #include <iostream>
@@ -12,7 +13,8 @@ APU::APU()
     , m_frameSequencer(0)
     , m_sampleCounter(0)
     , m_audioStream(nullptr)
-    , m_cpu(nullptr) {
+    , m_cpu(nullptr)
+    , m_mmu(nullptr) {
     reset();
 }
 
@@ -51,6 +53,10 @@ void APU::loadState(std::ifstream& file) {
 
 void APU::setCPU(CPU* cpu) {
     m_cpu = cpu;
+}
+
+void APU::setMMU(MMU* mmu) {
+    m_mmu = mmu;
 }
 
 void APU::reset() {
@@ -138,39 +144,46 @@ void APU::step(u32 cycles) {
     }
     
     // Update all channel frequency counters at CPU clock speed
+    // Note: Game Boy APU uses a timing factor of 2 for DMG, so periods are doubled
     for (u32 i = 0; i < cycles; i++) {
         // Channel 1 - Square with sweep
+        // Period = (2048 - frequency) * 4 * timingFactor(2) = (2048 - frequency) * 8
         if (m_channel1.enabled) {
             m_channel1.frequencyCounter++;
-            if (m_channel1.frequencyCounter >= (2048 - m_channel1.frequency) * 4) {
+            if (m_channel1.frequencyCounter >= (2048 - m_channel1.frequency) * 8) {
                 m_channel1.frequencyCounter = 0;
                 m_channel1.dutyPosition = (m_channel1.dutyPosition + 1) % 8;
             }
         }
         
         // Channel 2 - Square
+        // Period = (2048 - frequency) * 4 * timingFactor(2) = (2048 - frequency) * 8
         if (m_channel2.enabled) {
             m_channel2.frequencyCounter++;
-            if (m_channel2.frequencyCounter >= (2048 - m_channel2.frequency) * 4) {
+            if (m_channel2.frequencyCounter >= (2048 - m_channel2.frequency) * 8) {
                 m_channel2.frequencyCounter = 0;
                 m_channel2.dutyPosition = (m_channel2.dutyPosition + 1) % 8;
             }
         }
         
         // Channel 3 - Wave
+        // Period = (2048 - frequency) * 2 * timingFactor(2) = (2048 - frequency) * 4
         if (m_channel3.enabled && (m_channel3.onOff & 0x80)) {
             m_channel3.frequencyCounter++;
-            if (m_channel3.frequencyCounter >= (2048 - m_channel3.frequency) * 2) {
+            if (m_channel3.frequencyCounter >= (2048 - m_channel3.frequency) * 4) {
                 m_channel3.frequencyCounter = 0;
                 m_channel3.wavePosition = (m_channel3.wavePosition + 1) % 32;
             }
         }
         
         // Channel 4 - Noise
+        // Period = (divisor ? 2*divisor : 1) << shift * 8 * timingFactor(2)
+        // Simplifies to: (divisor ? divisor*2 : 1) << shift * 16
         if (m_channel4.enabled) {
             u8 divisor = m_channel4.polynomial & 0x07;
             u8 shift = (m_channel4.polynomial >> 4) & 0x0F;
-            u16 divisorCode = divisor == 0 ? 8 : divisor * 16;
+            // Doubled from previous values to account for timingFactor of 2
+            u16 divisorCode = divisor == 0 ? 16 : divisor * 32;
             u16 period = divisorCode << shift;
             
             m_channel4.clockCounter++;
@@ -191,19 +204,24 @@ void APU::step(u32 cycles) {
         }
     }
     
-    // Frame sequencer runs at 512 Hz (every 8192 cycles)
+    // Frame sequencer runs at 512 Hz (every 8192 cycles in normal speed)
+    // In double speed mode, this threshold doubles to maintain real-time rate
+    u32 speedMultiplier = (m_mmu && m_mmu->isDoubleSpeed()) ? 2 : 1;
     m_frameSequencerCounter += cycles;
-    while (m_frameSequencerCounter >= 8192) {
-        m_frameSequencerCounter -= 8192;
+    u32 frameSequencerThreshold = 8192 * speedMultiplier;
+    while (m_frameSequencerCounter >= frameSequencerThreshold) {
+        m_frameSequencerCounter -= frameSequencerThreshold;
         tickFrameSequencer();
     }
     
     // Generate audio samples at the appropriate rate
-    // Game Boy CPU runs at ~4.194 MHz, we want 44.1 kHz samples
-    // So we generate a sample approximately every 95 cycles
+    // Game Boy CPU runs at ~4.194 MHz (or 8.388 MHz in double speed), we want 44.1 kHz samples
+    // In normal speed: ~95 cycles per sample
+    // In double speed: ~190 cycles per sample (to maintain same real-time sample rate)
     m_sampleCounter += cycles;
     
-    const u32 cyclesPerSample = CLOCK_SPEED / SAMPLE_RATE;  // ~95 cycles
+    u32 clockSpeed = (m_mmu && m_mmu->isDoubleSpeed()) ? CLOCK_SPEED_DOUBLE : CLOCK_SPEED;
+    const u32 cyclesPerSample = clockSpeed / SAMPLE_RATE;
     
     while (m_sampleCounter >= cyclesPerSample) {
         m_sampleCounter -= cyclesPerSample;
@@ -308,53 +326,72 @@ void APU::tickLengthCounters() {
 
 void APU::tickVolumeEnvelopes() {
     // Channel 1
-    if (m_channel1.envelopePeriod > 0) {
+    if (m_channel1.envelopePeriod > 0 && m_channel1.enabled) {
         if (m_channel1.envelopeCounter > 0) {
             m_channel1.envelopeCounter--;
         }
         if (m_channel1.envelopeCounter == 0) {
             m_channel1.envelopeCounter = m_channel1.envelopePeriod;
-            if (m_channel1.envelopeIncrease && m_channel1.volume < 15) {
-                m_channel1.volume++;
-            } else if (!m_channel1.envelopeIncrease && m_channel1.volume > 0) {
-                m_channel1.volume--;
+            
+            if (m_channel1.envelopeIncrease) {
+                if (m_channel1.volume < 15) {
+                    m_channel1.volume++;
+                }
+            } else {
+                if (m_channel1.volume > 0) {
+                    m_channel1.volume--;
+                }
             }
         }
     }
     
     // Channel 2
-    if (m_channel2.envelopePeriod > 0) {
+    if (m_channel2.envelopePeriod > 0 && m_channel2.enabled) {
         if (m_channel2.envelopeCounter > 0) {
             m_channel2.envelopeCounter--;
         }
         if (m_channel2.envelopeCounter == 0) {
             m_channel2.envelopeCounter = m_channel2.envelopePeriod;
-            if (m_channel2.envelopeIncrease && m_channel2.volume < 15) {
-                m_channel2.volume++;
-            } else if (!m_channel2.envelopeIncrease && m_channel2.volume > 0) {
-                m_channel2.volume--;
+            
+            if (m_channel2.envelopeIncrease) {
+                if (m_channel2.volume < 15) {
+                    m_channel2.volume++;
+                }
+            } else {
+                if (m_channel2.volume > 0) {
+                    m_channel2.volume--;
+                }
             }
         }
     }
     
     // Channel 4
-    if (m_channel4.envelopePeriod > 0) {
+    if (m_channel4.envelopePeriod > 0 && m_channel4.enabled) {
         if (m_channel4.envelopeCounter > 0) {
             m_channel4.envelopeCounter--;
         }
         if (m_channel4.envelopeCounter == 0) {
             m_channel4.envelopeCounter = m_channel4.envelopePeriod;
-            if (m_channel4.envelopeIncrease && m_channel4.volume < 15) {
-                m_channel4.volume++;
-            } else if (!m_channel4.envelopeIncrease && m_channel4.volume > 0) {
-                m_channel4.volume--;
+            
+            if (m_channel4.envelopeIncrease) {
+                if (m_channel4.volume < 15) {
+                    m_channel4.volume++;
+                }
+            } else {
+                if (m_channel4.volume > 0) {
+                    m_channel4.volume--;
+                }
             }
         }
     }
 }
 
 void APU::tickSweep() {
-    if (m_channel1.sweepPeriod > 0) {
+    // Sweep only ticks if enabled
+    if (!m_channel1.enabled) return;
+    
+    // Check if sweep should tick (period != 8 means sweep is enabled)
+    if (m_channel1.sweepPeriod != 8) {
         if (m_channel1.sweepCounter > 0) {
             m_channel1.sweepCounter--;
         }
@@ -365,20 +402,31 @@ void APU::tickSweep() {
                 u16 delta = m_channel1.frequency >> m_channel1.sweepShift;
                 u16 newFreq;
                 
+                // sweepIncrease is inverted: false = add (increase), true = subtract (decrease)
                 if (m_channel1.sweepIncrease) {
+                    // Subtract (decrease frequency)
+                    if (delta > m_channel1.frequency) {
+                        newFreq = 0;
+                    } else {
+                        newFreq = m_channel1.frequency - delta;
+                    }
+                    m_channel1.frequency = newFreq;
+                } else {
+                    // Add (increase frequency)
                     newFreq = m_channel1.frequency + delta;
                     if (newFreq > 2047) {
+                        // Overflow - disable channel
                         m_channel1.enabled = false;
                         m_nr52 &= ~0x01;
-                    } else {
-                        m_channel1.frequency = newFreq;
+                        return;
                     }
-                } else {
-                    if (delta > m_channel1.frequency) {
+                    m_channel1.frequency = newFreq;
+                    
+                    // Perform overflow check again after writing
+                    u16 checkFreq = m_channel1.frequency + (m_channel1.frequency >> m_channel1.sweepShift);
+                    if (checkFreq > 2047) {
                         m_channel1.enabled = false;
                         m_nr52 &= ~0x01;
-                    } else {
-                        m_channel1.frequency = m_channel1.frequency - delta;
                     }
                 }
             }
@@ -429,13 +477,19 @@ float APU::getChannel3Sample() {
         sample = sample & 0x0F;
     }
     
-    // Apply output level
-    u8 shift = (m_channel3.outputLevel >> 5) & 0x03;
-    if (shift > 0) {
-        sample >>= (shift - 1);
-    } else {
-        sample = 0;  // Mute
+    // Apply output level (NR32 bits 5-6)
+    // mGBA uses: 0 = shift by 4 (mute), 1 = no shift, 2 = shift by 1, 3 = shift by 2
+    u8 volumeCode = (m_channel3.outputLevel >> 5) & 0x03;
+    u8 shift;
+    switch (volumeCode) {
+        case 0: shift = 4; break;  // Mute
+        case 1: shift = 0; break;  // Full volume
+        case 2: shift = 1; break;  // Half volume
+        case 3: shift = 2; break;  // Quarter volume
+        default: shift = 4; break;
     }
+    
+    sample >>= shift;
     
     return sample / 15.0f;
 }
@@ -448,11 +502,24 @@ float APU::getChannel4Sample() {
 }
 
 void APU::triggerChannel1() {
+    // Channel is enabled if DAC is on (envelope bits 3-7 are not all zero)
+    if ((m_channel1.envelope & 0xF8) == 0) {
+        m_channel1.enabled = false;
+        m_nr52 &= ~0x01;
+        return;
+    }
+    
     m_channel1.enabled = true;
     m_nr52 |= 0x01;
     
+    // Length counter edge case: if length is 0, reload it
+    // If length enable is set and we're on an odd frame, decrement after reload
     if (m_channel1.lengthCounter == 0) {
         m_channel1.lengthCounter = 64;
+        // If length is enabled and we're on an odd frame (about to clock length)
+        if ((m_channel1.freqHigh & 0x40) && (m_frameSequencer & 1)) {
+            m_channel1.lengthCounter--;
+        }
     }
     
     m_channel1.frequencyCounter = 0;
@@ -461,19 +528,44 @@ void APU::triggerChannel1() {
     m_channel1.envelopeCounter = m_channel1.envelopePeriod;
     m_channel1.envelopeIncrease = (m_channel1.envelope & 0x08) != 0;
     
-    // Sweep
+    // Sweep initialization
     m_channel1.sweepPeriod = (m_channel1.sweep >> 4) & 0x07;
+    if (m_channel1.sweepPeriod == 0) {
+        m_channel1.sweepPeriod = 8;
+    }
     m_channel1.sweepCounter = m_channel1.sweepPeriod;
     m_channel1.sweepShift = m_channel1.sweep & 0x07;
-    m_channel1.sweepIncrease = !(m_channel1.sweep & 0x08);
+    // Bit 3 set = decrease (subtract), bit 3 clear = increase (add)
+    m_channel1.sweepIncrease = (m_channel1.sweep & 0x08) != 0;
+    
+    // Perform initial sweep overflow check if sweep shift is non-zero
+    if (m_channel1.sweepShift > 0) {
+        u16 newFreq = m_channel1.frequency + (m_channel1.frequency >> m_channel1.sweepShift);
+        if (newFreq > 2047) {
+            m_channel1.enabled = false;
+            m_nr52 &= ~0x01;
+        }
+    }
 }
 
 void APU::triggerChannel2() {
+    // Channel is enabled if DAC is on (envelope bits 3-7 are not all zero)
+    if ((m_channel2.envelope & 0xF8) == 0) {
+        m_channel2.enabled = false;
+        m_nr52 &= ~0x02;
+        return;
+    }
+    
     m_channel2.enabled = true;
     m_nr52 |= 0x02;
     
+    // Length counter edge case: if length is 0, reload it
     if (m_channel2.lengthCounter == 0) {
         m_channel2.lengthCounter = 64;
+        // If length is enabled and we're on an odd frame
+        if ((m_channel2.freqHigh & 0x40) && (m_frameSequencer & 1)) {
+            m_channel2.lengthCounter--;
+        }
     }
     
     m_channel2.frequencyCounter = 0;
@@ -484,11 +576,23 @@ void APU::triggerChannel2() {
 }
 
 void APU::triggerChannel3() {
+    // Channel 3 is enabled if the DAC is on (bit 7 of NR30)
+    if (!(m_channel3.onOff & 0x80)) {
+        m_channel3.enabled = false;
+        m_nr52 &= ~0x04;
+        return;
+    }
+    
     m_channel3.enabled = true;
     m_nr52 |= 0x04;
     
+    // Length counter edge case: if length is 0, reload it
     if (m_channel3.lengthCounter == 0) {
         m_channel3.lengthCounter = 256;
+        // If length is enabled and we're on an odd frame
+        if ((m_channel3.freqHigh & 0x40) && (m_frameSequencer & 1)) {
+            m_channel3.lengthCounter--;
+        }
     }
     
     m_channel3.frequencyCounter = 0;
@@ -496,14 +600,27 @@ void APU::triggerChannel3() {
 }
 
 void APU::triggerChannel4() {
+    // Channel is enabled if DAC is on (envelope bits 3-7 are not all zero)
+    if ((m_channel4.envelope & 0xF8) == 0) {
+        m_channel4.enabled = false;
+        m_nr52 &= ~0x08;
+        return;
+    }
+    
     m_channel4.enabled = true;
     m_nr52 |= 0x08;
     
+    // Length counter edge case: if length is 0, reload it
     if (m_channel4.lengthCounter == 0) {
         m_channel4.lengthCounter = 64;
+        // If length is enabled and we're on an odd frame
+        if ((m_channel4.control & 0x40) && (m_frameSequencer & 1)) {
+            m_channel4.lengthCounter--;
+        }
     }
     
     m_channel4.clockCounter = 0;
+    // LFSR should be initialized to all 1s (0x7FFF for 15-bit)
     m_channel4.lfsr = 0x7FFF;
     m_channel4.volume = (m_channel4.envelope >> 4) & 0x0F;
     m_channel4.envelopePeriod = m_channel4.envelope & 0x07;
@@ -584,13 +701,26 @@ void APU::writeRegister(u16 address, u8 value) {
             m_channel1.freqLow = value;
             m_channel1.frequency = (m_channel1.frequency & 0x700) | value;
             break;
-        case 0xFF14:
+        case 0xFF14: {
+            bool wasLengthEnabled = (m_channel1.freqHigh & 0x40) != 0;
             m_channel1.freqHigh = value;
             m_channel1.frequency = (m_channel1.frequency & 0xFF) | ((value & 0x07) << 8);
+            
+            // Edge case: enabling length on odd frame decrements length
+            bool lengthEnabled = (value & 0x40) != 0;
+            if (!wasLengthEnabled && lengthEnabled && (m_frameSequencer & 1) && m_channel1.lengthCounter > 0) {
+                m_channel1.lengthCounter--;
+                if (m_channel1.lengthCounter == 0) {
+                    m_channel1.enabled = false;
+                    m_nr52 &= ~0x01;
+                }
+            }
+            
             if (value & 0x80) {
                 triggerChannel1();
             }
             break;
+        }
         
         // Channel 2
         case 0xFF16:
@@ -610,13 +740,26 @@ void APU::writeRegister(u16 address, u8 value) {
             m_channel2.freqLow = value;
             m_channel2.frequency = (m_channel2.frequency & 0x700) | value;
             break;
-        case 0xFF19:
+        case 0xFF19: {
+            bool wasLengthEnabled = (m_channel2.freqHigh & 0x40) != 0;
             m_channel2.freqHigh = value;
             m_channel2.frequency = (m_channel2.frequency & 0xFF) | ((value & 0x07) << 8);
+            
+            // Edge case: enabling length on odd frame decrements length
+            bool lengthEnabled = (value & 0x40) != 0;
+            if (!wasLengthEnabled && lengthEnabled && (m_frameSequencer & 1) && m_channel2.lengthCounter > 0) {
+                m_channel2.lengthCounter--;
+                if (m_channel2.lengthCounter == 0) {
+                    m_channel2.enabled = false;
+                    m_nr52 &= ~0x02;
+                }
+            }
+            
             if (value & 0x80) {
                 triggerChannel2();
             }
             break;
+        }
         
         // Channel 3
         case 0xFF1A:
@@ -637,13 +780,26 @@ void APU::writeRegister(u16 address, u8 value) {
             m_channel3.freqLow = value;
             m_channel3.frequency = (m_channel3.frequency & 0x700) | value;
             break;
-        case 0xFF1E:
+        case 0xFF1E: {
+            bool wasLengthEnabled = (m_channel3.freqHigh & 0x40) != 0;
             m_channel3.freqHigh = value;
             m_channel3.frequency = (m_channel3.frequency & 0xFF) | ((value & 0x07) << 8);
+            
+            // Edge case: enabling length on odd frame decrements length
+            bool lengthEnabled = (value & 0x40) != 0;
+            if (!wasLengthEnabled && lengthEnabled && (m_frameSequencer & 1) && m_channel3.lengthCounter > 0) {
+                m_channel3.lengthCounter--;
+                if (m_channel3.lengthCounter == 0) {
+                    m_channel3.enabled = false;
+                    m_nr52 &= ~0x04;
+                }
+            }
+            
             if (value & 0x80) {
                 triggerChannel3();
             }
             break;
+        }
         
         // Channel 4
         case 0xFF20:
@@ -661,12 +817,25 @@ void APU::writeRegister(u16 address, u8 value) {
         case 0xFF22:
             m_channel4.polynomial = value;
             break;
-        case 0xFF23:
+        case 0xFF23: {
+            bool wasLengthEnabled = (m_channel4.control & 0x40) != 0;
             m_channel4.control = value;
+            
+            // Edge case: enabling length on odd frame decrements length
+            bool lengthEnabled = (value & 0x40) != 0;
+            if (!wasLengthEnabled && lengthEnabled && (m_frameSequencer & 1) && m_channel4.lengthCounter > 0) {
+                m_channel4.lengthCounter--;
+                if (m_channel4.lengthCounter == 0) {
+                    m_channel4.enabled = false;
+                    m_nr52 &= ~0x08;
+                }
+            }
+            
             if (value & 0x80) {
                 triggerChannel4();
             }
             break;
+        }
         
         // Control
         case 0xFF24:

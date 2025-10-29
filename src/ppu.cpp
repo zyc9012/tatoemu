@@ -43,13 +43,15 @@ PPU::PPU()
     , m_windowLineCounter(0)
     , m_windowRenderedThisFrame(false)
     , m_gbcMode(false)
-    , m_statInterruptLine(false) {
+    , m_statInterruptLine(false)
+    , m_dmaCycles(0) {
     std::fill(m_vram.begin(), m_vram.end(), 0);
     std::fill(m_oam.begin(), m_oam.end(), 0);
     std::fill(m_bgPaletteData.begin(), m_bgPaletteData.end(), 0);
     std::fill(m_objPaletteData.begin(), m_objPaletteData.end(), 0);
     std::fill(m_framebuffer.begin(), m_framebuffer.end(), 0xFFFFFFFF);
     std::fill(m_bgPriority.begin(), m_bgPriority.end(), 0);
+    std::fill(m_bgPriorityFlag.begin(), m_bgPriorityFlag.end(), false);
 }
 
 PPU::~PPU() {
@@ -116,19 +118,28 @@ void PPU::step(u32 cycles) {
         return;
     }
 
+    // In double speed mode, the PPU should run at the same real-time rate
+    // Since CPU provides cycles at 2x rate in double speed, we accumulate
+    // cycles at the same rate (PPU timing is based on real clock, not CPU clock)
     m_modeCycles += cycles;
 
+    // PPU timing thresholds are doubled in double speed mode to maintain
+    // the same real-time rate (since CPU cycles come in at 2x rate)
+    u32 speedMultiplier = (m_mmu && m_mmu->isDoubleSpeed()) ? 2 : 1;
+    
     switch (m_mode) {
         case PPUMode::OAM_SCAN:
-            if (m_modeCycles >= SCANLINE_OAM_CYCLES) {
-                m_modeCycles -= SCANLINE_OAM_CYCLES;
+            if (m_modeCycles >= SCANLINE_OAM_CYCLES * speedMultiplier) {
+                m_modeCycles -= SCANLINE_OAM_CYCLES * speedMultiplier;
+                // Reset window rendered flag for this scanline
+                m_windowRenderedThisFrame = false;
                 setMode(PPUMode::DRAWING);
             }
             break;
 
         case PPUMode::DRAWING:
-            if (m_modeCycles >= SCANLINE_VRAM_CYCLES) {
-                m_modeCycles -= SCANLINE_VRAM_CYCLES;
+            if (m_modeCycles >= SCANLINE_VRAM_CYCLES * speedMultiplier) {
+                m_modeCycles -= SCANLINE_VRAM_CYCLES * speedMultiplier;
                 
                 // Render the current scanline
                 renderScanline();
@@ -148,8 +159,14 @@ void PPU::step(u32 cycles) {
             break;
 
         case PPUMode::HBLANK:
-            if (m_modeCycles >= SCANLINE_HBLANK_CYCLES) {
-                m_modeCycles -= SCANLINE_HBLANK_CYCLES;
+            if (m_modeCycles >= SCANLINE_HBLANK_CYCLES * speedMultiplier) {
+                m_modeCycles -= SCANLINE_HBLANK_CYCLES * speedMultiplier;
+                
+                // Increment window line counter if window was rendered this scanline
+                if (m_windowRenderedThisFrame && (m_lcdc & LCDC_WINDOW_ENABLE) && 
+                    m_wy <= m_ly && m_wx < 167) {
+                    m_windowLineCounter++;
+                }
                 
                 m_ly++;
                 
@@ -168,7 +185,7 @@ void PPU::step(u32 cycles) {
                     setMode(PPUMode::VBLANK);
                     m_frameReady = true;
                     m_windowLineCounter = 0;
-                    m_windowRenderedThisFrame = false;
+                    // Don't reset m_windowRenderedThisFrame here - it's per scanline, reset in OAM_SCAN
                     
                     // Request VBlank interrupt
                     if (m_cpu) {
@@ -192,8 +209,8 @@ void PPU::step(u32 cycles) {
             break;
 
         case PPUMode::VBLANK:
-            if (m_modeCycles >= SCANLINE_CYCLES) {
-                m_modeCycles -= SCANLINE_CYCLES;
+            if (m_modeCycles >= SCANLINE_CYCLES * speedMultiplier) {
+                m_modeCycles -= SCANLINE_CYCLES * speedMultiplier;
                 m_ly++;
                 
                 // Check LYC=LY
@@ -263,8 +280,9 @@ void PPU::updateStatInterrupt() {
 }
 
 void PPU::renderScanline() {
-    // Clear priority buffer for this scanline
+    // Clear priority buffers for this scanline
     std::fill(m_bgPriority.begin(), m_bgPriority.end(), 0);
+    std::fill(m_bgPriorityFlag.begin(), m_bgPriorityFlag.end(), false);
     
     // Render background (always in GBC mode, conditional in DMG mode)
     if (m_gbcMode || (m_lcdc & LCDC_BG_WINDOW_ENABLE)) {
@@ -276,8 +294,8 @@ void PPU::renderScanline() {
         }
     }
     
-    // Render window
-    if ((m_lcdc & LCDC_WINDOW_ENABLE) && m_wy <= m_ly) {
+    // Check if window should be rendered on this scanline
+    if ((m_lcdc & LCDC_WINDOW_ENABLE) && m_wy <= m_ly && m_wx < 167) {
         renderWindow();
     }
     
@@ -337,6 +355,11 @@ void PPU::renderBackground() {
         // Store for sprite priority
         m_bgPriority[x] = colorIndex;
         
+        // Store GBC BG priority flag (bit 7 of tile attributes)
+        if (m_gbcMode) {
+            m_bgPriorityFlag[x] = (tileAttrs & SPRITE_PRIORITY) != 0;
+        }
+        
         // Convert to RGB
         u32 color;
         if (m_gbcMode) {
@@ -361,6 +384,11 @@ void PPU::renderWindow() {
         return;
     }
     
+    // Check if window will actually render any pixels
+    if (windowX >= SCREEN_WIDTH) {
+        return;
+    }
+    
     u16 tileMapBase = (m_lcdc & LCDC_WINDOW_TILEMAP) ? 0x9C00 : 0x9800;
     bool unsignedTileIndex = (m_lcdc & LCDC_BG_WINDOW_TILES) != 0;
     
@@ -368,6 +396,7 @@ void PPU::renderWindow() {
     u8 tileY = y / 8;
     u8 tilePixelY = y % 8;
     
+    // Mark that window was rendered this frame
     m_windowRenderedThisFrame = true;
     
     for (u16 x = 0; x < SCREEN_WIDTH; x++) {
@@ -414,6 +443,11 @@ void PPU::renderWindow() {
         // Store for sprite priority
         m_bgPriority[x] = colorIndex;
         
+        // Store GBC BG priority flag (bit 7 of tile attributes)
+        if (m_gbcMode) {
+            m_bgPriorityFlag[x] = (tileAttrs & SPRITE_PRIORITY) != 0;
+        }
+        
         // Convert to RGB
         u32 color;
         if (m_gbcMode) {
@@ -427,7 +461,7 @@ void PPU::renderWindow() {
         m_framebuffer[m_ly * SCREEN_WIDTH + x] = color;
     }
     
-    m_windowLineCounter++;
+    // Increment window line counter (happens at end of scanline in step())
 }
 
 void PPU::renderSprites() {
@@ -532,15 +566,21 @@ void PPU::renderSprites() {
             }
             
             // Check sprite priority
-            bool priority = (sprite.flags & SPRITE_PRIORITY) != 0;
+            bool spritePriority = (sprite.flags & SPRITE_PRIORITY) != 0;
+            
             if (m_gbcMode) {
-                // In GBC mode, priority bit means sprite is behind BG colors 1-3
-                if (priority && m_bgPriority[pixelX] != 0) {
+                // In GBC mode, check BG-to-OBJ priority flag first
+                // If BG priority flag is set and BG color is not 0, BG wins
+                if (m_bgPriorityFlag[pixelX] && m_bgPriority[pixelX] != 0) {
+                    continue;
+                }
+                // Then check sprite priority bit (sprite behind BG colors 1-3)
+                if (spritePriority && m_bgPriority[pixelX] != 0) {
                     continue;
                 }
             } else {
                 // In DMG mode, priority bit means sprite is behind non-zero BG colors
-                if (priority && m_bgPriority[pixelX] != 0) {
+                if (spritePriority && m_bgPriority[pixelX] != 0) {
                     continue;
                 }
             }
@@ -629,6 +669,11 @@ void PPU::performHDMA() {
             }
         }
         
+        // HBlank DMA: ~8 cycles per byte in double speed, 16 in normal
+        // 16 bytes * 8 = 128 cycles base (double speed)
+        u32 speedMultiplier = (m_mmu && m_mmu->isDoubleSpeed()) ? 1 : 2;
+        m_dmaCycles += 128 * speedMultiplier;
+        
         m_hdmaRemaining--;
         
         // Update HDMA5 register
@@ -653,6 +698,10 @@ void PPU::performGDMA() {
             m_hdmaDest++;
         }
     }
+    
+    // General DMA: ~8 cycles per byte in double speed, 16 in normal
+    u32 speedMultiplier = (m_mmu && m_mmu->isDoubleSpeed()) ? 1 : 2;
+    m_dmaCycles += (length * 8) * speedMultiplier;
     
     m_hdmaRemaining = 0;
     m_hdmaActive = false;
@@ -784,13 +833,22 @@ void PPU::writeRegister(u16 address, u8 value) {
             updateStatInterrupt();
             break;
         case 0xFF46:
-            // DMA transfer
+            // OAM DMA transfer
             m_dma = value;
             if (m_mmu) {
                 u16 source = value << 8;
                 for (u16 i = 0; i < 0xA0; i++) {
                     writeOAM(0xFE00 + i, m_mmu->read(source + i));
                 }
+                
+                // Calculate DMA cycle cost adjusted for double speed
+                // Normal speed: 8 initial + 160 bytes * 4 cycles = 648 cycles
+                // Then multiply by (2 - doubleSpeed) to get actual cycles:
+                // Normal: 648 * 2 = 1296 cycles
+                // Double: 648 * 1 = 648 cycles
+                u32 speedMultiplier = (m_mmu && m_mmu->isDoubleSpeed()) ? 1 : 2;
+                u32 baseCycles = 8 + (160 * 4);  // 648 cycles (double speed base)
+                m_dmaCycles += baseCycles * speedMultiplier;
             }
             break;
         case 0xFF47: m_bgp = value; break;
@@ -903,6 +961,7 @@ void PPU::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_windowRenderedThisFrame), sizeof(m_windowRenderedThisFrame));
     file.write(reinterpret_cast<const char*>(&m_gbcMode), sizeof(m_gbcMode));
     file.write(reinterpret_cast<const char*>(&m_statInterruptLine), sizeof(m_statInterruptLine));
+    file.write(reinterpret_cast<const char*>(&m_dmaCycles), sizeof(m_dmaCycles));
 }
 
 void PPU::loadState(std::ifstream& file) {
@@ -947,5 +1006,6 @@ void PPU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_windowRenderedThisFrame), sizeof(m_windowRenderedThisFrame));
     file.read(reinterpret_cast<char*>(&m_gbcMode), sizeof(m_gbcMode));
     file.read(reinterpret_cast<char*>(&m_statInterruptLine), sizeof(m_statInterruptLine));
+    file.read(reinterpret_cast<char*>(&m_dmaCycles), sizeof(m_dmaCycles));
 }
 

@@ -5,6 +5,7 @@
 CPU::CPU()
     : m_mmu(nullptr)
     , m_halted(false)
+    , m_haltBug(false)
     , m_ime(false)
     , m_enableIMENextInstruction(false)
     , m_if(0)
@@ -22,6 +23,7 @@ void CPU::setMMU(MMU* mmu) {
 void CPU::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_regs), sizeof(m_regs));
     file.write(reinterpret_cast<const char*>(&m_halted), sizeof(m_halted));
+    file.write(reinterpret_cast<const char*>(&m_haltBug), sizeof(m_haltBug));
     file.write(reinterpret_cast<const char*>(&m_ime), sizeof(m_ime));
     file.write(reinterpret_cast<const char*>(&m_enableIMENextInstruction), sizeof(m_enableIMENextInstruction));
     file.write(reinterpret_cast<const char*>(&m_if), sizeof(m_if));
@@ -31,6 +33,7 @@ void CPU::saveState(std::ofstream& file) const {
 void CPU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_regs), sizeof(m_regs));
     file.read(reinterpret_cast<char*>(&m_halted), sizeof(m_halted));
+    file.read(reinterpret_cast<char*>(&m_haltBug), sizeof(m_haltBug));
     file.read(reinterpret_cast<char*>(&m_ime), sizeof(m_ime));
     file.read(reinterpret_cast<char*>(&m_enableIMENextInstruction), sizeof(m_enableIMENextInstruction));
     file.read(reinterpret_cast<char*>(&m_if), sizeof(m_if));
@@ -51,6 +54,7 @@ void CPU::reset() {
     m_regs.pc = 0x0100;
     
     m_halted = false;
+    m_haltBug = false;
     m_ime = false;
     m_enableIMENextInstruction = false;
     m_if = 0;
@@ -63,11 +67,15 @@ u32 CPU::step() {
         if (m_if & ie & 0x1F) {
             m_halted = false;
         } else {
-            return 4; // NOP cycles
+            return 4; // NOP cycles while halted
         }
     }
 
-    handleInterrupts();
+    u32 cycles = handleInterrupts();
+    if (cycles > 0) {
+        // Interrupt was handled
+        return cycles;
+    }
 
     if (m_enableIMENextInstruction) {
         m_ime = true;
@@ -75,23 +83,21 @@ u32 CPU::step() {
     }
 
     u8 opcode = fetch8();
-    u32 cyclesBefore = 4; // Base cycle count
+    cycles = executeInstruction(opcode);
     
-    executeInstruction(opcode);
-    
-    return cyclesBefore;
+    return cycles;
 }
 
-void CPU::handleInterrupts() {
+u32 CPU::handleInterrupts() {
     if (!m_ime) {
-        return;
+        return 0;
     }
 
     u8 ie = m_mmu ? m_mmu->read(0xFFFF) : 0;
     u8 triggered = m_if & ie & 0x1F;
 
     if (!triggered) {
-        return;
+        return 0;
     }
 
     m_ime = false;
@@ -108,9 +114,13 @@ void CPU::handleInterrupts() {
             // Jump to interrupt handler
             static const u16 handlers[5] = {0x40, 0x48, 0x50, 0x58, 0x60};
             m_regs.pc = handlers[i];
-            break;
+            
+            // Interrupt servicing takes 20 cycles (5 M-cycles)
+            return 20;
         }
     }
+    
+    return 0;
 }
 
 void CPU::requestInterrupt(u8 interrupt) {
@@ -147,7 +157,12 @@ void CPU::write16(u16 address, u16 value) {
 }
 
 u8 CPU::fetch8() {
-    return read8(m_regs.pc++);
+    u8 value = read8(m_regs.pc);
+    if (!m_haltBug) {
+        m_regs.pc++;
+    }
+    m_haltBug = false;  // Clear after one instruction
+    return value;
 }
 
 u16 CPU::fetch16() {
@@ -179,82 +194,82 @@ bool CPU::getFlag(u8 flag) const {
     return (m_regs.f & flag) != 0;
 }
 
-void CPU::executeInstruction(u8 opcode) {
+u32 CPU::executeInstruction(u8 opcode) {
     switch (opcode) {
         // NOP
-        case 0x00: break;
+        case 0x00: return 4;
         
         // LD BC, nn
-        case 0x01: m_regs.bc = fetch16(); break;
-        case 0x11: m_regs.de = fetch16(); break;
-        case 0x21: m_regs.hl = fetch16(); break;
-        case 0x31: m_regs.sp = fetch16(); break;
+        case 0x01: m_regs.bc = fetch16(); return 12;
+        case 0x11: m_regs.de = fetch16(); return 12;
+        case 0x21: m_regs.hl = fetch16(); return 12;
+        case 0x31: m_regs.sp = fetch16(); return 12;
         
         // LD (BC), A
-        case 0x02: write8(m_regs.bc, m_regs.a); break;
-        case 0x12: write8(m_regs.de, m_regs.a); break;
+        case 0x02: write8(m_regs.bc, m_regs.a); return 8;
+        case 0x12: write8(m_regs.de, m_regs.a); return 8;
         
         // LD (nn), SP
-        case 0x08: write16(fetch16(), m_regs.sp); break;
+        case 0x08: write16(fetch16(), m_regs.sp); return 20;
         
         // LD A, (BC)
-        case 0x0A: m_regs.a = read8(m_regs.bc); break;
-        case 0x1A: m_regs.a = read8(m_regs.de); break;
+        case 0x0A: m_regs.a = read8(m_regs.bc); return 8;
+        case 0x1A: m_regs.a = read8(m_regs.de); return 8;
         
-        // INC BC
-        case 0x03: m_regs.bc++; break;
-        case 0x13: m_regs.de++; break;
-        case 0x23: m_regs.hl++; break;
-        case 0x33: m_regs.sp++; break;
+        // INC BC (16-bit INC takes 8 cycles)
+        case 0x03: m_regs.bc++; return 8;
+        case 0x13: m_regs.de++; return 8;
+        case 0x23: m_regs.hl++; return 8;
+        case 0x33: m_regs.sp++; return 8;
         
-        // DEC BC
-        case 0x0B: m_regs.bc--; break;
-        case 0x1B: m_regs.de--; break;
-        case 0x2B: m_regs.hl--; break;
-        case 0x3B: m_regs.sp--; break;
+        // DEC BC (16-bit DEC takes 8 cycles)
+        case 0x0B: m_regs.bc--; return 8;
+        case 0x1B: m_regs.de--; return 8;
+        case 0x2B: m_regs.hl--; return 8;
+        case 0x3B: m_regs.sp--; return 8;
         
-        // INC B
+        // INC B (8-bit INC takes 4 cycles, except (HL) = 12)
         case 0x04: {
             m_regs.b++;
             setFlag(FLAG_Z, m_regs.b == 0);
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, (m_regs.b & 0x0F) == 0);
-            break;
+            return 4;
         }
         case 0x0C: {
             m_regs.c++;
             setFlag(FLAG_Z, m_regs.c == 0);
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, (m_regs.c & 0x0F) == 0);
-            break;
+            return 4;
         }
         case 0x14: {
             m_regs.d++;
             setFlag(FLAG_Z, m_regs.d == 0);
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, (m_regs.d & 0x0F) == 0);
-            break;
+            return 4;
         }
         case 0x1C: {
             m_regs.e++;
             setFlag(FLAG_Z, m_regs.e == 0);
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, (m_regs.e & 0x0F) == 0);
-            break;
+            return 4;
         }
         case 0x24: {
             m_regs.h++;
             setFlag(FLAG_Z, m_regs.h == 0);
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, (m_regs.h & 0x0F) == 0);
-            break;
+            return 4;
         }
         case 0x2C: {
             m_regs.l++;
             setFlag(FLAG_Z, m_regs.l == 0);
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, (m_regs.l & 0x0F) == 0);
-            break;
+            return 4;
         }
         case 0x34: {
             u8 value = read8(m_regs.hl);
@@ -263,58 +278,58 @@ void CPU::executeInstruction(u8 opcode) {
             setFlag(FLAG_Z, value == 0);
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, (value & 0x0F) == 0);
-            break;
+            return 12;
         }
         case 0x3C: {
             m_regs.a++;
             setFlag(FLAG_Z, m_regs.a == 0);
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, (m_regs.a & 0x0F) == 0);
-            break;
+            return 4;
         }
         
-        // DEC B
+        // DEC B (8-bit DEC takes 4 cycles, except (HL) = 12)
         case 0x05: {
             setFlag(FLAG_H, (m_regs.b & 0x0F) == 0);
             m_regs.b--;
             setFlag(FLAG_Z, m_regs.b == 0);
             setFlag(FLAG_N, true);
-            break;
+            return 4;
         }
         case 0x0D: {
             setFlag(FLAG_H, (m_regs.c & 0x0F) == 0);
             m_regs.c--;
             setFlag(FLAG_Z, m_regs.c == 0);
             setFlag(FLAG_N, true);
-            break;
+            return 4;
         }
         case 0x15: {
             setFlag(FLAG_H, (m_regs.d & 0x0F) == 0);
             m_regs.d--;
             setFlag(FLAG_Z, m_regs.d == 0);
             setFlag(FLAG_N, true);
-            break;
+            return 4;
         }
         case 0x1D: {
             setFlag(FLAG_H, (m_regs.e & 0x0F) == 0);
             m_regs.e--;
             setFlag(FLAG_Z, m_regs.e == 0);
             setFlag(FLAG_N, true);
-            break;
+            return 4;
         }
         case 0x25: {
             setFlag(FLAG_H, (m_regs.h & 0x0F) == 0);
             m_regs.h--;
             setFlag(FLAG_Z, m_regs.h == 0);
             setFlag(FLAG_N, true);
-            break;
+            return 4;
         }
         case 0x2D: {
             setFlag(FLAG_H, (m_regs.l & 0x0F) == 0);
             m_regs.l--;
             setFlag(FLAG_Z, m_regs.l == 0);
             setFlag(FLAG_N, true);
-            break;
+            return 4;
         }
         case 0x35: {
             u8 value = read8(m_regs.hl);
@@ -323,27 +338,27 @@ void CPU::executeInstruction(u8 opcode) {
             write8(m_regs.hl, value);
             setFlag(FLAG_Z, value == 0);
             setFlag(FLAG_N, true);
-            break;
+            return 12;
         }
         case 0x3D: {
             setFlag(FLAG_H, (m_regs.a & 0x0F) == 0);
             m_regs.a--;
             setFlag(FLAG_Z, m_regs.a == 0);
             setFlag(FLAG_N, true);
-            break;
+            return 4;
         }
         
-        // LD B, n
-        case 0x06: m_regs.b = fetch8(); break;
-        case 0x0E: m_regs.c = fetch8(); break;
-        case 0x16: m_regs.d = fetch8(); break;
-        case 0x1E: m_regs.e = fetch8(); break;
-        case 0x26: m_regs.h = fetch8(); break;
-        case 0x2E: m_regs.l = fetch8(); break;
-        case 0x36: write8(m_regs.hl, fetch8()); break;
-        case 0x3E: m_regs.a = fetch8(); break;
+        // LD B, n (8 cycles)
+        case 0x06: m_regs.b = fetch8(); return 8;
+        case 0x0E: m_regs.c = fetch8(); return 8;
+        case 0x16: m_regs.d = fetch8(); return 8;
+        case 0x1E: m_regs.e = fetch8(); return 8;
+        case 0x26: m_regs.h = fetch8(); return 8;
+        case 0x2E: m_regs.l = fetch8(); return 8;
+        case 0x36: write8(m_regs.hl, fetch8()); return 12;
+        case 0x3E: m_regs.a = fetch8(); return 8;
         
-        // RLCA
+        // RLCA (4 cycles)
         case 0x07: {
             bool carry = (m_regs.a & 0x80) != 0;
             m_regs.a = (m_regs.a << 1) | (carry ? 1 : 0);
@@ -351,10 +366,10 @@ void CPU::executeInstruction(u8 opcode) {
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, false);
             setFlag(FLAG_C, carry);
-            break;
+            return 4;
         }
         
-        // RRCA
+        // RRCA (4 cycles)
         case 0x0F: {
             bool carry = (m_regs.a & 0x01) != 0;
             m_regs.a = (m_regs.a >> 1) | (carry ? 0x80 : 0);
@@ -362,10 +377,10 @@ void CPU::executeInstruction(u8 opcode) {
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, false);
             setFlag(FLAG_C, carry);
-            break;
+            return 4;
         }
         
-        // RLA
+        // RLA (4 cycles)
         case 0x17: {
             bool oldCarry = getFlag(FLAG_C);
             bool newCarry = (m_regs.a & 0x80) != 0;
@@ -374,10 +389,10 @@ void CPU::executeInstruction(u8 opcode) {
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, false);
             setFlag(FLAG_C, newCarry);
-            break;
+            return 4;
         }
         
-        // RRA
+        // RRA (4 cycles)
         case 0x1F: {
             bool oldCarry = getFlag(FLAG_C);
             bool newCarry = (m_regs.a & 0x01) != 0;
@@ -386,10 +401,10 @@ void CPU::executeInstruction(u8 opcode) {
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, false);
             setFlag(FLAG_C, newCarry);
-            break;
+            return 4;
         }
         
-        // STOP
+        // STOP (4 cycles)
         case 0x10:
             fetch8(); // STOP takes a 0x00 byte after it
             if (m_gbcMode && m_mmu) {
@@ -398,52 +413,56 @@ void CPU::executeInstruction(u8 opcode) {
             }
             // In DMG mode or if not switching speed, STOP halts until button press
             // For simplicity, we just continue execution
-            break;
+            return 4;
         
-        // JR n
+        // JR n (12 cycles)
         case 0x18: {
             s8 offset = static_cast<s8>(fetch8());
             m_regs.pc += offset;
-            break;
+            return 12;
         }
         
-        // JR NZ, n
+        // JR NZ, n (12 if taken, 8 if not)
         case 0x20: {
             s8 offset = static_cast<s8>(fetch8());
             if (!getFlag(FLAG_Z)) {
                 m_regs.pc += offset;
+                return 12;
             }
-            break;
+            return 8;
         }
         
-        // JR Z, n
+        // JR Z, n (12 if taken, 8 if not)
         case 0x28: {
             s8 offset = static_cast<s8>(fetch8());
             if (getFlag(FLAG_Z)) {
                 m_regs.pc += offset;
+                return 12;
             }
-            break;
+            return 8;
         }
         
-        // JR NC, n
+        // JR NC, n (12 if taken, 8 if not)
         case 0x30: {
             s8 offset = static_cast<s8>(fetch8());
             if (!getFlag(FLAG_C)) {
                 m_regs.pc += offset;
+                return 12;
             }
-            break;
+            return 8;
         }
         
-        // JR C, n
+        // JR C, n (12 if taken, 8 if not)
         case 0x38: {
             s8 offset = static_cast<s8>(fetch8());
             if (getFlag(FLAG_C)) {
                 m_regs.pc += offset;
+                return 12;
             }
-            break;
+            return 8;
         }
         
-        // DAA
+        // DAA (4 cycles) - FIXED: now clears carry when no adjustment
         case 0x27: {
             u8 a = m_regs.a;
             if (!getFlag(FLAG_N)) {
@@ -453,6 +472,8 @@ void CPU::executeInstruction(u8 opcode) {
                 if (getFlag(FLAG_C) || a > 0x9F) {
                     a += 0x60;
                     setFlag(FLAG_C, true);
+                } else {
+                    setFlag(FLAG_C, false);  // FIX: Clear C when no adjustment
                 }
             } else {
                 if (getFlag(FLAG_H)) {
@@ -465,135 +486,144 @@ void CPU::executeInstruction(u8 opcode) {
             m_regs.a = a;
             setFlag(FLAG_Z, a == 0);
             setFlag(FLAG_H, false);
-            break;
+            return 4;
         }
         
-        // CPL
+        // CPL (4 cycles)
         case 0x2F:
             m_regs.a = ~m_regs.a;
             setFlag(FLAG_N, true);
             setFlag(FLAG_H, true);
-            break;
+            return 4;
         
-        // SCF
+        // SCF (4 cycles)
         case 0x37:
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, false);
             setFlag(FLAG_C, true);
-            break;
+            return 4;
         
-        // CCF
+        // CCF (4 cycles)
         case 0x3F:
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, false);
             setFlag(FLAG_C, !getFlag(FLAG_C));
-            break;
+            return 4;
         
-        // LD (HL+), A
+        // LD (HL+), A (8 cycles)
         case 0x22:
             write8(m_regs.hl, m_regs.a);
             m_regs.hl++;
-            break;
+            return 8;
         
-        // LD (HL-), A
+        // LD (HL-), A (8 cycles)
         case 0x32:
             write8(m_regs.hl, m_regs.a);
             m_regs.hl--;
-            break;
+            return 8;
         
-        // LD A, (HL+)
+        // LD A, (HL+) (8 cycles)
         case 0x2A:
             m_regs.a = read8(m_regs.hl);
             m_regs.hl++;
-            break;
+            return 8;
         
-        // LD A, (HL-)
+        // LD A, (HL-) (8 cycles)
         case 0x3A:
             m_regs.a = read8(m_regs.hl);
             m_regs.hl--;
-            break;
+            return 8;
         
-        // LD r, r' (40-7F except 76)
-        case 0x40: m_regs.b = m_regs.b; break;
-        case 0x41: m_regs.b = m_regs.c; break;
-        case 0x42: m_regs.b = m_regs.d; break;
-        case 0x43: m_regs.b = m_regs.e; break;
-        case 0x44: m_regs.b = m_regs.h; break;
-        case 0x45: m_regs.b = m_regs.l; break;
-        case 0x46: m_regs.b = read8(m_regs.hl); break;
-        case 0x47: m_regs.b = m_regs.a; break;
+        // LD r, r' (4 cycles, except (HL) = 8 cycles)
+        case 0x40: m_regs.b = m_regs.b; return 4;
+        case 0x41: m_regs.b = m_regs.c; return 4;
+        case 0x42: m_regs.b = m_regs.d; return 4;
+        case 0x43: m_regs.b = m_regs.e; return 4;
+        case 0x44: m_regs.b = m_regs.h; return 4;
+        case 0x45: m_regs.b = m_regs.l; return 4;
+        case 0x46: m_regs.b = read8(m_regs.hl); return 8;
+        case 0x47: m_regs.b = m_regs.a; return 4;
         
-        case 0x48: m_regs.c = m_regs.b; break;
-        case 0x49: m_regs.c = m_regs.c; break;
-        case 0x4A: m_regs.c = m_regs.d; break;
-        case 0x4B: m_regs.c = m_regs.e; break;
-        case 0x4C: m_regs.c = m_regs.h; break;
-        case 0x4D: m_regs.c = m_regs.l; break;
-        case 0x4E: m_regs.c = read8(m_regs.hl); break;
-        case 0x4F: m_regs.c = m_regs.a; break;
+        case 0x48: m_regs.c = m_regs.b; return 4;
+        case 0x49: m_regs.c = m_regs.c; return 4;
+        case 0x4A: m_regs.c = m_regs.d; return 4;
+        case 0x4B: m_regs.c = m_regs.e; return 4;
+        case 0x4C: m_regs.c = m_regs.h; return 4;
+        case 0x4D: m_regs.c = m_regs.l; return 4;
+        case 0x4E: m_regs.c = read8(m_regs.hl); return 8;
+        case 0x4F: m_regs.c = m_regs.a; return 4;
         
-        case 0x50: m_regs.d = m_regs.b; break;
-        case 0x51: m_regs.d = m_regs.c; break;
-        case 0x52: m_regs.d = m_regs.d; break;
-        case 0x53: m_regs.d = m_regs.e; break;
-        case 0x54: m_regs.d = m_regs.h; break;
-        case 0x55: m_regs.d = m_regs.l; break;
-        case 0x56: m_regs.d = read8(m_regs.hl); break;
-        case 0x57: m_regs.d = m_regs.a; break;
+        case 0x50: m_regs.d = m_regs.b; return 4;
+        case 0x51: m_regs.d = m_regs.c; return 4;
+        case 0x52: m_regs.d = m_regs.d; return 4;
+        case 0x53: m_regs.d = m_regs.e; return 4;
+        case 0x54: m_regs.d = m_regs.h; return 4;
+        case 0x55: m_regs.d = m_regs.l; return 4;
+        case 0x56: m_regs.d = read8(m_regs.hl); return 8;
+        case 0x57: m_regs.d = m_regs.a; return 4;
         
-        case 0x58: m_regs.e = m_regs.b; break;
-        case 0x59: m_regs.e = m_regs.c; break;
-        case 0x5A: m_regs.e = m_regs.d; break;
-        case 0x5B: m_regs.e = m_regs.e; break;
-        case 0x5C: m_regs.e = m_regs.h; break;
-        case 0x5D: m_regs.e = m_regs.l; break;
-        case 0x5E: m_regs.e = read8(m_regs.hl); break;
-        case 0x5F: m_regs.e = m_regs.a; break;
+        case 0x58: m_regs.e = m_regs.b; return 4;
+        case 0x59: m_regs.e = m_regs.c; return 4;
+        case 0x5A: m_regs.e = m_regs.d; return 4;
+        case 0x5B: m_regs.e = m_regs.e; return 4;
+        case 0x5C: m_regs.e = m_regs.h; return 4;
+        case 0x5D: m_regs.e = m_regs.l; return 4;
+        case 0x5E: m_regs.e = read8(m_regs.hl); return 8;
+        case 0x5F: m_regs.e = m_regs.a; return 4;
         
-        case 0x60: m_regs.h = m_regs.b; break;
-        case 0x61: m_regs.h = m_regs.c; break;
-        case 0x62: m_regs.h = m_regs.d; break;
-        case 0x63: m_regs.h = m_regs.e; break;
-        case 0x64: m_regs.h = m_regs.h; break;
-        case 0x65: m_regs.h = m_regs.l; break;
-        case 0x66: m_regs.h = read8(m_regs.hl); break;
-        case 0x67: m_regs.h = m_regs.a; break;
+        case 0x60: m_regs.h = m_regs.b; return 4;
+        case 0x61: m_regs.h = m_regs.c; return 4;
+        case 0x62: m_regs.h = m_regs.d; return 4;
+        case 0x63: m_regs.h = m_regs.e; return 4;
+        case 0x64: m_regs.h = m_regs.h; return 4;
+        case 0x65: m_regs.h = m_regs.l; return 4;
+        case 0x66: m_regs.h = read8(m_regs.hl); return 8;
+        case 0x67: m_regs.h = m_regs.a; return 4;
         
-        case 0x68: m_regs.l = m_regs.b; break;
-        case 0x69: m_regs.l = m_regs.c; break;
-        case 0x6A: m_regs.l = m_regs.d; break;
-        case 0x6B: m_regs.l = m_regs.e; break;
-        case 0x6C: m_regs.l = m_regs.h; break;
-        case 0x6D: m_regs.l = m_regs.l; break;
-        case 0x6E: m_regs.l = read8(m_regs.hl); break;
-        case 0x6F: m_regs.l = m_regs.a; break;
+        case 0x68: m_regs.l = m_regs.b; return 4;
+        case 0x69: m_regs.l = m_regs.c; return 4;
+        case 0x6A: m_regs.l = m_regs.d; return 4;
+        case 0x6B: m_regs.l = m_regs.e; return 4;
+        case 0x6C: m_regs.l = m_regs.h; return 4;
+        case 0x6D: m_regs.l = m_regs.l; return 4;
+        case 0x6E: m_regs.l = read8(m_regs.hl); return 8;
+        case 0x6F: m_regs.l = m_regs.a; return 4;
         
-        case 0x70: write8(m_regs.hl, m_regs.b); break;
-        case 0x71: write8(m_regs.hl, m_regs.c); break;
-        case 0x72: write8(m_regs.hl, m_regs.d); break;
-        case 0x73: write8(m_regs.hl, m_regs.e); break;
-        case 0x74: write8(m_regs.hl, m_regs.h); break;
-        case 0x75: write8(m_regs.hl, m_regs.l); break;
-        case 0x77: write8(m_regs.hl, m_regs.a); break;
+        case 0x70: write8(m_regs.hl, m_regs.b); return 8;
+        case 0x71: write8(m_regs.hl, m_regs.c); return 8;
+        case 0x72: write8(m_regs.hl, m_regs.d); return 8;
+        case 0x73: write8(m_regs.hl, m_regs.e); return 8;
+        case 0x74: write8(m_regs.hl, m_regs.h); return 8;
+        case 0x75: write8(m_regs.hl, m_regs.l); return 8;
+        case 0x77: write8(m_regs.hl, m_regs.a); return 8;
         
-        case 0x78: m_regs.a = m_regs.b; break;
-        case 0x79: m_regs.a = m_regs.c; break;
-        case 0x7A: m_regs.a = m_regs.d; break;
-        case 0x7B: m_regs.a = m_regs.e; break;
-        case 0x7C: m_regs.a = m_regs.h; break;
-        case 0x7D: m_regs.a = m_regs.l; break;
-        case 0x7E: m_regs.a = read8(m_regs.hl); break;
-        case 0x7F: m_regs.a = m_regs.a; break;
+        case 0x78: m_regs.a = m_regs.b; return 4;
+        case 0x79: m_regs.a = m_regs.c; return 4;
+        case 0x7A: m_regs.a = m_regs.d; return 4;
+        case 0x7B: m_regs.a = m_regs.e; return 4;
+        case 0x7C: m_regs.a = m_regs.h; return 4;
+        case 0x7D: m_regs.a = m_regs.l; return 4;
+        case 0x7E: m_regs.a = read8(m_regs.hl); return 8;
+        case 0x7F: m_regs.a = m_regs.a; return 4;
         
-        // HALT
+        // HALT (4 cycles) - With HALT bug handling
         case 0x76:
+            if (!m_ime) {
+                u8 ie = m_mmu ? m_mmu->read(0xFFFF) : 0;
+                if (m_if & ie & 0x1F) {
+                    // HALT bug: PC doesn't increment on next fetch
+                    m_haltBug = true;
+                    return 4;
+                }
+            }
             m_halted = true;
-            break;
+            return 4;
         
-        // ADD A, r
+        // ADD A, r (4 cycles for registers, 8 for (HL))
         case 0x80: case 0x81: case 0x82: case 0x83:
         case 0x84: case 0x85: case 0x86: case 0x87: {
             u8 value;
+            bool isHL = false;
             switch (opcode & 0x07) {
                 case 0: value = m_regs.b; break;
                 case 1: value = m_regs.c; break;
@@ -601,7 +631,7 @@ void CPU::executeInstruction(u8 opcode) {
                 case 3: value = m_regs.e; break;
                 case 4: value = m_regs.h; break;
                 case 5: value = m_regs.l; break;
-                case 6: value = read8(m_regs.hl); break;
+                case 6: value = read8(m_regs.hl); isHL = true; break;
                 default: value = m_regs.a; break;
             }
             u16 result = m_regs.a + value;
@@ -610,13 +640,14 @@ void CPU::executeInstruction(u8 opcode) {
             m_regs.a = result & 0xFF;
             setFlag(FLAG_Z, m_regs.a == 0);
             setFlag(FLAG_N, false);
-            break;
+            return isHL ? 8 : 4;
         }
         
-        // ADC A, r
+        // ADC A, r (4 cycles for registers, 8 for (HL))
         case 0x88: case 0x89: case 0x8A: case 0x8B:
         case 0x8C: case 0x8D: case 0x8E: case 0x8F: {
             u8 value;
+            bool isHL = false;
             switch (opcode & 0x07) {
                 case 0: value = m_regs.b; break;
                 case 1: value = m_regs.c; break;
@@ -624,7 +655,7 @@ void CPU::executeInstruction(u8 opcode) {
                 case 3: value = m_regs.e; break;
                 case 4: value = m_regs.h; break;
                 case 5: value = m_regs.l; break;
-                case 6: value = read8(m_regs.hl); break;
+                case 6: value = read8(m_regs.hl); isHL = true; break;
                 default: value = m_regs.a; break;
             }
             u8 carry = getFlag(FLAG_C) ? 1 : 0;
@@ -634,13 +665,14 @@ void CPU::executeInstruction(u8 opcode) {
             m_regs.a = result & 0xFF;
             setFlag(FLAG_Z, m_regs.a == 0);
             setFlag(FLAG_N, false);
-            break;
+            return isHL ? 8 : 4;
         }
         
-        // SUB r
+        // SUB r (4 cycles for registers, 8 for (HL))
         case 0x90: case 0x91: case 0x92: case 0x93:
         case 0x94: case 0x95: case 0x96: case 0x97: {
             u8 value;
+            bool isHL = false;
             switch (opcode & 0x07) {
                 case 0: value = m_regs.b; break;
                 case 1: value = m_regs.c; break;
@@ -648,7 +680,7 @@ void CPU::executeInstruction(u8 opcode) {
                 case 3: value = m_regs.e; break;
                 case 4: value = m_regs.h; break;
                 case 5: value = m_regs.l; break;
-                case 6: value = read8(m_regs.hl); break;
+                case 6: value = read8(m_regs.hl); isHL = true; break;
                 default: value = m_regs.a; break;
             }
             setFlag(FLAG_H, (m_regs.a & 0x0F) < (value & 0x0F));
@@ -656,13 +688,14 @@ void CPU::executeInstruction(u8 opcode) {
             m_regs.a -= value;
             setFlag(FLAG_Z, m_regs.a == 0);
             setFlag(FLAG_N, true);
-            break;
+            return isHL ? 8 : 4;
         }
         
-        // SBC A, r
+        // SBC A, r (4 cycles for registers, 8 for (HL))
         case 0x98: case 0x99: case 0x9A: case 0x9B:
         case 0x9C: case 0x9D: case 0x9E: case 0x9F: {
             u8 value;
+            bool isHL = false;
             switch (opcode & 0x07) {
                 case 0: value = m_regs.b; break;
                 case 1: value = m_regs.c; break;
@@ -670,7 +703,7 @@ void CPU::executeInstruction(u8 opcode) {
                 case 3: value = m_regs.e; break;
                 case 4: value = m_regs.h; break;
                 case 5: value = m_regs.l; break;
-                case 6: value = read8(m_regs.hl); break;
+                case 6: value = read8(m_regs.hl); isHL = true; break;
                 default: value = m_regs.a; break;
             }
             u8 carry = getFlag(FLAG_C) ? 1 : 0;
@@ -680,13 +713,14 @@ void CPU::executeInstruction(u8 opcode) {
             m_regs.a = result & 0xFF;
             setFlag(FLAG_Z, m_regs.a == 0);
             setFlag(FLAG_N, true);
-            break;
+            return isHL ? 8 : 4;
         }
         
-        // AND r
+        // AND r (4 cycles for registers, 8 for (HL))
         case 0xA0: case 0xA1: case 0xA2: case 0xA3:
         case 0xA4: case 0xA5: case 0xA6: case 0xA7: {
             u8 value;
+            bool isHL = false;
             switch (opcode & 0x07) {
                 case 0: value = m_regs.b; break;
                 case 1: value = m_regs.c; break;
@@ -694,7 +728,7 @@ void CPU::executeInstruction(u8 opcode) {
                 case 3: value = m_regs.e; break;
                 case 4: value = m_regs.h; break;
                 case 5: value = m_regs.l; break;
-                case 6: value = read8(m_regs.hl); break;
+                case 6: value = read8(m_regs.hl); isHL = true; break;
                 default: value = m_regs.a; break;
             }
             m_regs.a &= value;
@@ -702,13 +736,14 @@ void CPU::executeInstruction(u8 opcode) {
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, true);
             setFlag(FLAG_C, false);
-            break;
+            return isHL ? 8 : 4;
         }
         
-        // XOR r
+        // XOR r (4 cycles for registers, 8 for (HL))
         case 0xA8: case 0xA9: case 0xAA: case 0xAB:
         case 0xAC: case 0xAD: case 0xAE: case 0xAF: {
             u8 value;
+            bool isHL = false;
             switch (opcode & 0x07) {
                 case 0: value = m_regs.b; break;
                 case 1: value = m_regs.c; break;
@@ -716,7 +751,7 @@ void CPU::executeInstruction(u8 opcode) {
                 case 3: value = m_regs.e; break;
                 case 4: value = m_regs.h; break;
                 case 5: value = m_regs.l; break;
-                case 6: value = read8(m_regs.hl); break;
+                case 6: value = read8(m_regs.hl); isHL = true; break;
                 default: value = m_regs.a; break;
             }
             m_regs.a ^= value;
@@ -724,13 +759,14 @@ void CPU::executeInstruction(u8 opcode) {
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, false);
             setFlag(FLAG_C, false);
-            break;
+            return isHL ? 8 : 4;
         }
         
-        // OR r
+        // OR r (4 cycles for registers, 8 for (HL))
         case 0xB0: case 0xB1: case 0xB2: case 0xB3:
         case 0xB4: case 0xB5: case 0xB6: case 0xB7: {
             u8 value;
+            bool isHL = false;
             switch (opcode & 0x07) {
                 case 0: value = m_regs.b; break;
                 case 1: value = m_regs.c; break;
@@ -738,7 +774,7 @@ void CPU::executeInstruction(u8 opcode) {
                 case 3: value = m_regs.e; break;
                 case 4: value = m_regs.h; break;
                 case 5: value = m_regs.l; break;
-                case 6: value = read8(m_regs.hl); break;
+                case 6: value = read8(m_regs.hl); isHL = true; break;
                 default: value = m_regs.a; break;
             }
             m_regs.a |= value;
@@ -746,13 +782,14 @@ void CPU::executeInstruction(u8 opcode) {
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, false);
             setFlag(FLAG_C, false);
-            break;
+            return isHL ? 8 : 4;
         }
         
-        // CP r
+        // CP r (4 cycles for registers, 8 for (HL))
         case 0xB8: case 0xB9: case 0xBA: case 0xBB:
         case 0xBC: case 0xBD: case 0xBE: case 0xBF: {
             u8 value;
+            bool isHL = false;
             switch (opcode & 0x07) {
                 case 0: value = m_regs.b; break;
                 case 1: value = m_regs.c; break;
@@ -760,17 +797,17 @@ void CPU::executeInstruction(u8 opcode) {
                 case 3: value = m_regs.e; break;
                 case 4: value = m_regs.h; break;
                 case 5: value = m_regs.l; break;
-                case 6: value = read8(m_regs.hl); break;
+                case 6: value = read8(m_regs.hl); isHL = true; break;
                 default: value = m_regs.a; break;
             }
             setFlag(FLAG_Z, m_regs.a == value);
             setFlag(FLAG_N, true);
             setFlag(FLAG_H, (m_regs.a & 0x0F) < (value & 0x0F));
             setFlag(FLAG_C, m_regs.a < value);
-            break;
+            return isHL ? 8 : 4;
         }
         
-        // ADD A, n
+        // ADD A, n (8 cycles)
         case 0xC6: {
             u8 value = fetch8();
             u16 result = m_regs.a + value;
@@ -779,10 +816,10 @@ void CPU::executeInstruction(u8 opcode) {
             m_regs.a = result & 0xFF;
             setFlag(FLAG_Z, m_regs.a == 0);
             setFlag(FLAG_N, false);
-            break;
+            return 8;
         }
         
-        // SUB n
+        // SUB n (8 cycles)
         case 0xD6: {
             u8 value = fetch8();
             setFlag(FLAG_H, (m_regs.a & 0x0F) < (value & 0x0F));
@@ -790,30 +827,30 @@ void CPU::executeInstruction(u8 opcode) {
             m_regs.a -= value;
             setFlag(FLAG_Z, m_regs.a == 0);
             setFlag(FLAG_N, true);
-            break;
+            return 8;
         }
         
-        // AND n
+        // AND n (8 cycles)
         case 0xE6: {
             m_regs.a &= fetch8();
             setFlag(FLAG_Z, m_regs.a == 0);
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, true);
             setFlag(FLAG_C, false);
-            break;
+            return 8;
         }
         
-        // OR n
+        // OR n (8 cycles)
         case 0xF6: {
             m_regs.a |= fetch8();
             setFlag(FLAG_Z, m_regs.a == 0);
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, false);
             setFlag(FLAG_C, false);
-            break;
+            return 8;
         }
         
-        // ADC A, n
+        // ADC A, n (8 cycles)
         case 0xCE: {
             u8 value = fetch8();
             u8 carry = getFlag(FLAG_C) ? 1 : 0;
@@ -823,10 +860,10 @@ void CPU::executeInstruction(u8 opcode) {
             m_regs.a = result & 0xFF;
             setFlag(FLAG_Z, m_regs.a == 0);
             setFlag(FLAG_N, false);
-            break;
+            return 8;
         }
         
-        // SBC A, n
+        // SBC A, n (8 cycles)
         case 0xDE: {
             u8 value = fetch8();
             u8 carry = getFlag(FLAG_C) ? 1 : 0;
@@ -836,200 +873,203 @@ void CPU::executeInstruction(u8 opcode) {
             m_regs.a = result & 0xFF;
             setFlag(FLAG_Z, m_regs.a == 0);
             setFlag(FLAG_N, true);
-            break;
+            return 8;
         }
         
-        // XOR n
+        // XOR n (8 cycles)
         case 0xEE: {
             m_regs.a ^= fetch8();
             setFlag(FLAG_Z, m_regs.a == 0);
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, false);
             setFlag(FLAG_C, false);
-            break;
+            return 8;
         }
         
-        // CP n
+        // CP n (8 cycles)
         case 0xFE: {
             u8 value = fetch8();
             setFlag(FLAG_Z, m_regs.a == value);
             setFlag(FLAG_N, true);
             setFlag(FLAG_H, (m_regs.a & 0x0F) < (value & 0x0F));
             setFlag(FLAG_C, m_regs.a < value);
-            break;
+            return 8;
         }
         
-        // RET cc
-        case 0xC0: if (!getFlag(FLAG_Z)) m_regs.pc = pop(); break;
-        case 0xC8: if (getFlag(FLAG_Z)) m_regs.pc = pop(); break;
-        case 0xD0: if (!getFlag(FLAG_C)) m_regs.pc = pop(); break;
-        case 0xD8: if (getFlag(FLAG_C)) m_regs.pc = pop(); break;
+        // RET cc (20 if taken, 8 if not)
+        case 0xC0: if (!getFlag(FLAG_Z)) { m_regs.pc = pop(); return 20; } return 8;
+        case 0xC8: if (getFlag(FLAG_Z)) { m_regs.pc = pop(); return 20; } return 8;
+        case 0xD0: if (!getFlag(FLAG_C)) { m_regs.pc = pop(); return 20; } return 8;
+        case 0xD8: if (getFlag(FLAG_C)) { m_regs.pc = pop(); return 20; } return 8;
         
-        // POP
-        case 0xC1: m_regs.bc = pop(); break;
-        case 0xD1: m_regs.de = pop(); break;
-        case 0xE1: m_regs.hl = pop(); break;
-        case 0xF1: m_regs.af = pop() & 0xFFF0; break; // Lower 4 bits of F are always 0
+        // POP (12 cycles)
+        case 0xC1: m_regs.bc = pop(); return 12;
+        case 0xD1: m_regs.de = pop(); return 12;
+        case 0xE1: m_regs.hl = pop(); return 12;
+        case 0xF1: m_regs.af = pop() & 0xFFF0; return 12; // Lower 4 bits of F are always 0
         
-        // JP cc, nn
+        // JP cc, nn (16 if taken, 12 if not)
         case 0xC2: {
             u16 addr = fetch16();
-            if (!getFlag(FLAG_Z)) m_regs.pc = addr;
-            break;
+            if (!getFlag(FLAG_Z)) { m_regs.pc = addr; return 16; }
+            return 12;
         }
         case 0xCA: {
             u16 addr = fetch16();
-            if (getFlag(FLAG_Z)) m_regs.pc = addr;
-            break;
+            if (getFlag(FLAG_Z)) { m_regs.pc = addr; return 16; }
+            return 12;
         }
         case 0xD2: {
             u16 addr = fetch16();
-            if (!getFlag(FLAG_C)) m_regs.pc = addr;
-            break;
+            if (!getFlag(FLAG_C)) { m_regs.pc = addr; return 16; }
+            return 12;
         }
         case 0xDA: {
             u16 addr = fetch16();
-            if (getFlag(FLAG_C)) m_regs.pc = addr;
-            break;
+            if (getFlag(FLAG_C)) { m_regs.pc = addr; return 16; }
+            return 12;
         }
         
-        // JP nn
+        // JP nn (16 cycles)
         case 0xC3:
             m_regs.pc = fetch16();
-            break;
+            return 16;
         
-        // CALL cc, nn
+        // CALL cc, nn (24 if taken, 12 if not)
         case 0xC4: {
             u16 addr = fetch16();
             if (!getFlag(FLAG_Z)) {
                 push(m_regs.pc);
                 m_regs.pc = addr;
+                return 24;
             }
-            break;
+            return 12;
         }
         case 0xCC: {
             u16 addr = fetch16();
             if (getFlag(FLAG_Z)) {
                 push(m_regs.pc);
                 m_regs.pc = addr;
+                return 24;
             }
-            break;
+            return 12;
         }
         case 0xD4: {
             u16 addr = fetch16();
             if (!getFlag(FLAG_C)) {
                 push(m_regs.pc);
                 m_regs.pc = addr;
+                return 24;
             }
-            break;
+            return 12;
         }
         case 0xDC: {
             u16 addr = fetch16();
             if (getFlag(FLAG_C)) {
                 push(m_regs.pc);
                 m_regs.pc = addr;
+                return 24;
             }
-            break;
+            return 12;
         }
         
-        // PUSH
-        case 0xC5: push(m_regs.bc); break;
-        case 0xD5: push(m_regs.de); break;
-        case 0xE5: push(m_regs.hl); break;
-        case 0xF5: push(m_regs.af); break;
+        // PUSH (16 cycles)
+        case 0xC5: push(m_regs.bc); return 16;
+        case 0xD5: push(m_regs.de); return 16;
+        case 0xE5: push(m_regs.hl); return 16;
+        case 0xF5: push(m_regs.af); return 16;
         
-        // RST
-        case 0xC7: push(m_regs.pc); m_regs.pc = 0x00; break;
-        case 0xCF: push(m_regs.pc); m_regs.pc = 0x08; break;
-        case 0xD7: push(m_regs.pc); m_regs.pc = 0x10; break;
-        case 0xDF: push(m_regs.pc); m_regs.pc = 0x18; break;
-        case 0xE7: push(m_regs.pc); m_regs.pc = 0x20; break;
-        case 0xEF: push(m_regs.pc); m_regs.pc = 0x28; break;
-        case 0xF7: push(m_regs.pc); m_regs.pc = 0x30; break;
-        case 0xFF: push(m_regs.pc); m_regs.pc = 0x38; break;
+        // RST (16 cycles)
+        case 0xC7: push(m_regs.pc); m_regs.pc = 0x00; return 16;
+        case 0xCF: push(m_regs.pc); m_regs.pc = 0x08; return 16;
+        case 0xD7: push(m_regs.pc); m_regs.pc = 0x10; return 16;
+        case 0xDF: push(m_regs.pc); m_regs.pc = 0x18; return 16;
+        case 0xE7: push(m_regs.pc); m_regs.pc = 0x20; return 16;
+        case 0xEF: push(m_regs.pc); m_regs.pc = 0x28; return 16;
+        case 0xF7: push(m_regs.pc); m_regs.pc = 0x30; return 16;
+        case 0xFF: push(m_regs.pc); m_regs.pc = 0x38; return 16;
         
-        // RET
+        // RET (16 cycles)
         case 0xC9:
             m_regs.pc = pop();
-            break;
+            return 16;
         
-        // RETI
+        // RETI (16 cycles)
         case 0xD9:
             m_regs.pc = pop();
             m_ime = true;
-            break;
+            return 16;
         
-        // JP (HL)
+        // JP (HL) (4 cycles)
         case 0xE9:
             m_regs.pc = m_regs.hl;
-            break;
+            return 4;
         
-        // LD SP, HL
+        // LD SP, HL (8 cycles)
         case 0xF9:
             m_regs.sp = m_regs.hl;
-            break;
+            return 8;
         
-        // CALL nn
+        // CALL nn (24 cycles)
         case 0xCD: {
             u16 addr = fetch16();
             push(m_regs.pc);
             m_regs.pc = addr;
-            break;
+            return 24;
         }
         
-        // CB prefix
+        // CB prefix (returns cycles from CB instruction)
         case 0xCB:
-            executeCBInstruction(fetch8());
-            break;
+            return executeCBInstruction(fetch8());
         
-        // LDH (n), A
+        // LDH (n), A (12 cycles)
         case 0xE0:
             write8(0xFF00 + fetch8(), m_regs.a);
-            break;
+            return 12;
         
-        // LD (C), A
+        // LD (C), A (8 cycles)
         case 0xE2:
             write8(0xFF00 + m_regs.c, m_regs.a);
-            break;
+            return 8;
         
-        // LDH A, (n)
+        // LDH A, (n) (12 cycles)
         case 0xF0:
             m_regs.a = read8(0xFF00 + fetch8());
-            break;
+            return 12;
         
-        // LD A, (C)
+        // LD A, (C) (8 cycles)
         case 0xF2:
             m_regs.a = read8(0xFF00 + m_regs.c);
-            break;
+            return 8;
         
-        // LD (nn), A
+        // LD (nn), A (16 cycles)
         case 0xEA:
             write8(fetch16(), m_regs.a);
-            break;
+            return 16;
         
-        // LD A, (nn)
+        // LD A, (nn) (16 cycles)
         case 0xFA:
             m_regs.a = read8(fetch16());
-            break;
+            return 16;
         
-        // DI
+        // DI (4 cycles)
         case 0xF3:
             m_ime = false;
-            break;
+            return 4;
         
-        // EI
+        // EI (4 cycles)
         case 0xFB:
             m_enableIMENextInstruction = true;
-            break;
+            return 4;
         
-        // ADD HL, rr
+        // ADD HL, rr (8 cycles)
         case 0x09: {
             u32 result = m_regs.hl + m_regs.bc;
             setFlag(FLAG_N, false);
             setFlag(FLAG_H, ((m_regs.hl & 0x0FFF) + (m_regs.bc & 0x0FFF)) > 0x0FFF);
             setFlag(FLAG_C, result > 0xFFFF);
             m_regs.hl = result & 0xFFFF;
-            break;
+            return 8;
         }
         case 0x19: {
             u32 result = m_regs.hl + m_regs.de;
@@ -1037,7 +1077,7 @@ void CPU::executeInstruction(u8 opcode) {
             setFlag(FLAG_H, ((m_regs.hl & 0x0FFF) + (m_regs.de & 0x0FFF)) > 0x0FFF);
             setFlag(FLAG_C, result > 0xFFFF);
             m_regs.hl = result & 0xFFFF;
-            break;
+            return 8;
         }
         case 0x29: {
             u32 result = m_regs.hl + m_regs.hl;
@@ -1045,7 +1085,7 @@ void CPU::executeInstruction(u8 opcode) {
             setFlag(FLAG_H, ((m_regs.hl & 0x0FFF) + (m_regs.hl & 0x0FFF)) > 0x0FFF);
             setFlag(FLAG_C, result > 0xFFFF);
             m_regs.hl = result & 0xFFFF;
-            break;
+            return 8;
         }
         case 0x39: {
             u32 result = m_regs.hl + m_regs.sp;
@@ -1053,10 +1093,10 @@ void CPU::executeInstruction(u8 opcode) {
             setFlag(FLAG_H, ((m_regs.hl & 0x0FFF) + (m_regs.sp & 0x0FFF)) > 0x0FFF);
             setFlag(FLAG_C, result > 0xFFFF);
             m_regs.hl = result & 0xFFFF;
-            break;
+            return 8;
         }
         
-        // ADD SP, n
+        // ADD SP, n (16 cycles)
         case 0xE8: {
             s8 value = static_cast<s8>(fetch8());
             u32 result = m_regs.sp + value;
@@ -1065,10 +1105,10 @@ void CPU::executeInstruction(u8 opcode) {
             setFlag(FLAG_H, ((m_regs.sp & 0x0F) + (value & 0x0F)) > 0x0F);
             setFlag(FLAG_C, ((m_regs.sp & 0xFF) + (value & 0xFF)) > 0xFF);
             m_regs.sp = result & 0xFFFF;
-            break;
+            return 16;
         }
         
-        // LD HL, SP+n
+        // LD HL, SP+n (12 cycles)
         case 0xF8: {
             s8 value = static_cast<s8>(fetch8());
             u32 result = m_regs.sp + value;
@@ -1077,16 +1117,16 @@ void CPU::executeInstruction(u8 opcode) {
             setFlag(FLAG_H, ((m_regs.sp & 0x0F) + (value & 0x0F)) > 0x0F);
             setFlag(FLAG_C, ((m_regs.sp & 0xFF) + (value & 0xFF)) > 0xFF);
             m_regs.hl = result & 0xFFFF;
-            break;
+            return 12;
         }
         
         default:
             std::cerr << "Unknown opcode: 0x" << std::hex << (int)opcode << std::dec << std::endl;
-            break;
+            return 4;
     }
 }
 
-void CPU::executeCBInstruction(u8 opcode) {
+u32 CPU::executeCBInstruction(u8 opcode) {
     u8* reg = nullptr;
     u8 value = 0;
     bool useMemory = false;
@@ -1202,6 +1242,8 @@ void CPU::executeCBInstruction(u8 opcode) {
         setFlag(FLAG_Z, !bitSet);
         setFlag(FLAG_N, false);
         setFlag(FLAG_H, true);
+        // BIT doesn't write back, different cycle count
+        return useMemory ? 12 : 8;
     } else if (opcode < 0xC0) {
         // RES
         value &= ~(1 << bit);
@@ -1210,7 +1252,7 @@ void CPU::executeCBInstruction(u8 opcode) {
         value |= (1 << bit);
     }
     
-    // Write back result (except for BIT)
+    // Write back result (except for BIT, which returned above)
     if (opcode < 0x40 || opcode >= 0x80) {
         if (useMemory) {
             write8(m_regs.hl, value);
@@ -1218,5 +1260,9 @@ void CPU::executeCBInstruction(u8 opcode) {
             *reg = value;
         }
     }
+    
+    // Return cycles: (HL) operations take more cycles
+    // Rotate/Shift/RES/SET: 8 for registers, 16 for (HL)
+    return useMemory ? 16 : 8;
 }
 

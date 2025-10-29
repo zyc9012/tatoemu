@@ -79,6 +79,10 @@ public:
     const u32* getFramebuffer() const { return m_framebuffer.data(); }
     bool isFrameReady() const { return m_frameReady; }
     void clearFrameReady() { m_frameReady = false; }
+    
+    // DMA cycle accounting
+    u32 getDMACycles() const { return m_dmaCycles; }
+    void clearDMACycles() { m_dmaCycles = 0; }
 
     // Save/Load state
     void saveState(std::ofstream& file) const;
@@ -155,8 +159,12 @@ private:
 
     // Scanline buffers for priority handling
     std::array<u8, SCREEN_WIDTH> m_bgPriority;  // BG color indices for sprite priority
+    std::array<bool, SCREEN_WIDTH> m_bgPriorityFlag;  // GBC BG-to-OBJ priority flag
     
     bool m_gbcMode;
     bool m_statInterruptLine;
+    
+    // DMA cycle tracking (for proper timing)
+    u32 m_dmaCycles;
 };
 

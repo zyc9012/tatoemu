@@ -84,9 +84,9 @@ public:
     void loadState(std::ifstream& file);
 
 private:
-    void executeInstruction(u8 opcode);
-    void executeCBInstruction(u8 opcode);
-    void handleInterrupts();
+    u32 executeInstruction(u8 opcode);
+    u32 executeCBInstruction(u8 opcode);
+    u32 handleInterrupts();
     
     // Helper functions
     u8 read8(u16 address) const;
@@ -107,6 +107,7 @@ private:
     MMU* m_mmu;
     Registers m_regs;
     bool m_halted;
+    bool m_haltBug;  // HALT bug flag
     bool m_ime; // Interrupt Master Enable
     bool m_enableIMENextInstruction;
     u8 m_if;    // Interrupt Flag register

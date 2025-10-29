@@ -84,7 +84,9 @@ bool Emulator::initialize() {
     m_ppu->setMMU(m_mmu.get());
     m_joypad->setCPU(m_cpu.get());
     m_timer->setCPU(m_cpu.get());
+    m_timer->setMMU(m_mmu.get());
     m_apu->setCPU(m_cpu.get());
+    m_apu->setMMU(m_mmu.get());
     
     // Initialize audio
     if (!m_apu->initializeAudio()) {
@@ -283,18 +285,29 @@ void Emulator::handleInput() {
 }
 
 void Emulator::update() {
+    // In double speed mode, CPU runs at 2x speed, so we need 2x cycles per frame
+    // to maintain the same real-time frame rate
+    u32 targetCycles = m_mmu->isDoubleSpeed() ? (CYCLES_PER_FRAME * 2) : CYCLES_PER_FRAME;
+    
     // Run until we've executed enough cycles for one frame
-    while (m_cyclesThisFrame < CYCLES_PER_FRAME) {
+    while (m_cyclesThisFrame < targetCycles) {
         u32 cycles = m_cpu->step();
         
         m_ppu->step(cycles);
         m_timer->step(cycles);
         m_apu->step(cycles);
         
+        // Add DMA cycles if any DMA occurred
+        u32 dmaCycles = m_ppu->getDMACycles();
+        if (dmaCycles > 0) {
+            m_ppu->clearDMACycles();
+            cycles += dmaCycles;
+        }
+        
         m_cyclesThisFrame += cycles;
     }
     
-    m_cyclesThisFrame -= CYCLES_PER_FRAME;
+    m_cyclesThisFrame -= targetCycles;
 }
 
 void Emulator::render() {
