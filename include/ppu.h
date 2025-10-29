@@ -61,7 +61,7 @@ public:
 
     void setCPU(CPU* cpu);
     void setMMU(MMU* mmu);
-    void reset();
+    void reset(bool useBootrom = false);
     void setGBCMode(bool enabled);
     void step(u32 cycles);
 

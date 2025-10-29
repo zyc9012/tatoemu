@@ -4,6 +4,7 @@
 #include "joypad.h"
 #include "timer.h"
 #include "apu.h"
+#include "bootrom.h"
 #include <algorithm>
 
 MMU::MMU()
@@ -12,6 +13,7 @@ MMU::MMU()
     , m_joypad(nullptr)
     , m_timer(nullptr)
     , m_apu(nullptr)
+    , m_bootrom(nullptr)
     , m_ie(0)
     , m_gbcMode(false)
     , m_wramBank(1)
@@ -64,6 +66,10 @@ void MMU::setAPU(APU* apu) {
     m_apu = apu;
 }
 
+void MMU::setBootrom(Bootrom* bootrom) {
+    m_bootrom = bootrom;
+}
+
 void MMU::setGBCMode(bool enabled) {
     m_gbcMode = enabled;
     if (enabled) {
@@ -86,6 +92,17 @@ void MMU::performSpeedSwitch() {
 u8 MMU::read(u16 address) const {
     // ROM (0x0000 - 0x7FFF) and Cartridge RAM (0xA000 - 0xBFFF)
     if (address < 0x8000 || (address >= 0xA000 && address < 0xC000)) {
+        // Check if bootrom should be accessed instead of cartridge ROM
+        // DMG bootrom: 0x0000-0x00FF
+        // GBC bootrom: 0x0000-0x00FF and 0x0200-0x08FF
+        if (m_bootrom && m_bootrom->isEnabled() && address < 0x8000) {
+            if (address < 0x0100) {
+                return m_bootrom->read(address);
+            } else if (m_bootrom->isGBC() && address >= 0x0200 && address < 0x0900) {
+                return m_bootrom->read(address);
+            }
+        }
+        
         if (m_cartridge) {
             return m_cartridge->read(address);
         }
@@ -251,6 +268,10 @@ u8 MMU::readIO(u16 address) const {
             // Bit 0: Prepare Speed Switch (Read/Write)
             // Bits 1-6: Always 1 (unused)
             return 0x7E | m_speedSwitch | (m_doubleSpeed ? 0x80 : 0x00);
+        // Bootrom disable register
+        case 0xFF50:
+            // Reading returns 0xFF if bootrom is disabled, 0x00 if enabled
+            return (m_bootrom && m_bootrom->isEnabled()) ? 0x00 : 0xFF;
         // GBC VRAM bank
         case 0xFF4F:
         // GBC HDMA registers
@@ -319,6 +340,13 @@ void MMU::writeIO(u16 address, u8 value) {
             if (m_gbcMode) {
                 m_speedSwitch = value & 0x01; // Bit 0 = prepare speed switch
                 // Speed switch happens during stop instruction (not implemented here)
+            }
+            break;
+        // Bootrom disable register
+        case 0xFF50:
+            // Any write to this register disables the bootrom
+            if (m_bootrom) {
+                m_bootrom->disable();
             }
             break;
         // GBC VRAM bank

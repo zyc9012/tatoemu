@@ -14,16 +14,16 @@ PPU::PPU()
     : m_cpu(nullptr)
     , m_mmu(nullptr)
     , m_vramBank(0)
-    , m_lcdc(0x91)
+    , m_lcdc(0x00)  // Will be set properly in reset()
     , m_stat(0)
     , m_scy(0)
     , m_scx(0)
     , m_ly(0)
     , m_lyc(0)
     , m_dma(0)
-    , m_bgp(0xFC)
-    , m_obp0(0xFF)
-    , m_obp1(0xFF)
+    , m_bgp(0x00)   // Will be set properly in reset()
+    , m_obp0(0x00)  // Will be set properly in reset()
+    , m_obp1(0x00)  // Will be set properly in reset()
     , m_wy(0)
     , m_wx(0)
     , m_bgpi(0)
@@ -65,23 +65,41 @@ void PPU::setMMU(MMU* mmu) {
     m_mmu = mmu;
 }
 
-void PPU::reset() {
+void PPU::reset(bool useBootrom) {
     std::fill(m_vram.begin(), m_vram.end(), 0);
     std::fill(m_oam.begin(), m_oam.end(), 0);
     
     m_vramBank = 0;
-    m_lcdc = 0x91;
-    m_stat = 0;
-    m_scy = 0;
-    m_scx = 0;
-    m_ly = 0;
-    m_lyc = 0;
-    m_dma = 0;
-    m_bgp = 0xFC;
-    m_obp0 = 0xFF;
-    m_obp1 = 0xFF;
-    m_wy = 0;
-    m_wx = 0;
+    
+    if (useBootrom) {
+        // When using bootrom, LCD starts disabled and bootrom initializes it
+        m_lcdc = 0x00;  // LCD disabled
+        m_stat = 0;
+        m_scy = 0;
+        m_scx = 0;
+        m_ly = 0;
+        m_lyc = 0;
+        m_dma = 0;
+        m_bgp = 0x00;   // Bootrom will initialize
+        m_obp0 = 0x00;  // Bootrom will initialize
+        m_obp1 = 0x00;  // Bootrom will initialize
+        m_wy = 0;
+        m_wx = 0;
+    } else {
+        // Post-bootrom values (skip bootrom)
+        m_lcdc = 0x91;
+        m_stat = 0;
+        m_scy = 0;
+        m_scx = 0;
+        m_ly = 0;
+        m_lyc = 0;
+        m_dma = 0;
+        m_bgp = 0xFC;
+        m_obp0 = 0xFF;
+        m_obp1 = 0xFF;
+        m_wy = 0;
+        m_wx = 0;
+    }
     
     m_bgpi = 0;
     m_obpi = 0;

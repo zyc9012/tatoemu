@@ -8,6 +8,7 @@
 #include "timer.h"
 #include "cartridge.h"
 #include "apu.h"
+#include "bootrom.h"
 #include <memory>
 #include <string>
 
@@ -21,6 +22,7 @@ public:
     ~Emulator();
 
     bool initialize();
+    bool loadBootrom(const std::string& filename);
     bool loadROM(const std::string& filename);
     void run();
     void shutdown();
@@ -48,6 +50,7 @@ private:
     std::unique_ptr<Timer> m_timer;
     std::unique_ptr<Cartridge> m_cartridge;
     std::unique_ptr<APU> m_apu;
+    std::unique_ptr<Bootrom> m_bootrom;
     
     bool m_running;
     u32 m_cyclesThisFrame;

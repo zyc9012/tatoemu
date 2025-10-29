@@ -26,6 +26,7 @@ set(SOURCES
     src/emulator.cpp
     src/cartridge.cpp
     src/apu.cpp
+    src/bootrom.cpp
 )
 
 # Header files
@@ -38,6 +39,7 @@ set(HEADERS
     include/emulator.h
     include/cartridge.h
     include/apu.h
+    include/bootrom.h
     include/types.h
 )
 

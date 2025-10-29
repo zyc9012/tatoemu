@@ -10,6 +10,7 @@ class PPU;
 class Joypad;
 class Timer;
 class APU;
+class Bootrom;
 
 class MMU {
 public:
@@ -21,6 +22,7 @@ public:
     void setJoypad(Joypad* joypad);
     void setTimer(Timer* timer);
     void setAPU(APU* apu);
+    void setBootrom(Bootrom* bootrom);
 
     u8 read(u16 address) const;
     void write(u16 address, u8 value);
@@ -44,6 +46,7 @@ private:
     Joypad* m_joypad;
     Timer* m_timer;
     APU* m_apu;
+    Bootrom* m_bootrom;
 
     // Memory regions
     std::array<u8, 0x8000> m_wram;     // Work RAM (32KB for GBC, 8 banks)

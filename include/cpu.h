@@ -70,7 +70,7 @@ public:
     ~CPU();
 
     void setMMU(MMU* mmu);
-    void reset();
+    void reset(bool useBootrom = false);
     void setGBCMode(bool enabled) { m_gbcMode = enabled; }
     u32 step(); // Execute one instruction, return cycles taken
     

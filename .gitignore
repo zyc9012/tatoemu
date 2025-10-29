@@ -30,6 +30,7 @@ Makefile
 # ROM files (don't commit ROMs)
 *.gb
 *.gbc
+*.bin
 
 # Saves and states
 *.sav

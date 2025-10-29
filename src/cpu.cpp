@@ -40,18 +40,24 @@ void CPU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_gbcMode), sizeof(m_gbcMode));
 }
 
-void CPU::reset() {
-    // Initialize registers to post-boot values
-    if (m_gbcMode) {
-        m_regs.af = 0x11B0;  // GBC mode
+void CPU::reset(bool useBootrom) {
+    if (useBootrom) {
+        // Start from the beginning for bootrom execution
+        m_regs.af = 0x0000;
+        m_regs.bc = 0x0000;
+        m_regs.de = 0x0000;
+        m_regs.hl = 0x0000;
+        m_regs.sp = 0x0000;
+        m_regs.pc = 0x0000;  // Start at bootrom
     } else {
-        m_regs.af = 0x01B0;  // DMG mode
+        // Initialize registers to post-boot values (skip bootrom)
+        m_regs.af = m_gbcMode ? 0x11B0 : 0x01B0;
+        m_regs.bc = 0x0013;
+        m_regs.de = 0x00D8;
+        m_regs.hl = 0x014D;
+        m_regs.sp = 0xFFFE;
+        m_regs.pc = 0x0100;  // Start at ROM entry point
     }
-    m_regs.bc = 0x0013;
-    m_regs.de = 0x00D8;
-    m_regs.hl = 0x014D;
-    m_regs.sp = 0xFFFE;
-    m_regs.pc = 0x0100;
     
     m_halted = false;
     m_haltBug = false;

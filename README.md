@@ -43,7 +43,7 @@ make
 ## Usage
 
 ```bash
-./gb-emu <path_to_rom.gb>
+./gb-emu <path_to_rom.gb> [bootrom_file]
 ```
 
 ### Controls

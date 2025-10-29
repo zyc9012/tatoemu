@@ -71,6 +71,7 @@ bool Emulator::initialize() {
     m_joypad = std::make_unique<Joypad>();
     m_timer = std::make_unique<Timer>();
     m_apu = std::make_unique<APU>();
+    m_bootrom = std::make_unique<Bootrom>();
 
     // Wire up components
     m_mmu->setCartridge(m_cartridge.get());
@@ -78,6 +79,7 @@ bool Emulator::initialize() {
     m_mmu->setJoypad(m_joypad.get());
     m_mmu->setTimer(m_timer.get());
     m_mmu->setAPU(m_apu.get());
+    m_mmu->setBootrom(m_bootrom.get());
     
     m_cpu->setMMU(m_mmu.get());
     m_ppu->setCPU(m_cpu.get());
@@ -98,6 +100,14 @@ bool Emulator::initialize() {
     return true;
 }
 
+bool Emulator::loadBootrom(const std::string& filename) {
+    if (!m_bootrom->load(filename)) {
+        std::cerr << "Failed to load bootrom, continuing without it" << std::endl;
+        return false;
+    }
+    return true;
+}
+
 bool Emulator::loadROM(const std::string& filename) {
     if (!m_cartridge->load(filename)) {
         return false;
@@ -113,9 +123,16 @@ bool Emulator::loadROM(const std::string& filename) {
     
     SDL_SetWindowTitle(m_window, m_cartridge->getTitle().c_str());
 
+    // Reset bootrom to enabled state if loaded
+    if (m_bootrom->isLoaded()) {
+        m_bootrom->reset();
+    }
+
     // Reset CPU after loading ROM
-    m_cpu->reset();
-    m_ppu->reset();
+    // If bootrom is loaded, start from 0x0000; otherwise skip to 0x0100
+    bool useBootrom = m_bootrom->isLoaded();
+    m_cpu->reset(useBootrom);
+    m_ppu->reset(useBootrom);
     m_timer->reset();
     m_apu->reset();
 
