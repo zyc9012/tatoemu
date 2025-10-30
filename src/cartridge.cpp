@@ -296,7 +296,13 @@ void Cartridge::writeMBC1(u16 address, u8 value) {
             m_currentRomBank = (m_currentRomBank & 0x1F) | ((value & 0x03) << 5);
         } else {
             // RAM Banking Mode
-            m_currentRamBank = value & 0x03;
+            u8 bank = value & 0x03;
+            // Validate RAM bank
+            if (!m_ram.empty() && (bank * 0x2000) >= m_ram.size()) {
+                std::cerr << "Attempting to switch to an invalid RAM bank: " << std::hex << (int)bank << std::dec << std::endl;
+                bank = (m_ram.size() / 0x2000) - 1;
+            }
+            m_currentRamBank = bank;
         }
     } else if (address < 0x8000) {
         // Banking Mode Select
@@ -359,7 +365,13 @@ void Cartridge::writeMBC1M(u16 address, u8 value) {
             m_currentRomBank = (m_currentRomBank & 0x1F) | ((value & 0x03) << 5);
         } else {
             // RAM Banking Mode
-            m_currentRamBank = value & 0x03;
+            u8 bank = value & 0x03;
+            // Validate RAM bank
+            if (!m_ram.empty() && (bank * 0x2000) >= m_ram.size()) {
+                std::cerr << "Attempting to switch to an invalid RAM bank: " << std::hex << (int)bank << std::dec << std::endl;
+                bank = (m_ram.size() / 0x2000) - 1;
+            }
+            m_currentRamBank = bank;
             m_romBankHigh = value & 0x03; // Also affects ROM bank 0
         }
     } else if (address < 0x8000) {
@@ -483,7 +495,13 @@ void Cartridge::writeMBC3(u16 address, u8 value) {
         m_currentRomBank = bank;
     } else if (address < 0x6000) {
         // RAM Bank Number or RTC Register Select
-        m_currentRamBank = value;
+        u8 bank = value;
+        // Validate RAM bank (only for RAM banks 0-3, RTC registers 0x08-0x0C are always valid)
+        if (bank <= 0x03 && !m_ram.empty() && (bank * 0x2000) >= m_ram.size()) {
+            std::cerr << "Attempting to switch to an invalid RAM bank: " << std::hex << (int)bank << std::dec << std::endl;
+            bank = (m_ram.size() / 0x2000) - 1;
+        }
+        m_currentRamBank = bank;
     } else if (address < 0x8000) {
         // RTC Latch
         if (value == 0x00) {
@@ -563,7 +581,13 @@ void Cartridge::writeMBC5(u16 address, u8 value) {
         m_romBankHighBits = value & 0x01;
     } else if (address < 0x6000) {
         // RAM Bank Number
-        m_currentRamBank = value & 0x0F;
+        u8 bank = value & 0x0F;
+        // Validate RAM bank
+        if (!m_ram.empty() && (bank * 0x2000) >= m_ram.size()) {
+            std::cerr << "Attempting to switch to an invalid RAM bank: " << std::hex << (int)bank << std::dec << std::endl;
+            bank = (m_ram.size() / 0x2000) - 1;
+        }
+        m_currentRamBank = bank;
     } else if (address >= 0xA000 && address < 0xC000) {
         // External RAM
         if (m_ramEnabled && !m_ram.empty()) {
@@ -626,7 +650,13 @@ void Cartridge::writeMBC7(u16 address, u8 value) {
         m_currentRomBank = bank;
     } else if (address < 0x6000) {
         // RAM Bank Number or Accelerometer Register Select
-        m_currentRamBank = value;
+        u8 bank = value;
+        // Validate RAM bank (only for RAM banks 0-15, accelerometer register 0x10 is always valid)
+        if (bank <= 0x0F && !m_ram.empty() && (bank * 0x2000) >= m_ram.size()) {
+            std::cerr << "Attempting to switch to an invalid RAM bank: " << std::hex << (int)bank << std::dec << std::endl;
+            bank = (m_ram.size() / 0x2000) - 1;
+        }
+        m_currentRamBank = bank;
         if (value <= 0x05) {
             m_accelRegister = value;
         }
