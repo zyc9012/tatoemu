@@ -2,6 +2,7 @@
 #include <SDL3/SDL.h>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 Emulator::Emulator()
     : m_window(nullptr)
@@ -462,13 +463,17 @@ void Emulator::updateWindowStats() {
         std::string title = m_cartridge->getTitle() + " - ";
         
         // Add stats: FPS, Speed, Audio Buffer
-        char stats[128];
-        snprintf(stats, sizeof(stats), "%.1f FPS | Speed: %.1f%% | Audio: %d%%",
-                 actualFPS, 
-                 m_emulationSpeed * 100.0,
-                 bufferPercent);
+        std::ostringstream stats;
+        stats.setf(std::ios::fixed);
+        stats.precision(1);
+        stats << actualFPS
+              << " FPS | Speed: "
+              << (m_emulationSpeed * 100.0)
+              << "% | Audio: "
+              << bufferPercent
+              << "%";
         
-        title += stats;
+        title += stats.str();
         
         // Update window title
         SDL_SetWindowTitle(m_window, title.c_str());
