@@ -51,12 +51,21 @@ void CPU::reset(bool useBootrom) {
         m_regs.pc = 0x0000;  // Start at bootrom
     } else {
         // Initialize registers to post-boot values (skip bootrom)
-        m_regs.af = m_gbcMode ? 0x11B0 : 0x01B0;
-        m_regs.bc = 0x0013;
-        m_regs.de = 0x00D8;
-        m_regs.hl = 0x014D;
-        m_regs.sp = 0xFFFE;
-        m_regs.pc = 0x0100;  // Start at ROM entry point
+        if (m_gbcMode) {
+            m_regs.af = 0x1180;
+            m_regs.bc = 0x0000;
+            m_regs.de = 0xFF56;
+            m_regs.hl = 0x000D;
+            m_regs.sp = 0xFFFE;
+            m_regs.pc = 0x0100;  // Start at ROM entry point
+        } else {
+            m_regs.af = 0x01B0;
+            m_regs.bc = 0x0013;
+            m_regs.de = 0x00D8;
+            m_regs.hl = 0x014D;
+            m_regs.sp = 0xFFFE;
+            m_regs.pc = 0x0100;  // Start at ROM entry point
+        }
     }
     
     m_halted = false;
