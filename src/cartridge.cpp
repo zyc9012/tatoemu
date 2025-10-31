@@ -299,7 +299,7 @@ void Cartridge::writeMBC1(u16 address, u8 value) {
             u8 bank = value & 0x03;
             // Validate RAM bank
             if (!m_ram.empty() && (bank * 0x2000) >= m_ram.size()) {
-                std::cerr << "Attempting to switch to an invalid RAM bank: " << std::hex << (int)bank << std::dec << std::endl;
+                std::cerr << "Invalid RAM bank requested: " << std::hex << (int)bank << std::dec << std::endl;
                 bank = (m_ram.size() / 0x2000) - 1;
             }
             m_currentRamBank = bank;
@@ -368,7 +368,7 @@ void Cartridge::writeMBC1M(u16 address, u8 value) {
             u8 bank = value & 0x03;
             // Validate RAM bank
             if (!m_ram.empty() && (bank * 0x2000) >= m_ram.size()) {
-                std::cerr << "Attempting to switch to an invalid RAM bank: " << std::hex << (int)bank << std::dec << std::endl;
+                std::cerr << "Invalid RAM bank requested: " << std::hex << (int)bank << std::dec << std::endl;
                 bank = (m_ram.size() / 0x2000) - 1;
             }
             m_currentRamBank = bank;
@@ -498,7 +498,7 @@ void Cartridge::writeMBC3(u16 address, u8 value) {
         u8 bank = value;
         // Validate RAM bank (only for RAM banks 0-3, RTC registers 0x08-0x0C are always valid)
         if (bank <= 0x03 && !m_ram.empty() && (bank * 0x2000) >= m_ram.size()) {
-            std::cerr << "Attempting to switch to an invalid RAM bank: " << std::hex << (int)bank << std::dec << std::endl;
+            std::cerr << "Invalid RAM bank requested: " << std::hex << (int)bank << std::dec << std::endl;
             bank = (m_ram.size() / 0x2000) - 1;
         }
         m_currentRamBank = bank;
@@ -584,7 +584,7 @@ void Cartridge::writeMBC5(u16 address, u8 value) {
         u8 bank = value & 0x0F;
         // Validate RAM bank
         if (!m_ram.empty() && (bank * 0x2000) >= m_ram.size()) {
-            std::cerr << "Attempting to switch to an invalid RAM bank: " << std::hex << (int)bank << std::dec << std::endl;
+            std::cerr << "Invalid RAM bank requested: " << std::hex << (int)bank << std::dec << std::endl;
             bank = (m_ram.size() / 0x2000) - 1;
         }
         m_currentRamBank = bank;
@@ -653,7 +653,7 @@ void Cartridge::writeMBC7(u16 address, u8 value) {
         u8 bank = value;
         // Validate RAM bank (only for RAM banks 0-15, accelerometer register 0x10 is always valid)
         if (bank <= 0x0F && !m_ram.empty() && (bank * 0x2000) >= m_ram.size()) {
-            std::cerr << "Attempting to switch to an invalid RAM bank: " << std::hex << (int)bank << std::dec << std::endl;
+            std::cerr << "Invalid RAM bank requested: " << std::hex << (int)bank << std::dec << std::endl;
             bank = (m_ram.size() / 0x2000) - 1;
         }
         m_currentRamBank = bank;
