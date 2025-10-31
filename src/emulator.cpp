@@ -284,14 +284,14 @@ void Emulator::handleInput() {
                         break;
                     case SDLK_F5: // Save state
                         if (!m_currentROMPath.empty()) {
-                            std::string saveFilename = m_currentROMPath.substr(0, m_currentROMPath.find_last_of('.')) + ".sav";
+                            std::string saveFilename = m_currentROMPath.substr(0, m_currentROMPath.find_last_of('.')) + ".state";
                             saveState(saveFilename);
                             std::cout << "State saved to " << saveFilename << std::endl;
                         }
                         break;
                     case SDLK_F9: // Load state
                         if (!m_currentROMPath.empty()) {
-                            std::string saveFilename = m_currentROMPath.substr(0, m_currentROMPath.find_last_of('.')) + ".sav";
+                            std::string saveFilename = m_currentROMPath.substr(0, m_currentROMPath.find_last_of('.')) + ".state";
                             loadState(saveFilename);
                             std::cout << "State loaded from " << saveFilename << std::endl;
                         }
