@@ -56,6 +56,7 @@ make
 - **ESC** - Quit emulator
 - **F5** - Quick save
 - **F9** - Quick load
+- **P** - Pause / Resume
 
 ## Supported Cartridge Types
 

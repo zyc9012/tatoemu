@@ -9,6 +9,7 @@ Emulator::Emulator()
     , m_renderer(nullptr)
     , m_texture(nullptr)
     , m_running(false)
+    , m_paused(false)
     , m_cyclesThisFrame(0)
     , m_lastFrameTime(0)
     , m_emulationSpeed(1.0)
@@ -142,6 +143,7 @@ bool Emulator::loadROM(const std::string& filename) {
 
 void Emulator::run() {
     m_running = true;
+    m_paused = false;
     m_cyclesThisFrame = 0;
     m_lastFrameTime = SDL_GetTicks();
     m_emulationSpeed = 1.0;
@@ -149,6 +151,13 @@ void Emulator::run() {
     m_frameCount = 0;
     
     while (m_running) {
+        if (m_paused) {
+            handleInput();
+            updateWindowStats();
+            SDL_Delay(static_cast<u32>(m_targetFrameTime));
+            continue;
+        }
+
         handleInput();
         update();
         render();
@@ -295,6 +304,9 @@ void Emulator::handleInput() {
                             loadState(saveFilename);
                             std::cout << "State loaded from " << saveFilename << std::endl;
                         }
+                        break;
+                    case SDLK_P: // Pause / Resume
+                        m_paused = !m_paused;
                         break;
                 }
                 break;
@@ -444,6 +456,12 @@ void Emulator::loadState(const std::string& filename) {
 void Emulator::updateWindowStats() {
     u64 currentTime = SDL_GetTicks();
     u64 elapsed = currentTime - m_statsTimer;
+
+    if (m_paused) {
+        std::string title = m_cartridge->getTitle() + " - " + "Paused";
+        SDL_SetWindowTitle(m_window, title.c_str());
+        return;
+    }
     
     // Update window title every second with real-time stats
     if (elapsed >= 1000) {

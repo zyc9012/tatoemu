@@ -53,6 +53,7 @@ private:
     std::unique_ptr<Bootrom> m_bootrom;
     
     bool m_running;
+    bool m_paused;
     u32 m_cyclesThisFrame;
     
     // Frame timing
