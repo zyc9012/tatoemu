@@ -185,7 +185,16 @@ void PPU::step(u32 cycles) {
                 }
                 
                 m_ly++;
-                
+
+                // Check for STAT mode 2 (OAM) interrupt at start of VBLANK
+                // This interrupt triggers on DMG/SGB but not on CGB/AGB/AGS
+                if (m_ly >= SCREEN_HEIGHT && !m_gbcMode && (m_stat & STAT_OAM_INTERRUPT) && !m_statInterruptLine) {
+                    if (m_cpu) {
+                        m_cpu->requestInterrupt(INT_LCD_STAT);
+                    }
+                    m_statInterruptLine = true;
+                }
+
                 // Check LYC=LY
                 if (m_ly == m_lyc) {
                     m_stat |= STAT_LYC_EQUAL;
