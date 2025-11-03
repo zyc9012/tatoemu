@@ -477,29 +477,31 @@ u32 CPU::executeInstruction(u8 opcode) {
             return 8;
         }
         
-        // DAA (4 cycles) - FIXED: now clears carry when no adjustment
+        // DAA (4 cycles) - Decimal Adjust Accumulator
         case 0x27: {
-            u8 a = m_regs.a;
+            u16 a = m_regs.a;
+            
             if (!getFlag(FLAG_N)) {
+                // After addition: check original value for upper nibble FIRST
+                if (getFlag(FLAG_C) || a > 0x99) {
+                    a += 0x60;
+                    setFlag(FLAG_C, true);
+                }
                 if (getFlag(FLAG_H) || (a & 0x0F) > 0x09) {
                     a += 0x06;
                 }
-                if (getFlag(FLAG_C) || a > 0x9F) {
-                    a += 0x60;
-                    setFlag(FLAG_C, true);
-                } else {
-                    setFlag(FLAG_C, false);  // FIX: Clear C when no adjustment
-                }
             } else {
-                if (getFlag(FLAG_H)) {
-                    a = (a - 0x06) & 0xFF;
-                }
+                // After subtraction
                 if (getFlag(FLAG_C)) {
                     a -= 0x60;
                 }
+                if (getFlag(FLAG_H)) {
+                    a -= 0x06;
+                }
             }
-            m_regs.a = a;
-            setFlag(FLAG_Z, a == 0);
+            
+            m_regs.a = static_cast<u8>(a);
+            setFlag(FLAG_Z, m_regs.a == 0);
             setFlag(FLAG_H, false);
             return 4;
         }
