@@ -164,10 +164,8 @@ void PPU::step(u32 cycles) {
                 
                 setMode(PPUMode::HBLANK);
                 
-                // Trigger STAT interrupt for HBLANK if enabled
-                if (m_stat & STAT_HBLANK_INTERRUPT) {
-                    updateStatInterrupt();
-                }
+                // Always update STAT interrupt line after mode change
+                updateStatInterrupt();
                 
                 // Perform HDMA transfer if active
                 if (m_hdmaActive && m_gbcMode) {
@@ -210,18 +208,14 @@ void PPU::step(u32 cycles) {
                         m_cpu->requestInterrupt(INT_VBLANK);
                     }
                     
-                    // Trigger STAT interrupt for VBLANK if enabled
-                    if (m_stat & STAT_VBLANK_INTERRUPT) {
-                        updateStatInterrupt();
-                    }
+                    // Always update STAT interrupt line after mode change
+                    updateStatInterrupt();
                 } else {
                     // Start next scanline
                     setMode(PPUMode::OAM_SCAN);
                     
-                    // Trigger STAT interrupt for OAM if enabled
-                    if (m_stat & STAT_OAM_INTERRUPT) {
-                        updateStatInterrupt();
-                    }
+                    // Always update STAT interrupt line after mode change
+                    updateStatInterrupt();
                 }
             }
             break;
@@ -257,10 +251,8 @@ void PPU::step(u32 cycles) {
                     
                     setMode(PPUMode::OAM_SCAN);
                     
-                    // Trigger STAT interrupt for OAM if enabled
-                    if (m_stat & STAT_OAM_INTERRUPT) {
-                        updateStatInterrupt();
-                    }
+                    // Always update STAT interrupt line after mode change
+                    updateStatInterrupt();
                 }
             }
             break;
