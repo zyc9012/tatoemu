@@ -44,6 +44,7 @@ PPU::PPU()
     , m_windowRenderedThisFrame(false)
     , m_gbcMode(false)
     , m_statInterruptLine(false)
+    , m_modeChangeDelay(0)
     , m_dmaCycles(0) {
     std::fill(m_vram.begin(), m_vram.end(), 0);
     std::fill(m_oam.begin(), m_oam.end(), 0);
@@ -122,6 +123,7 @@ void PPU::reset(bool useBootrom) {
     m_windowLineCounter = 0;
     m_windowRenderedThisFrame = false;
     m_statInterruptLine = false;
+    m_modeChangeDelay = 0;
     
     std::fill(m_framebuffer.begin(), m_framebuffer.end(), 0xFFFFFFFF);
 }
@@ -144,6 +146,14 @@ void PPU::step(u32 cycles) {
     // PPU timing thresholds are doubled in double speed mode to maintain
     // the same real-time rate (since CPU cycles come in at 2x rate)
     u32 speedMultiplier = (m_mmu && m_mmu->isDoubleSpeed()) ? 2 : 1;
+
+    // Check for delayed STAT interrupt from previous mode change
+    if (m_modeChangeDelay > 0) {
+        m_modeChangeDelay--;
+        if (m_modeChangeDelay == 0) {
+            updateStatInterrupt();
+        }
+    }
     
     switch (m_mode) {
         case PPUMode::OAM_SCAN:
@@ -163,9 +173,6 @@ void PPU::step(u32 cycles) {
                 renderScanline();
                 
                 setMode(PPUMode::HBLANK);
-                
-                // Always update STAT interrupt line after mode change
-                updateStatInterrupt();
                 
                 // Perform HDMA transfer if active
                 if (m_hdmaActive && m_gbcMode) {
@@ -211,20 +218,14 @@ void PPU::step(u32 cycles) {
                     m_frameReady = true;
                     m_windowLineCounter = 0;
                     // Don't reset m_windowRenderedThisFrame here - it's per scanline, reset in OAM_SCAN
-                    
+
                     // Request VBlank interrupt
                     if (m_cpu) {
                         m_cpu->requestInterrupt(INT_VBLANK);
                     }
-                    
-                    // Always update STAT interrupt line after mode change
-                    updateStatInterrupt();
                 } else {
                     // Start next scanline
                     setMode(PPUMode::OAM_SCAN);
-                    
-                    // Always update STAT interrupt line after mode change
-                    updateStatInterrupt();
                 }
             }
             break;
@@ -259,9 +260,6 @@ void PPU::step(u32 cycles) {
                     }
                     
                     setMode(PPUMode::OAM_SCAN);
-                    
-                    // Always update STAT interrupt line after mode change
-                    updateStatInterrupt();
                 }
             }
             break;
@@ -271,6 +269,7 @@ void PPU::step(u32 cycles) {
 void PPU::setMode(PPUMode mode) {
     m_mode = mode;
     m_stat = (m_stat & 0xFC) | static_cast<u8>(mode);
+    m_modeChangeDelay = 1;  // Delay STAT interrupt by 1 cycle
 }
 
 void PPU::updateStatInterrupt() {
@@ -980,6 +979,7 @@ void PPU::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_windowRenderedThisFrame), sizeof(m_windowRenderedThisFrame));
     file.write(reinterpret_cast<const char*>(&m_gbcMode), sizeof(m_gbcMode));
     file.write(reinterpret_cast<const char*>(&m_statInterruptLine), sizeof(m_statInterruptLine));
+    file.write(reinterpret_cast<const char*>(&m_modeChangeDelay), sizeof(m_modeChangeDelay));
     file.write(reinterpret_cast<const char*>(&m_dmaCycles), sizeof(m_dmaCycles));
 }
 
@@ -1025,6 +1025,7 @@ void PPU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_windowRenderedThisFrame), sizeof(m_windowRenderedThisFrame));
     file.read(reinterpret_cast<char*>(&m_gbcMode), sizeof(m_gbcMode));
     file.read(reinterpret_cast<char*>(&m_statInterruptLine), sizeof(m_statInterruptLine));
+    file.read(reinterpret_cast<char*>(&m_modeChangeDelay), sizeof(m_modeChangeDelay));
     file.read(reinterpret_cast<char*>(&m_dmaCycles), sizeof(m_dmaCycles));
 }
 

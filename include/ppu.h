@@ -163,7 +163,8 @@ private:
     
     bool m_gbcMode;
     bool m_statInterruptLine;
-    
+    u8 m_modeChangeDelay;
+
     // DMA cycle tracking (for proper timing)
     u32 m_dmaCycles;
 };
