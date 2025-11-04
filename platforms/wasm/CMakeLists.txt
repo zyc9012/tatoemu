@@ -1,47 +1,29 @@
-cmake_minimum_required(VERSION 3.20)
-project(gb-emu-wasm VERSION 1.0.0 LANGUAGES CXX)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-# Set default build type to Release if not specified
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
-endif()
-
-message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-message(STATUS "Building WebAssembly version")
-
-# Define source directory (parent of build directory)
-set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
-
 # Source files (exclude SDL-specific files)
 set(SOURCES
-    ${SRC_DIR}/src/cpu.cpp
-    ${SRC_DIR}/src/mmu.cpp
-    ${SRC_DIR}/src/ppu.cpp
-    ${SRC_DIR}/src/joypad.cpp
-    ${SRC_DIR}/src/timer.cpp
-    ${SRC_DIR}/src/cartridge.cpp
-    ${SRC_DIR}/src/apu.cpp
-    ${SRC_DIR}/src/bootrom.cpp
-    ${SRC_DIR}/src/wasm/emulator_wasm.cpp
-    ${SRC_DIR}/src/wasm/wasm_bindings.cpp
+    ${CMAKE_SOURCE_DIR}/src/cpu.cpp
+    ${CMAKE_SOURCE_DIR}/src/mmu.cpp
+    ${CMAKE_SOURCE_DIR}/src/ppu.cpp
+    ${CMAKE_SOURCE_DIR}/src/joypad.cpp
+    ${CMAKE_SOURCE_DIR}/src/timer.cpp
+    ${CMAKE_SOURCE_DIR}/src/cartridge.cpp
+    ${CMAKE_SOURCE_DIR}/src/apu.cpp
+    ${CMAKE_SOURCE_DIR}/src/bootrom.cpp
+    ${CMAKE_SOURCE_DIR}/platforms/wasm/emulator_wasm.cpp
+    ${CMAKE_SOURCE_DIR}/platforms/wasm/wasm_bindings.cpp
 )
 
 # Header files
 set(HEADERS
-    ${SRC_DIR}/include/cpu.h
-    ${SRC_DIR}/include/mmu.h
-    ${SRC_DIR}/include/ppu.h
-    ${SRC_DIR}/include/joypad.h
-    ${SRC_DIR}/include/timer.h
-    ${SRC_DIR}/include/cartridge.h
-    ${SRC_DIR}/include/apu.h
-    ${SRC_DIR}/include/bootrom.h
-    ${SRC_DIR}/include/types.h
-    ${SRC_DIR}/include/wasm/emulator_wasm.h
+    ${CMAKE_SOURCE_DIR}/include/cpu.h
+    ${CMAKE_SOURCE_DIR}/include/mmu.h
+    ${CMAKE_SOURCE_DIR}/include/ppu.h
+    ${CMAKE_SOURCE_DIR}/include/joypad.h
+    ${CMAKE_SOURCE_DIR}/include/timer.h
+    ${CMAKE_SOURCE_DIR}/include/cartridge.h
+    ${CMAKE_SOURCE_DIR}/include/apu.h
+    ${CMAKE_SOURCE_DIR}/include/bootrom.h
+    ${CMAKE_SOURCE_DIR}/include/types.h
+    ${CMAKE_SOURCE_DIR}/platforms/wasm/emulator_wasm.h
 )
 
 # Create executable
@@ -49,7 +31,7 @@ add_executable(gb-emu ${SOURCES} ${HEADERS})
 
 # Include directories
 target_include_directories(gb-emu PRIVATE 
-    ${SRC_DIR}/include
+    ${CMAKE_SOURCE_DIR}/include
 )
 
 # Emscripten-specific settings
@@ -102,6 +84,7 @@ string(REPLACE ";" " " EMSCRIPTEN_LINK_FLAGS_STR "${EMSCRIPTEN_LINK_FLAGS}")
 set_target_properties(gb-emu PROPERTIES
     LINK_FLAGS "${EMSCRIPTEN_LINK_FLAGS_STR}"
     OUTPUT_NAME "gb-emu"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 
 # Compiler warnings
@@ -115,7 +98,7 @@ target_compile_options(gb-emu PRIVATE
 # Custom target to copy web directory and output files to binary directory
 add_custom_command(TARGET gb-emu POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${SRC_DIR}/src/wasm/web
+        ${CMAKE_CURRENT_SOURCE_DIR}/web
         ${CMAKE_BINARY_DIR}/web
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_BINARY_DIR}/gb-emu.js

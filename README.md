@@ -51,8 +51,7 @@ Quick start:
 source /path/to/emsdk/emsdk_env.sh
 mkdir build-wasm
 cd build-wasm
-cp ../src/wasm/CMakeLists.txt .
-emcmake cmake -DCMAKE_BUILD_TYPE=Release .
+emcmake cmake -DPLATFORM=wasm ..
 emmake make
 
 # Run (serves on http://localhost:8080)

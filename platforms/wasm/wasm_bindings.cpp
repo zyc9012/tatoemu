@@ -1,6 +1,6 @@
-#include "wasm/emulator_wasm.h"
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
+#include "emulator_wasm.h"
 
 using namespace emscripten;
 
@@ -13,13 +13,6 @@ public:
 
     bool initialize() {
         return m_emulator->initialize();
-    }
-
-    bool loadROM(const std::string& base64Data) {
-        // JavaScript will pass ROM data as a typed array
-        // We'll use a different approach - expose a method that takes a memory view
-        (void)base64Data; // Suppress unused parameter warning
-        return false;
     }
 
     bool loadROMFromTypedArray(uintptr_t dataPtr, size_t size) {

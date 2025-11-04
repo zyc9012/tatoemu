@@ -1,7 +1,7 @@
-#include "wasm/emulator_wasm.h"
 #include <iostream>
 #include <cstring>
 #include <sstream>
+#include "emulator_wasm.h"
 
 WasmVideoDevice::WasmVideoDevice() {
     // Initialize frame buffer to white
