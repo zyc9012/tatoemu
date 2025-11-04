@@ -2,6 +2,8 @@
 #include <fstream>
 #include <iostream>
 #include <algorithm>
+#include <cstring>
+#include <vector>
 
 Bootrom::Bootrom()
     : m_loaded(false)
@@ -24,6 +26,21 @@ bool Bootrom::load(const std::string& filename) {
     // Get file size
     std::streamsize size = file.tellg();
     file.seekg(0, std::ios::beg);
+
+    std::vector<u8> data(GBC_BOOTROM_SIZE);
+    if (!file.read(reinterpret_cast<char*>(data.data()), size)) {
+        std::cerr << "Failed to read bootrom data" << std::endl;
+        return false;
+    }
+    
+    return loadFromMemory(data.data(), size);
+}
+
+bool Bootrom::loadFromMemory(const u8* data, size_t size) {
+    if (!data) {
+        std::cerr << "Invalid bootrom data" << std::endl;
+        return false;
+    }
     
     // Determine bootrom type based on size
     if (size == DMG_BOOTROM_SIZE) {
@@ -40,11 +57,8 @@ bool Bootrom::load(const std::string& filename) {
         return false;
     }
     
-    // Read bootrom data
-    if (!file.read(reinterpret_cast<char*>(m_data.data()), m_size)) {
-        std::cerr << "Failed to read bootrom data" << std::endl;
-        return false;
-    }
+    // Copy bootrom data
+    std::memcpy(m_data.data(), data, m_size);
     
     m_loaded = true;
     m_enabled = true;

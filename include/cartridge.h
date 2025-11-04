@@ -61,6 +61,7 @@ public:
     ~Cartridge();
 
     bool load(const std::string& filename);
+    bool loadFromMemory(const u8* data, size_t size);
     u8 read(u16 address) const;
     void write(u16 address, u8 value);
 
