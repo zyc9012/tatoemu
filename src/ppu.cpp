@@ -706,7 +706,7 @@ void PPU::performHDMA() {
 
 void PPU::performGDMA() {
     // Transfer all at once (general purpose DMA)
-    u16 length = (m_hdmaRemaining + 1) * 0x10;
+    u16 length = m_hdmaRemaining * 0x10;
     
     for (u16 i = 0; i < length; i++) {
         if (m_mmu) {
