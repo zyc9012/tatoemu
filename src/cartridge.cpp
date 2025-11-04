@@ -573,12 +573,23 @@ void Cartridge::writeMBC5(u16 address, u8 value) {
     if (address < 0x2000) {
         // RAM Enable
         m_ramEnabled = (value & 0x0F) == 0x0A;
-    } else if (address < 0x3000) {
-        // ROM Bank Number (lower 8 bits)
-        m_currentRomBank = value;
     } else if (address < 0x4000) {
-        // ROM Bank Number (upper bit)
-        m_romBankHighBits = value & 0x01;
+        if (address < 0x3000) {
+            // ROM Bank Number (lower 8 bits)
+            m_currentRomBank = value;
+        } else {
+            // ROM Bank Number (upper bit)
+            m_romBankHighBits = value & 0x01;
+        }
+        // Check if bank exceeds ROM size
+        u16 bank = m_currentRomBank | (m_romBankHighBits << 8);
+        u16 maxBank = (m_rom.size() / 0x4000) - 1;
+        if (bank > maxBank) {
+            std::cerr << "Invalid ROM bank requested: " << std::hex << (int)bank << std::dec << std::endl;
+            bank = maxBank;
+            m_currentRomBank = bank & 0xFF;
+            m_romBankHighBits = (bank >> 8) & 0x01;
+        }
     } else if (address < 0x6000) {
         // RAM Bank Number
         u8 bank = value & 0x0F;
