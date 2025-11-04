@@ -2,11 +2,16 @@
 
 #include "types.h"
 #include <array>
-#include <SDL3/SDL.h>
 #include <fstream>
 
 class CPU;
 class MMU;
+
+class AudioDevice {
+public:
+    virtual ~AudioDevice() = default;
+    virtual void writeSamples(void* stream, u32 length) = 0;
+};
 
 // APU manages the 4 sound channels of the Game Boy
 class APU {
@@ -18,23 +23,13 @@ public:
 
     void setCPU(CPU* cpu);
     void setMMU(MMU* mmu);
+    void setAudioDevice(AudioDevice* audioDevice);
     void reset();
     void step(u32 cycles);
     
     // Register access
     u8 readRegister(u16 address) const;
     void writeRegister(u16 address, u8 value);
-    
-    // SDL Audio initialization
-    bool initializeAudio();
-    void closeAudio();
-    
-    // Audio synchronization
-    void clearAudioBuffer();
-    int getQueuedAudioSize() const;
-    
-    // Audio callback
-    void generateSamples(float* stream, int length);
     
     // Save/Load state
     void saveState(std::ofstream& file) const;
@@ -130,12 +125,13 @@ private:
     u32 m_frameSequencerCounter;
     u8 m_frameSequencer;
     u32 m_sampleCounter;  // Track sample generation timing
-    
-    // Audio
-    SDL_AudioStream* m_audioStream;
+
     CPU* m_cpu;
     MMU* m_mmu;
-    
+
+    // Abstract audio device for playback
+    AudioDevice* m_audioDevice;
+
     static constexpr int BUFFER_SIZE = 2048;
     
     // Helper methods

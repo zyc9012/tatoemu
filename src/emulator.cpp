@@ -25,6 +25,63 @@ void SDLVideoDevice::render(u32* buffer) {
     SDL_RenderPresent(m_renderer);
 }
 
+SDLAudioDevice::SDLAudioDevice()
+    : m_audioStream(nullptr) {
+}
+
+SDLAudioDevice::~SDLAudioDevice() {
+    shutdown();
+}
+
+bool SDLAudioDevice::initialize() {
+    SDL_AudioSpec spec;
+    spec.freq = APU::SAMPLE_RATE;
+    spec.format = SDL_AUDIO_F32;
+    spec.channels = 2;  // Stereo
+
+    m_audioStream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, nullptr, nullptr);
+
+    if (!m_audioStream) {
+        std::cerr << "Failed to open audio stream: " << SDL_GetError() << std::endl;
+        return false;
+    }
+
+    // Start the audio stream
+    SDL_ResumeAudioStreamDevice(m_audioStream);
+    return true;
+}
+
+void SDLAudioDevice::shutdown() {
+    if (m_audioStream) {
+        // Pause the audio device before destroying the stream
+        SDL_PauseAudioStreamDevice(m_audioStream);
+        // Flush any remaining audio data
+        SDL_FlushAudioStream(m_audioStream);
+        // Now safely destroy the stream
+        SDL_DestroyAudioStream(m_audioStream);
+        m_audioStream = nullptr;
+    }
+}
+
+void SDLAudioDevice::clearBuffer() {
+    if (m_audioStream) {
+        SDL_ClearAudioStream(m_audioStream);
+    }
+}
+
+int SDLAudioDevice::getQueuedSize() const {
+    if (m_audioStream) {
+        return SDL_GetAudioStreamQueued(m_audioStream);
+    }
+    return 0;
+}
+
+void SDLAudioDevice::writeSamples(void* stream, u32 length) {
+    if (m_audioStream) {
+        SDL_PutAudioStreamData(m_audioStream, stream, length);
+    }
+}
+
 Emulator::Emulator()
     : m_window(nullptr)
     , m_renderer(nullptr)
@@ -96,6 +153,7 @@ bool Emulator::initialize() {
     m_apu = std::make_unique<APU>();
     m_bootrom = std::make_unique<Bootrom>();
     m_videoDevice = std::make_unique<SDLVideoDevice>(m_renderer, m_texture);
+    m_audioDevice = std::make_unique<SDLAudioDevice>();
 
     // Wire up components
     m_mmu->setCartridge(m_cartridge.get());
@@ -114,9 +172,10 @@ bool Emulator::initialize() {
     m_timer->setMMU(m_mmu.get());
     m_apu->setCPU(m_cpu.get());
     m_apu->setMMU(m_mmu.get());
-    
+    m_apu->setAudioDevice(m_audioDevice.get());
+
     // Initialize audio
-    if (!m_apu->initializeAudio()) {
+    if (!m_audioDevice->initialize()) {
         std::cerr << "Warning: Failed to initialize audio" << std::endl;
         // Continue anyway - emulator can run without audio
     }
@@ -189,9 +248,9 @@ void Emulator::run() {
         
         // Detect if we've been paused (e.g., window dragging, debugging)
         if (frameTime > m_targetFrameTime * 3.0) {
-            // Clear audio buffer to prevent audio "explosion" after pause
-            if (m_apu) {
-                m_apu->clearAudioBuffer();
+            // Clear audio buffer to prevent audio glitches
+            if (m_audioDevice) {
+                m_audioDevice->clearBuffer();
             }
             m_lastFrameTime = currentTime;
             m_emulationSpeed = 1.0;
@@ -200,8 +259,8 @@ void Emulator::run() {
         }
         
         // Audio-driven synchronization
-        if (m_apu) {
-            int queuedAudio = m_apu->getQueuedAudioSize();
+        if (m_audioDevice) {
+            int queuedAudio = m_audioDevice->getQueuedSize();
             
             // Dynamically adjust emulation speed based on audio buffer level
             if (queuedAudio < m_minAudioBufferSize) {
@@ -364,8 +423,8 @@ void Emulator::update() {
 
 void Emulator::shutdown() {
     // Close audio first to prevent segfaults
-    if (m_apu) {
-        m_apu->closeAudio();
+    if (m_audioDevice) {
+        m_audioDevice->shutdown();
     }
     
     if (m_texture) {
@@ -444,6 +503,9 @@ void Emulator::loadState(const std::string& filename) {
     m_joypad->loadState(file);
     m_apu->loadState(file);
     m_cartridge->loadState(file);
+
+    // Clear audio buffer to prevent audio "explosion" after load
+    m_audioDevice->clearBuffer();
     
     // Load emulator state
     file.read(reinterpret_cast<char*>(&m_cyclesThisFrame), sizeof(m_cyclesThisFrame));
@@ -464,7 +526,7 @@ void Emulator::updateWindowStats() {
     // Update window title every second with real-time stats
     if (elapsed >= 1000) {
         double actualFPS = (m_frameCount * 1000.0) / elapsed;
-        int queuedAudio = m_apu ? m_apu->getQueuedAudioSize() : 0;
+        int queuedAudio = m_audioDevice ? m_audioDevice->getQueuedSize() : 0;
         
         // Calculate buffer percentage (0-100%)
         int bufferRange = m_maxAudioBufferSize - m_minAudioBufferSize;

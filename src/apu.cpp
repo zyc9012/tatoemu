@@ -12,14 +12,13 @@ APU::APU()
     , m_frameSequencerCounter(0)
     , m_frameSequencer(0)
     , m_sampleCounter(0)
-    , m_audioStream(nullptr)
     , m_cpu(nullptr)
-    , m_mmu(nullptr) {
+    , m_mmu(nullptr)
+    , m_audioDevice(nullptr) {
     reset();
 }
 
 APU::~APU() {
-    closeAudio();
 }
 
 void APU::saveState(std::ofstream& file) const {
@@ -46,9 +45,6 @@ void APU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_frameSequencerCounter), sizeof(m_frameSequencerCounter));
     file.read(reinterpret_cast<char*>(&m_frameSequencer), sizeof(m_frameSequencer));
     file.read(reinterpret_cast<char*>(&m_sampleCounter), sizeof(m_sampleCounter));
-    
-    // Clear audio buffer after loading state to prevent audio glitches
-    clearAudioBuffer();
 }
 
 void APU::setCPU(CPU* cpu) {
@@ -57,6 +53,10 @@ void APU::setCPU(CPU* cpu) {
 
 void APU::setMMU(MMU* mmu) {
     m_mmu = mmu;
+}
+
+void APU::setAudioDevice(AudioDevice* audioDevice) {
+    m_audioDevice = audioDevice;
 }
 
 void APU::reset() {
@@ -89,52 +89,6 @@ void APU::reset() {
     
     m_frameSequencerCounter = 0;
     m_frameSequencer = 0;
-}
-
-bool APU::initializeAudio() {
-    SDL_AudioSpec spec;
-    spec.freq = SAMPLE_RATE;
-    spec.format = SDL_AUDIO_F32;
-    spec.channels = 2;  // Stereo
-    
-    m_audioStream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, nullptr, nullptr);
-    
-    if (!m_audioStream) {
-        std::cerr << "Failed to open audio stream: " << SDL_GetError() << std::endl;
-        return false;
-    }
-    
-    SDL_ResumeAudioStreamDevice(m_audioStream);
-    
-    std::cout << "Audio initialized: " << SAMPLE_RATE << "Hz, Stereo" << std::endl;
-    return true;
-}
-
-void APU::closeAudio() {
-    if (m_audioStream) {
-        // Pause the audio device before destroying the stream
-        SDL_PauseAudioStreamDevice(m_audioStream);
-        // Flush any remaining audio data
-        SDL_FlushAudioStream(m_audioStream);
-        // Now safely destroy the stream
-        SDL_DestroyAudioStream(m_audioStream);
-        m_audioStream = nullptr;
-    }
-}
-
-void APU::clearAudioBuffer() {
-    if (m_audioStream) {
-        SDL_ClearAudioStream(m_audioStream);
-    }
-    // Reset sample counter to prevent timing issues
-    m_sampleCounter = 0;
-}
-
-int APU::getQueuedAudioSize() const {
-    if (m_audioStream) {
-        return SDL_GetAudioStreamQueued(m_audioStream);
-    }
-    return 0;
 }
 
 void APU::step(u32 cycles) {
@@ -259,9 +213,9 @@ void APU::step(u32 cycles) {
             samples[1] *= rightVolume * 0.25f;
         }
         
-        // Push to audio stream
-        if (m_audioStream) {
-            SDL_PutAudioStreamData(m_audioStream, samples, sizeof(samples));
+        // Push to audio device
+        if (m_audioDevice) {
+            m_audioDevice->writeSamples(samples, sizeof(samples));
         }
     }
 }

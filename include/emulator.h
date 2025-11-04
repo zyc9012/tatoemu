@@ -15,6 +15,7 @@
 struct SDL_Window;
 struct SDL_Renderer;
 struct SDL_Texture;
+struct SDL_AudioStream;
 
 class SDLVideoDevice : public VideoDevice {
 public:
@@ -26,6 +27,22 @@ public:
 private:
     SDL_Renderer* m_renderer;
     SDL_Texture* m_texture;
+};
+
+class SDLAudioDevice : public AudioDevice {
+public:
+    SDLAudioDevice();
+    ~SDLAudioDevice();
+
+    bool initialize();
+    void shutdown();
+    void clearBuffer();
+    int getQueuedSize() const;
+
+    void writeSamples(void* stream, u32 length) override;
+
+private:
+    SDL_AudioStream* m_audioStream;
 };
 
 class Emulator {
@@ -62,7 +79,8 @@ private:
     std::unique_ptr<Cartridge> m_cartridge;
     std::unique_ptr<APU> m_apu;
     std::unique_ptr<Bootrom> m_bootrom;
-    std::unique_ptr<VideoDevice> m_videoDevice;
+    std::unique_ptr<SDLVideoDevice> m_videoDevice;
+    std::unique_ptr<SDLAudioDevice> m_audioDevice;
     
     bool m_running;
     bool m_paused;
