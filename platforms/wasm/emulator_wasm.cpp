@@ -12,8 +12,18 @@ WasmVideoDevice::~WasmVideoDevice() {
 }
 
 void WasmVideoDevice::render(u32* buffer) {
-    // Copy the buffer to our internal frame buffer
-    std::memcpy(m_frameBuffer, buffer, SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(u32));
+    // Convert from ARGB (PPU format) to RGBA (canvas format)
+    for (int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++) {
+        u32 argb = buffer[i];
+        // Extract components
+        u8 a = (argb >> 24) & 0xFF;
+        u8 r = (argb >> 16) & 0xFF;
+        u8 g = (argb >> 8) & 0xFF;
+        u8 b = argb & 0xFF;
+        // Rearrange to RGBA format for little-endian byte order
+        // This creates 0xAABBGGRR which stores as [RR, GG, BB, AA] in memory
+        m_frameBuffer[i] = (a << 24) | (b << 16) | (g << 8) | r;
+    }
 }
 
 WasmAudioDevice::WasmAudioDevice() {

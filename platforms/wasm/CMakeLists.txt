@@ -96,15 +96,16 @@ target_compile_options(gb-emu PRIVATE
 )
 
 # Custom target to copy web directory and output files to binary directory
-add_custom_command(TARGET gb-emu POST_BUILD
+add_custom_target(copy-web-files ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/web
         ${CMAKE_BINARY_DIR}/web
-    COMMAND ${CMAKE_COMMAND} -E copy
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_BINARY_DIR}/gb-emu.js
         ${CMAKE_BINARY_DIR}/web/gb-emu.js
-    COMMAND ${CMAKE_COMMAND} -E copy
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_BINARY_DIR}/gb-emu.wasm
         ${CMAKE_BINARY_DIR}/web/gb-emu.wasm
+    DEPENDS gb-emu
 )
 

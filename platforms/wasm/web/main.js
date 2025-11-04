@@ -6,6 +6,10 @@ let audioWorkletNode = null;
 let audioBufferQueue = [];
 let ModuleInstance = null;
 
+// Frame timing
+let lastFrameTime = 0;
+let frameAccumulator = 0;
+
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const statusEl = document.getElementById('status');
@@ -23,11 +27,6 @@ console.log('Loading WASM module...');
 Module().then(function(Module) {
     console.log('WASM module loaded');
     ModuleInstance = Module;
-    
-    // Debug: Check what's available in the module
-    console.log('Module properties:', Object.keys(Module));
-    console.log('HEAPU8 available:', typeof Module.HEAPU8);
-    console.log('_malloc available:', typeof Module._malloc);
     
     try {
         emulator = new Module.Emulator();
@@ -52,7 +51,7 @@ async function initAudio() {
     
     try {
         audioContext = new (window.AudioContext || window.webkitAudioContext)({
-            sampleRate: 48000,
+            sampleRate: ModuleInstance.SAMPLE_RATE,
             latencyHint: 'interactive'
         });
         
@@ -67,7 +66,7 @@ function startAudioPlayback() {
     if (!audioContext) return;
     
     // Create a script processor node
-    const bufferSize = 4096;
+    const bufferSize = 2048;
     const processor = audioContext.createScriptProcessor(bufferSize, 0, 2);
     
     processor.onaudioprocess = function(e) {
@@ -137,6 +136,9 @@ document.getElementById('romFile').addEventListener('change', async function(e) 
         
         // Free the allocated memory
         ModuleInstance._free(dataPtr);
+
+        // Unfocus the button
+        document.getElementById('loadRomBtn').blur();
         
         if (success) {
             const title = emulator.getCartridgeTitle();
@@ -186,6 +188,9 @@ document.getElementById('bootromFile').addEventListener('change', async function
         
         // Free the allocated memory
         ModuleInstance._free(dataPtr);
+
+        // Unfocus the button
+        document.getElementById('loadBootromBtn').blur();
         
         if (success) {
             setStatus('Bootrom loaded successfully', 'success');
@@ -199,39 +204,65 @@ document.getElementById('bootromFile').addEventListener('change', async function
 });
 
 // Main emulation loop
-function emulationLoop() {
+function emulationLoop(currentTime) {
     if (!isRunning || !emulator) return;
     
-    try {
-        // Run one frame
-        emulator.runFrame();
-        
-        // Get frame buffer and render to canvas
-        const frameBufferPtr = emulator.getFrameBufferPtr();
-        const frameBufferSize = emulator.getFrameBufferSize();
-        
-        // Create a view of the frame buffer (RGBA format)
-        const frameBuffer = new Uint32Array(
-            ModuleInstance.HEAPU32.buffer,
-            frameBufferPtr,
-            frameBufferSize
-        );
-        
-        // Copy to ImageData
-        const data32 = new Uint32Array(imageData.data.buffer);
-        data32.set(frameBuffer);
-        
-        // Render to canvas
-        ctx.putImageData(imageData, 0, 0);
-        
-    } catch (e) {
-        console.error('Error in emulation loop:', e);
-        stopEmulation();
-        setStatus('Emulation error: ' + e.message, 'error');
-        return;
+    // Initialize lastFrameTime on first run
+    if (lastFrameTime === 0) {
+        lastFrameTime = currentTime;
     }
     
-    // Continue loop at 60 FPS
+    // Calculate time delta
+    const deltaTime = currentTime - lastFrameTime;
+    lastFrameTime = currentTime;
+    
+    // Accumulate time
+    frameAccumulator += deltaTime;
+
+    const targetFrameTime = 1000 / ModuleInstance.TARGET_FPS;
+    
+    // Run frames based on accumulated time
+    // This ensures the game runs at the target FPS regardless of display refresh rate
+    while (frameAccumulator >= targetFrameTime) {
+        try {
+            // Run one frame
+            emulator.runFrame();
+            
+            // Get frame buffer and render to canvas
+            const frameBufferPtr = emulator.getFrameBufferPtr();
+            const frameBufferSize = emulator.getFrameBufferSize();
+            
+            // Create a view of the frame buffer (RGBA format)
+            const frameBuffer = new Uint32Array(
+                ModuleInstance.HEAPU32.buffer,
+                frameBufferPtr,
+                frameBufferSize
+            );
+            
+            // Copy to ImageData
+            const data32 = new Uint32Array(imageData.data.buffer);
+            data32.set(frameBuffer);
+            
+            // Render to canvas
+            ctx.putImageData(imageData, 0, 0);
+            
+        } catch (e) {
+            console.error('Error in emulation loop:', e);
+            stopEmulation();
+            setStatus('Emulation error: ' + e.message, 'error');
+            return;
+        }
+        
+        // Subtract frame time from accumulator
+        frameAccumulator -= targetFrameTime;
+        
+        // Prevent spiral of death - if we fall too far behind, reset
+        if (frameAccumulator > targetFrameTime * 3) {
+            frameAccumulator = 0;
+        }
+    }
+    
+    // Continue loop
     animationFrameId = requestAnimationFrame(emulationLoop);
 }
 
@@ -240,7 +271,7 @@ function startEmulation() {
     
     isRunning = true;
     console.log('Starting emulation');
-    emulationLoop();
+    emulationLoop(performance.now());
 }
 
 function stopEmulation() {
@@ -249,6 +280,9 @@ function stopEmulation() {
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
     }
+    // Reset timing variables
+    lastFrameTime = 0;
+    frameAccumulator = 0;
     console.log('Stopped emulation');
 }
 

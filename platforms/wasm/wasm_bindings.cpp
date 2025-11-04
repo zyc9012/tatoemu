@@ -106,13 +106,16 @@ EMSCRIPTEN_BINDINGS(gb_emulator) {
         .function("isRunning", &EmulatorWrapper::isRunning);
 
     // Button constants
-    constant("BUTTON_RIGHT", BUTTON_RIGHT);
-    constant("BUTTON_LEFT", BUTTON_LEFT);
-    constant("BUTTON_UP", BUTTON_UP);
-    constant("BUTTON_DOWN", BUTTON_DOWN);
-    constant("BUTTON_A", BUTTON_A);
-    constant("BUTTON_B", BUTTON_B);
-    constant("BUTTON_SELECT", BUTTON_SELECT);
-    constant("BUTTON_START", BUTTON_START);
+    constant("BUTTON_RIGHT", static_cast<int>(BUTTON_RIGHT));
+    constant("BUTTON_LEFT", static_cast<int>(BUTTON_LEFT));
+    constant("BUTTON_UP", static_cast<int>(BUTTON_UP));
+    constant("BUTTON_DOWN", static_cast<int>(BUTTON_DOWN));
+    constant("BUTTON_A", static_cast<int>(BUTTON_A));
+    constant("BUTTON_B", static_cast<int>(BUTTON_B));
+    constant("BUTTON_SELECT", static_cast<int>(BUTTON_SELECT));
+    constant("BUTTON_START", static_cast<int>(BUTTON_START));
+
+    constant("TARGET_FPS", static_cast<int>(TARGET_FPS));
+    constant("SAMPLE_RATE", static_cast<int>(APU::SAMPLE_RATE));
 }
 
