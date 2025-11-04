@@ -54,6 +54,12 @@ enum SpriteFlags {
     SPRITE_PALETTE_GBC = 0x07     // GBC: palette number (0-7)
 };
 
+class VideoDevice {
+public:
+    virtual ~VideoDevice() = default;
+    virtual void render(u32* buffer) = 0;
+};
+
 class PPU {
 public:
     PPU();
@@ -61,6 +67,7 @@ public:
 
     void setCPU(CPU* cpu);
     void setMMU(MMU* mmu);
+    void setVideoDevice(VideoDevice* videoDevice);
     void reset(bool useBootrom = false);
     void setGBCMode(bool enabled);
     void step(u32 cycles);
@@ -77,8 +84,6 @@ public:
 
     // Framebuffer access
     const u32* getFramebuffer() const { return m_framebuffer.data(); }
-    bool isFrameReady() const { return m_frameReady; }
-    void clearFrameReady() { m_frameReady = false; }
     
     // DMA cycle accounting
     u32 getDMACycles() const { return m_dmaCycles; }
@@ -108,6 +113,9 @@ private:
 
     CPU* m_cpu;
     MMU* m_mmu;
+
+    // Abstract video device for rendering
+    VideoDevice* m_videoDevice;
 
     // VRAM (8KB x 2 banks for GBC)
     std::array<u8, 0x4000> m_vram;
@@ -150,7 +158,6 @@ private:
     // Mode and timing
     PPUMode m_mode;
     u32 m_modeCycles;
-    bool m_frameReady;
     u8 m_windowLineCounter;
     bool m_windowRenderedThisFrame;
 

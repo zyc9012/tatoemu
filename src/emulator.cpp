@@ -4,6 +4,27 @@
 #include <fstream>
 #include <sstream>
 
+SDLVideoDevice::SDLVideoDevice(SDL_Renderer* renderer, SDL_Texture* texture)
+    : m_renderer(renderer)
+    , m_texture(texture) {
+}
+
+SDLVideoDevice::~SDLVideoDevice() {
+}
+
+void SDLVideoDevice::render(u32* buffer) {
+    SDL_UpdateTexture(m_texture, nullptr, buffer, SCREEN_WIDTH * sizeof(u32));
+
+    SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
+    SDL_RenderClear(m_renderer);
+
+    // Render texture
+    SDL_RenderTexture(m_renderer, m_texture, nullptr, nullptr);
+
+    // Present
+    SDL_RenderPresent(m_renderer);
+}
+
 Emulator::Emulator()
     : m_window(nullptr)
     , m_renderer(nullptr)
@@ -74,6 +95,7 @@ bool Emulator::initialize() {
     m_timer = std::make_unique<Timer>();
     m_apu = std::make_unique<APU>();
     m_bootrom = std::make_unique<Bootrom>();
+    m_videoDevice = std::make_unique<SDLVideoDevice>(m_renderer, m_texture);
 
     // Wire up components
     m_mmu->setCartridge(m_cartridge.get());
@@ -86,6 +108,7 @@ bool Emulator::initialize() {
     m_cpu->setMMU(m_mmu.get());
     m_ppu->setCPU(m_cpu.get());
     m_ppu->setMMU(m_mmu.get());
+    m_ppu->setVideoDevice(m_videoDevice.get());
     m_joypad->setCPU(m_cpu.get());
     m_timer->setCPU(m_cpu.get());
     m_timer->setMMU(m_mmu.get());
@@ -160,7 +183,6 @@ void Emulator::run() {
 
         handleInput();
         update();
-        render();
         
         u64 currentTime = SDL_GetTicks();
         double frameTime = currentTime - m_lastFrameTime;
@@ -338,30 +360,6 @@ void Emulator::update() {
     }
     
     m_cyclesThisFrame -= targetCycles;
-}
-
-void Emulator::render() {
-    if (m_ppu->isFrameReady()) {
-        // Update texture with framebuffer
-        SDL_UpdateTexture(
-            m_texture,
-            nullptr,
-            m_ppu->getFramebuffer(),
-            SCREEN_WIDTH * sizeof(u32)
-        );
-        
-        m_ppu->clearFrameReady();
-    }
-
-    // Clear screen
-    SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
-    SDL_RenderClear(m_renderer);
-
-    // Render texture
-    SDL_RenderTexture(m_renderer, m_texture, nullptr, nullptr);
-
-    // Present
-    SDL_RenderPresent(m_renderer);
 }
 
 void Emulator::shutdown() {

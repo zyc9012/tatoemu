@@ -13,6 +13,7 @@ constexpr u32 SCANLINE_CYCLES = SCANLINE_OAM_CYCLES + SCANLINE_VRAM_CYCLES + SCA
 PPU::PPU()
     : m_cpu(nullptr)
     , m_mmu(nullptr)
+    , m_videoDevice(nullptr)
     , m_vramBank(0)
     , m_lcdc(0x00)  // Will be set properly in reset()
     , m_stat(0)
@@ -39,7 +40,6 @@ PPU::PPU()
     , m_hdmaRemaining(0)
     , m_mode(PPUMode::OAM_SCAN)
     , m_modeCycles(0)
-    , m_frameReady(false)
     , m_windowLineCounter(0)
     , m_windowRenderedThisFrame(false)
     , m_gbcMode(false)
@@ -64,6 +64,10 @@ void PPU::setCPU(CPU* cpu) {
 
 void PPU::setMMU(MMU* mmu) {
     m_mmu = mmu;
+}
+
+void PPU::setVideoDevice(VideoDevice* videoDevice) {
+    m_videoDevice = videoDevice;
 }
 
 void PPU::reset(bool useBootrom) {
@@ -119,7 +123,6 @@ void PPU::reset(bool useBootrom) {
     
     m_mode = PPUMode::OAM_SCAN;
     m_modeCycles = 0;
-    m_frameReady = false;
     m_windowLineCounter = 0;
     m_windowRenderedThisFrame = false;
     m_statInterruptLine = false;
@@ -215,13 +218,16 @@ void PPU::step(u32 cycles) {
                 if (m_ly >= SCREEN_HEIGHT) {
                     // Enter VBlank
                     setMode(PPUMode::VBLANK);
-                    m_frameReady = true;
                     m_windowLineCounter = 0;
                     // Don't reset m_windowRenderedThisFrame here - it's per scanline, reset in OAM_SCAN
 
                     // Request VBlank interrupt
                     if (m_cpu) {
                         m_cpu->requestInterrupt(INT_VBLANK);
+                    }
+
+                    if (m_videoDevice) {
+                        m_videoDevice->render(m_framebuffer.data());
                     }
                 } else {
                     // Start next scanline
@@ -974,7 +980,6 @@ void PPU::saveState(std::ofstream& file) const {
     u8 modeValue = static_cast<u8>(m_mode);
     file.write(reinterpret_cast<const char*>(&modeValue), sizeof(modeValue));
     file.write(reinterpret_cast<const char*>(&m_modeCycles), sizeof(m_modeCycles));
-    file.write(reinterpret_cast<const char*>(&m_frameReady), sizeof(m_frameReady));
     file.write(reinterpret_cast<const char*>(&m_windowLineCounter), sizeof(m_windowLineCounter));
     file.write(reinterpret_cast<const char*>(&m_windowRenderedThisFrame), sizeof(m_windowRenderedThisFrame));
     file.write(reinterpret_cast<const char*>(&m_gbcMode), sizeof(m_gbcMode));
@@ -1020,7 +1025,6 @@ void PPU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&modeValue), sizeof(modeValue));
     m_mode = static_cast<PPUMode>(modeValue);
     file.read(reinterpret_cast<char*>(&m_modeCycles), sizeof(m_modeCycles));
-    file.read(reinterpret_cast<char*>(&m_frameReady), sizeof(m_frameReady));
     file.read(reinterpret_cast<char*>(&m_windowLineCounter), sizeof(m_windowLineCounter));
     file.read(reinterpret_cast<char*>(&m_windowRenderedThisFrame), sizeof(m_windowRenderedThisFrame));
     file.read(reinterpret_cast<char*>(&m_gbcMode), sizeof(m_gbcMode));

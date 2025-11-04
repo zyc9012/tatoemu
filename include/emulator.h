@@ -16,6 +16,18 @@ struct SDL_Window;
 struct SDL_Renderer;
 struct SDL_Texture;
 
+class SDLVideoDevice : public VideoDevice {
+public:
+    SDLVideoDevice(SDL_Renderer* renderer, SDL_Texture* texture);
+    ~SDLVideoDevice();
+
+    void render(u32* buffer) override;
+
+private:
+    SDL_Renderer* m_renderer;
+    SDL_Texture* m_texture;
+};
+
 class Emulator {
 public:
     Emulator();
@@ -34,7 +46,6 @@ public:
 private:
     void handleInput();
     void update();
-    void render();
     void updateWindowStats();
 
     // SDL components
@@ -51,6 +62,7 @@ private:
     std::unique_ptr<Cartridge> m_cartridge;
     std::unique_ptr<APU> m_apu;
     std::unique_ptr<Bootrom> m_bootrom;
+    std::unique_ptr<VideoDevice> m_videoDevice;
     
     bool m_running;
     bool m_paused;
