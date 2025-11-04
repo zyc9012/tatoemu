@@ -123,7 +123,7 @@ u8 MMU::read(u16 address) const {
         } else {
             // Switchable bank (0xD000-0xDFFF)
             // In DMG mode, always use bank 1; in GBC mode, use current bank
-            u8 bank = m_gbcMode ? m_wramBank : 1;
+            u8 bank = m_gbcMode && m_wramBank ? m_wramBank : 1;
             u16 offset = (bank * 0x1000) + (address - 0xD000);
             return m_wram[offset];
         }
@@ -135,7 +135,7 @@ u8 MMU::read(u16 address) const {
             return m_wram[address - 0xE000];
         } else {
             // Mirror of switchable bank
-            u8 bank = m_gbcMode ? m_wramBank : 1;
+            u8 bank = m_gbcMode && m_wramBank ? m_wramBank : 1;
             u16 offset = (bank * 0x1000) + (address - 0xF000);
             return m_wram[offset];
         }
@@ -185,7 +185,7 @@ void MMU::write(u16 address, u8 value) {
             m_wram[address - 0xC000] = value;
         } else {
             // Switchable bank (0xD000-0xDFFF)
-            u8 bank = m_gbcMode ? m_wramBank : 1;
+            u8 bank = m_gbcMode && m_wramBank ? m_wramBank : 1;
             u16 offset = (bank * 0x1000) + (address - 0xD000);
             m_wram[offset] = value;
         }
@@ -197,7 +197,7 @@ void MMU::write(u16 address, u8 value) {
             m_wram[address - 0xE000] = value;
         } else {
             // Mirror of switchable bank
-            u8 bank = m_gbcMode ? m_wramBank : 1;
+            u8 bank = m_gbcMode && m_wramBank ? m_wramBank : 1;
             u16 offset = (bank * 0x1000) + (address - 0xF000);
             m_wram[offset] = value;
         }
@@ -363,9 +363,6 @@ void MMU::writeIO(u16 address, u8 value) {
         case 0xFF70:
             if (m_gbcMode) {
                 m_wramBank = (value & 0x07);
-                if (m_wramBank == 0) {
-                    m_wramBank = 1; // Bank 0 not valid, use bank 1
-                }
             }
             break;
         default:
