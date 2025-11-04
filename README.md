@@ -1,6 +1,6 @@
 # GameBoy Emulator
 
-A GameBoy emulator written in C++ with SDL3.
+A GameBoy emulator written in C++ with support for SDL3 and WebAssembly.
 
 ## Requirements
 
@@ -33,11 +33,30 @@ pacman -S mingw-w64-x86_64-cmake mingw-w64-x86_64-sdl3
 
 ## Building
 
+### Native Build (SDL3)
+
 ```bash
 mkdir build
 cd build
 cmake ..
 make
+```
+
+### WebAssembly Build
+
+Install and activate the Emscripten SDK
+
+Quick start:
+```bash
+source /path/to/emsdk/emsdk_env.sh
+mkdir build-wasm
+cd build-wasm
+cp ../src/wasm/CMakeLists.txt .
+emcmake cmake -DCMAKE_BUILD_TYPE=Release .
+emmake make
+
+# Run (serves on http://localhost:8080)
+cd web && python3 -m http.server 8080
 ```
 
 ## Usage

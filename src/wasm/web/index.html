@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameBoy Emulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a1a;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #e0e0e0;
+        }
+
+        .container {
+            background: #2d2d2d;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #e0e0e0;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .gameboy {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        #canvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            width: 640px;
+            height: 576px;
+            border: 2px solid #555;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #4a4a4a;
+            color: #e0e0e0;
+        }
+
+        .btn:hover {
+            background: #5a5a5a;
+        }
+
+        #status {
+            text-align: center;
+            padding: 12px;
+            background: #3a3a3a;
+            border-radius: 8px;
+            font-weight: 500;
+            color: #b0b0b0;
+            width: 100%;
+        }
+
+        #status.success {
+            background: #2d4a2d;
+            color: #90ee90;
+        }
+
+        #status.error {
+            background: #4a2d2d;
+            color: #ff6b6b;
+        }
+
+        .keyboard-info {
+            color: #b0b0b0;
+            background: #3a3a3a;
+        }
+
+        .keyboard-info table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .keyboard-info th,
+        .keyboard-info td {
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .keyboard-info th {
+            background: #4a4a4a;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .keyboard-info tr:nth-child(even) {
+            background: #353535;
+        }
+
+        .keyboard-info td {
+            color: #b0b0b0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 GameBoy Emulator</h1>
+        
+        <div class="gameboy">
+                <canvas id="canvas" width="160" height="144"></canvas>
+
+            <div class="controls">
+                <div class="file-input-wrapper">
+                    <button class="btn" id="loadRomBtn">Load ROM</button>
+                    <input type="file" id="romFile" accept=".gb,.gbc">
+                </div>
+                
+                <div class="file-input-wrapper">
+                    <button class="btn" id="loadBootromBtn">Load Bootrom (Optional)</button>
+                    <input type="file" id="bootromFile" accept=".bin">
+                </div>
+            </div>
+
+            <div id="status">Ready - Load a ROM to start</div>
+
+            <div class="keyboard-info">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Key</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Arrow Keys</strong></td>
+                            <td>D-Pad</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Z</strong></td>
+                            <td>A Button</td>
+                        </tr>
+                        <tr>
+                            <td><strong>X</strong></td>
+                            <td>B Button</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Enter</strong></td>
+                            <td>Start</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Shift</strong></td>
+                            <td>Select</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="gb-emu.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
+
