@@ -17,15 +17,8 @@ public:
     
     void mainLoop() {
         if (!running || !romLoaded) return;
-        
-        // Handle input
-        emulator.handleInput();
-        
-        // Update emulation (one frame)
-        emulator.update();
-        
-        // Update window stats
-        emulator.updateWindowStats();
+
+        emulator.runFrame();
     }
 };
 
@@ -82,7 +75,6 @@ extern "C" {
 
 int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused))) {
     std::cout << "GameBoy Emulator (WebAssembly)" << std::endl;
-    std::cout << "Built with SDL3 + Emscripten" << std::endl;
     std::cout << std::endl;
     std::cout << "Controls:" << std::endl;
     std::cout << "  Arrow Keys - D-Pad" << std::endl;

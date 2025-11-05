@@ -54,17 +54,18 @@ public:
     bool loadBootrom(const std::string& filename);
     bool loadROM(const std::string& filename);
     void run();
+    void runFrame();
     void shutdown();
     
     // Save/Load state
     void saveState(const std::string& filename);
     void loadState(const std::string& filename);
     
+private:
     void handleInput();
     void update();
     void updateWindowStats();
 
-private:
     // SDL components
     SDL_Window* m_window;
     SDL_Renderer* m_renderer;

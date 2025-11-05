@@ -223,6 +223,77 @@ bool Emulator::loadROM(const std::string& filename) {
     return true;
 }
 
+void Emulator::runFrame() {
+    if (m_paused) {
+        handleInput();
+        updateWindowStats();
+        SDL_Delay(static_cast<u32>(m_targetFrameTime));
+        return;
+    }
+
+    handleInput();
+    update();
+    
+    u64 currentTime = SDL_GetTicks();
+    double frameTime = currentTime - m_lastFrameTime;
+    
+    // Detect if we've been paused (e.g., window dragging, debugging)
+    if (frameTime > m_targetFrameTime * 3.0) {
+        // Clear audio buffer to prevent audio glitches
+        if (m_audioDevice) {
+            m_audioDevice->clearBuffer();
+        }
+        m_lastFrameTime = currentTime;
+        m_emulationSpeed = 1.0;
+        m_statsTimer = currentTime;  // Reset stats timer
+        return;
+    }
+    
+    // Audio-driven synchronization
+    if (m_audioDevice) {
+        int queuedAudio = m_audioDevice->getQueuedSize();
+        
+        // Dynamically adjust emulation speed based on audio buffer level
+        if (queuedAudio < m_minAudioBufferSize) {
+            // Buffer is running low - speed up slightly to catch up
+            m_emulationSpeed = 1.05;
+        } else if (queuedAudio > m_maxAudioBufferSize) {
+            // Buffer is too full - slow down slightly
+            m_emulationSpeed = 0.95;
+        } else {
+            // Buffer is in good range - normalize speed gradually
+            if (m_emulationSpeed > 1.0) {
+                m_emulationSpeed = 1.0 + (m_emulationSpeed - 1.0) * 0.95;
+            } else if (m_emulationSpeed < 1.0) {
+                m_emulationSpeed = 1.0 - (1.0 - m_emulationSpeed) * 0.95;
+            }
+        }
+    }
+    
+    // Calculate target frame time adjusted for emulation speed
+    double adjustedFrameTime = m_targetFrameTime / m_emulationSpeed;
+    
+    // Frame rate limiting with adaptive timing
+    if (frameTime < adjustedFrameTime) {
+        double remaining = adjustedFrameTime - frameTime;
+        if (remaining > 1.0) {
+            // Use high-precision delay for longer waits
+            SDL_Delay(static_cast<u32>(remaining));
+        } else if (remaining > 0.0) {
+            // // Busy-wait for sub-millisecond precision
+            // while ((SDL_GetTicks() - currentTime) < adjustedFrameTime) {
+            //     // Spin
+            // }
+        }
+    }
+    
+    m_lastFrameTime = SDL_GetTicks();
+    m_frameCount++;
+    
+    // Update window title with real-time stats
+    updateWindowStats();
+}
+
 void Emulator::run() {
     m_running = true;
     m_paused = false;
@@ -233,74 +304,7 @@ void Emulator::run() {
     m_frameCount = 0;
     
     while (m_running) {
-        if (m_paused) {
-            handleInput();
-            updateWindowStats();
-            SDL_Delay(static_cast<u32>(m_targetFrameTime));
-            continue;
-        }
-
-        handleInput();
-        update();
-        
-        u64 currentTime = SDL_GetTicks();
-        double frameTime = currentTime - m_lastFrameTime;
-        
-        // Detect if we've been paused (e.g., window dragging, debugging)
-        if (frameTime > m_targetFrameTime * 3.0) {
-            // Clear audio buffer to prevent audio glitches
-            if (m_audioDevice) {
-                m_audioDevice->clearBuffer();
-            }
-            m_lastFrameTime = currentTime;
-            m_emulationSpeed = 1.0;
-            m_statsTimer = currentTime;  // Reset stats timer
-            continue;
-        }
-        
-        // Audio-driven synchronization
-        if (m_audioDevice) {
-            int queuedAudio = m_audioDevice->getQueuedSize();
-            
-            // Dynamically adjust emulation speed based on audio buffer level
-            if (queuedAudio < m_minAudioBufferSize) {
-                // Buffer is running low - speed up slightly to catch up
-                m_emulationSpeed = 1.05;
-            } else if (queuedAudio > m_maxAudioBufferSize) {
-                // Buffer is too full - slow down slightly
-                m_emulationSpeed = 0.95;
-            } else {
-                // Buffer is in good range - normalize speed gradually
-                if (m_emulationSpeed > 1.0) {
-                    m_emulationSpeed = 1.0 + (m_emulationSpeed - 1.0) * 0.95;
-                } else if (m_emulationSpeed < 1.0) {
-                    m_emulationSpeed = 1.0 - (1.0 - m_emulationSpeed) * 0.95;
-                }
-            }
-        }
-        
-        // Calculate target frame time adjusted for emulation speed
-        double adjustedFrameTime = m_targetFrameTime / m_emulationSpeed;
-        
-        // Frame rate limiting with adaptive timing
-        if (frameTime < adjustedFrameTime) {
-            double remaining = adjustedFrameTime - frameTime;
-            if (remaining > 1.0) {
-                // Use high-precision delay for longer waits
-                SDL_Delay(static_cast<u32>(remaining));
-            } else if (remaining > 0.0) {
-                // // Busy-wait for sub-millisecond precision
-                // while ((SDL_GetTicks() - currentTime) < adjustedFrameTime) {
-                //     // Spin
-                // }
-            }
-        }
-        
-        m_lastFrameTime = SDL_GetTicks();
-        m_frameCount++;
-        
-        // Update window title with real-time stats
-        updateWindowStats();
+        runFrame();
     }
 }
 

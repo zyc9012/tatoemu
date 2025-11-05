@@ -106,13 +106,7 @@ target_compile_options(gb-emu PRIVATE
 # Shell file for HTML
 set_target_properties(gb-emu PROPERTIES
     SUFFIX ".html"
+    OUTPUT_NAME "index"
 )
 
-# Custom target to copy output files to web directory for easy access
-add_custom_target(copy-web-files ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_BINARY_DIR}/gb-emu.html
-        ${CMAKE_BINARY_DIR}/index.html
-    DEPENDS gb-emu
-)
 
