@@ -1,33 +1,32 @@
 #pragma once
 
 #include "types.h"
-#include <array>
 #include <fstream>
+#include <array>
 
 class CPU;
 class MMU;
 
+// AudioDevice interface for platform-specific audio output
 class AudioDevice {
 public:
     virtual ~AudioDevice() = default;
     virtual void writeSamples(void* stream, u32 length) = 0;
 };
 
-// APU manages the 4 sound channels of the Game Boy
 class APU {
 public:
+    static constexpr u32 SAMPLE_RATE = 44100;
+
     APU();
     ~APU();
 
-    static constexpr int SAMPLE_RATE = 44100;
-
     void setCPU(CPU* cpu);
     void setMMU(MMU* mmu);
-    void setAudioDevice(AudioDevice* audioDevice);
+    void setAudioDevice(AudioDevice* device);
     void reset();
     void step(u32 cycles);
     
-    // Register access
     u8 readRegister(u16 address) const;
     void writeRegister(u16 address, u8 value);
     
@@ -36,118 +35,160 @@ public:
     void loadState(std::ifstream& file);
 
 private:
-    // Sound Channel 1: Square wave with sweep
-    struct Channel1 {
-        bool enabled;
-        u8 sweep;           // NR10
-        u8 lengthDuty;      // NR11
-        u8 envelope;        // NR12
-        u8 freqLow;         // NR13
-        u8 freqHigh;        // NR14
-        
-        // Internal state
-        u16 frequency;
-        u8 duty;
-        u8 volume;
-        u8 envelopePeriod;
-        u8 envelopeCounter;
-        bool envelopeIncrease;
-        u16 frequencyCounter;
-        u8 dutyPosition;
-        u8 lengthCounter;
+    // Channel structures
+    struct SquareChannel {
+        // NRx0 - Sweep (Channel 1 only)
         u8 sweepPeriod;
-        u8 sweepCounter;
+        bool sweepNegate;
         u8 sweepShift;
-        bool sweepIncrease;
-    } m_channel1;
-    
-    // Sound Channel 2: Square wave
-    struct Channel2 {
-        bool enabled;
-        u8 lengthDuty;      // NR21
-        u8 envelope;        // NR22
-        u8 freqLow;         // NR23
-        u8 freqHigh;        // NR24
+        u8 sweepTimer;
+        u16 sweepShadow;
+        bool sweepEnabled;
+        
+        // NRx1 - Length timer & duty
+        u8 dutyCycle;        // 0-3
+        u8 lengthCounter;    // 6-bit (0-63)
+        
+        // NRx2 - Volume envelope
+        u8 volume;           // Initial volume (0-15)
+        bool envelopeAddMode;
+        u8 envelopePeriod;
+        u8 envelopeTimer;
+        u8 currentVolume;
+        
+        // NRx3/NRx4 - Frequency & control
+        u16 frequency;       // 11-bit frequency
+        bool lengthEnable;
+        bool dacEnabled;
         
         // Internal state
-        u16 frequency;
-        u8 duty;
-        u8 volume;
-        u8 envelopePeriod;
-        u8 envelopeCounter;
-        bool envelopeIncrease;
-        u16 frequencyCounter;
+        bool enabled;
+        u16 frequencyTimer;
         u8 dutyPosition;
-        u8 lengthCounter;
-    } m_channel2;
-    
-    // Sound Channel 3: Wave output
-    struct Channel3 {
-        bool enabled;
-        u8 onOff;           // NR30
-        u8 length;          // NR31
-        u8 outputLevel;     // NR32
-        u8 freqLow;         // NR33
-        u8 freqHigh;        // NR34
         
-        // Internal state
+        void reset();
+        void trigger(bool hasSweep);
+        void clockLength();
+        void clockEnvelope();
+        void clockSweep();
+        s16 getOutput() const;
+    };
+    
+    struct WaveChannel {
+        // NR30 - DAC enable
+        bool dacEnabled;
+        
+        // NR31 - Length timer
+        u16 lengthCounter;   // Can be 0-256
+        
+        // NR32 - Output level
+        u8 outputLevel;      // 0-3 (0=mute, 1=100%, 2=50%, 3=25%)
+        
+        // NR33/NR34 - Frequency & control
         u16 frequency;
-        u16 frequencyCounter;
-        u8 wavePosition;
-        u16 lengthCounter;  // u16 to support value of 256
+        bool lengthEnable;
+        
+        // Wave RAM (32 4-bit samples)
         std::array<u8, 16> waveRAM;
-    } m_channel3;
-    
-    // Sound Channel 4: Noise
-    struct Channel4 {
-        bool enabled;
-        u8 length;          // NR41
-        u8 envelope;        // NR42
-        u8 polynomial;      // NR43
-        u8 control;         // NR44
         
         // Internal state
+        bool enabled;
+        u16 frequencyTimer;
+        u8 wavePosition;
+        
+        void reset();
+        void trigger();
+        void clockLength();
+        s16 getOutput() const;
+    };
+    
+    struct NoiseChannel {
+        // NR41 - Length timer
+        u8 lengthCounter;    // 6-bit (0-63)
+        
+        // NR42 - Volume envelope
         u8 volume;
+        bool envelopeAddMode;
         u8 envelopePeriod;
-        u8 envelopeCounter;
-        bool envelopeIncrease;
-        u8 lengthCounter;
-        u16 lfsr;           // Linear Feedback Shift Register
-        u16 clockCounter;
-    } m_channel4;
+        u8 envelopeTimer;
+        u8 currentVolume;
+        
+        // NR43 - Frequency & randomness
+        u8 clockShift;       // 0-15
+        bool widthMode;      // 0=15-bit, 1=7-bit
+        u8 divisorCode;      // 0-7
+        
+        // NR44 - Control
+        bool lengthEnable;
+        bool dacEnabled;
+        
+        // Internal state
+        bool enabled;
+        u16 frequencyTimer;
+        u16 lfsr;            // Linear feedback shift register
+        
+        void reset();
+        void trigger();
+        void clockLength();
+        void clockEnvelope();
+        s16 getOutput() const;
+    };
     
-    // Master control
-    u8 m_nr50;  // Channel control / ON-OFF / Volume
-    u8 m_nr51;  // Sound output terminal selection
-    u8 m_nr52;  // Sound on/off
+    // Frame sequencer steps (512 Hz)
+    void clockFrameSequencer();
     
-    // Timing
-    u32 m_frameSequencerCounter;
-    u8 m_frameSequencer;
-    u32 m_sampleCounter;  // Track sample generation timing
-
+    // Channel mixing and output
+    void generateSample();
+    
+    // Helper functions
+    bool isChannelEnabled(u8 channel) const;
+    void updateNR52();
+    u32 getFrequencyTimerPeriod(u16 frequency) const;
+    u32 getNoiseFrequencyPeriod() const;
+    
     CPU* m_cpu;
     MMU* m_mmu;
-
-    // Abstract audio device for playback
     AudioDevice* m_audioDevice;
-
-    static constexpr int BUFFER_SIZE = 2048;
     
-    // Helper methods
-    void tickFrameSequencer();
-    void tickLengthCounters();
-    void tickVolumeEnvelopes();
-    void tickSweep();
+    // Channels
+    SquareChannel m_square1;
+    SquareChannel m_square2;
+    WaveChannel m_wave;
+    NoiseChannel m_noise;
     
-    float getChannel1Sample();
-    float getChannel2Sample();
-    float getChannel3Sample();
-    float getChannel4Sample();
+    // Master control (NR50, NR51, NR52)
+    u8 m_leftVolume;     // NR50 bits 4-6
+    u8 m_rightVolume;    // NR50 bits 0-2
+    bool m_leftVinEnable;  // NR50 bit 7
+    bool m_rightVinEnable; // NR50 bit 3
     
-    void triggerChannel1();
-    void triggerChannel2();
-    void triggerChannel3();
-    void triggerChannel4();
+    u8 m_leftEnable;     // NR51 - which channels to left
+    u8 m_rightEnable;    // NR51 - which channels to right
+    
+    bool m_enabled;      // NR52 bit 7 - Master enable
+    
+    // Frame sequencer (512 Hz timer)
+    u32 m_frameSequencerTimer;
+    u8 m_frameSequencerStep;  // 0-7
+    
+    // Sample generation
+    u32 m_sampleTimer;
+    float m_sampleBuffer[2048 * 2]; // Stereo buffer (enough for ~1 frame at 48kHz)
+    u32 m_sampleBufferPos;
+    
+    // Cycle accumulator for double speed mode (to handle odd cycle counts)
+    u32 m_cycleAccumulator;
+    
+    // Capacitor simulation for high-pass filter
+    float m_capacitorLeft;
+    float m_capacitorRight;
+    
+    // Duty cycle patterns
+    static constexpr u8 DUTY_PATTERNS[4][8] = {
+        {0, 0, 0, 0, 0, 0, 0, 1}, // 12.5%
+        {1, 0, 0, 0, 0, 0, 0, 1}, // 25%
+        {1, 0, 0, 0, 0, 1, 1, 1}, // 50%
+        {0, 1, 1, 1, 1, 1, 1, 0}, // 75%
+    };
 };
 
