@@ -12,9 +12,6 @@ public:
     // Load bootrom from file
     bool load(const std::string& filename);
     
-    // Load bootrom from memory
-    bool loadFromMemory(const u8* data, size_t size);
-    
     // Check if bootrom is loaded and enabled
     bool isLoaded() const { return m_loaded; }
     bool isEnabled() const { return m_enabled; }

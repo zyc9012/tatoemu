@@ -2,7 +2,6 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
-#include <cstring>
 
 Cartridge::Cartridge()
     : m_cartridgeType(0)
@@ -98,23 +97,11 @@ bool Cartridge::load(const std::string& filename) {
     std::streamsize size = file.tellg();
     file.seekg(0, std::ios::beg);
 
-    std::vector<u8> data(size);
-    if (!file.read(reinterpret_cast<char*>(data.data()), size)) {
+    m_rom.resize(size);
+    if (!file.read(reinterpret_cast<char*>(m_rom.data()), size)) {
         std::cerr << "Failed to read ROM file" << std::endl;
         return false;
     }
-
-    return loadFromMemory(data.data(), size);
-}
-
-bool Cartridge::loadFromMemory(const u8* data, size_t size) {
-    if (!data || size == 0) {
-        std::cerr << "Invalid ROM data" << std::endl;
-        return false;
-    }
-
-    m_rom.resize(size);
-    std::memcpy(m_rom.data(), data, size);
 
     parseHeader();
     m_loaded = true;
