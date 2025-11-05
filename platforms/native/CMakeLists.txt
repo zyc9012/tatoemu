@@ -11,8 +11,8 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/src/cartridge.cpp
     ${CMAKE_SOURCE_DIR}/src/apu.cpp
     ${CMAKE_SOURCE_DIR}/src/bootrom.cpp
-    ${CMAKE_SOURCE_DIR}/platforms/sdl3/emulator.cpp
-    ${CMAKE_SOURCE_DIR}/platforms/sdl3/main.cpp
+    ${CMAKE_SOURCE_DIR}/src/emulator.cpp
+    ${CMAKE_SOURCE_DIR}/platforms/native/main.cpp
 )
 
 # Header files
@@ -26,7 +26,7 @@ set(HEADERS
     ${CMAKE_SOURCE_DIR}/include/apu.h
     ${CMAKE_SOURCE_DIR}/include/bootrom.h
     ${CMAKE_SOURCE_DIR}/include/types.h
-    ${CMAKE_SOURCE_DIR}/platforms/sdl3/emulator.h
+    ${CMAKE_SOURCE_DIR}/include/emulator.h
 )
 
 # Create executable

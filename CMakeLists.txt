@@ -12,11 +12,11 @@ endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-set(PLATFORM "sdl3" CACHE STRING "Target platform")
+set(PLATFORM "native" CACHE STRING "Target platform")
 message(STATUS "Building ${PLATFORM} version")
 
-if(${PLATFORM} STREQUAL "sdl3")
-    add_subdirectory(platforms/sdl3)
+if(${PLATFORM} STREQUAL "native")
+    add_subdirectory(platforms/native)
 elseif(${PLATFORM} STREQUAL "wasm")
     add_subdirectory(platforms/wasm)
 endif()

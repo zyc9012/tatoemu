@@ -1,4 +1,7 @@
-# Source files (exclude SDL-specific files)
+# Find SDL3 (Emscripten provides SDL3 via ports)
+find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3)
+
+# Source files
 set(SOURCES
     ${CMAKE_SOURCE_DIR}/src/cpu.cpp
     ${CMAKE_SOURCE_DIR}/src/mmu.cpp
@@ -8,8 +11,8 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/src/cartridge.cpp
     ${CMAKE_SOURCE_DIR}/src/apu.cpp
     ${CMAKE_SOURCE_DIR}/src/bootrom.cpp
-    ${CMAKE_SOURCE_DIR}/platforms/wasm/emulator_wasm.cpp
-    ${CMAKE_SOURCE_DIR}/platforms/wasm/wasm_bindings.cpp
+    ${CMAKE_SOURCE_DIR}/src/emulator.cpp
+    ${CMAKE_SOURCE_DIR}/platforms/wasm/main.cpp
 )
 
 # Header files
@@ -23,7 +26,7 @@ set(HEADERS
     ${CMAKE_SOURCE_DIR}/include/apu.h
     ${CMAKE_SOURCE_DIR}/include/bootrom.h
     ${CMAKE_SOURCE_DIR}/include/types.h
-    ${CMAKE_SOURCE_DIR}/platforms/wasm/emulator_wasm.h
+    ${CMAKE_SOURCE_DIR}/include/emulator.h
 )
 
 # Create executable
@@ -34,39 +37,44 @@ target_include_directories(gb-emu PRIVATE
     ${CMAKE_SOURCE_DIR}/include
 )
 
+# Link SDL3
+target_link_libraries(gb-emu PRIVATE SDL3::SDL3)
+
 # Emscripten-specific settings
 set(EMSCRIPTEN_LINK_FLAGS
-    # Enable embind for C++ bindings
-    "--bind"
+    # Use SDL3 port
+    "-sUSE_SDL=3"
     
     # Memory settings
     "-sALLOW_MEMORY_GROWTH=1"
-    "-sINITIAL_MEMORY=64MB"
+    "-sINITIAL_MEMORY=128MB"
     "-sMAXIMUM_MEMORY=512MB"
+    "-sSTACK_SIZE=5MB"
     
-    # Export functions
-    "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','getValue','setValue','HEAPU8','HEAPU32']"
-    "-sEXPORTED_FUNCTIONS=['_malloc','_free']"
-    
-    # Modularize output
-    "-sMODULARIZE=1"
-    "-sEXPORT_NAME='Module'"
+    # Export main function and C functions for file upload
+    "-sEXPORTED_FUNCTIONS=['_main','_loadROMFile','_loadBootromFile']"
+    "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','FS']"
     
     # Environment
     "-sENVIRONMENT=web"
     
-    # Disable filesystem if not needed
-    "-sNO_DISABLE_EXCEPTION_CATCHING"
+    # Enable filesystem for ROM loading
+    "-sFORCE_FILESYSTEM=1"
     
     # Enable exceptions
     "-fexceptions"
+    "-sNO_DISABLE_EXCEPTION_CATCHING"
+    
+    # Use custom HTML shell
+    "--shell-file=${CMAKE_CURRENT_SOURCE_DIR}/shell.html"
 )
 
 # Optimization flags
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     list(APPEND EMSCRIPTEN_LINK_FLAGS
         "-O3"
-        "--closure=1"
+        # Closure compiler disabled - causes issues with SDL3 exports
+        # "--closure=1"
     )
     target_compile_options(gb-emu PRIVATE -O3)
 else()
@@ -95,17 +103,16 @@ target_compile_options(gb-emu PRIVATE
     -fexceptions
 )
 
-# Custom target to copy web directory and output files to binary directory
+# Shell file for HTML
+set_target_properties(gb-emu PROPERTIES
+    SUFFIX ".html"
+)
+
+# Custom target to copy output files to web directory for easy access
 add_custom_target(copy-web-files ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_CURRENT_SOURCE_DIR}/web
-        ${CMAKE_BINARY_DIR}/web
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_BINARY_DIR}/gb-emu.js
-        ${CMAKE_BINARY_DIR}/web/gb-emu.js
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_BINARY_DIR}/gb-emu.wasm
-        ${CMAKE_BINARY_DIR}/web/gb-emu.wasm
+        ${CMAKE_BINARY_DIR}/gb-emu.html
+        ${CMAKE_BINARY_DIR}/index.html
     DEPENDS gb-emu
 )
 
