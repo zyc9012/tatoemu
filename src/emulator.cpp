@@ -169,7 +169,6 @@ bool Emulator::initialize() {
     m_ppu->setVideoDevice(m_videoDevice.get());
     m_joypad->setCPU(m_cpu.get());
     m_timer->setCPU(m_cpu.get());
-    m_timer->setMMU(m_mmu.get());
     m_apu->setCPU(m_cpu.get());
     m_apu->setMMU(m_mmu.get());
     m_apu->setAudioDevice(m_audioDevice.get());
