@@ -227,10 +227,10 @@ void APU::generateSample() {
         m_sampleTimer -= cyclesPerSample;
         
         // Get channel outputs
-        s16 ch1 = m_square1.getOutput();
-        s16 ch2 = m_square2.getOutput();
-        s16 ch3 = m_wave.getOutput();
-        s16 ch4 = m_noise.getOutput();
+        s16 ch1 = m_square1.getOutput() - DAC_BIAS;
+        s16 ch2 = m_square2.getOutput() - DAC_BIAS;
+        s16 ch3 = m_wave.getOutput() - DAC_BIAS;
+        s16 ch4 = m_noise.getOutput() - DAC_BIAS;
         
         // Mix left channel (NR51 bits 4-7)
         float leftMix = 0.0f;

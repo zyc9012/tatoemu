@@ -17,6 +17,7 @@ public:
 class APU {
 public:
     static constexpr u32 SAMPLE_RATE = 44100;
+    static constexpr s16 DAC_BIAS = 7;
 
     APU();
     ~APU();
