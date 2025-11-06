@@ -154,14 +154,21 @@ void APU::step(u32 cycles) {
                 m_noise.frequencyTimer = getNoiseFrequencyPeriod();
                 
                 // Clock LFSR
-                u16 bit = (m_noise.lfsr ^ (m_noise.lfsr >> 1)) & 1;
-                m_noise.lfsr >>= 1;
-                m_noise.lfsr |= (bit << 14);
+                // XNOR of bit 0 and bit 1 (1 if identical, 0 if different)
+                u16 bit = ~(m_noise.lfsr ^ (m_noise.lfsr >> 1)) & 1;
                 
+                // Write result to bit 15
+                m_noise.lfsr &= ~0x8000;
+                m_noise.lfsr |= (bit << 15);
+                
+                // If short mode (7-bit), also write to bit 7
                 if (m_noise.widthMode) {
-                    m_noise.lfsr &= ~0x40;
-                    m_noise.lfsr |= (bit << 6);
+                    m_noise.lfsr &= ~0x0080;
+                    m_noise.lfsr |= (bit << 7);
                 }
+                
+                // Shift the entire LFSR right
+                m_noise.lfsr >>= 1;
             }
         }
         
@@ -823,7 +830,7 @@ void APU::NoiseChannel::reset() {
     dacEnabled = false;
     enabled = false;
     frequencyTimer = 0;
-    lfsr = 0x7FFF;
+    lfsr = 0;  // LFSR starts at 0
 }
 
 void APU::NoiseChannel::trigger() {
@@ -844,8 +851,8 @@ void APU::NoiseChannel::trigger() {
     u32 divisor = divisors[divisorCode];
     frequencyTimer = divisor << clockShift;
     
-    // Reset LFSR
-    lfsr = 0x7FFF;
+    // Reset LFSR to 0 (as per hardware documentation)
+    lfsr = 0;
 }
 
 void APU::NoiseChannel::clockLength() {
