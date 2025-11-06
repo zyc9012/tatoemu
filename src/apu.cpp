@@ -22,11 +22,9 @@ APU::APU()
     , m_frameSequencerTimer(0)
     , m_frameSequencerStep(0)
     , m_sampleTimer(0)
-    , m_sampleBufferPos(0)
     , m_cycleAccumulator(0)
     , m_capacitorLeft(0.0f)
     , m_capacitorRight(0.0f) {
-    std::memset(m_sampleBuffer, 0, sizeof(m_sampleBuffer));
 }
 
 APU::~APU() {
@@ -61,13 +59,10 @@ void APU::reset() {
     m_frameSequencerTimer = 0;
     m_frameSequencerStep = 0;
     m_sampleTimer = 0;
-    m_sampleBufferPos = 0;
     m_cycleAccumulator = 0;
     
     m_capacitorLeft = 0.0f;
     m_capacitorRight = 0.0f;
-    
-    std::memset(m_sampleBuffer, 0, sizeof(m_sampleBuffer));
 }
 
 void APU::step(u32 cycles) {
@@ -91,21 +86,6 @@ void APU::step(u32 cycles) {
         
         while (m_sampleTimer >= cyclesPerSample) {
             m_sampleTimer -= cyclesPerSample;
-            
-            // Output silence
-            if (m_sampleBufferPos < sizeof(m_sampleBuffer) / sizeof(float)) {
-                m_sampleBuffer[m_sampleBufferPos++] = 0.0f; // Left
-                m_sampleBuffer[m_sampleBufferPos++] = 0.0f; // Right
-            }
-            
-            // Flush buffer when full
-            if (m_sampleBufferPos >= sizeof(m_sampleBuffer) / sizeof(float)) {
-                if (m_audioDevice) {
-                    m_audioDevice->writeSamples(m_sampleBuffer, 
-                        m_sampleBufferPos * sizeof(float));
-                }
-                m_sampleBufferPos = 0;
-            }
         }
         return;
     }
@@ -274,19 +254,9 @@ void APU::generateSample() {
         if (rightFiltered > 1.0f) rightFiltered = 1.0f;
         if (rightFiltered < -1.0f) rightFiltered = -1.0f;
         
-        // Store samples in buffer
-        if (m_sampleBufferPos < sizeof(m_sampleBuffer) / sizeof(float)) {
-            m_sampleBuffer[m_sampleBufferPos++] = leftFiltered;
-            m_sampleBuffer[m_sampleBufferPos++] = rightFiltered;
-        }
-        
-        // Flush buffer when full
-        if (m_sampleBufferPos >= sizeof(m_sampleBuffer) / sizeof(float)) {
-            if (m_audioDevice) {
-                m_audioDevice->writeSamples(m_sampleBuffer, 
-                    m_sampleBufferPos * sizeof(float));
-            }
-            m_sampleBufferPos = 0;
+        float sampleBuffer[2] = { leftFiltered, rightFiltered };
+        if (m_audioDevice) {
+            m_audioDevice->writeSamples(sampleBuffer, 2 * sizeof(float));
         }
     }
 }
@@ -612,9 +582,6 @@ void APU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_cycleAccumulator), sizeof(m_cycleAccumulator));
     file.read(reinterpret_cast<char*>(&m_capacitorLeft), sizeof(m_capacitorLeft));
     file.read(reinterpret_cast<char*>(&m_capacitorRight), sizeof(m_capacitorRight));
-    
-    // Reset sample buffer
-    m_sampleBufferPos = 0;
 }
 
 // SquareChannel implementation

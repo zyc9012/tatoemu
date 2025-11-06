@@ -174,8 +174,6 @@ private:
     
     // Sample generation
     u32 m_sampleTimer;
-    float m_sampleBuffer[2048 * 2]; // Stereo buffer (enough for ~1 frame at 48kHz)
-    u32 m_sampleBufferPos;
     
     // Cycle accumulator for double speed mode (to handle odd cycle counts)
     u32 m_cycleAccumulator;
