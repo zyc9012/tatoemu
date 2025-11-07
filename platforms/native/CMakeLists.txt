@@ -1,5 +1,14 @@
-# Find SDL3
-find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3)
+option(BUILD_STATIC "Build static executable." ON)
+
+if(BUILD_STATIC AND NOT APPLE)
+  find_package(SDL3
+    REQUIRED COMPONENTS SDL3-static
+    CONFIG)
+else()
+  find_package(SDL3
+    REQUIRED COMPONENTS SDL3
+    CONFIG)
+endif()
 
 # Source files
 set(SOURCES
@@ -43,7 +52,13 @@ target_include_directories(gb-emu PRIVATE
 )
 
 # Link SDL3
-target_link_libraries(gb-emu PRIVATE SDL3::SDL3)
+if(BUILD_STATIC AND NOT APPLE)
+  target_link_libraries(gb-emu PUBLIC SDL3::SDL3-static)
+  set_target_properties(gb-emu PROPERTIES LINK_SEARCH_END_STATIC TRUE)
+  target_link_options(gb-emu PRIVATE -static -s)
+else()
+  target_link_libraries(gb-emu PUBLIC SDL3::SDL3)
+endif()
 
 # Compiler warnings and optimization flags
 if(MSVC)
