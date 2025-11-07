@@ -706,6 +706,11 @@ s16 APU::SquareChannel::getOutput() const {
         return 0;
     }
     
+    // Play inaudible frequencies as constant volume
+    if (frequency >= 0x7FA) {
+        return currentVolume;
+    }
+
     // Get duty pattern output
     u8 dutyBit = APU::DUTY_PATTERNS[dutyCycle][dutyPosition];
     
