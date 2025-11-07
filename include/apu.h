@@ -72,6 +72,7 @@ private:
         void clockLength();
         void clockEnvelope();
         void clockSweep();
+        u32 getFrequencyTimerPeriod() const;
         s16 getOutput() const;
     };
     
@@ -132,6 +133,7 @@ private:
         void trigger();
         void clockLength();
         void clockEnvelope();
+        u32 getFrequencyPeriod() const;
         s16 getOutput() const;
     };
     
@@ -144,8 +146,6 @@ private:
     // Helper functions
     bool isChannelEnabled(u8 channel) const;
     void updateNR52();
-    u32 getFrequencyTimerPeriod(u16 frequency) const;
-    u32 getNoiseFrequencyPeriod() const;
     
     CPU* m_cpu;
     MMU* m_mmu;

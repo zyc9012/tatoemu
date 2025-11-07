@@ -103,7 +103,7 @@ void APU::step(u32 cycles) {
         if (m_square1.enabled && m_square1.frequencyTimer > 0) {
             m_square1.frequencyTimer--;
             if (m_square1.frequencyTimer == 0) {
-                m_square1.frequencyTimer = getFrequencyTimerPeriod(m_square1.frequency);
+                m_square1.frequencyTimer = m_square1.getFrequencyTimerPeriod();
                 m_square1.dutyPosition = (m_square1.dutyPosition + 1) & 7;
             }
         }
@@ -112,7 +112,7 @@ void APU::step(u32 cycles) {
         if (m_square2.enabled && m_square2.frequencyTimer > 0) {
             m_square2.frequencyTimer--;
             if (m_square2.frequencyTimer == 0) {
-                m_square2.frequencyTimer = getFrequencyTimerPeriod(m_square2.frequency);
+                m_square2.frequencyTimer = m_square2.getFrequencyTimerPeriod();
                 m_square2.dutyPosition = (m_square2.dutyPosition + 1) & 7;
             }
         }
@@ -131,7 +131,7 @@ void APU::step(u32 cycles) {
         if (m_noise.enabled && m_noise.frequencyTimer > 0) {
             m_noise.frequencyTimer--;
             if (m_noise.frequencyTimer == 0) {
-                m_noise.frequencyTimer = getNoiseFrequencyPeriod();
+                m_noise.frequencyTimer = m_noise.getFrequencyPeriod();
                 
                 // Clock LFSR
                 // XNOR of bit 0 and bit 1 (1 if identical, 0 if different)
@@ -259,22 +259,6 @@ void APU::generateSample() {
             m_audioDevice->writeSamples(sampleBuffer, 2 * sizeof(float));
         }
     }
-}
-
-u32 APU::getFrequencyTimerPeriod(u16 frequency) const {
-    // Frequency timer period = (2048 - frequency) * 4
-    return (2048 - frequency) * 4;
-}
-
-u32 APU::getNoiseFrequencyPeriod() const {
-    // Noise frequency is determined by divisor and clock shift
-    // Period = divisor * 2^(shift+1)
-    
-    static const u32 divisors[8] = {8, 16, 32, 48, 64, 80, 96, 112};
-    u32 divisor = divisors[m_noise.divisorCode];
-    u32 period = divisor << m_noise.clockShift;
-    
-    return period;
 }
 
 void APU::updateNR52() {
@@ -712,6 +696,11 @@ void APU::SquareChannel::clockSweep() {
     }
 }
 
+u32 APU::SquareChannel::getFrequencyTimerPeriod() const {
+    // Frequency timer period = (2048 - frequency) * 4
+    return (2048 - frequency) * 4;
+}
+
 s16 APU::SquareChannel::getOutput() const {
     if (!enabled || !dacEnabled) {
         return 0;
@@ -847,6 +836,17 @@ void APU::NoiseChannel::clockEnvelope() {
             currentVolume--;
         }
     }
+}
+
+u32 APU::NoiseChannel::getFrequencyPeriod() const {
+    // Noise frequency is determined by divisor and clock shift
+    // Period = divisor * 2^(shift+1)
+    
+    static const u32 divisors[8] = {8, 16, 32, 48, 64, 80, 96, 112};
+    u32 divisor = divisors[divisorCode];
+    u32 period = divisor << clockShift;
+    
+    return period;
 }
 
 s16 APU::NoiseChannel::getOutput() const {
