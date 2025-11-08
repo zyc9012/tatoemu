@@ -1,10 +1,13 @@
 #pragma once
 
 #include "types.h"
+#include <filesystem>
 #include <string>
 #include <vector>
 #include <fstream>
 #include <ctime>
+
+namespace fs = std::filesystem;
 
 // MBC Types
 enum class MBCType {
@@ -72,6 +75,11 @@ public:
     // Save/Load state
     void saveState(std::ofstream& file) const;
     void loadState(std::ifstream& file);
+    
+    // Battery save/load
+    void saveBattery() const;
+    void loadBattery();
+    bool hasBattery() const;
 
 private:
     void parseHeader();
@@ -98,6 +106,7 @@ private:
     std::vector<u8> m_rom;
     std::vector<u8> m_ram;
     std::string m_title;
+    fs::path m_romFilename;
     u8 m_cartridgeType;
     u8 m_romSize;
     u8 m_ramSize;

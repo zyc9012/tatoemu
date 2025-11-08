@@ -9,8 +9,11 @@
 #include "cartridge.h"
 #include "apu.h"
 #include "bootrom.h"
+#include <filesystem>
 #include <memory>
 #include <string>
+
+namespace fs = std::filesystem;
 
 struct SDL_Window;
 struct SDL_Renderer;
@@ -103,6 +106,6 @@ private:
     u64 m_statsTimer;
     u64 m_frameCount;
     
-    std::string m_currentROMPath;
+    fs::path m_romFilename;
 };
 

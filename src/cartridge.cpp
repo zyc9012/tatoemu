@@ -2,6 +2,9 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 Cartridge::Cartridge()
     : m_cartridgeType(0)
@@ -27,6 +30,9 @@ Cartridge::Cartridge()
 }
 
 Cartridge::~Cartridge() {
+    if (m_loaded && hasBattery()) {
+        saveBattery();
+    }
 }
 
 void Cartridge::saveState(std::ofstream& file) const {
@@ -103,6 +109,7 @@ bool Cartridge::load(const std::string& filename) {
         return false;
     }
 
+    m_romFilename = filename;
     parseHeader();
     m_loaded = true;
 
@@ -111,6 +118,11 @@ bool Cartridge::load(const std::string& filename) {
     std::cout << "ROM Size: " << m_rom.size() / 1024.0 << " KB (0x" << std::hex << (int)m_romSize << std::dec << ")" << std::endl;
     std::cout << "RAM Size: " << m_ram.size() / 1024.0 << " KB (0x" << std::hex << (int)m_ramSize << std::dec << ")" << std::endl;
     std::cout << "Mode: " << (m_isGBCOnly ? "GBC Only" : (m_isGBC ? "GBC Compatible" : "DMG")) << std::endl;
+    
+    // Load battery save if available
+    if (hasBattery()) {
+        loadBattery();
+    }
     
     return true;
 }
@@ -733,4 +745,69 @@ void Cartridge::updateRTC() const {
 void Cartridge::latchRTC() const {
     updateRTC();
     m_rtcLatched = true;
+}
+
+// Battery Save/Load Functions
+bool Cartridge::hasBattery() const {
+    return m_mbcType == MBCType::MBC1_RAM_BATTERY ||
+           m_mbcType == MBCType::MBC2_BATTERY ||
+           m_mbcType == MBCType::ROM_RAM_BATTERY ||
+           m_mbcType == MBCType::MMM01_RAM_BATTERY ||
+           m_mbcType == MBCType::MBC3_TIMER_BATTERY ||
+           m_mbcType == MBCType::MBC3_TIMER_RAM_BATTERY ||
+           m_mbcType == MBCType::MBC3_RAM_BATTERY ||
+           m_mbcType == MBCType::MBC5_RAM_BATTERY ||
+           m_mbcType == MBCType::MBC5_RUMBLE_RAM_BATTERY ||
+           m_mbcType == MBCType::MBC7_SENSOR_RUMBLE_RAM_BATTERY;
+}
+
+void Cartridge::saveBattery() const {
+    if (m_ram.empty() || m_romFilename.empty()) {
+        return; // Nothing to save or ROM filename unavailable
+    }
+    
+    fs::path savPath = m_romFilename;
+    savPath.replace_extension(".sav");
+    
+    std::ofstream file(savPath, std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Failed to create save file: " << savPath.string() << std::endl;
+        return;
+    }
+    
+    // Write RAM data
+    file.write(reinterpret_cast<const char*>(m_ram.data()), m_ram.size());
+    
+    file.close();
+    std::cout << "Battery data saved to: " << savPath.string() << std::endl;
+}
+
+void Cartridge::loadBattery() {
+    if (m_ram.empty() || m_romFilename.empty()) {
+        return; // No RAM to load into or ROM filename unavailable
+    }
+    
+    fs::path savPath = m_romFilename;
+    savPath.replace_extension(".sav");
+    
+    std::ifstream file(savPath, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+        std::cout << "No save file found: " << savPath.string() << std::endl;
+        return;
+    }
+    
+    std::streamsize fileSize = file.tellg();
+    file.seekg(0, std::ios::beg);
+    
+    // Read RAM data
+    size_t ramSize = m_ram.size();
+    if (fileSize >= static_cast<std::streamsize>(ramSize)) {
+        file.read(reinterpret_cast<char*>(m_ram.data()), ramSize);
+        std::cout << "Battery data loaded from: " << savPath.string() << std::endl;
+    } else {
+        std::cerr << "Save file size mismatch (expected " << ramSize << " bytes, got " 
+                  << fileSize << " bytes)" << std::endl;
+    }
+    
+    file.close();
 }
