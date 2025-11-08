@@ -60,6 +60,7 @@ set(EMSCRIPTEN_LINK_FLAGS
     
     # Enable filesystem for ROM loading
     "-sFORCE_FILESYSTEM=1"
+    "-lidbfs.js"
     
     # Enable exceptions
     "-fexceptions"

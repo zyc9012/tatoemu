@@ -293,7 +293,18 @@
 
         // Emscripten configuration
         var Module = {
-            preRun: [],
+            preRun: [function() {
+                try {
+                    Module.FS.mkdir('/roms');
+                } catch (e) {
+                    // Directory already exists or mount point ready
+                }
+                try {
+                    Module.FS.mount(Module.FS.filesystems.IDBFS, { autoPersist: true }, '/roms');
+                } catch (err) {
+                    console.error('Failed to mount persistent storage:', err);
+                }
+            }],
             postRun: [function() {
                 // Show upload section once module is ready
                 document.getElementById('uploadSection').style.display = 'block';
@@ -370,15 +381,8 @@
                     const arrayBuffer = await file.arrayBuffer();
                     const uint8Array = new Uint8Array(arrayBuffer);
                     
-                    // Create directory if it doesn't exist
-                    try {
-                        Module.FS.mkdir('/upload');
-                    } catch(e) {
-                        // Directory might already exist
-                    }
-                    
                     // Write file to virtual filesystem
-                    const filename = '/upload/' + file.name;
+                    const filename = '/roms/' + file.name;
                     Module.FS.writeFile(filename, uint8Array);
                     
                     // Call C function to load ROM
@@ -412,15 +416,8 @@
                     const arrayBuffer = await file.arrayBuffer();
                     const uint8Array = new Uint8Array(arrayBuffer);
                     
-                    // Create directory if it doesn't exist
-                    try {
-                        Module.FS.mkdir('/upload');
-                    } catch(e) {
-                        // Directory might already exist
-                    }
-                    
                     // Write file to virtual filesystem
-                    const filename = '/upload/' + file.name;
+                    const filename = '/roms/' + file.name;
                     Module.FS.writeFile(filename, uint8Array);
                     
                     // Call C function to load bootrom
