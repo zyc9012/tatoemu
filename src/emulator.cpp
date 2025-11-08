@@ -36,7 +36,7 @@ SDLAudioDevice::~SDLAudioDevice() {
 
 bool SDLAudioDevice::initialize() {
     SDL_AudioSpec spec;
-    spec.freq = APU::SAMPLE_RATE;
+    spec.freq = Config::Audio::SAMPLE_RATE;
     spec.format = SDL_AUDIO_F32;
     spec.channels = 2;  // Stereo
 
@@ -110,8 +110,8 @@ bool Emulator::initialize() {
     // Create window
     m_window = SDL_CreateWindow(
         "GameBoy Emulator",
-        SCREEN_WIDTH * 4,
-        SCREEN_HEIGHT * 4,
+        SCREEN_WIDTH * Config::Window::SCALE,
+        SCREEN_HEIGHT * Config::Window::SCALE,
         SDL_WINDOW_RESIZABLE
     );
 
@@ -143,6 +143,8 @@ bool Emulator::initialize() {
         std::cerr << "Failed to create texture: " << SDL_GetError() << std::endl;
         return false;
     }
+
+    SDL_SetTextureScaleMode(m_texture, Config::Window::SCALE_MODE);
 
     // Create emulator components
     m_cartridge = std::make_unique<Cartridge>();
@@ -318,32 +320,32 @@ void Emulator::handleInput() {
 
             case SDL_EVENT_KEY_DOWN:
                 switch (event.key.key) {
-                    case SDLK_ESCAPE:
+                    case Config::Key::QUIT:
                         m_running = false;
                         break;
-                    case SDLK_Z: // A button
+                    case Config::Key::BUTTON_A: // A button
                         m_joypad->pressButton(BUTTON_A);
                         break;
-                    case SDLK_X: // B button
+                    case Config::Key::BUTTON_B: // B button
                         m_joypad->pressButton(BUTTON_B);
                         break;
-                    case SDLK_RETURN: // Start
+                    case Config::Key::START: // Start
                         m_joypad->pressButton(BUTTON_START);
                         break;
-                    case SDLK_RSHIFT: // Select
-                    case SDLK_LSHIFT:
+                    case Config::Key::SELECT_PRIMARY: // Select
+                    case Config::Key::SELECT_SECONDARY:
                         m_joypad->pressButton(BUTTON_SELECT);
                         break;
-                    case SDLK_UP:
+                    case Config::Key::DPAD_UP:
                         m_joypad->pressButton(BUTTON_UP);
                         break;
-                    case SDLK_DOWN:
+                    case Config::Key::DPAD_DOWN:
                         m_joypad->pressButton(BUTTON_DOWN);
                         break;
-                    case SDLK_LEFT:
+                    case Config::Key::DPAD_LEFT:
                         m_joypad->pressButton(BUTTON_LEFT);
                         break;
-                    case SDLK_RIGHT:
+                    case Config::Key::DPAD_RIGHT:
                         m_joypad->pressButton(BUTTON_RIGHT);
                         break;
                 }
@@ -351,32 +353,32 @@ void Emulator::handleInput() {
 
             case SDL_EVENT_KEY_UP:
                 switch (event.key.key) {
-                    case SDLK_Z: // A button
+                    case Config::Key::BUTTON_A: // A button
                         m_joypad->releaseButton(BUTTON_A);
                         break;
-                    case SDLK_X: // B button
+                    case Config::Key::BUTTON_B: // B button
                         m_joypad->releaseButton(BUTTON_B);
                         break;
-                    case SDLK_RETURN: // Start
+                    case Config::Key::START: // Start
                         m_joypad->releaseButton(BUTTON_START);
                         break;
-                    case SDLK_RSHIFT: // Select
-                    case SDLK_LSHIFT:
+                    case Config::Key::SELECT_PRIMARY: // Select
+                    case Config::Key::SELECT_SECONDARY:
                         m_joypad->releaseButton(BUTTON_SELECT);
                         break;
-                    case SDLK_UP:
+                    case Config::Key::DPAD_UP:
                         m_joypad->releaseButton(BUTTON_UP);
                         break;
-                    case SDLK_DOWN:
+                    case Config::Key::DPAD_DOWN:
                         m_joypad->releaseButton(BUTTON_DOWN);
                         break;
-                    case SDLK_LEFT:
+                    case Config::Key::DPAD_LEFT:
                         m_joypad->releaseButton(BUTTON_LEFT);
                         break;
-                    case SDLK_RIGHT:
+                    case Config::Key::DPAD_RIGHT:
                         m_joypad->releaseButton(BUTTON_RIGHT);
                         break;
-                    case SDLK_F5: // Save state
+                    case Config::Key::SAVE_STATE: // Save state
                         if (!m_romFilename.empty()) {
                             fs::path savePath = m_romFilename;
                             savePath.replace_extension(".state");
@@ -384,7 +386,7 @@ void Emulator::handleInput() {
                             std::cout << "State saved to " << savePath.string() << std::endl;
                         }
                         break;
-                    case SDLK_F9: // Load state
+                    case Config::Key::LOAD_STATE: // Load state
                         if (!m_romFilename.empty()) {
                             fs::path savePath = m_romFilename;
                             savePath.replace_extension(".state");
@@ -392,7 +394,7 @@ void Emulator::handleInput() {
                             std::cout << "State loaded from " << savePath.string() << std::endl;
                         }
                         break;
-                    case SDLK_P: // Pause / Resume
+                    case Config::Key::PAUSE: // Pause / Resume
                         m_paused = !m_paused;
                         break;
                 }

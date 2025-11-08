@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+#include "config.h"
 #include <fstream>
 #include <array>
 
@@ -16,7 +17,6 @@ public:
 
 class APU {
 public:
-    static constexpr u32 SAMPLE_RATE = 44100;
     static constexpr s16 DAC_BIAS = 7;
 
     APU();

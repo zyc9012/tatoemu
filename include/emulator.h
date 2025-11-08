@@ -9,6 +9,7 @@
 #include "cartridge.h"
 #include "apu.h"
 #include "bootrom.h"
+#include "config.h"
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -96,8 +97,8 @@ private:
 
     // Audio-driven synchronization
     // Audio buffer thresholds: maintain 1.5-4 frames worth of audio for smooth playback
-    const int m_minAudioBufferSize = (APU::SAMPLE_RATE * 2 * sizeof(float) / static_cast<int>(TARGET_FPS)) * 1.5;
-    const int m_maxAudioBufferSize = (APU::SAMPLE_RATE * 2 * sizeof(float) / static_cast<int>(TARGET_FPS)) * 4;
+    const int m_minAudioBufferSize = static_cast<int>((Config::Audio::SAMPLE_RATE * 2 * sizeof(float) / static_cast<double>(TARGET_FPS)) * 1.5);
+    const int m_maxAudioBufferSize = static_cast<int>((Config::Audio::SAMPLE_RATE * 2 * sizeof(float) / static_cast<double>(TARGET_FPS)) * 4.0);
     
     // Speed adjustment for audio sync (1.0 = normal speed)
     double m_emulationSpeed;
