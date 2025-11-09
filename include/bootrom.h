@@ -10,7 +10,7 @@ public:
     ~Bootrom();
 
     // Load bootrom from file
-    bool load(const std::string& filename);
+    bool load(const fs::path& filename);
     
     // Check if bootrom is loaded and enabled
     bool isLoaded() const { return m_loaded; }

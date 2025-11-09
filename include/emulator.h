@@ -14,8 +14,6 @@
 #include <memory>
 #include <string>
 
-namespace fs = std::filesystem;
-
 struct SDL_Window;
 struct SDL_Renderer;
 struct SDL_Texture;
@@ -55,15 +53,15 @@ public:
     ~Emulator();
 
     bool initialize();
-    bool loadBootrom(const std::string& filename);
-    bool loadROM(const std::string& filename);
+    bool loadBootrom(const fs::path& filename);
+    bool loadROM(const fs::path& filename);
     void run();
     void runFrame();
     void shutdown();
     
     // Save/Load state
-    void saveState(const std::string& filename);
-    void loadState(const std::string& filename);
+    void saveState(const fs::path& filename);
+    void loadState(const fs::path& filename);
     
 private:
     void handleInput();

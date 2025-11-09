@@ -14,7 +14,7 @@ Bootrom::Bootrom()
 Bootrom::~Bootrom() {
 }
 
-bool Bootrom::load(const std::string& filename) {
+bool Bootrom::load(const fs::path& filename) {
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
         std::cerr << "Failed to open bootrom file: " << filename << std::endl;

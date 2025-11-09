@@ -3,7 +3,12 @@
 #include <string>
 #include <cstdlib>
 
+#ifdef _WIN32
+#include <windows.h>
+int wmain(int argc, wchar_t* argv[]) {
+#else
 int main(int argc, char* argv[]) {
+#endif
     if (argc < 2) {
         std::cout << "Usage: " << argv[0] << " <rom_file> [bootrom_file]" << std::endl;
         std::cout << "\nAlternatively, set BOOTROM environment variable to bootrom path" << std::endl;
@@ -20,17 +25,12 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::string romFile = argv[1];
-    std::string bootromFile;
+    fs::path romFile = fs::path(argv[1]);
+    fs::path bootromFile;
 
     // Check for bootrom from command line or environment variable
     if (argc >= 3) {
-        bootromFile = argv[2];
-    } else {
-        const char* bootromEnv = std::getenv("BOOTROM");
-        if (bootromEnv) {
-            bootromFile = bootromEnv;
-        }
+        bootromFile = fs::path(argv[2]);
     }
 
     Emulator emulator;

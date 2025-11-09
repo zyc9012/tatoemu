@@ -4,8 +4,6 @@
 #include <cmath>
 #include <filesystem>
 
-namespace fs = std::filesystem;
-
 Cartridge::Cartridge()
     : m_cartridgeType(0)
     , m_romSize(0)
@@ -93,7 +91,7 @@ void Cartridge::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_rtc), sizeof(m_rtc));
 }
 
-bool Cartridge::load(const std::string& filename) {
+bool Cartridge::load(const fs::path& filename) {
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
         std::cerr << "Failed to open ROM file: " << filename << std::endl;

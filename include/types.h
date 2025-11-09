@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 // Type definitions for clarity
 using u8 = uint8_t;

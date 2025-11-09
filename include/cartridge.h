@@ -7,8 +7,6 @@
 #include <fstream>
 #include <ctime>
 
-namespace fs = std::filesystem;
-
 // MBC Types
 enum class MBCType {
     ROM_ONLY = 0x00,
@@ -63,7 +61,7 @@ public:
     Cartridge();
     ~Cartridge();
 
-    bool load(const std::string& filename);
+    bool load(const fs::path& filename);
     u8 read(u16 address) const;
     void write(u16 address, u8 value);
 

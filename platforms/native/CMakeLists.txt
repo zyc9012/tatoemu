@@ -56,26 +56,21 @@ if(BUILD_STATIC AND NOT APPLE)
   target_link_libraries(gb-emu PUBLIC SDL3::SDL3-static)
   set_target_properties(gb-emu PROPERTIES LINK_SEARCH_END_STATIC TRUE)
   target_link_options(gb-emu PRIVATE -static -s)
+  if(WIN32)
+    target_link_options(gb-emu PRIVATE -municode)
+  endif()
 else()
   target_link_libraries(gb-emu PUBLIC SDL3::SDL3)
 endif()
 
 # Compiler warnings and optimization flags
-if(MSVC)
-    target_compile_options(gb-emu PRIVATE 
-        /W4
-        $<$<CONFIG:Release>:/O2 /DNDEBUG>
-        $<$<CONFIG:Debug>:/Od /Zi>
-    )
-else()
-    target_compile_options(gb-emu PRIVATE 
-        -Wall 
-        -Wextra 
-        -Wpedantic
-        $<$<CONFIG:Release>:-O3 -DNDEBUG -march=native>
-        $<$<CONFIG:Debug>:-O0 -g>
-    )
-endif()
+target_compile_options(gb-emu PRIVATE 
+    -Wall
+    -Wextra
+    -Wpedantic
+    $<$<CONFIG:Release>:-O3 -DNDEBUG -march=native>
+    $<$<CONFIG:Debug>:-O0 -g>
+)
 
 # Enable Link Time Optimization for Release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Release")

@@ -186,7 +186,7 @@ bool Emulator::initialize() {
     return true;
 }
 
-bool Emulator::loadBootrom(const std::string& filename) {
+bool Emulator::loadBootrom(const fs::path& filename) {
     if (!m_bootrom->load(filename)) {
         std::cerr << "Failed to load bootrom, continuing without it" << std::endl;
         return false;
@@ -194,7 +194,7 @@ bool Emulator::loadBootrom(const std::string& filename) {
     return true;
 }
 
-bool Emulator::loadROM(const std::string& filename) {
+bool Emulator::loadROM(const fs::path& filename) {
     if (!m_cartridge->load(filename)) {
         return false;
     }
@@ -382,7 +382,7 @@ void Emulator::handleInput() {
                         if (!m_romFilename.empty()) {
                             fs::path savePath = m_romFilename;
                             savePath.replace_extension(".state");
-                            saveState(savePath.string());
+                            saveState(savePath);
                             std::cout << "State saved to " << savePath.string() << std::endl;
                         }
                         break;
@@ -390,7 +390,7 @@ void Emulator::handleInput() {
                         if (!m_romFilename.empty()) {
                             fs::path savePath = m_romFilename;
                             savePath.replace_extension(".state");
-                            loadState(savePath.string());
+                            loadState(savePath);
                             std::cout << "State loaded from " << savePath.string() << std::endl;
                         }
                         break;
@@ -453,7 +453,7 @@ void Emulator::shutdown() {
     SDL_Quit();
 }
 
-void Emulator::saveState(const std::string& filename) {
+void Emulator::saveState(const fs::path& filename) {
     std::ofstream file(filename, std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Failed to open save state file: " << filename << std::endl;
@@ -481,7 +481,7 @@ void Emulator::saveState(const std::string& filename) {
     file.close();
 }
 
-void Emulator::loadState(const std::string& filename) {
+void Emulator::loadState(const fs::path& filename) {
     std::ifstream file(filename, std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Failed to open save state file: " << filename << std::endl;
