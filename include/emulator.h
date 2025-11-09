@@ -67,6 +67,7 @@ private:
     void handleInput();
     void update();
     void updateWindowStats();
+    void updateGameSpeed(double gameSpeed);
 
     // SDL components
     SDL_Window* m_window;
@@ -91,7 +92,8 @@ private:
     
     // Frame timing
     u64 m_lastFrameTime;
-    const double m_targetFrameTime = 1000.0 / TARGET_FPS;
+    double m_gameSpeed = 1.0;
+    double m_targetFrameTime = 1000.0 / TARGET_FPS / m_gameSpeed;
 
     // Audio-driven synchronization
     // Audio buffer thresholds: maintain 1.5-4 frames worth of audio for smooth playback

@@ -394,6 +394,12 @@ void Emulator::handleInput() {
                             std::cout << "State loaded from " << savePath.string() << std::endl;
                         }
                         break;
+                    case Config::Key::GAME_SPEED_UP: // Game speed up
+                        updateGameSpeed(m_gameSpeed + 0.5);
+                        break;
+                    case Config::Key::GAME_SPEED_DOWN: // Game speed down
+                        updateGameSpeed(m_gameSpeed - 0.5);
+                        break;
                     case Config::Key::PAUSE: // Pause / Resume
                         m_paused = !m_paused;
                         break;
@@ -570,3 +576,8 @@ void Emulator::updateWindowStats() {
     }
 }
 
+void Emulator::updateGameSpeed(double gameSpeed) {
+    m_gameSpeed = gameSpeed;
+    m_targetFrameTime = 1000.0 / TARGET_FPS / m_gameSpeed;
+    std::cout << "Game speed updated to " << m_gameSpeed << std::endl;
+}
