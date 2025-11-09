@@ -281,7 +281,8 @@ u8 MMU::readIO(u16 address) const {
             return m_ppu ? m_ppu->readRegister(address) : 0xFF;
         // GBC WRAM bank
         case 0xFF70:
-            return m_wramBank;
+            // Bits 0-2: WRAM bank (0-7), Bits 3-7: Always 1 (unused)
+            return 0xF8 | m_wramBank;
         default:
             return 0xFF;
     }
