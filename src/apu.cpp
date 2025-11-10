@@ -65,7 +65,7 @@ void APU::reset() {
     m_capacitorRight = 0.0f;
 }
 
-void APU::step(u32 cycles) {
+void APU::step(u32 cycles, double playbackSpeed = 1.0) {
     // The APU always runs at normal speed (4.194304 MHz), even in double speed mode
     // In double speed mode, we receive 2x the cycles, but we should only process
     // half of them for APU timing
@@ -153,7 +153,7 @@ void APU::step(u32 cycles) {
         }
         
         // Generate audio sample
-        generateSample();
+        generateSample(playbackSpeed);
     }
 }
 
@@ -197,11 +197,11 @@ void APU::clockFrameSequencer() {
     updateNR52();
 }
 
-void APU::generateSample() {
+void APU::generateSample(double playbackSpeed) {
     m_sampleTimer++;
     
     // APU always runs at normal speed, so cycles per sample is constant
-    u32 cyclesPerSample = CLOCK_SPEED / Config::Audio::SAMPLE_RATE;
+    u32 cyclesPerSample = CLOCK_SPEED * playbackSpeed / Config::Audio::SAMPLE_RATE;
     
     if (m_sampleTimer >= cyclesPerSample) {
         m_sampleTimer -= cyclesPerSample;

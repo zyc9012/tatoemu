@@ -420,7 +420,7 @@ void Emulator::update() {
         
         m_ppu->step(cycles);
         m_timer->step(cycles);
-        m_apu->step(cycles);
+        m_apu->step(cycles, m_gameSpeed);
         
         // Add DMA cycles if any DMA occurred
         u32 dmaCycles = m_ppu->getDMACycles();
@@ -560,7 +560,7 @@ void Emulator::updateWindowStats() {
         stats.precision(1);
         stats << actualFPS
               << " FPS | Speed: "
-              << (m_emulationSpeed * 100.0)
+              << (m_emulationSpeed * m_gameSpeed * 100.0)
               << "% | Audio: "
               << bufferPercent
               << "%";

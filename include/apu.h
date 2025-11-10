@@ -26,7 +26,7 @@ public:
     void setMMU(MMU* mmu);
     void setAudioDevice(AudioDevice* device);
     void reset();
-    void step(u32 cycles);
+    void step(u32 cycles, double playbackSpeed);
     
     u8 readRegister(u16 address) const;
     void writeRegister(u16 address, u8 value);
@@ -141,7 +141,7 @@ private:
     void clockFrameSequencer();
     
     // Channel mixing and output
-    void generateSample();
+    void generateSample(double playbackSpeed);
     
     // Helper functions
     bool isChannelEnabled(u8 channel) const;
