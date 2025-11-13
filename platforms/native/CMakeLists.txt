@@ -68,7 +68,7 @@ target_compile_options(gb-emu PRIVATE
     -Wall
     -Wextra
     -Wpedantic
-    $<$<CONFIG:Release>:-O3 -DNDEBUG -march=native>
+    $<$<CONFIG:Release>:-O3 -DNDEBUG>
     $<$<CONFIG:Debug>:-O0 -g>
 )
 
