@@ -84,3 +84,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     endif()
 endif()
 
+# Install the executable
+install(TARGETS gb-emu
+    RUNTIME DESTINATION bin
+)
