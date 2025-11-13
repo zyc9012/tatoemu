@@ -19,8 +19,32 @@ void SDLVideoDevice::render(u32* buffer) {
     SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
     SDL_RenderClear(m_renderer);
 
+    // Get current window size
+    int windowWidth, windowHeight;
+    SDL_GetRenderOutputSize(m_renderer, &windowWidth, &windowHeight);
+    
+    // Calculate aspect ratio preserving destination rectangle
+    float targetAspect = static_cast<float>(SCREEN_WIDTH) / static_cast<float>(SCREEN_HEIGHT);
+    float windowAspect = static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
+    
+    SDL_FRect destRect;
+    
+    if (windowAspect > targetAspect) {
+        // Window is wider than target aspect ratio - letterbox on sides
+        destRect.h = static_cast<float>(windowHeight);
+        destRect.w = destRect.h * targetAspect;
+        destRect.x = (windowWidth - destRect.w) / 2.0f;
+        destRect.y = 0;
+    } else {
+        // Window is taller than target aspect ratio - letterbox on top/bottom
+        destRect.w = static_cast<float>(windowWidth);
+        destRect.h = destRect.w / targetAspect;
+        destRect.x = 0;
+        destRect.y = (windowHeight - destRect.h) / 2.0f;
+    }
+
     // Render texture
-    SDL_RenderTexture(m_renderer, m_texture, nullptr, nullptr);
+    SDL_RenderTexture(m_renderer, m_texture, nullptr, &destRect);
 
     // Present
     SDL_RenderPresent(m_renderer);
