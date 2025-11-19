@@ -7,6 +7,8 @@
 #include <fstream>
 #include <ctime>
 
+namespace gb {
+
 // MBC Types
 enum class MBCType {
     ROM_ONLY = 0x00,
@@ -137,4 +139,6 @@ private:
     u8 m_accelRegister;
     bool m_accelEnabled;
 };
+
+} // namespace gb
 

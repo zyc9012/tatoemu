@@ -14,10 +14,7 @@
 #include <memory>
 #include <string>
 
-struct SDL_Window;
-struct SDL_Renderer;
-struct SDL_Texture;
-struct SDL_AudioStream;
+namespace gb {
 
 class SDLVideoDevice : public VideoDevice {
 public:
@@ -109,4 +106,6 @@ private:
     
     fs::path m_romFilename;
 };
+
+} // namespace gb
 

@@ -3,6 +3,8 @@
 #include <iostream>
 #include <algorithm>
 
+namespace gb {
+
 Bootrom::Bootrom()
     : m_loaded(false)
     , m_enabled(false)
@@ -88,4 +90,6 @@ void Bootrom::reset() {
         m_enabled = true;
     }
 }
+
+} // namespace gb
 

@@ -5,6 +5,8 @@
 #include <fstream>
 #include <array>
 
+namespace gb {
+
 class CPU;
 class MMU;
 
@@ -190,4 +192,6 @@ private:
         {0, 1, 1, 1, 1, 1, 1, 0}, // 75%
     };
 };
+
+} // namespace gb
 

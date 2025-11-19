@@ -5,6 +5,8 @@
 #include <cmath>
 #include <algorithm>
 
+namespace gb {
+
 // Duty cycle patterns
 constexpr u8 APU::DUTY_PATTERNS[4][8];
 
@@ -866,4 +868,6 @@ s16 APU::NoiseChannel::getOutput() const {
     // Return volume if LFSR bit 0 is 0, otherwise 0
     return (lfsr & 1) ? 0 : currentVolume;
 }
+
+} // namespace gb
 

@@ -4,6 +4,8 @@
 #include <memory>
 #include <fstream>
 
+namespace gb {
+
 class MMU;
 
 // CPU Registers
@@ -113,4 +115,6 @@ private:
     u8 m_if;    // Interrupt Flag register
     bool m_gbcMode; // Game Boy Color mode
 };
+
+} // namespace gb
 

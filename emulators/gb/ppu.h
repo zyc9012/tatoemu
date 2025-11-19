@@ -4,6 +4,8 @@
 #include <array>
 #include <fstream>
 
+namespace gb {
+
 class CPU;
 class MMU;
 
@@ -175,4 +177,6 @@ private:
     // DMA cycle tracking (for proper timing)
     u32 m_dmaCycles;
 };
+
+} // namespace gb
 

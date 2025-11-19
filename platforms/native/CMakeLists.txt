@@ -12,30 +12,30 @@ endif()
 
 # Source files
 set(SOURCES
-    ${CMAKE_SOURCE_DIR}/src/cpu.cpp
-    ${CMAKE_SOURCE_DIR}/src/mmu.cpp
-    ${CMAKE_SOURCE_DIR}/src/ppu.cpp
-    ${CMAKE_SOURCE_DIR}/src/joypad.cpp
-    ${CMAKE_SOURCE_DIR}/src/timer.cpp
-    ${CMAKE_SOURCE_DIR}/src/cartridge.cpp
-    ${CMAKE_SOURCE_DIR}/src/apu.cpp
-    ${CMAKE_SOURCE_DIR}/src/bootrom.cpp
-    ${CMAKE_SOURCE_DIR}/src/emulator.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gb/cpu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gb/mmu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gb/ppu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gb/joypad.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gb/timer.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gb/cartridge.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gb/apu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gb/bootrom.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gb/emulator.cpp
     ${CMAKE_SOURCE_DIR}/platforms/native/main.cpp
 )
 
 # Header files
 set(HEADERS
-    ${CMAKE_SOURCE_DIR}/include/cpu.h
-    ${CMAKE_SOURCE_DIR}/include/mmu.h
-    ${CMAKE_SOURCE_DIR}/include/ppu.h
-    ${CMAKE_SOURCE_DIR}/include/joypad.h
-    ${CMAKE_SOURCE_DIR}/include/timer.h
-    ${CMAKE_SOURCE_DIR}/include/cartridge.h
-    ${CMAKE_SOURCE_DIR}/include/apu.h
-    ${CMAKE_SOURCE_DIR}/include/bootrom.h
-    ${CMAKE_SOURCE_DIR}/include/types.h
-    ${CMAKE_SOURCE_DIR}/include/emulator.h
+    ${CMAKE_SOURCE_DIR}/emulators/gb/cpu.h
+    ${CMAKE_SOURCE_DIR}/emulators/gb/mmu.h
+    ${CMAKE_SOURCE_DIR}/emulators/gb/ppu.h
+    ${CMAKE_SOURCE_DIR}/emulators/gb/joypad.h
+    ${CMAKE_SOURCE_DIR}/emulators/gb/timer.h
+    ${CMAKE_SOURCE_DIR}/emulators/gb/cartridge.h
+    ${CMAKE_SOURCE_DIR}/emulators/gb/apu.h
+    ${CMAKE_SOURCE_DIR}/emulators/gb/bootrom.h
+    ${CMAKE_SOURCE_DIR}/emulators/gb/types.h
+    ${CMAKE_SOURCE_DIR}/emulators/gb/emulator.h
 )
 
 # Create executable
@@ -48,7 +48,7 @@ set_target_properties(gb-emu PROPERTIES
 
 # Include directories
 target_include_directories(gb-emu PRIVATE 
-    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/emulators/gb
 )
 
 # Link SDL3

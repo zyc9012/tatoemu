@@ -1,6 +1,8 @@
 #include "joypad.h"
 #include "cpu.h"
 
+namespace gb {
+
 Joypad::Joypad()
     : m_cpu(nullptr)
     , m_buttonState(0xFF)
@@ -60,4 +62,6 @@ u8 Joypad::read() const {
 void Joypad::write(u8 value) {
     m_selectedButtons = value & 0x30;
 }
+
+} // namespace gb
 

@@ -7,6 +7,8 @@
 #include "bootrom.h"
 #include <algorithm>
 
+namespace gb {
+
 MMU::MMU()
     : m_cartridge(nullptr)
     , m_ppu(nullptr)
@@ -370,4 +372,6 @@ void MMU::writeIO(u16 address, u8 value) {
             break;
     }
 }
+
+} // namespace gb
 

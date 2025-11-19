@@ -4,6 +4,8 @@
 #include <cmath>
 #include <filesystem>
 
+namespace gb {
+
 Cartridge::Cartridge()
     : m_cartridgeType(0)
     , m_romSize(0)
@@ -809,3 +811,5 @@ void Cartridge::loadBattery() {
     
     file.close();
 }
+
+} // namespace gb

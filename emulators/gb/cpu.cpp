@@ -2,6 +2,8 @@
 #include "mmu.h"
 #include <iostream>
 
+namespace gb {
+
 CPU::CPU()
     : m_mmu(nullptr)
     , m_halted(false)
@@ -1282,4 +1284,6 @@ u32 CPU::executeCBInstruction(u8 opcode) {
     // Rotate/Shift/RES/SET: 8 for registers, 16 for (HL)
     return useMemory ? 16 : 8;
 }
+
+} // namespace gb
 

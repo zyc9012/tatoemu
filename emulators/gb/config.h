@@ -3,6 +3,8 @@
 #include <SDL3/SDL.h>
 #include "types.h"
 
+namespace gb {
+
 namespace Config {
 namespace Window {
     constexpr u32 SCALE = 4;
@@ -33,3 +35,5 @@ namespace Key {
 }
 
 } // namespace Config
+
+} // namespace gb

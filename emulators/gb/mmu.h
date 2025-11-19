@@ -5,6 +5,8 @@
 #include <array>
 #include <fstream>
 
+namespace gb {
+
 class Cartridge;
 class PPU;
 class Joypad;
@@ -59,4 +61,6 @@ private:
     u8 m_speedSwitch;                   // Speed switch register (KEY1)
     bool m_doubleSpeed;                 // Current speed mode
 };
+
+} // namespace gb
 

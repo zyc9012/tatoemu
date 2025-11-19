@@ -4,6 +4,8 @@
 #include <array>
 #include <string>
 
+namespace gb {
+
 class Bootrom {
 public:
     Bootrom();
@@ -41,4 +43,6 @@ private:
     u16 m_size;
     bool m_isGBC;
 };
+
+} // namespace gb
 

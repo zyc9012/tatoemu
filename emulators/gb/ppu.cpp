@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <cstring>
 
+namespace gb {
+
 // LCD timing constants
 constexpr u32 SCANLINE_OAM_CYCLES = 80;
 constexpr u32 SCANLINE_VRAM_CYCLES = 172;
@@ -1032,4 +1034,6 @@ void PPU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_modeChangeDelay), sizeof(m_modeChangeDelay));
     file.read(reinterpret_cast<char*>(&m_dmaCycles), sizeof(m_dmaCycles));
 }
+
+} // namespace gb
 

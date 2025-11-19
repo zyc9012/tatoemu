@@ -3,6 +3,8 @@
 #include "types.h"
 #include <fstream>
 
+namespace gb {
+
 class CPU;
 
 enum JoypadButton {
@@ -38,4 +40,6 @@ private:
     u8 m_buttonState;    // Current button states (1 = not pressed, 0 = pressed)
     u8 m_selectedButtons; // Which button group is selected
 };
+
+} // namespace gb
 

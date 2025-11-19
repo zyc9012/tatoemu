@@ -3,7 +3,8 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <filesystem> // Required for fs::path
+
+namespace gb {
 
 SDLVideoDevice::SDLVideoDevice(SDL_Renderer* renderer, SDL_Texture* texture)
     : m_renderer(renderer)
@@ -605,3 +606,5 @@ void Emulator::updateGameSpeed(double gameSpeed) {
     m_targetFrameTime = 1000.0 / TARGET_FPS / m_gameSpeed;
     std::cout << "Game speed updated to " << m_gameSpeed << std::endl;
 }
+
+} // namespace gb

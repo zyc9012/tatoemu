@@ -1,6 +1,8 @@
 #include "timer.h"
 #include "cpu.h"
 
+namespace gb {
+
 Timer::Timer()
     : m_cpu(nullptr)
     , m_dividerCounter(0)
@@ -179,4 +181,6 @@ void Timer::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_timerOverflow), sizeof(m_timerOverflow));
     file.read(reinterpret_cast<char*>(&m_overflowDelay), sizeof(m_overflowDelay));
 }
+
+} // namespace gb
 

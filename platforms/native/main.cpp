@@ -2,6 +2,9 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 #ifdef _WIN32
 #include <windows.h>
@@ -33,7 +36,7 @@ int main(int argc, char* argv[]) {
         bootromFile = fs::path(argv[2]);
     }
 
-    Emulator emulator;
+    gb::Emulator emulator;
     
     if (!emulator.initialize()) {
         std::cerr << "Failed to initialize emulator" << std::endl;

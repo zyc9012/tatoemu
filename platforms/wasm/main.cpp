@@ -5,6 +5,8 @@
 #include <iostream>
 #include <string>
 
+using namespace gb;
+
 // Emulator wrapper class with public access to necessary methods
 class EmulatorWasm {
 public:

@@ -3,6 +3,8 @@
 #include "types.h"
 #include <fstream>
 
+namespace gb {
+
 class CPU;
 
 class Timer {
@@ -40,4 +42,6 @@ private:
     bool m_timerOverflow;  // Track if overflow just occurred
     u8 m_overflowDelay;    // Delay cycles before interrupt fires
 };
+
+} // namespace gb
 

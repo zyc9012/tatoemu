@@ -5,6 +5,8 @@
 
 namespace fs = std::filesystem;
 
+namespace gb {
+
 // Type definitions for clarity
 using u8 = uint8_t;
 using u16 = uint16_t;
@@ -29,4 +31,6 @@ enum class GBCMode {
     GBC_COMPATIBLE = 0x80,   // GBC compatible (works on both)
     GBC_ONLY = 0xC0          // GBC only
 };
+
+} // namespace gb
 
