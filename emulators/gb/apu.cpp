@@ -1,6 +1,7 @@
 #include "apu.h"
 #include "cpu.h"
 #include "mmu.h"
+#include "consts.h"
 #include <cstring>
 #include <cmath>
 #include <algorithm>

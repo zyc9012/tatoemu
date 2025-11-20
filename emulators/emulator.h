@@ -9,7 +9,7 @@
 
 class SDLVideoDevice : public VideoDevice {
 public:
-    SDLVideoDevice(SDL_Renderer* renderer, SDL_Texture* texture);
+    SDLVideoDevice(SDL_Renderer* renderer, SDL_Texture* texture, u16 screenWidth, u16 screenHeight);
     ~SDLVideoDevice();
 
     void render(u32* buffer) override;
@@ -17,6 +17,8 @@ public:
 private:
     SDL_Renderer* m_renderer;
     SDL_Texture* m_texture;
+    u16 m_screenWidth;
+    u16 m_screenHeight;
 };
 
 class SDLAudioDevice : public AudioDevice {
@@ -40,7 +42,6 @@ public:
     Emulator();
     ~Emulator();
 
-    bool initialize();
     bool loadBootrom(const fs::path& filename);
     bool loadROM(const fs::path& filename);
     void run();
@@ -48,6 +49,7 @@ public:
     void shutdown();
     
 private:
+    bool initialize();
     void handleInput();
     void updateWindowStats();
     void updateGameSpeed(double gameSpeed);
@@ -69,13 +71,13 @@ private:
     
     // Frame timing
     u64 m_lastFrameTime;
+    double m_targetFPS;
     double m_gameSpeed = 1.0;
-    double m_targetFrameTime = 1000.0 / TARGET_FPS / m_gameSpeed;
+    double m_targetFrameTime;
 
     // Audio-driven synchronization
-    // Audio buffer thresholds: maintain 1.5-4 frames worth of audio for smooth playback
-    const int m_minAudioBufferSize = static_cast<int>((Config::Audio::SAMPLE_RATE * 2 * sizeof(float) / static_cast<double>(TARGET_FPS)) * 1.5);
-    const int m_maxAudioBufferSize = static_cast<int>((Config::Audio::SAMPLE_RATE * 2 * sizeof(float) / static_cast<double>(TARGET_FPS)) * 4.0);
+    int m_minAudioBufferSize;
+    int m_maxAudioBufferSize;
     
     // Speed adjustment for audio sync (1.0 = normal speed)
     double m_emulationSpeed;
@@ -84,6 +86,7 @@ private:
     u64 m_statsTimer;
     u64 m_frameCount;
     
+    fs::path m_bootromFilename;
     fs::path m_romFilename;
 };
 

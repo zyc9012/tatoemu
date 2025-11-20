@@ -91,12 +91,6 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     std::cout << "Waiting for ROM file upload..." << std::endl;
 
     g_emulatorWasm = new EmulatorWasm();
-    
-    if (!g_emulatorWasm->emulator.initialize()) {
-        std::cerr << "Failed to initialize emulator" << std::endl;
-        return 1;
-    }
-    
     g_emulatorWasm->initialized = true;
     std::cout << "Emulator initialized successfully" << std::endl;
     std::cout << "Please upload a ROM file to begin" << std::endl;

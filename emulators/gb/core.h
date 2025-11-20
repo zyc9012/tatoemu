@@ -29,6 +29,11 @@ public:
     void updateGameSpeed(double gameSpeed);
     void setAudioSampleRate(u32 sampleRate) { m_apu->setSampleRate(sampleRate); }
     void setAudioVolume(float volume) { m_apu->setVolume(volume); }
+
+    // Constants
+    double getTargetFPS() const { return TARGET_FPS; }
+    u16 getScreenWidth() const { return SCREEN_WIDTH; }
+    u16 getScreenHeight() const { return SCREEN_HEIGHT; }
     
     // Save/Load state
     bool saveState(const fs::path& filename);

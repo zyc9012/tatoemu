@@ -38,21 +38,12 @@ int main(int argc, char* argv[]) {
 
     Emulator emulator;
     
-    if (!emulator.initialize()) {
-        std::cerr << "Failed to initialize emulator" << std::endl;
-        return 1;
-    }
-
     // Load bootrom if provided (optional)
     if (!bootromFile.empty()) {
-        std::cout << "Loading bootrom: " << bootromFile << std::endl;
         emulator.loadBootrom(bootromFile);
-    } else {
-        std::cout << "No bootrom provided, starting with post-boot state" << std::endl;
     }
 
     if (!emulator.loadROM(romFile)) {
-        std::cerr << "Failed to load ROM: " << romFile << std::endl;
         return 1;
     }
 

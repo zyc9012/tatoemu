@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+#include "consts.h"
 #include <array>
 #include <fstream>
 

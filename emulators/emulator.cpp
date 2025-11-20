@@ -4,16 +4,18 @@
 #include <fstream>
 #include <sstream>
 
-SDLVideoDevice::SDLVideoDevice(SDL_Renderer* renderer, SDL_Texture* texture)
+SDLVideoDevice::SDLVideoDevice(SDL_Renderer* renderer, SDL_Texture* texture, u16 screenWidth, u16 screenHeight)
     : m_renderer(renderer)
-    , m_texture(texture) {
+    , m_texture(texture)
+    , m_screenWidth(screenWidth)
+    , m_screenHeight(screenHeight) {
 }
 
 SDLVideoDevice::~SDLVideoDevice() {
 }
 
 void SDLVideoDevice::render(u32* buffer) {
-    SDL_UpdateTexture(m_texture, nullptr, buffer, SCREEN_WIDTH * sizeof(u32));
+    SDL_UpdateTexture(m_texture, nullptr, buffer, m_screenWidth * sizeof(u32));
 
     SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
     SDL_RenderClear(m_renderer);
@@ -23,7 +25,7 @@ void SDLVideoDevice::render(u32* buffer) {
     SDL_GetRenderOutputSize(m_renderer, &windowWidth, &windowHeight);
     
     // Calculate aspect ratio preserving destination rectangle
-    float targetAspect = static_cast<float>(SCREEN_WIDTH) / static_cast<float>(SCREEN_HEIGHT);
+    float targetAspect = static_cast<float>(m_screenWidth) / static_cast<float>(m_screenHeight);
     float windowAspect = static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
     
     SDL_FRect destRect;
@@ -123,6 +125,23 @@ Emulator::~Emulator() {
 }
 
 bool Emulator::initialize() {
+    fs::path ext = m_romFilename.extension();
+
+    // Create core based on ROM file extension
+    if (ext == ".gb" || ext == ".gbc") {
+        m_core = std::make_unique<gb::Core>();
+    } else {
+        std::cerr << "Unsupported ROM file extension: " << ext << std::endl;
+        return false;
+    }
+
+    m_targetFPS = m_core->getTargetFPS();
+    m_targetFrameTime = 1000.0 / m_targetFPS / m_gameSpeed;
+
+    // Audio buffer thresholds: maintain 1.5-4 frames worth of audio for smooth playback
+    m_minAudioBufferSize = static_cast<int>((Config::Audio::SAMPLE_RATE * 2 * sizeof(float) / static_cast<double>(m_targetFPS)) * 1.5);
+    m_maxAudioBufferSize = static_cast<int>((Config::Audio::SAMPLE_RATE * 2 * sizeof(float) / static_cast<double>(m_targetFPS)) * 4.0);
+
     // Initialize SDL
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
         std::cerr << "Failed to initialize SDL: " << SDL_GetError() << std::endl;
@@ -132,8 +151,8 @@ bool Emulator::initialize() {
     // Create window
     m_window = SDL_CreateWindow(
         "GameBoy Emulator",
-        SCREEN_WIDTH * Config::Window::SCALE,
-        SCREEN_HEIGHT * Config::Window::SCALE,
+        m_core->getScreenWidth() * Config::Window::SCALE,
+        m_core->getScreenHeight() * Config::Window::SCALE,
         SDL_WINDOW_RESIZABLE
     );
 
@@ -157,8 +176,8 @@ bool Emulator::initialize() {
         m_renderer,
         SDL_PIXELFORMAT_ARGB8888,
         SDL_TEXTUREACCESS_STREAMING,
-        SCREEN_WIDTH,
-        SCREEN_HEIGHT
+        m_core->getScreenWidth(),
+        m_core->getScreenHeight()
     );
 
     if (!m_texture) {
@@ -168,18 +187,9 @@ bool Emulator::initialize() {
 
     SDL_SetTextureScaleMode(m_texture, Config::Window::SCALE_MODE);
 
-    // Create emulator components
-    m_videoDevice = std::make_unique<SDLVideoDevice>(m_renderer, m_texture);
+    // Create video and audio devices
+    m_videoDevice = std::make_unique<SDLVideoDevice>(m_renderer, m_texture, m_core->getScreenWidth(), m_core->getScreenHeight());
     m_audioDevice = std::make_unique<SDLAudioDevice>();
-
-    // Create core
-    m_core = std::make_unique<gb::Core>();
-    if (!m_core->initialize(m_videoDevice.get(), m_audioDevice.get())) {
-        std::cerr << "Failed to initialize core" << std::endl;
-        return false;
-    }
-    m_core->setAudioSampleRate(Config::Audio::SAMPLE_RATE);
-    m_core->setAudioVolume(Config::Audio::VOLUME);
 
     // Initialize audio
     if (!m_audioDevice->initialize()) {
@@ -187,17 +197,39 @@ bool Emulator::initialize() {
         // Continue anyway - emulator can run without audio
     }
 
+    // Initialize core
+    if (!m_core->initialize(m_videoDevice.get(), m_audioDevice.get())) {
+        std::cerr << "Failed to initialize core" << std::endl;
+        return false;
+    }
+    m_core->setAudioSampleRate(Config::Audio::SAMPLE_RATE);
+    m_core->setAudioVolume(Config::Audio::VOLUME);
+
+    // Load bootrom if provided (optional)
+    if (!m_bootromFilename.empty()) {
+        std::cout << "Loading bootrom: " << m_bootromFilename << std::endl;
+        m_core->loadBootrom(m_bootromFilename);
+    } else {
+        std::cout << "No bootrom provided, starting with post-boot state" << std::endl;
+    }
+
+    if (!m_core->loadROM(m_romFilename)) {
+        std::cerr << "Failed to load ROM: " << m_romFilename << std::endl;
+        return false;
+    }
+
     std::cout << "Emulator initialized successfully" << std::endl;
     return true;
 }
 
 bool Emulator::loadBootrom(const fs::path& filename) {
-    return m_core->loadBootrom(filename);
+    m_bootromFilename = filename;
+    return true;
 }
 
 bool Emulator::loadROM(const fs::path& filename) {
     m_romFilename = filename;
-    return m_core->loadROM(filename);
+    return initialize();
 }
 
 void Emulator::runFrame() {
@@ -419,7 +451,7 @@ void Emulator::updateWindowStats() {
 
 void Emulator::updateGameSpeed(double gameSpeed) {
     m_gameSpeed = gameSpeed;
-    m_targetFrameTime = 1000.0 / TARGET_FPS / m_gameSpeed;
+    m_targetFrameTime = 1000.0 / m_targetFPS / m_gameSpeed;
     m_core->updateGameSpeed(gameSpeed);
     std::cout << "Game speed updated to " << m_gameSpeed << std::endl;
 }
