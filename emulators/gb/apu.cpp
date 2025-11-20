@@ -84,7 +84,7 @@ void APU::step(u32 cycles, double playbackSpeed = 1.0) {
         // to keep audio buffer filled
         m_sampleTimer += apuCycles;
         
-        u32 cyclesPerSample = CLOCK_SPEED / Config::Audio::SAMPLE_RATE;
+        u32 cyclesPerSample = CLOCK_SPEED / m_sampleRate;
         
         while (m_sampleTimer >= cyclesPerSample) {
             m_sampleTimer -= cyclesPerSample;
@@ -203,7 +203,7 @@ void APU::generateSample(double playbackSpeed) {
     m_sampleTimer++;
     
     // APU always runs at normal speed, so cycles per sample is constant
-    u32 cyclesPerSample = CLOCK_SPEED * playbackSpeed / Config::Audio::SAMPLE_RATE;
+    u32 cyclesPerSample = CLOCK_SPEED * playbackSpeed / m_sampleRate;
     
     if (m_sampleTimer >= cyclesPerSample) {
         m_sampleTimer -= cyclesPerSample;
@@ -251,8 +251,8 @@ void APU::generateSample(double playbackSpeed) {
         m_capacitorRight = rightMix - rightFiltered * highPassStrength;
         
         // Apply master gain from configuration
-        leftFiltered *= Config::Audio::VOLUME;
-        rightFiltered *= Config::Audio::VOLUME;
+        leftFiltered *= m_volume;
+        rightFiltered *= m_volume;
         
         // Clamp
         if (leftFiltered > 1.0f) leftFiltered = 1.0f;

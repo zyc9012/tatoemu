@@ -5,8 +5,6 @@
 
 namespace fs = std::filesystem;
 
-namespace gb {
-
 // Type definitions for clarity
 using u8 = uint8_t;
 using u16 = uint16_t;
@@ -32,5 +30,16 @@ enum class GBCMode {
     GBC_ONLY = 0xC0          // GBC only
 };
 
-} // namespace gb
+// AudioDevice interface for platform-specific audio output
+class AudioDevice {
+    public:
+        virtual ~AudioDevice() = default;
+        virtual void writeSamples(void* stream, u32 length) = 0;
+};
 
+// VideoDevice interface for platform-specific video output
+class VideoDevice {
+    public:
+        virtual ~VideoDevice() = default;
+        virtual void render(u32* buffer) = 0;
+};

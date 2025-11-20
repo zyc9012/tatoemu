@@ -56,12 +56,6 @@ enum SpriteFlags {
     SPRITE_PALETTE_GBC = 0x07     // GBC: palette number (0-7)
 };
 
-class VideoDevice {
-public:
-    virtual ~VideoDevice() = default;
-    virtual void render(u32* buffer) = 0;
-};
-
 class PPU {
 public:
     PPU();

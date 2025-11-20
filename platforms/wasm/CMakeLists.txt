@@ -11,7 +11,8 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/gb/cartridge.cpp
     ${CMAKE_SOURCE_DIR}/emulators/gb/apu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/gb/bootrom.cpp
-    ${CMAKE_SOURCE_DIR}/emulators/gb/emulator.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gb/core.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/emulator.cpp
     ${CMAKE_SOURCE_DIR}/platforms/wasm/main.cpp
 )
 
@@ -25,8 +26,10 @@ set(HEADERS
     ${CMAKE_SOURCE_DIR}/emulators/gb/cartridge.h
     ${CMAKE_SOURCE_DIR}/emulators/gb/apu.h
     ${CMAKE_SOURCE_DIR}/emulators/gb/bootrom.h
-    ${CMAKE_SOURCE_DIR}/emulators/gb/types.h
-    ${CMAKE_SOURCE_DIR}/emulators/gb/emulator.h
+    ${CMAKE_SOURCE_DIR}/emulators/gb/core.h
+    ${CMAKE_SOURCE_DIR}/emulators/emulator.h
+    ${CMAKE_SOURCE_DIR}/emulators/types.h
+    ${CMAKE_SOURCE_DIR}/emulators/config.h
 )
 
 # Create executable
@@ -34,7 +37,7 @@ add_executable(gb-emu ${SOURCES} ${HEADERS})
 
 # Include directories
 target_include_directories(gb-emu PRIVATE 
-    ${CMAKE_SOURCE_DIR}/emulators/gb
+    ${CMAKE_SOURCE_DIR}/emulators
 )
 
 # Link SDL3

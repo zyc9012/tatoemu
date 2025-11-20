@@ -10,13 +10,6 @@ namespace gb {
 class CPU;
 class MMU;
 
-// AudioDevice interface for platform-specific audio output
-class AudioDevice {
-public:
-    virtual ~AudioDevice() = default;
-    virtual void writeSamples(void* stream, u32 length) = 0;
-};
-
 class APU {
 public:
     static constexpr s16 DAC_BIAS = 7;
@@ -36,6 +29,10 @@ public:
     // Save/Load state
     void saveState(std::ofstream& file) const;
     void loadState(std::ifstream& file);
+
+    // Global configuration
+    void setSampleRate(u32 sampleRate) { m_sampleRate = sampleRate; }
+    void setVolume(float volume) { m_volume = volume; }
 
 private:
     // Channel structures
@@ -191,6 +188,10 @@ private:
         {1, 0, 0, 0, 0, 1, 1, 1}, // 50%
         {0, 1, 1, 1, 1, 1, 1, 0}, // 75%
     };
+
+    // Global configuration
+    u32 m_sampleRate;
+    float m_volume;
 };
 
 } // namespace gb

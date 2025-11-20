@@ -4,8 +4,6 @@
 #include <fstream>
 #include <sstream>
 
-namespace gb {
-
 SDLVideoDevice::SDLVideoDevice(SDL_Renderer* renderer, SDL_Texture* texture)
     : m_renderer(renderer)
     , m_texture(texture) {
@@ -114,7 +112,6 @@ Emulator::Emulator()
     , m_texture(nullptr)
     , m_running(false)
     , m_paused(false)
-    , m_cyclesThisFrame(0)
     , m_lastFrameTime(0)
     , m_emulationSpeed(1.0)
     , m_statsTimer(0)
@@ -172,34 +169,17 @@ bool Emulator::initialize() {
     SDL_SetTextureScaleMode(m_texture, Config::Window::SCALE_MODE);
 
     // Create emulator components
-    m_cartridge = std::make_unique<Cartridge>();
-    m_cpu = std::make_unique<CPU>();
-    m_mmu = std::make_unique<MMU>();
-    m_ppu = std::make_unique<PPU>();
-    m_joypad = std::make_unique<Joypad>();
-    m_timer = std::make_unique<Timer>();
-    m_apu = std::make_unique<APU>();
-    m_bootrom = std::make_unique<Bootrom>();
     m_videoDevice = std::make_unique<SDLVideoDevice>(m_renderer, m_texture);
     m_audioDevice = std::make_unique<SDLAudioDevice>();
 
-    // Wire up components
-    m_mmu->setCartridge(m_cartridge.get());
-    m_mmu->setPPU(m_ppu.get());
-    m_mmu->setJoypad(m_joypad.get());
-    m_mmu->setTimer(m_timer.get());
-    m_mmu->setAPU(m_apu.get());
-    m_mmu->setBootrom(m_bootrom.get());
-    
-    m_cpu->setMMU(m_mmu.get());
-    m_ppu->setCPU(m_cpu.get());
-    m_ppu->setMMU(m_mmu.get());
-    m_ppu->setVideoDevice(m_videoDevice.get());
-    m_joypad->setCPU(m_cpu.get());
-    m_timer->setCPU(m_cpu.get());
-    m_apu->setCPU(m_cpu.get());
-    m_apu->setMMU(m_mmu.get());
-    m_apu->setAudioDevice(m_audioDevice.get());
+    // Create core
+    m_core = std::make_unique<gb::Core>();
+    if (!m_core->initialize(m_videoDevice.get(), m_audioDevice.get())) {
+        std::cerr << "Failed to initialize core" << std::endl;
+        return false;
+    }
+    m_core->setAudioSampleRate(Config::Audio::SAMPLE_RATE);
+    m_core->setAudioVolume(Config::Audio::VOLUME);
 
     // Initialize audio
     if (!m_audioDevice->initialize()) {
@@ -212,42 +192,12 @@ bool Emulator::initialize() {
 }
 
 bool Emulator::loadBootrom(const fs::path& filename) {
-    if (!m_bootrom->load(filename)) {
-        std::cerr << "Failed to load bootrom, continuing without it" << std::endl;
-        return false;
-    }
-    return true;
+    return m_core->loadBootrom(filename);
 }
 
 bool Emulator::loadROM(const fs::path& filename) {
-    if (!m_cartridge->load(filename)) {
-        return false;
-    }
-
     m_romFilename = filename;
-
-    // Enable GBC mode if cartridge supports it
-    bool isGBC = m_cartridge->isGBC();
-    m_cpu->setGBCMode(isGBC);
-    m_ppu->setGBCMode(isGBC);
-    m_mmu->setGBCMode(isGBC);
-    
-    SDL_SetWindowTitle(m_window, m_cartridge->getTitle().c_str());
-
-    // Reset bootrom to enabled state if loaded
-    if (m_bootrom->isLoaded()) {
-        m_bootrom->reset();
-    }
-
-    // Reset CPU after loading ROM
-    // If bootrom is loaded, start from 0x0000; otherwise skip to 0x0100
-    bool useBootrom = m_bootrom->isLoaded();
-    m_cpu->reset(useBootrom);
-    m_ppu->reset(useBootrom);
-    m_timer->reset();
-    m_apu->reset();
-
-    return true;
+    return m_core->loadROM(filename);
 }
 
 void Emulator::runFrame() {
@@ -259,7 +209,7 @@ void Emulator::runFrame() {
     }
 
     handleInput();
-    update();
+    m_core->update();
     
     u64 currentTime = SDL_GetTicks();
     double frameTime = currentTime - m_lastFrameTime;
@@ -324,7 +274,6 @@ void Emulator::runFrame() {
 void Emulator::run() {
     m_running = true;
     m_paused = false;
-    m_cyclesThisFrame = 0;
     m_lastFrameTime = SDL_GetTicks();
     m_emulationSpeed = 1.0;
     m_statsTimer = SDL_GetTicks();
@@ -338,6 +287,12 @@ void Emulator::run() {
 void Emulator::handleInput() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        // Handle input through core first
+        if (m_core->handleInput(event)) {
+            continue;
+        }
+
+        // Handle common input
         switch (event.type) {
             case SDL_EVENT_QUIT:
                 m_running = false;
@@ -348,75 +303,30 @@ void Emulator::handleInput() {
                     case Config::Key::QUIT:
                         m_running = false;
                         break;
-                    case Config::Key::BUTTON_A: // A button
-                        m_joypad->pressButton(BUTTON_A);
-                        break;
-                    case Config::Key::BUTTON_B: // B button
-                        m_joypad->pressButton(BUTTON_B);
-                        break;
-                    case Config::Key::START: // Start
-                        m_joypad->pressButton(BUTTON_START);
-                        break;
-                    case Config::Key::SELECT_PRIMARY: // Select
-                    case Config::Key::SELECT_SECONDARY:
-                        m_joypad->pressButton(BUTTON_SELECT);
-                        break;
-                    case Config::Key::DPAD_UP:
-                        m_joypad->pressButton(BUTTON_UP);
-                        break;
-                    case Config::Key::DPAD_DOWN:
-                        m_joypad->pressButton(BUTTON_DOWN);
-                        break;
-                    case Config::Key::DPAD_LEFT:
-                        m_joypad->pressButton(BUTTON_LEFT);
-                        break;
-                    case Config::Key::DPAD_RIGHT:
-                        m_joypad->pressButton(BUTTON_RIGHT);
-                        break;
                 }
                 break;
 
             case SDL_EVENT_KEY_UP:
                 switch (event.key.key) {
-                    case Config::Key::BUTTON_A: // A button
-                        m_joypad->releaseButton(BUTTON_A);
-                        break;
-                    case Config::Key::BUTTON_B: // B button
-                        m_joypad->releaseButton(BUTTON_B);
-                        break;
-                    case Config::Key::START: // Start
-                        m_joypad->releaseButton(BUTTON_START);
-                        break;
-                    case Config::Key::SELECT_PRIMARY: // Select
-                    case Config::Key::SELECT_SECONDARY:
-                        m_joypad->releaseButton(BUTTON_SELECT);
-                        break;
-                    case Config::Key::DPAD_UP:
-                        m_joypad->releaseButton(BUTTON_UP);
-                        break;
-                    case Config::Key::DPAD_DOWN:
-                        m_joypad->releaseButton(BUTTON_DOWN);
-                        break;
-                    case Config::Key::DPAD_LEFT:
-                        m_joypad->releaseButton(BUTTON_LEFT);
-                        break;
-                    case Config::Key::DPAD_RIGHT:
-                        m_joypad->releaseButton(BUTTON_RIGHT);
-                        break;
                     case Config::Key::SAVE_STATE: // Save state
                         if (!m_romFilename.empty()) {
                             fs::path savePath = m_romFilename;
                             savePath.replace_extension(".state");
-                            saveState(savePath);
-                            std::cout << "State saved to " << savePath.string() << std::endl;
+                            if (m_core->saveState(savePath)) {
+                                std::cout << "State saved to " << savePath.string() << std::endl;
+                            }
                         }
                         break;
                     case Config::Key::LOAD_STATE: // Load state
                         if (!m_romFilename.empty()) {
                             fs::path savePath = m_romFilename;
                             savePath.replace_extension(".state");
-                            loadState(savePath);
-                            std::cout << "State loaded from " << savePath.string() << std::endl;
+                            if (m_core->loadState(savePath)) {
+                                if (m_audioDevice) {
+                                    m_audioDevice->clearBuffer();
+                                }
+                                std::cout << "State loaded from " << savePath.string() << std::endl;
+                            }
                         }
                         break;
                     case Config::Key::GAME_SPEED_UP: // Game speed up
@@ -432,32 +342,6 @@ void Emulator::handleInput() {
                 break;
         }
     }
-}
-
-void Emulator::update() {
-    // In double speed mode, CPU runs at 2x speed, so we need 2x cycles per frame
-    // to maintain the same real-time frame rate
-    u32 targetCycles = m_mmu->isDoubleSpeed() ? (CYCLES_PER_FRAME * 2) : CYCLES_PER_FRAME;
-    
-    // Run until we've executed enough cycles for one frame
-    while (m_cyclesThisFrame < targetCycles) {
-        u32 cycles = m_cpu->step();
-        
-        m_ppu->step(cycles);
-        m_timer->step(cycles);
-        m_apu->step(cycles, m_gameSpeed);
-        
-        // Add DMA cycles if any DMA occurred
-        u32 dmaCycles = m_ppu->getDMACycles();
-        if (dmaCycles > 0) {
-            m_ppu->clearDMACycles();
-            cycles += dmaCycles;
-        }
-        
-        m_cyclesThisFrame += cycles;
-    }
-    
-    m_cyclesThisFrame -= targetCycles;
 }
 
 void Emulator::shutdown() {
@@ -484,80 +368,12 @@ void Emulator::shutdown() {
     SDL_Quit();
 }
 
-void Emulator::saveState(const fs::path& filename) {
-    std::ofstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open save state file: " << filename << std::endl;
-        return;
-    }
-    
-    // Write a simple header
-    const char* header = "GBEMU";
-    file.write(header, 5);
-    u32 version = 1;
-    file.write(reinterpret_cast<const char*>(&version), sizeof(version));
-    
-    // Save all component states
-    m_cpu->saveState(file);
-    m_mmu->saveState(file);
-    m_ppu->saveState(file);
-    m_timer->saveState(file);
-    m_joypad->saveState(file);
-    m_apu->saveState(file);
-    m_cartridge->saveState(file);
-    
-    // Save emulator state
-    file.write(reinterpret_cast<const char*>(&m_cyclesThisFrame), sizeof(m_cyclesThisFrame));
-    
-    file.close();
-}
-
-void Emulator::loadState(const fs::path& filename) {
-    std::ifstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open save state file: " << filename << std::endl;
-        return;
-    }
-    
-    // Read and verify header
-    char header[6] = {0};
-    file.read(header, 5);
-    if (std::string(header) != "GBEMU") {
-        std::cerr << "Invalid save state file format" << std::endl;
-        return;
-    }
-    
-    u32 version;
-    file.read(reinterpret_cast<char*>(&version), sizeof(version));
-    if (version != 1) {
-        std::cerr << "Unsupported save state version" << std::endl;
-        return;
-    }
-    
-    // Load all component states
-    m_cpu->loadState(file);
-    m_mmu->loadState(file);
-    m_ppu->loadState(file);
-    m_timer->loadState(file);
-    m_joypad->loadState(file);
-    m_apu->loadState(file);
-    m_cartridge->loadState(file);
-
-    // Clear audio buffer to prevent audio "explosion" after load
-    m_audioDevice->clearBuffer();
-    
-    // Load emulator state
-    file.read(reinterpret_cast<char*>(&m_cyclesThisFrame), sizeof(m_cyclesThisFrame));
-    
-    file.close();
-}
-
 void Emulator::updateWindowStats() {
     u64 currentTime = SDL_GetTicks();
     u64 elapsed = currentTime - m_statsTimer;
 
     if (m_paused) {
-        std::string title = m_cartridge->getTitle() + " - " + "Paused";
+        std::string title = m_core->getGameTitle() + " - " + "Paused";
         SDL_SetWindowTitle(m_window, title.c_str());
         return;
     }
@@ -577,7 +393,7 @@ void Emulator::updateWindowStats() {
         if (bufferPercent > 100) bufferPercent = 100;
         
         // Build title with ROM name and stats
-        std::string title = m_cartridge->getTitle() + " - ";
+        std::string title = m_core->getGameTitle() + " - ";
         
         // Add stats: FPS, Speed, Audio Buffer
         std::ostringstream stats;
@@ -604,7 +420,6 @@ void Emulator::updateWindowStats() {
 void Emulator::updateGameSpeed(double gameSpeed) {
     m_gameSpeed = gameSpeed;
     m_targetFrameTime = 1000.0 / TARGET_FPS / m_gameSpeed;
+    m_core->updateGameSpeed(gameSpeed);
     std::cout << "Game speed updated to " << m_gameSpeed << std::endl;
 }
-
-} // namespace gb

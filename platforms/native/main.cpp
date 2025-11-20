@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
         bootromFile = fs::path(argv[2]);
     }
 
-    gb::Emulator emulator;
+    Emulator emulator;
     
     if (!emulator.initialize()) {
         std::cerr << "Failed to initialize emulator" << std::endl;

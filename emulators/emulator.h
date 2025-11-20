@@ -1,20 +1,11 @@
 #pragma once
 
 #include "types.h"
-#include "cpu.h"
-#include "mmu.h"
-#include "ppu.h"
-#include "joypad.h"
-#include "timer.h"
-#include "cartridge.h"
-#include "apu.h"
-#include "bootrom.h"
 #include "config.h"
+#include "gb/core.h"
 #include <filesystem>
 #include <memory>
 #include <string>
-
-namespace gb {
 
 class SDLVideoDevice : public VideoDevice {
 public:
@@ -56,13 +47,8 @@ public:
     void runFrame();
     void shutdown();
     
-    // Save/Load state
-    void saveState(const fs::path& filename);
-    void loadState(const fs::path& filename);
-    
 private:
     void handleInput();
-    void update();
     void updateWindowStats();
     void updateGameSpeed(double gameSpeed);
 
@@ -70,22 +56,16 @@ private:
     SDL_Window* m_window;
     SDL_Renderer* m_renderer;
     SDL_Texture* m_texture;
+
+    // Core
+    std::unique_ptr<gb::Core> m_core;
     
-    // Emulator components
-    std::unique_ptr<CPU> m_cpu;
-    std::unique_ptr<MMU> m_mmu;
-    std::unique_ptr<PPU> m_ppu;
-    std::unique_ptr<Joypad> m_joypad;
-    std::unique_ptr<Timer> m_timer;
-    std::unique_ptr<Cartridge> m_cartridge;
-    std::unique_ptr<APU> m_apu;
-    std::unique_ptr<Bootrom> m_bootrom;
+    // Video and audio devices
     std::unique_ptr<SDLVideoDevice> m_videoDevice;
     std::unique_ptr<SDLAudioDevice> m_audioDevice;
     
     bool m_running;
     bool m_paused;
-    u32 m_cyclesThisFrame;
     
     // Frame timing
     u64 m_lastFrameTime;
@@ -106,6 +86,4 @@ private:
     
     fs::path m_romFilename;
 };
-
-} // namespace gb
 
