@@ -2,10 +2,11 @@
 
 #include "types.h"
 #include "config.h"
-#include "gb/core.h"
+#include "core.h"
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <SDL3/SDL.h>
 
 class SDLVideoDevice : public VideoDevice {
 public:
@@ -59,8 +60,8 @@ private:
     SDL_Renderer* m_renderer;
     SDL_Texture* m_texture;
 
-    // Core
-    std::unique_ptr<gb::Core> m_core;
+    // Core - abstract base class supports all emulator types
+    std::unique_ptr<Core> m_core;
     
     // Video and audio devices
     std::unique_ptr<SDLVideoDevice> m_videoDevice;

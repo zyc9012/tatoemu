@@ -1,4 +1,6 @@
 #include "emulator.h"
+#include "gb/core.h"
+#include "nes/core.h"
 #include <SDL3/SDL.h>
 #include <iostream>
 #include <fstream>
@@ -130,12 +132,22 @@ bool Emulator::initialize() {
     // Create core based on ROM file extension
     if (ext == ".gb" || ext == ".gbc") {
         m_core = std::make_unique<gb::Core>();
+    } else if (ext == ".nes") {
+        m_core = std::make_unique<nes::Core>();
     } else {
         std::cerr << "Unsupported ROM file extension: " << ext << std::endl;
         return false;
     }
 
+    if (!m_core) {
+        std::cerr << "Failed to create core" << std::endl;
+        return false;
+    }
+
+    // Get target FPS and screen dimensions
     m_targetFPS = m_core->getTargetFPS();
+    u16 screenWidth = m_core->getScreenWidth();
+    u16 screenHeight = m_core->getScreenHeight();
     m_targetFrameTime = 1000.0 / m_targetFPS / m_gameSpeed;
 
     // Audio buffer thresholds: maintain 1.5-4 frames worth of audio for smooth playback
@@ -150,9 +162,9 @@ bool Emulator::initialize() {
 
     // Create window
     m_window = SDL_CreateWindow(
-        "GameBoy Emulator",
-        m_core->getScreenWidth() * Config::Window::SCALE,
-        m_core->getScreenHeight() * Config::Window::SCALE,
+        "TatoEmu",
+        screenWidth * Config::Window::SCALE,
+        screenHeight * Config::Window::SCALE,
         SDL_WINDOW_RESIZABLE
     );
 
@@ -176,8 +188,8 @@ bool Emulator::initialize() {
         m_renderer,
         SDL_PIXELFORMAT_ARGB8888,
         SDL_TEXTUREACCESS_STREAMING,
-        m_core->getScreenWidth(),
-        m_core->getScreenHeight()
+        screenWidth,
+        screenHeight
     );
 
     if (!m_texture) {
@@ -188,7 +200,7 @@ bool Emulator::initialize() {
     SDL_SetTextureScaleMode(m_texture, Config::Window::SCALE_MODE);
 
     // Create video and audio devices
-    m_videoDevice = std::make_unique<SDLVideoDevice>(m_renderer, m_texture, m_core->getScreenWidth(), m_core->getScreenHeight());
+    m_videoDevice = std::make_unique<SDLVideoDevice>(m_renderer, m_texture, screenWidth, screenHeight);
     m_audioDevice = std::make_unique<SDLAudioDevice>();
 
     // Initialize audio
@@ -202,17 +214,18 @@ bool Emulator::initialize() {
         std::cerr << "Failed to initialize core" << std::endl;
         return false;
     }
+    
     m_core->setAudioSampleRate(Config::Audio::SAMPLE_RATE);
     m_core->setAudioVolume(Config::Audio::VOLUME);
-
-    // Load bootrom if provided (optional)
+    
+    // Load bootrom if provided (optional, GB only)
     if (!m_bootromFilename.empty()) {
         std::cout << "Loading bootrom: " << m_bootromFilename << std::endl;
         m_core->loadBootrom(m_bootromFilename);
-    } else {
+    } else if (ext == ".gb" || ext == ".gbc") {
         std::cout << "No bootrom provided, starting with post-boot state" << std::endl;
     }
-
+    
     if (!m_core->loadROM(m_romFilename)) {
         std::cerr << "Failed to load ROM: " << m_romFilename << std::endl;
         return false;
@@ -320,7 +333,7 @@ void Emulator::handleInput() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         // Handle input through core first
-        if (m_core->handleInput(event)) {
+        if (m_core && m_core->handleInput(event)) {
             continue;
         }
 
@@ -341,7 +354,7 @@ void Emulator::handleInput() {
             case SDL_EVENT_KEY_UP:
                 switch (event.key.key) {
                     case Config::Key::SAVE_STATE: // Save state
-                        if (!m_romFilename.empty()) {
+                        if (!m_romFilename.empty() && m_core) {
                             fs::path savePath = m_romFilename;
                             savePath.replace_extension(".state");
                             if (m_core->saveState(savePath)) {
@@ -350,7 +363,7 @@ void Emulator::handleInput() {
                         }
                         break;
                     case Config::Key::LOAD_STATE: // Load state
-                        if (!m_romFilename.empty()) {
+                        if (!m_romFilename.empty() && m_core) {
                             fs::path savePath = m_romFilename;
                             savePath.replace_extension(".state");
                             if (m_core->loadState(savePath)) {
@@ -405,7 +418,7 @@ void Emulator::updateWindowStats() {
     u64 elapsed = currentTime - m_statsTimer;
 
     if (m_paused) {
-        std::string title = m_core->getGameTitle() + " - " + "Paused";
+        std::string title = (m_core ? m_core->getGameTitle() : "") + " - " + "Paused";
         SDL_SetWindowTitle(m_window, title.c_str());
         return;
     }
@@ -425,7 +438,7 @@ void Emulator::updateWindowStats() {
         if (bufferPercent > 100) bufferPercent = 100;
         
         // Build title with ROM name and stats
-        std::string title = m_core->getGameTitle() + " - ";
+        std::string title = (m_core ? m_core->getGameTitle() : "") + " - ";
         
         // Add stats: FPS, Speed, Audio Buffer
         std::ostringstream stats;
@@ -452,6 +465,8 @@ void Emulator::updateWindowStats() {
 void Emulator::updateGameSpeed(double gameSpeed) {
     m_gameSpeed = gameSpeed;
     m_targetFrameTime = 1000.0 / m_targetFPS / m_gameSpeed;
-    m_core->updateGameSpeed(gameSpeed);
+    if (m_core) {
+        m_core->updateGameSpeed(gameSpeed);
+    }
     std::cout << "Game speed updated to " << m_gameSpeed << std::endl;
 }

@@ -21,6 +21,13 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/gb/apu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/gb/bootrom.cpp
     ${CMAKE_SOURCE_DIR}/emulators/gb/core.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/cpu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/memory.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/ppu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/apu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/cartridge.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/controller.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/core.cpp
     ${CMAKE_SOURCE_DIR}/emulators/emulator.cpp
     ${CMAKE_SOURCE_DIR}/platforms/native/main.cpp
 )
@@ -36,7 +43,17 @@ set(HEADERS
     ${CMAKE_SOURCE_DIR}/emulators/gb/apu.h
     ${CMAKE_SOURCE_DIR}/emulators/gb/bootrom.h
     ${CMAKE_SOURCE_DIR}/emulators/gb/core.h
+    ${CMAKE_SOURCE_DIR}/emulators/nes/cpu.h
+    ${CMAKE_SOURCE_DIR}/emulators/nes/ppu.h
+    ${CMAKE_SOURCE_DIR}/emulators/nes/apu.h
+    ${CMAKE_SOURCE_DIR}/emulators/nes/memory.h
+    ${CMAKE_SOURCE_DIR}/emulators/nes/cartridge.h
+    ${CMAKE_SOURCE_DIR}/emulators/nes/controller.h
+    ${CMAKE_SOURCE_DIR}/emulators/nes/core.h
+    ${CMAKE_SOURCE_DIR}/emulators/nes/consts.h
+    ${CMAKE_SOURCE_DIR}/emulators/nes/config.h
     ${CMAKE_SOURCE_DIR}/emulators/emulator.h
+    ${CMAKE_SOURCE_DIR}/emulators/core.h
     ${CMAKE_SOURCE_DIR}/emulators/types.h
     ${CMAKE_SOURCE_DIR}/emulators/config.h
 )

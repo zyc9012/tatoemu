@@ -1,0 +1,46 @@
+#pragma once
+
+#include "types.h"
+#include <filesystem>
+#include <string>
+#include <SDL3/SDL.h>
+
+// Abstract base class for all emulator cores
+class Core {
+public:
+    virtual ~Core() = default;
+
+    // Initialization
+    virtual bool initialize(VideoDevice* videoDevice, AudioDevice* audioDevice) = 0;
+    virtual bool loadROM(const fs::path& filename) = 0;
+    
+    // Bootrom loading (optional, GB only - default empty implementation)
+    virtual bool loadBootrom(const fs::path& filename) { 
+        (void)filename; 
+        return true; 
+    }
+    
+    // Input handling
+    virtual bool handleInput(SDL_Event& event) = 0;
+    
+    // Emulation loop
+    virtual void update() = 0;
+    virtual void updateGameSpeed(double gameSpeed) = 0;
+    
+    // Audio configuration
+    virtual void setAudioSampleRate(u32 sampleRate) = 0;
+    virtual void setAudioVolume(float volume) = 0;
+    
+    // Screen information
+    virtual double getTargetFPS() const = 0;
+    virtual u16 getScreenWidth() const = 0;
+    virtual u16 getScreenHeight() const = 0;
+    
+    // Save/Load state
+    virtual bool saveState(const fs::path& filename) = 0;
+    virtual bool loadState(const fs::path& filename) = 0;
+    
+    // Game information
+    virtual const std::string& getGameTitle() const = 0;
+};
+

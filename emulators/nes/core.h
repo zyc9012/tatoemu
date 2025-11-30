@@ -1,21 +1,20 @@
 #pragma once
 
-#include "types.h"
+#include "../types.h"
 #include "../core.h"
 #include "cpu.h"
-#include "mmu.h"
 #include "ppu.h"
-#include "joypad.h"
-#include "timer.h"
-#include "cartridge.h"
 #include "apu.h"
-#include "bootrom.h"
+#include "memory.h"
+#include "cartridge.h"
+#include "controller.h"
 #include "config.h"
+#include "consts.h"
 #include <filesystem>
 #include <memory>
 #include <string>
 
-namespace gb {
+namespace nes {
 
 class Core : public ::Core {
 public:
@@ -24,7 +23,6 @@ public:
 
     // Core interface implementation
     bool initialize(VideoDevice* videoDevice, AudioDevice* audioDevice) override;
-    bool loadBootrom(const fs::path& filename) override;
     bool loadROM(const fs::path& filename) override;
     bool handleInput(SDL_Event& event) override;
     void update() override;
@@ -46,19 +44,19 @@ public:
 private:
     // Core components
     std::unique_ptr<CPU> m_cpu;
-    std::unique_ptr<MMU> m_mmu;
     std::unique_ptr<PPU> m_ppu;
-    std::unique_ptr<Joypad> m_joypad;
-    std::unique_ptr<Timer> m_timer;
-    std::unique_ptr<Cartridge> m_cartridge;
     std::unique_ptr<APU> m_apu;
-    std::unique_ptr<Bootrom> m_bootrom;
+    std::unique_ptr<Memory> m_memory;
+    std::unique_ptr<Cartridge> m_cartridge;
+    std::unique_ptr<Controller> m_controller1;
+    std::unique_ptr<Controller> m_controller2;
     
-    u32 m_cyclesThisFrame;
+    // Timing
+    u32 m_cpuCyclesThisFrame;
+    u32 m_ppuCyclesThisFrame;
     
     // Frame timing
     double m_gameSpeed = 1.0;
 };
 
-} // namespace gb
-
+} // namespace nes
