@@ -269,4 +269,223 @@ private:
     MirrorMode m_mirrorMode;
 };
 
+// Mapper 5: MMC5 (ExROM) - Most complex NES mapper
+class Mapper005 : public Mapper {
+public:
+    Mapper005(Cartridge* cartridge);
+    void reset() override;
+    
+    u8 cpuRead(u16 address) override;
+    void cpuWrite(u16 address, u8 value) override;
+    u8 readCHR(u16 address) override;
+    void writeCHR(u16 address, u8 value) override;
+    
+    MirrorMode getMirrorMode() const override;
+    void scanlineCounter() override;
+    
+    void saveState(std::ofstream& file) const override;
+    void loadState(std::ifstream& file) override;
+    
+private:
+    void updatePRGBanks();
+    void updateCHRBanks();
+    u8 readExRAM(u16 address);
+    void writeExRAM(u16 address, u8 value);
+    
+    // PRG mode and banks
+    u8 m_prgMode;           // PRG banking mode (0-3)
+    u8 m_prgBankRegs[5];    // PRG bank registers
+    u32 m_prgBankOffset[4]; // Calculated PRG offsets
+    bool m_prgRamProtect1;
+    bool m_prgRamProtect2;
+    
+    // CHR mode and banks
+    u8 m_chrMode;           // CHR banking mode (0-3)
+    u16 m_chrBankRegs[12];  // CHR bank registers (extended to 10 bits)
+    u32 m_chrBankOffset[8]; // Calculated CHR offsets
+    bool m_chrBankHigh;     // High CHR bank select (for sprite/bg separation)
+    
+    // Nametable mapping
+    u8 m_nametableMapping;
+    u8 m_fillModeTile;
+    u8 m_fillModeAttr;
+    
+    // Extended RAM (1KB)
+    std::array<u8, 1024> m_exRam;
+    u8 m_exRamMode;
+    
+    // IRQ
+    u8 m_irqScanline;
+    u8 m_irqStatus;
+    bool m_irqEnable;
+    bool m_inFrame;
+    u8 m_scanlineCounter;
+    
+    // Multiplier
+    u8 m_multiplicand;
+    u8 m_multiplier;
+    
+    // Additional RAM (up to 64KB)
+    std::array<u8, 0x10000> m_prgRamExt;
+};
+
+// Mapper 23: VRC2b / VRC4e / VRC4f (Konami)
+class Mapper023 : public Mapper {
+public:
+    Mapper023(Cartridge* cartridge);
+    void reset() override;
+    
+    u8 cpuRead(u16 address) override;
+    void cpuWrite(u16 address, u8 value) override;
+    u8 readCHR(u16 address) override;
+    void writeCHR(u16 address, u8 value) override;
+    
+    MirrorMode getMirrorMode() const override;
+    void scanlineCounter() override;
+    
+    void saveState(std::ofstream& file) const override;
+    void loadState(std::ifstream& file) override;
+    
+private:
+    void updateBanks();
+    
+    u8 m_prgBank[2];        // 8KB PRG banks
+    u8 m_chrBank[8];        // 1KB CHR banks (low nibbles)
+    u8 m_chrBankHigh[8];    // 1KB CHR banks (high nibbles)
+    u8 m_prgSwapMode;       // PRG swap mode
+    MirrorMode m_mirrorMode;
+    
+    // IRQ
+    u8 m_irqLatch;
+    u8 m_irqCounter;
+    u8 m_irqPrescaler;
+    u16 m_irqPrescalerCounter;
+    bool m_irqEnable;
+    bool m_irqEnableOnAck;
+    bool m_irqMode;         // 0 = scanline, 1 = cycle
+    
+    u32 m_prgBankOffset[4];
+    u32 m_chrBankOffset[8];
+};
+
+// Mapper 24: VRC6a (Konami with extra audio)
+class Mapper024 : public Mapper {
+public:
+    Mapper024(Cartridge* cartridge);
+    void reset() override;
+    
+    u8 cpuRead(u16 address) override;
+    void cpuWrite(u16 address, u8 value) override;
+    u8 readCHR(u16 address) override;
+    void writeCHR(u16 address, u8 value) override;
+    
+    MirrorMode getMirrorMode() const override;
+    void scanlineCounter() override;
+    
+    void saveState(std::ofstream& file) const override;
+    void loadState(std::ifstream& file) override;
+    
+private:
+    void updateBanks();
+    
+    u8 m_prgBank16k;        // 16KB PRG bank at $8000
+    u8 m_prgBank8k;         // 8KB PRG bank at $C000
+    u8 m_chrBank[8];        // 1KB CHR banks
+    MirrorMode m_mirrorMode;
+    
+    // IRQ (same as VRC4)
+    u8 m_irqLatch;
+    u8 m_irqCounter;
+    u8 m_irqPrescaler;
+    u16 m_irqPrescalerCounter;
+    bool m_irqEnable;
+    bool m_irqEnableOnAck;
+    bool m_irqMode;
+    
+    u32 m_prgBankOffset[4];
+    u32 m_chrBankOffset[8];
+    
+    // VRC6 Audio (3 channels) - simplified, full impl would need APU integration
+    // Pulse 1
+    u8 m_pulse1Volume;
+    u8 m_pulse1Duty;
+    u16 m_pulse1Period;
+    bool m_pulse1Enable;
+    // Pulse 2
+    u8 m_pulse2Volume;
+    u8 m_pulse2Duty;
+    u16 m_pulse2Period;
+    bool m_pulse2Enable;
+    // Sawtooth
+    u8 m_sawAccumRate;
+    u16 m_sawPeriod;
+    bool m_sawEnable;
+};
+
+// Mapper 25: VRC4b / VRC4d (Konami) - Similar to 23 with different address lines
+class Mapper025 : public Mapper {
+public:
+    Mapper025(Cartridge* cartridge);
+    void reset() override;
+    
+    u8 cpuRead(u16 address) override;
+    void cpuWrite(u16 address, u8 value) override;
+    u8 readCHR(u16 address) override;
+    void writeCHR(u16 address, u8 value) override;
+    
+    MirrorMode getMirrorMode() const override;
+    void scanlineCounter() override;
+    
+    void saveState(std::ofstream& file) const override;
+    void loadState(std::ifstream& file) override;
+    
+private:
+    void updateBanks();
+    
+    u8 m_prgBank[2];
+    u8 m_chrBank[8];
+    u8 m_chrBankHigh[8];
+    u8 m_prgSwapMode;
+    MirrorMode m_mirrorMode;
+    
+    // IRQ
+    u8 m_irqLatch;
+    u8 m_irqCounter;
+    u8 m_irqPrescaler;
+    u16 m_irqPrescalerCounter;
+    bool m_irqEnable;
+    bool m_irqEnableOnAck;
+    bool m_irqMode;
+    
+    u32 m_prgBankOffset[4];
+    u32 m_chrBankOffset[8];
+};
+
+// Mapper 73: VRC3 (Konami) - Salamander
+class Mapper073 : public Mapper {
+public:
+    Mapper073(Cartridge* cartridge);
+    void reset() override;
+    
+    u8 cpuRead(u16 address) override;
+    void cpuWrite(u16 address, u8 value) override;
+    u8 readCHR(u16 address) override;
+    void writeCHR(u16 address, u8 value) override;
+    
+    void scanlineCounter() override;
+    
+    void saveState(std::ofstream& file) const override;
+    void loadState(std::ifstream& file) override;
+    
+private:
+    u8 m_prgBank;           // 16KB PRG bank
+    
+    // IRQ
+    u16 m_irqLatch;
+    u16 m_irqCounter;
+    bool m_irqEnable;
+    bool m_irqEnableOnAck;
+    bool m_irqMode;         // 0 = 16-bit, 1 = 8-bit (high byte only)
+};
+
 } // namespace nes
