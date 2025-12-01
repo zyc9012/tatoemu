@@ -1,6 +1,7 @@
 #include "apu.h"
 #include "cpu.h"
 #include "memory.h"
+#include "cartridge.h"
 #include <cstring>
 #include <cmath>
 #include <algorithm>
@@ -497,6 +498,7 @@ void APU::FrameCounter::reset() {
 APU::APU()
     : m_cpu(nullptr)
     , m_memory(nullptr)
+    , m_cartridge(nullptr)
     , m_audioDevice(nullptr)
     , m_totalCycles(0)
     , m_lastFrameCycle(0)
@@ -575,6 +577,11 @@ void APU::step(u32 cpuCycles, double gameSpeed) {
         
         // Triangle channel timer clocks every CPU cycle
         m_triangle.clockTimer();
+        
+        // Clock expansion audio (VRC6, etc.) every CPU cycle
+        if (m_cartridge) {
+            m_cartridge->clockAudio();
+        }
         
         // Other channels clock every other CPU cycle (APU cycle)
         if (m_oddCycle) {
@@ -740,6 +747,13 @@ float APU::mix() {
     float tndOut = m_tndTable[3 * triangle + 2 * noise + dmc];
     
     float sample = pulseOut + tndOut;
+    
+    // Add expansion audio (VRC6, VRC7, etc.)
+    if (m_cartridge && m_cartridge->hasExpansionAudio()) {
+        float expansionAudio = m_cartridge->getExpansionAudio();
+        // Mix expansion audio - typically about 50% of total output
+        sample += expansionAudio;
+    }
     
     // Apply high-pass filter at 90 Hz (removes DC offset)
     float filtered = sample - m_highPass1;

@@ -245,6 +245,26 @@ void Cartridge::irqClear() {
     }
 }
 
+void Cartridge::clockAudio() {
+    if (m_mapper) {
+        m_mapper->clockAudio();
+    }
+}
+
+float Cartridge::getExpansionAudio() const {
+    if (m_mapper) {
+        return m_mapper->getAudioOutput();
+    }
+    return 0.0f;
+}
+
+bool Cartridge::hasExpansionAudio() const {
+    if (m_mapper) {
+        return m_mapper->hasExpansionAudio();
+    }
+    return false;
+}
+
 void Cartridge::saveBattery() const {
     if (!m_hasBattery || m_prgRam.empty()) {
         return;
@@ -1641,6 +1661,88 @@ void Mapper023::loadState(std::ifstream& file) {
     updateBanks();
 }
 
+// ========== VRC6 Audio Channels ==========
+
+void VRC6Pulse::reset() {
+    volume = 0;
+    duty = 0;
+    period = 0;
+    timer = 0;
+    step = 0;
+    enabled = false;
+    mode = false;
+}
+
+void VRC6Pulse::clockTimer() {
+    if (!enabled) return;
+    
+    if (timer == 0) {
+        timer = period;
+        // Advance step (16 steps)
+        step = (step + 1) & 0x0F;
+    } else {
+        timer--;
+    }
+}
+
+u8 VRC6Pulse::output() const {
+    if (!enabled) return 0;
+    if (period < 1) return 0;  // Prevent ultrasonic frequencies
+    
+    // VRC6 pulse has 16 steps with variable duty cycle
+    // duty value 0-7 means output high for (duty+1) steps out of 16
+    // When mode bit is set, output is always the volume (no duty cycle)
+    if (mode) {
+        return volume;
+    }
+    
+    // step goes 0-15, output high if step <= duty
+    if (step <= duty) {
+        return volume;
+    }
+    return 0;
+}
+
+void VRC6Sawtooth::reset() {
+    accumRate = 0;
+    period = 0;
+    timer = 0;
+    accumulator = 0;
+    step = 0;
+    enabled = false;
+}
+
+void VRC6Sawtooth::clockTimer() {
+    if (!enabled) return;
+    
+    if (timer == 0) {
+        timer = period;
+        
+        // Accumulator is clocked every 2 steps
+        step++;
+        if ((step & 1) == 0) {
+            // Add rate to accumulator (on even steps)
+            accumulator += accumRate;
+        }
+        
+        // Reset on step 14
+        if (step >= 14) {
+            step = 0;
+            accumulator = 0;
+        }
+    } else {
+        timer--;
+    }
+}
+
+u8 VRC6Sawtooth::output() const {
+    if (!enabled) return 0;
+    if (period < 1) return 0;
+    
+    // Output is the top 5 bits of the accumulator
+    return (accumulator >> 3) & 0x1F;
+}
+
 // ========== Mapper 24: VRC6a ==========
 
 Mapper024::Mapper024(Cartridge* cartridge)
@@ -1655,20 +1757,13 @@ Mapper024::Mapper024(Cartridge* cartridge)
     , m_irqEnable(false)
     , m_irqEnableOnAck(false)
     , m_irqMode(false)
-    , m_pulse1Volume(0)
-    , m_pulse1Duty(0)
-    , m_pulse1Period(0)
-    , m_pulse1Enable(false)
-    , m_pulse2Volume(0)
-    , m_pulse2Duty(0)
-    , m_pulse2Period(0)
-    , m_pulse2Enable(false)
-    , m_sawAccumRate(0)
-    , m_sawPeriod(0)
-    , m_sawEnable(false) {
+    , m_audioHalt(false) {
     std::memset(m_chrBank, 0, sizeof(m_chrBank));
     std::memset(m_prgBankOffset, 0, sizeof(m_prgBankOffset));
     std::memset(m_chrBankOffset, 0, sizeof(m_chrBankOffset));
+    m_vrcPulse1.reset();
+    m_vrcPulse2.reset();
+    m_vrcSaw.reset();
 }
 
 void Mapper024::reset() {
@@ -1686,17 +1781,10 @@ void Mapper024::reset() {
     m_irqActive = false;
     
     // Audio reset
-    m_pulse1Volume = 0;
-    m_pulse1Duty = 0;
-    m_pulse1Period = 0;
-    m_pulse1Enable = false;
-    m_pulse2Volume = 0;
-    m_pulse2Duty = 0;
-    m_pulse2Period = 0;
-    m_pulse2Enable = false;
-    m_sawAccumRate = 0;
-    m_sawPeriod = 0;
-    m_sawEnable = false;
+    m_vrcPulse1.reset();
+    m_vrcPulse2.reset();
+    m_vrcSaw.reset();
+    m_audioHalt = false;
     
     updateBanks();
 }
@@ -1747,51 +1835,55 @@ void Mapper024::cpuWrite(u16 address, u8 value) {
             
         // VRC6 Audio Pulse 1
         case 0x9000:
-            m_pulse1Volume = value & 0x0F;
-            m_pulse1Duty = (value >> 4) & 0x07;
-            m_pulse1Enable = (value & 0x80) == 0;
+            m_vrcPulse1.volume = value & 0x0F;
+            m_vrcPulse1.duty = (value >> 4) & 0x07;
+            m_vrcPulse1.mode = (value & 0x80) != 0;
             break;
         case 0x9001:
-            m_pulse1Period = (m_pulse1Period & 0xF00) | value;
+            m_vrcPulse1.period = (m_vrcPulse1.period & 0xF00) | value;
             break;
         case 0x9002:
-            m_pulse1Period = (m_pulse1Period & 0x0FF) | ((value & 0x0F) << 8);
-            m_pulse1Enable = (value & 0x80) != 0;
+            m_vrcPulse1.period = (m_vrcPulse1.period & 0x0FF) | ((value & 0x0F) << 8);
+            m_vrcPulse1.enabled = (value & 0x80) != 0;
             break;
             
         // VRC6 Audio Pulse 2
         case 0xA000:
-            m_pulse2Volume = value & 0x0F;
-            m_pulse2Duty = (value >> 4) & 0x07;
-            m_pulse2Enable = (value & 0x80) == 0;
+            m_vrcPulse2.volume = value & 0x0F;
+            m_vrcPulse2.duty = (value >> 4) & 0x07;
+            m_vrcPulse2.mode = (value & 0x80) != 0;
             break;
         case 0xA001:
-            m_pulse2Period = (m_pulse2Period & 0xF00) | value;
+            m_vrcPulse2.period = (m_vrcPulse2.period & 0xF00) | value;
             break;
         case 0xA002:
-            m_pulse2Period = (m_pulse2Period & 0x0FF) | ((value & 0x0F) << 8);
-            m_pulse2Enable = (value & 0x80) != 0;
+            m_vrcPulse2.period = (m_vrcPulse2.period & 0x0FF) | ((value & 0x0F) << 8);
+            m_vrcPulse2.enabled = (value & 0x80) != 0;
             break;
             
         // VRC6 Audio Sawtooth
         case 0xB000:
-            m_sawAccumRate = value & 0x3F;
+            m_vrcSaw.accumRate = value & 0x3F;
             break;
         case 0xB001:
-            m_sawPeriod = (m_sawPeriod & 0xF00) | value;
+            m_vrcSaw.period = (m_vrcSaw.period & 0xF00) | value;
             break;
         case 0xB002:
-            m_sawPeriod = (m_sawPeriod & 0x0FF) | ((value & 0x0F) << 8);
-            m_sawEnable = (value & 0x80) != 0;
+            m_vrcSaw.period = (m_vrcSaw.period & 0x0FF) | ((value & 0x0F) << 8);
+            m_vrcSaw.enabled = (value & 0x80) != 0;
             break;
             
         case 0xB003:
+            // Bits 0-1: PPU banking style (ignored for now)
+            // Bits 2-3: Mirroring
             switch ((value >> 2) & 0x03) {
                 case 0: m_mirrorMode = MirrorMode::VERTICAL; break;
                 case 1: m_mirrorMode = MirrorMode::HORIZONTAL; break;
                 case 2: m_mirrorMode = MirrorMode::SINGLE_SCREEN_A; break;
                 case 3: m_mirrorMode = MirrorMode::SINGLE_SCREEN_B; break;
             }
+            // Bit 4: Audio halt
+            m_audioHalt = (value & 0x10) != 0;
             break;
             
         case 0xC000: case 0xC001: case 0xC002: case 0xC003:
@@ -1852,6 +1944,34 @@ void Mapper024::cpuWrite(u16 address, u8 value) {
     }
 }
 
+void Mapper024::clockAudio() {
+    if (m_audioHalt) return;
+    
+    m_vrcPulse1.clockTimer();
+    m_vrcPulse2.clockTimer();
+    m_vrcSaw.clockTimer();
+}
+
+float Mapper024::getAudioOutput() const {
+    if (m_audioHalt) return 0.0f;
+    
+    // Get raw outputs (0-15 for pulse, 0-31 for saw)
+    u8 pulse1 = m_vrcPulse1.output();
+    u8 pulse2 = m_vrcPulse2.output();
+    u8 saw = m_vrcSaw.output();
+    
+    // Mix channels - VRC6 has louder output than internal APU
+    // Scale to roughly 0.0-0.5 range (VRC6 is about 50% of total output when combined)
+    // Pulse channels are 4-bit (0-15), saw is 5-bit (0-31)
+    float pulseOut = (pulse1 + pulse2) / 30.0f;  // Max 30, normalize
+    float sawOut = saw / 31.0f;
+    
+    // VRC6 mixing is roughly equal weighted between pulses and saw
+    float output = (pulseOut * 0.5f + sawOut * 0.5f) * 0.5f;
+    
+    return output;
+}
+
 u8 Mapper024::readCHR(u16 address) {
     u8 bank = address / 0x400;
     u16 offset = address & 0x3FF;
@@ -1906,18 +2026,11 @@ void Mapper024::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_irqEnable), sizeof(m_irqEnable));
     file.write(reinterpret_cast<const char*>(&m_irqEnableOnAck), sizeof(m_irqEnableOnAck));
     file.write(reinterpret_cast<const char*>(&m_irqMode), sizeof(m_irqMode));
-    // Audio state
-    file.write(reinterpret_cast<const char*>(&m_pulse1Volume), sizeof(m_pulse1Volume));
-    file.write(reinterpret_cast<const char*>(&m_pulse1Duty), sizeof(m_pulse1Duty));
-    file.write(reinterpret_cast<const char*>(&m_pulse1Period), sizeof(m_pulse1Period));
-    file.write(reinterpret_cast<const char*>(&m_pulse1Enable), sizeof(m_pulse1Enable));
-    file.write(reinterpret_cast<const char*>(&m_pulse2Volume), sizeof(m_pulse2Volume));
-    file.write(reinterpret_cast<const char*>(&m_pulse2Duty), sizeof(m_pulse2Duty));
-    file.write(reinterpret_cast<const char*>(&m_pulse2Period), sizeof(m_pulse2Period));
-    file.write(reinterpret_cast<const char*>(&m_pulse2Enable), sizeof(m_pulse2Enable));
-    file.write(reinterpret_cast<const char*>(&m_sawAccumRate), sizeof(m_sawAccumRate));
-    file.write(reinterpret_cast<const char*>(&m_sawPeriod), sizeof(m_sawPeriod));
-    file.write(reinterpret_cast<const char*>(&m_sawEnable), sizeof(m_sawEnable));
+    // VRC6 Audio state
+    file.write(reinterpret_cast<const char*>(&m_vrcPulse1), sizeof(m_vrcPulse1));
+    file.write(reinterpret_cast<const char*>(&m_vrcPulse2), sizeof(m_vrcPulse2));
+    file.write(reinterpret_cast<const char*>(&m_vrcSaw), sizeof(m_vrcSaw));
+    file.write(reinterpret_cast<const char*>(&m_audioHalt), sizeof(m_audioHalt));
 }
 
 void Mapper024::loadState(std::ifstream& file) {
@@ -1932,18 +2045,11 @@ void Mapper024::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_irqEnable), sizeof(m_irqEnable));
     file.read(reinterpret_cast<char*>(&m_irqEnableOnAck), sizeof(m_irqEnableOnAck));
     file.read(reinterpret_cast<char*>(&m_irqMode), sizeof(m_irqMode));
-    // Audio state
-    file.read(reinterpret_cast<char*>(&m_pulse1Volume), sizeof(m_pulse1Volume));
-    file.read(reinterpret_cast<char*>(&m_pulse1Duty), sizeof(m_pulse1Duty));
-    file.read(reinterpret_cast<char*>(&m_pulse1Period), sizeof(m_pulse1Period));
-    file.read(reinterpret_cast<char*>(&m_pulse1Enable), sizeof(m_pulse1Enable));
-    file.read(reinterpret_cast<char*>(&m_pulse2Volume), sizeof(m_pulse2Volume));
-    file.read(reinterpret_cast<char*>(&m_pulse2Duty), sizeof(m_pulse2Duty));
-    file.read(reinterpret_cast<char*>(&m_pulse2Period), sizeof(m_pulse2Period));
-    file.read(reinterpret_cast<char*>(&m_pulse2Enable), sizeof(m_pulse2Enable));
-    file.read(reinterpret_cast<char*>(&m_sawAccumRate), sizeof(m_sawAccumRate));
-    file.read(reinterpret_cast<char*>(&m_sawPeriod), sizeof(m_sawPeriod));
-    file.read(reinterpret_cast<char*>(&m_sawEnable), sizeof(m_sawEnable));
+    // VRC6 Audio state
+    file.read(reinterpret_cast<char*>(&m_vrcPulse1), sizeof(m_vrcPulse1));
+    file.read(reinterpret_cast<char*>(&m_vrcPulse2), sizeof(m_vrcPulse2));
+    file.read(reinterpret_cast<char*>(&m_vrcSaw), sizeof(m_vrcSaw));
+    file.read(reinterpret_cast<char*>(&m_audioHalt), sizeof(m_audioHalt));
     updateBanks();
 }
 

@@ -45,6 +45,11 @@ public:
     bool irqState() const;
     void irqClear();
     
+    // Expansion audio (for VRC6, VRC7, etc.)
+    void clockAudio();
+    float getExpansionAudio() const;
+    bool hasExpansionAudio() const;
+    
     // ROM info
     bool isLoaded() const { return m_loaded; }
     const std::string& getTitle() const { return m_title; }
@@ -115,6 +120,11 @@ public:
     // IRQ handling
     virtual bool irqState() const { return m_irqActive; }
     virtual void irqClear() { m_irqActive = false; }
+    
+    // Expansion audio (for VRC6, VRC7, etc.)
+    virtual void clockAudio() {}
+    virtual float getAudioOutput() const { return 0.0f; }
+    virtual bool hasExpansionAudio() const { return false; }
     
     // Save/Load state
     virtual void saveState(std::ofstream& file) const = 0;
@@ -368,6 +378,35 @@ private:
     u32 m_chrBankOffset[8];
 };
 
+// VRC6 Audio Pulse Channel
+struct VRC6Pulse {
+    u8 volume;          // 4-bit volume (0-15)
+    u8 duty;            // 3-bit duty cycle (0-7)
+    u16 period;         // 12-bit period
+    u16 timer;          // Current timer counter
+    u8 step;            // Current duty cycle step (0-15)
+    bool enabled;       // Channel enabled
+    bool mode;          // Mode flag (constant volume)
+    
+    void reset();
+    void clockTimer();
+    u8 output() const;
+};
+
+// VRC6 Audio Sawtooth Channel
+struct VRC6Sawtooth {
+    u8 accumRate;       // 6-bit accumulator rate
+    u16 period;         // 12-bit period
+    u16 timer;          // Current timer counter
+    u8 accumulator;     // 8-bit accumulator
+    u8 step;            // Step counter (0-13, reset to 0 on 14)
+    bool enabled;       // Channel enabled
+    
+    void reset();
+    void clockTimer();
+    u8 output() const;
+};
+
 // Mapper 24: VRC6a (Konami with extra audio)
 class Mapper024 : public Mapper {
 public:
@@ -381,6 +420,11 @@ public:
     
     MirrorMode getMirrorMode() const override;
     void scanlineCounter() override;
+    
+    // VRC6 Audio
+    void clockAudio() override;
+    float getAudioOutput() const override;
+    bool hasExpansionAudio() const override { return true; }
     
     void saveState(std::ofstream& file) const override;
     void loadState(std::ifstream& file) override;
@@ -405,21 +449,11 @@ private:
     u32 m_prgBankOffset[4];
     u32 m_chrBankOffset[8];
     
-    // VRC6 Audio (3 channels) - simplified, full impl would need APU integration
-    // Pulse 1
-    u8 m_pulse1Volume;
-    u8 m_pulse1Duty;
-    u16 m_pulse1Period;
-    bool m_pulse1Enable;
-    // Pulse 2
-    u8 m_pulse2Volume;
-    u8 m_pulse2Duty;
-    u16 m_pulse2Period;
-    bool m_pulse2Enable;
-    // Sawtooth
-    u8 m_sawAccumRate;
-    u16 m_sawPeriod;
-    bool m_sawEnable;
+    // VRC6 Audio channels
+    VRC6Pulse m_vrcPulse1;
+    VRC6Pulse m_vrcPulse2;
+    VRC6Sawtooth m_vrcSaw;
+    bool m_audioHalt;       // Global halt flag
 };
 
 // Mapper 25: VRC4b / VRC4d (Konami) - Similar to 23 with different address lines

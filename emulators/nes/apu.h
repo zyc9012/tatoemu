@@ -9,6 +9,7 @@ namespace nes {
 
 class CPU;
 class Memory;
+class Cartridge;
 
 // NES APU - Highly accurate implementation
 // Based on nesdev.org documentation and hardware analysis
@@ -242,6 +243,7 @@ public:
 
     void setCPU(CPU* cpu) { m_cpu = cpu; }
     void setMemory(Memory* memory);
+    void setCartridge(Cartridge* cartridge) { m_cartridge = cartridge; }
     void setAudioDevice(AudioDevice* audioDevice) { m_audioDevice = audioDevice; }
     
     void reset();
@@ -280,6 +282,7 @@ private:
     // Components
     CPU* m_cpu;
     Memory* m_memory;
+    Cartridge* m_cartridge;
     AudioDevice* m_audioDevice;
     
     // Channels
