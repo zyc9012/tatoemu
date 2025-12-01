@@ -28,6 +28,17 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/nes/cartridge.cpp
     ${CMAKE_SOURCE_DIR}/emulators/nes/controller.cpp
     ${CMAKE_SOURCE_DIR}/emulators/nes/core.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper000.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper001.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper002.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper003.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper004.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper005.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper010.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper023.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper024.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper025.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper073.cpp
     ${CMAKE_SOURCE_DIR}/emulators/emulator.cpp
     ${CMAKE_SOURCE_DIR}/platforms/native/main.cpp
 )
