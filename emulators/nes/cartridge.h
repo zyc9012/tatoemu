@@ -37,6 +37,7 @@ public:
     
     // Mirroring
     MirrorMode getMirrorMode() const;
+    MirrorMode getBaseMirrorMode() const { return m_mirrorMode; }  // Direct access without mapper delegation
     void setMirrorMode(MirrorMode mode);
     
     // Mapper IRQ (for MMC3 etc.)
@@ -105,7 +106,7 @@ public:
     virtual u8 readCHR(u16 address) = 0;
     virtual void writeCHR(u16 address, u8 value) = 0;
     
-    virtual MirrorMode getMirrorMode() const { return m_cartridge->getMirrorMode(); }
+    virtual MirrorMode getMirrorMode() const { return m_cartridge->getBaseMirrorMode(); }
     virtual void setMirrorMode(MirrorMode mode) { m_cartridge->setMirrorMode(mode); }
     
     // Scanline counter (for MMC3)
