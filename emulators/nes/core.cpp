@@ -138,12 +138,18 @@ void Core::update() {
     // The PPU will set frameComplete when VBlank starts
     
     while (!m_ppu->isFrameComplete()) {
-        // Execute one CPU cycle
-        m_cpu->step();
-        u32 cpuCycles = 1;  // We step one cycle at a time for accuracy
+        // Track cycles before instruction
+        u32 cyclesBefore = m_cpu->getCycles();
         
-        // Run PPU for 3 cycles per CPU cycle
-        for (u32 i = 0; i < PPU_CYCLES_PER_CPU; i++) {
+        // Execute one CPU instruction (takes multiple cycles)
+        m_cpu->step();
+        
+        // Calculate how many CPU cycles the instruction took
+        u32 cpuCycles = m_cpu->getCycles() - cyclesBefore;
+        
+        // Run PPU for 3 PPU cycles per CPU cycle
+        u32 ppuCycles = cpuCycles * PPU_CYCLES_PER_CPU;
+        for (u32 i = 0; i < ppuCycles; i++) {
             m_ppu->step();
             
             // Check for scanline counter (for MMC3 IRQ)
