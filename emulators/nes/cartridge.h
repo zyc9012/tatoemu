@@ -26,6 +26,7 @@ class Mapper023;
 class Mapper024;
 class Mapper025;
 class Mapper073;
+class Mapper074;
 
 class Cartridge {
 public:

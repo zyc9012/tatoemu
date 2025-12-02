@@ -21,8 +21,8 @@ public:
     void saveState(std::ofstream& file) const override;
     void loadState(std::ifstream& file) override;
     
-private:
-    void updateBanks();
+protected:
+    virtual void updateBanks();
     
     u8 m_bankSelect;
     u8 m_bankData[8];
