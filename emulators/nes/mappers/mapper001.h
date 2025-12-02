@@ -25,6 +25,7 @@ private:
     
     u8 m_shiftRegister;
     u8 m_shiftCount;
+    u64 m_lastWriteCycle;  // For filtering consecutive writes (RMW instructions)
     
     u8 m_control;       // $8000-$9FFF
     u8 m_chrBank0;      // $A000-$BFFF

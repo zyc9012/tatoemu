@@ -74,6 +74,9 @@ public:
     const std::vector<u8>& getCHR() const { return m_chrRom; }
     const std::vector<u8>& getPRGRAM() const { return m_prgRam; }
     
+    // CPU cycle access (for mapper timing)
+    u32 getCpuCycles() const;
+    
     // Save/Load state
     void saveState(std::ofstream& file) const;
     void loadState(std::ifstream& file);

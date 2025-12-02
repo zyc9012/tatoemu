@@ -200,6 +200,13 @@ void Cartridge::reset() {
     }
 }
 
+u32 Cartridge::getCpuCycles() const {
+    if (m_cpu) {
+        return m_cpu->getCycles();
+    }
+    return 0;
+}
+
 u8 Cartridge::cpuRead(u16 address) {
     if (m_mapper) {
         return m_mapper->cpuRead(address);

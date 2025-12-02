@@ -811,9 +811,11 @@ void CPU::CPY(AddressMode mode) {
 void CPU::INC(AddressMode mode) {
     bool pageCrossed;
     u16 addr = getAddress(mode, pageCrossed);
-    u8 value = read(addr) + 1;
-    write(addr, value);
-    setZN(value);
+    u8 oldValue = read(addr);
+    write(addr, oldValue);  // Dummy write (real 6502 behavior)
+    u8 newValue = oldValue + 1;
+    write(addr, newValue);  // Real write
+    setZN(newValue);
 }
 
 void CPU::INX() {
@@ -829,9 +831,11 @@ void CPU::INY() {
 void CPU::DEC(AddressMode mode) {
     bool pageCrossed;
     u16 addr = getAddress(mode, pageCrossed);
-    u8 value = read(addr) - 1;
-    write(addr, value);
-    setZN(value);
+    u8 oldValue = read(addr);
+    write(addr, oldValue);  // Dummy write (real 6502 behavior)
+    u8 newValue = oldValue - 1;
+    write(addr, newValue);  // Real write
+    setZN(newValue);
 }
 
 void CPU::DEX() {
@@ -886,11 +890,12 @@ void CPU::ASL(AddressMode mode) {
     } else {
         bool pageCrossed;
         u16 addr = getAddress(mode, pageCrossed);
-        u8 value = read(addr);
-        setFlag(FLAG_C, (value & 0x80) != 0);
-        value <<= 1;
-        write(addr, value);
-        setZN(value);
+        u8 oldValue = read(addr);
+        write(addr, oldValue);  // Dummy write (real 6502 behavior)
+        setFlag(FLAG_C, (oldValue & 0x80) != 0);
+        u8 newValue = oldValue << 1;
+        write(addr, newValue);  // Real write
+        setZN(newValue);
     }
 }
 
@@ -902,11 +907,12 @@ void CPU::LSR(AddressMode mode) {
     } else {
         bool pageCrossed;
         u16 addr = getAddress(mode, pageCrossed);
-        u8 value = read(addr);
-        setFlag(FLAG_C, (value & 0x01) != 0);
-        value >>= 1;
-        write(addr, value);
-        setZN(value);
+        u8 oldValue = read(addr);
+        write(addr, oldValue);  // Dummy write (real 6502 behavior)
+        setFlag(FLAG_C, (oldValue & 0x01) != 0);
+        u8 newValue = oldValue >> 1;
+        write(addr, newValue);  // Real write
+        setZN(newValue);
     }
 }
 
@@ -920,11 +926,12 @@ void CPU::ROL(AddressMode mode) {
     } else {
         bool pageCrossed;
         u16 addr = getAddress(mode, pageCrossed);
-        u8 value = read(addr);
-        setFlag(FLAG_C, (value & 0x80) != 0);
-        value = (value << 1) | (carry ? 1 : 0);
-        write(addr, value);
-        setZN(value);
+        u8 oldValue = read(addr);
+        write(addr, oldValue);  // Dummy write (real 6502 behavior)
+        setFlag(FLAG_C, (oldValue & 0x80) != 0);
+        u8 newValue = (oldValue << 1) | (carry ? 1 : 0);
+        write(addr, newValue);  // Real write
+        setZN(newValue);
     }
 }
 
@@ -938,11 +945,12 @@ void CPU::ROR(AddressMode mode) {
     } else {
         bool pageCrossed;
         u16 addr = getAddress(mode, pageCrossed);
-        u8 value = read(addr);
-        setFlag(FLAG_C, (value & 0x01) != 0);
-        value = (value >> 1) | (carry ? 0x80 : 0);
-        write(addr, value);
-        setZN(value);
+        u8 oldValue = read(addr);
+        write(addr, oldValue);  // Dummy write (real 6502 behavior)
+        setFlag(FLAG_C, (oldValue & 0x01) != 0);
+        u8 newValue = (oldValue >> 1) | (carry ? 0x80 : 0);
+        write(addr, newValue);  // Real write
+        setZN(newValue);
     }
 }
 

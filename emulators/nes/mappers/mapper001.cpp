@@ -7,6 +7,7 @@ Mapper001::Mapper001(Cartridge* cartridge)
     : Mapper(cartridge)
     , m_shiftRegister(0x10)
     , m_shiftCount(0)
+    , m_lastWriteCycle(0)
     , m_control(0x0C)
     , m_chrBank0(0)
     , m_chrBank1(0)
@@ -16,6 +17,7 @@ Mapper001::Mapper001(Cartridge* cartridge)
 void Mapper001::reset() {
     m_shiftRegister = 0x10;
     m_shiftCount = 0;
+    m_lastWriteCycle = 0;
     m_control = 0x0C;  // PRG mode 3, CHR mode 0
     m_chrBank0 = 0;
     m_chrBank1 = 0;
@@ -81,6 +83,18 @@ void Mapper001::cpuWrite(u16 address, u8 value) {
     if (address >= 0x6000 && address < 0x8000) {
         m_cartridge->getPRGRAM()[address & 0x1FFF] = value;
     } else if (address >= 0x8000) {
+        u64 currentCycle = m_cartridge->getCpuCycles();
+        
+        // Ignore consecutive writes (within 2 cycles) unless it's a reset (bit 7 set)
+        // This handles read-modify-write instructions like INC/DEC/ASL/LSR/ROL/ROR
+        // NOTE: Always update lastWriteCycle, even when filtering
+        bool shouldFilter = !(value & 0x80) && (currentCycle - m_lastWriteCycle) < 2;
+        m_lastWriteCycle = currentCycle;  // Always update!
+        
+        if (shouldFilter) {
+            return;
+        }
+        
         // Register writes
         if (value & 0x80) {
             // Reset shift register
@@ -151,6 +165,7 @@ MirrorMode Mapper001::getMirrorMode() const {
 void Mapper001::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_shiftRegister), sizeof(m_shiftRegister));
     file.write(reinterpret_cast<const char*>(&m_shiftCount), sizeof(m_shiftCount));
+    file.write(reinterpret_cast<const char*>(&m_lastWriteCycle), sizeof(m_lastWriteCycle));
     file.write(reinterpret_cast<const char*>(&m_control), sizeof(m_control));
     file.write(reinterpret_cast<const char*>(&m_chrBank0), sizeof(m_chrBank0));
     file.write(reinterpret_cast<const char*>(&m_chrBank1), sizeof(m_chrBank1));
@@ -160,6 +175,7 @@ void Mapper001::saveState(std::ofstream& file) const {
 void Mapper001::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_shiftRegister), sizeof(m_shiftRegister));
     file.read(reinterpret_cast<char*>(&m_shiftCount), sizeof(m_shiftCount));
+    file.read(reinterpret_cast<char*>(&m_lastWriteCycle), sizeof(m_lastWriteCycle));
     file.read(reinterpret_cast<char*>(&m_control), sizeof(m_control));
     file.read(reinterpret_cast<char*>(&m_chrBank0), sizeof(m_chrBank0));
     file.read(reinterpret_cast<char*>(&m_chrBank1), sizeof(m_chrBank1));
