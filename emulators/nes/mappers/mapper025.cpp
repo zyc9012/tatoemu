@@ -84,11 +84,12 @@ void Mapper025::cpuWrite(u16 address, u8 value) {
         return;
     }
     
-    // Mapper 25 (VRC4b/VRC4d) swaps A0 and A1
+    // Mapper 25 (VRC4b/VRC4d) - OR both variants together for compatibility
     // VRC4b: A1, A0 -> A0, A1 (swap)
     // VRC4d: A3, A2 -> A0, A1
-    u16 a0 = (address >> 1) & 0x01;  // A1 -> bit 0
-    u16 a1 = (address >> 0) & 0x01;  // A0 -> bit 1
+    // ORing both values makes most games work
+    u16 a0 = ((address >> 1) & 0x01) | ((address >> 3) & 0x01);  // VRC4b: A1, VRC4d: A3
+    u16 a1 = ((address >> 0) & 0x01) | ((address >> 2) & 0x01);  // VRC4b: A0, VRC4d: A2
     u16 reg = (address & 0xF000) | (a1 << 1) | a0;
     
     switch (reg) {
