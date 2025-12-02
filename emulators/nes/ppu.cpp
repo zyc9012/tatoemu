@@ -206,7 +206,7 @@ void PPU::writeRegister(u16 address, u8 value) {
             
             // If NMI was just enabled and we're in VBlank, trigger NMI
             if (!wasNmiEnabled && m_nmiOutput && m_nmiOccurred) {
-                m_nmiDelay = 2;
+                m_nmiDelay = 15;
             }
             break;
         }
@@ -851,7 +851,10 @@ void PPU::step() {
         
         // Generate NMI if enabled
         if (m_nmiOutput) {
-            m_nmiDelay = 2;  // NMI is delayed by a couple cycles
+            // NMI delay needs to be long enough to allow current instruction to complete
+            // and the next instruction to start (so it can read the VBLANK flag)
+            // Using 15 PPU cycles (~5 CPU cycles) to match real hardware behavior
+            m_nmiDelay = 15;
         }
         
         // Render frame
