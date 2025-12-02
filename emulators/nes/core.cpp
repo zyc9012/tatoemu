@@ -173,6 +173,13 @@ void Core::update() {
         // Run APU
         m_apu->step(cpuCycles, m_gameSpeed);
         
+        // Check for mapper IRQ (for VRC6 and similar mappers that clock IRQ on CPU cycles)
+        // This is needed because VRC6 IRQ is clocked during APU step, not at PPU cycle 260
+        if (m_cartridge->irqState()) {
+            m_cpu->irq();
+            m_cartridge->irqClear();
+        }
+        
         m_cpuCyclesThisFrame += cpuCycles;
     }
     

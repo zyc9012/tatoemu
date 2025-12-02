@@ -4,36 +4,77 @@
 
 namespace nes {
 
-// VRC6 Audio Pulse Channel
-struct VRC6Pulse {
-    u8 volume;          // 4-bit volume (0-15)
-    u8 duty;            // 3-bit duty cycle (0-7)
-    u16 period;         // 12-bit period
-    u16 timer;          // Current timer counter
-    u8 step;            // Current duty cycle step (0-15)
-    bool enabled;       // Channel enabled
-    bool mode;          // Mode flag (constant volume)
-    
+// VRC6 Pulse Channel - Square wave with 8 duty cycle settings
+class VRC6Pulse {
+public:
     void reset();
-    void clockTimer();
-    u8 output() const;
+    void writeReg(u16 addr, u8 value);
+    void setFrequencyShift(u8 shift) { m_frequencyShift = shift; }
+    void clock();
+    u8 getVolume() const;
+    
+    // State save/load
+    void saveState(std::ofstream& file) const;
+    void loadState(std::ifstream& file);
+    
+private:
+    u8 m_volume = 0;           // Volume (0-15)
+    u8 m_dutyCycle = 0;        // Duty cycle (0-7)
+    bool m_ignoreDuty = false; // Ignore duty (output constant volume)
+    u16 m_frequency = 1;       // 12-bit frequency
+    bool m_enabled = false;    // Channel enabled
+    
+    s32 m_timer = 1;           // Timer countdown
+    u8 m_step = 0;             // Current step in duty cycle (0-15)
+    u8 m_frequencyShift = 0;   // Frequency shift for speed control
 };
 
-// VRC6 Audio Sawtooth Channel
-struct VRC6Sawtooth {
-    u8 accumRate;       // 6-bit accumulator rate
-    u16 period;         // 12-bit period
-    u16 timer;          // Current timer counter
-    u8 accumulator;     // 8-bit accumulator
-    u8 step;            // Step counter (0-13, reset to 0 on 14)
-    bool enabled;       // Channel enabled
-    
+// VRC6 Sawtooth Channel - Accumulating sawtooth waveform
+class VRC6Saw {
+public:
     void reset();
-    void clockTimer();
-    u8 output() const;
+    void writeReg(u16 addr, u8 value);
+    void setFrequencyShift(u8 shift) { m_frequencyShift = shift; }
+    void clock();
+    u8 getVolume() const;
+    
+    // State save/load
+    void saveState(std::ofstream& file) const;
+    void loadState(std::ifstream& file);
+    
+private:
+    u8 m_accumulatorRate = 0;  // Rate added to accumulator
+    u8 m_accumulator = 0;      // 8-bit accumulator
+    u16 m_frequency = 1;       // 12-bit frequency
+    bool m_enabled = false;    // Channel enabled
+    
+    s32 m_timer = 1;           // Timer countdown
+    u8 m_step = 0;             // Current step (0-13)
+    u8 m_frequencyShift = 0;   // Frequency shift for speed control
 };
 
-// Mapper 24: VRC6a (Konami with extra audio)
+// VRC6 Audio subsystem - 2 pulse channels + 1 sawtooth
+class VRC6Audio {
+public:
+    void reset();
+    void writeRegister(u16 addr, u8 value);
+    void clock();
+    float getOutput() const;
+    
+    // State save/load
+    void saveState(std::ofstream& file) const;
+    void loadState(std::ifstream& file);
+    
+private:
+    VRC6Pulse m_pulse1;
+    VRC6Pulse m_pulse2;
+    VRC6Saw m_saw;
+    bool m_haltAudio = false;  // Halt all audio processing
+    s32 m_lastOutput = 0;      // For delta-based output
+};
+
+// Mapper 24: VRC6a (Konami)
+// Used by games like Akumajou Densetsu (Castlevania III Japan)
 class Mapper024 : public Mapper {
 public:
     Mapper024(Cartridge* cartridge);
@@ -47,7 +88,7 @@ public:
     MirrorMode getMirrorMode() const override;
     void scanlineCounter() override;
     
-    // VRC6 Audio
+    // Expansion audio
     void clockAudio() override;
     float getAudioOutput() const override;
     bool hasExpansionAudio() const override { return true; }
@@ -57,29 +98,32 @@ public:
     
 private:
     void updateBanks();
+    void updateMirroring();
+    void clockIRQ();
     
-    u8 m_prgBank16k;        // 16KB PRG bank at $8000
-    u8 m_prgBank8k;         // 8KB PRG bank at $C000
-    u8 m_chrBank[8];        // 1KB CHR banks
+    // PRG banking
+    u8 m_prgBank16k;           // 16KB bank at $8000-$BFFF
+    u8 m_prgBank8k;            // 8KB bank at $C000-$DFFF
+    u32 m_prgBankOffset[4];    // Calculated PRG offsets for 8KB banks
+    
+    // CHR banking
+    u8 m_chrBank[8];           // 1KB CHR banks
+    u32 m_chrBankOffset[8];    // Calculated CHR offsets
+    
+    // Banking mode (controls mirroring and PPU banking)
+    u8 m_bankingMode;
     MirrorMode m_mirrorMode;
     
-    // IRQ (same as VRC4)
-    u8 m_irqLatch;
-    u8 m_irqCounter;
-    u8 m_irqPrescaler;
-    u16 m_irqPrescalerCounter;
-    bool m_irqEnable;
-    bool m_irqEnableOnAck;
-    bool m_irqMode;
+    // IRQ (VRC-style CPU cycle counter)
+    u8 m_irqLatch;             // IRQ reload value
+    u8 m_irqCounter;           // IRQ counter
+    bool m_irqEnable;          // IRQ enabled
+    bool m_irqEnableOnAck;     // Enable IRQ after acknowledge
+    bool m_irqCycleMode;       // true = cycle mode, false = scanline mode
+    s16 m_irqPrescaler;        // Prescaler for scanline mode (counts PPU cycles)
     
-    u32 m_prgBankOffset[4];
-    u32 m_chrBankOffset[8];
-    
-    // VRC6 Audio channels
-    VRC6Pulse m_vrcPulse1;
-    VRC6Pulse m_vrcPulse2;
-    VRC6Sawtooth m_vrcSaw;
-    bool m_audioHalt;       // Global halt flag
+    // VRC6 expansion audio
+    VRC6Audio m_audio;
 };
 
 } // namespace nes
