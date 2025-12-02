@@ -614,7 +614,6 @@ void APU::step(u32 cpuCycles, double gameSpeed) {
         // Check for frame counter steps
         bool clockQuarter = false;
         bool clockHalf = false;
-        bool setIRQ = false;
         
         if (!m_frameCounter.mode) {
             // 4-step mode
@@ -642,9 +641,6 @@ void APU::step(u32 cpuCycles, double gameSpeed) {
                     if (m_frameCounter.cycleCounter >= FrameCounter::STEP_CYCLES_4[3]) {
                         clockQuarter = true;
                         clockHalf = true;
-                        if (!m_frameCounter.irqInhibit) {
-                            setIRQ = true;
-                        }
                         m_frameCounter.cycleCounter = 0;
                         m_frameCounter.step = 0;
                     }
@@ -694,12 +690,6 @@ void APU::step(u32 cpuCycles, double gameSpeed) {
         }
         if (clockHalf) {
             clockHalfFrame();
-        }
-        if (setIRQ) {
-            m_frameCounter.irqFlag = true;
-            if (m_cpu) {
-                m_cpu->irq();
-            }
         }
         
         // Generate audio sample

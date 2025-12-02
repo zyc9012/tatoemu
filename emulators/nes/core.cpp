@@ -171,11 +171,6 @@ void Core::update() {
         // Run APU
         m_apu->step(cpuCycles, m_gameSpeed);
         
-        // Check for APU frame IRQ
-        if (m_apu->irqPending()) {
-            m_cpu->irq();
-        }
-        
         m_cpuCyclesThisFrame += cpuCycles;
     }
     
