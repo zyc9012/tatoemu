@@ -161,6 +161,11 @@ void Core::update() {
                     m_cartridge->irqClear();
                 }
             }
+
+            // Break out of the loop if the frame is complete
+            if (m_ppu->isFrameComplete()) {
+                break;
+            }
         }
         
         // Run APU
