@@ -375,7 +375,6 @@ void APU::DMCChannel::reset() {
     irqEnabled = false;
     loopFlag = false;
     irqFlag = false;
-    memory = nullptr;
 }
 
 void APU::DMCChannel::clockTimer() {
@@ -578,17 +577,19 @@ void APU::step(u32 cpuCycles, double gameSpeed) {
         // Triangle channel timer clocks every CPU cycle
         m_triangle.clockTimer();
         
+        // DMC timer also clocks every CPU cycle (rate table values are in CPU cycles)
+        m_dmc.clockTimer();
+        
         // Clock expansion audio (VRC6, etc.) every CPU cycle
         if (m_cartridge) {
             m_cartridge->clockAudio();
         }
         
-        // Other channels clock every other CPU cycle (APU cycle)
+        // Pulse and Noise channels clock every other CPU cycle (APU cycle)
         if (m_oddCycle) {
             m_pulse1.clockTimer();
             m_pulse2.clockTimer();
             m_noise.clockTimer();
-            m_dmc.clockTimer();
         }
         
         // Handle frame counter reset delay
