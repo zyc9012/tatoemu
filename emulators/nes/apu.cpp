@@ -733,9 +733,15 @@ float APU::mix() {
     u8 noise = m_noise.output();
     u8 dmc = m_dmc.output();
     
-    // Non-linear mixing using lookup tables
+    // Non-linear mixing using accurate NES formula
+    // Pulse: output = 95.52 / (8128.0 / (pulse1 + pulse2) + 100)
     float pulseOut = m_pulseTable[pulse1 + pulse2];
-    float tndOut = m_tndTable[3 * triangle + 2 * noise + dmc];
+    
+    // TND: output = 159.79 / (1 / (triangle/8227 + noise/12241 + dmc/22638) + 100)
+    // Theoretical coefficients from nesdev wiki:
+    //   triangle: 22638/8227 = 2.752, noise: 22638/12241 = 1.849, dmc: 1
+    float tndSum = triangle * 2.7516713261f + noise * 1.8493587125f + dmc;
+    float tndOut = (tndSum > 0) ? (159.79f / (22638.0f / tndSum + 100.0f)) : 0.0f;
     
     float sample = pulseOut + tndOut;
     
