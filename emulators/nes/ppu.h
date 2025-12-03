@@ -90,6 +90,9 @@ public:
     u16 getCycle() const { return m_cycle; }
     u16 getScanline() const { return m_scanline; }
     
+    // Rendering state (for mapper IRQ clocking - MMC3 only clocks when rendering)
+    bool isRenderingEnabled() const { return (m_ppuMask & (PPUMASK_SHOW_BG | PPUMASK_SHOW_SPR)) != 0; }
+    
     // Framebuffer access
     const u32* getFramebuffer() const { return m_framebuffer.data(); }
     
@@ -124,8 +127,7 @@ private:
     // Sprite pixel (returns pixel color and sprite index)
     u8 getSpritePixel(u8& spriteIndex, bool& priority) const;
     
-    // Rendering state checks
-    bool isRenderingEnabled() const;
+    // Rendering state checks (private helpers)
     bool isBackgroundEnabled() const;
     bool isSpriteEnabled() const;
     

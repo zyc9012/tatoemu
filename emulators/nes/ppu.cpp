@@ -365,10 +365,6 @@ u16 PPU::mirrorNametableAddress(u16 address) const {
 // Rendering State Helpers
 // ============================================================================
 
-bool PPU::isRenderingEnabled() const {
-    return (m_ppuMask & (PPUMASK_SHOW_BG | PPUMASK_SHOW_SPR)) != 0;
-}
-
 bool PPU::isBackgroundEnabled() const {
     return (m_ppuMask & PPUMASK_SHOW_BG) != 0;
 }

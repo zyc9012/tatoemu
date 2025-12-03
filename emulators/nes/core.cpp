@@ -154,8 +154,10 @@ void Core::update() {
             
             // Check for scanline counter (for MMC3 IRQ)
             // MMC3 clocks on A12 rising edge, which happens during PPU rendering
+            // A12 only transitions when the PPU is fetching pattern data, which requires rendering to be enabled
             // Must also clock on pre-render scanline (261) so CHR banks are correct for scanline 0
             if (m_ppu->getCycle() == 260 && 
+                m_ppu->isRenderingEnabled() &&
                 (m_ppu->getScanline() < 240 || m_ppu->getScanline() == PRE_RENDER_SCANLINE)) {
                 m_cartridge->scanlineCounter();
                 if (m_cartridge->irqState()) {
