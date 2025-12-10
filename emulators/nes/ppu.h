@@ -96,6 +96,9 @@ public:
     // Framebuffer access
     const u32* getFramebuffer() const { return m_framebuffer.data(); }
     
+    // Internal RAM access for mappers (MMC5)
+    u8 readCIRAM(u16 address) const { return m_vram[address & 0x07FF]; }
+
     // Save/Load state
     void saveState(std::ofstream& file) const;
     void loadState(std::ifstream& file);

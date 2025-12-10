@@ -15,6 +15,8 @@ public:
     void cpuWrite(u16 address, u8 value) override;
     u8 readCHR(u16 address) override;
     void writeCHR(u16 address, u8 value) override;
+
+    bool readNametable(u16 address, u8& value) override;
     
     MirrorMode getMirrorMode() const override;
     void scanlineCounter() override;
@@ -39,6 +41,7 @@ private:
     u8 m_chrMode;           // CHR banking mode (0-3)
     u16 m_chrBankRegs[12];  // CHR bank registers (extended to 10 bits)
     u32 m_chrBankOffset[8]; // Calculated CHR offsets
+    u32 m_chrBgBankOffset[8]; // Calculated CHR offsets for background fetches
     bool m_chrBankHigh;     // High CHR bank select (for sprite/bg separation)
     
     // Nametable mapping
@@ -63,6 +66,18 @@ private:
     
     // Additional RAM (up to 64KB)
     std::array<u8, 0x10000> m_prgRamExt;
+
+    // PPU Fetch State
+    u8 m_capturedExRam;
+    u8 m_ppuFetchState; // 0: Idle, 1: Attr, 2: PatternLow, 3: PatternHigh
+    
+    // Split screen registers ($5200-$5202)
+    u8 m_splitMode;
+    u8 m_splitScroll;
+    u8 m_splitBank;
+    
+    // Internal tracking
+    u16 m_bgTileCount; // To track scanline position
 };
 
 } // namespace nes

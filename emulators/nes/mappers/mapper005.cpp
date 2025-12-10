@@ -21,11 +21,18 @@ Mapper005::Mapper005(Cartridge* cartridge)
     , m_inFrame(false)
     , m_scanlineCounter(0)
     , m_multiplicand(0)
-    , m_multiplier(0) {
+    , m_multiplier(0)
+    , m_capturedExRam(0)
+    , m_ppuFetchState(0)
+    , m_splitMode(0)
+    , m_splitScroll(0)
+    , m_splitBank(0)
+    , m_bgTileCount(0) {
     std::memset(m_prgBankRegs, 0xFF, sizeof(m_prgBankRegs));
     std::memset(m_chrBankRegs, 0, sizeof(m_chrBankRegs));
     std::memset(m_prgBankOffset, 0, sizeof(m_prgBankOffset));
     std::memset(m_chrBankOffset, 0, sizeof(m_chrBankOffset));
+    std::memset(m_chrBgBankOffset, 0, sizeof(m_chrBgBankOffset));
     m_exRam.fill(0);
     m_prgRamExt.fill(0);
 }
@@ -49,8 +56,16 @@ void Mapper005::reset() {
     m_multiplier = 0;
     m_irqActive = false;
     
+    m_capturedExRam = 0;
+    m_ppuFetchState = 0;
+    m_splitMode = 0;
+    m_splitScroll = 0;
+    m_splitBank = 0;
+    m_bgTileCount = 0;
+    
     std::memset(m_prgBankRegs, 0xFF, sizeof(m_prgBankRegs));
     std::memset(m_chrBankRegs, 0, sizeof(m_chrBankRegs));
+    std::memset(m_chrBgBankOffset, 0, sizeof(m_chrBgBankOffset));
     m_exRam.fill(0);
     
     updatePRGBanks();
@@ -168,6 +183,16 @@ void Mapper005::updateCHRBanks() {
             }
             break;
     }
+
+    // Background CHR banks come from the dedicated BG registers ($5128-$512B).
+    // Each selects a 1KB slice; mirror to both halves so either BG pattern
+    // table selection works without extra checks.
+    for (int i = 0; i < 4; i++) {
+        u16 bank = m_chrBankRegs[8 + i] & 0xFF;
+        u32 offset = (bank % chrBanks1k) * 0x400;
+        m_chrBgBankOffset[i] = offset;       // Pattern table at $0000
+        m_chrBgBankOffset[i + 4] = offset;   // Pattern table at $1000
+    }
 }
 
 u8 Mapper005::cpuRead(u16 address) {
@@ -273,6 +298,15 @@ void Mapper005::cpuWrite(u16 address, u8 value) {
                 m_chrBankHigh = true;
                 updateCHRBanks();
                 break;
+            case 0x5200: // Split Mode
+                m_splitMode = value;
+                break;
+            case 0x5201: // Split Scroll
+                m_splitScroll = value;
+                break;
+            case 0x5202: // Split Bank
+                m_splitBank = value;
+                break;
             case 0x5203:  // IRQ scanline
                 m_irqScanline = value;
                 break;
@@ -312,51 +346,193 @@ void Mapper005::writeExRAM(u16 address, u8 value) {
 }
 
 u8 Mapper005::readCHR(u16 address) {
+    // Determine if this is a background fetch BEFORE modifying state.
+    // Background fetches use dedicated BG banks ($5128-$512B).
+    // Sprite and other accesses use the main CHR bank mapping ($5120-$5127).
+    // 
+    // State machine:
+    //   0 = Idle/sprite fetch (use sprite banks)
+    //   1 = After NT read, before AT read (no pattern reads expected, treat as sprite)
+    //   2 = After AT read, before pattern low (BG pattern fetch)
+    //   3 = After pattern low, before pattern high (BG pattern fetch)
+    //
+    // Only states 2 and 3 are actual BG pattern fetches.
+    const bool isBgFetch = m_ppuFetchState >= 2;
+    
+    // Check if we are in the middle of a background fetch sequence
+    if (m_ppuFetchState >= 2) { // Expect Pattern Low or High
+        // Handle ExRAM Mode 1 banking
+        if (m_exRamMode == 1) {
+            // 4KB Bank selected by upper 6 bits of ExRAM
+            // This applies to both Pattern Low and High fetches for the background
+            u32 bankIndex = (m_capturedExRam & 0xFC) >> 2; // Upper 6 bits (bits 2-7)
+            
+            u32 offset = (bankIndex * 0x1000) + (address & 0x0FFF);
+            
+            // Advance state
+            if (m_ppuFetchState == 2) m_ppuFetchState = 3;
+            else m_ppuFetchState = 0; // Finished
+            
+            const auto& chr = m_cartridge->getCHR();
+            if (offset < chr.size()) {
+                return chr[offset];
+            }
+            return 0;
+        }
+        
+        // Advance state for non-ExRAM modes too (to track end of fetch)
+        if (m_ppuFetchState == 2) m_ppuFetchState = 3;
+        else m_ppuFetchState = 0;
+    }
+
     const auto& chr = m_cartridge->getCHR();
     if (chr.empty()) return 0;
     
+    const u32* bankOffset = isBgFetch ? m_chrBgBankOffset : m_chrBankOffset;
+
     u8 bank = address / 0x400;
     u16 offset = address & 0x3FF;
-    return chr[m_chrBankOffset[bank] + offset];
+    return chr[bankOffset[bank] + offset];
 }
 
 void Mapper005::writeCHR(u16 address, u8 value) {
     // CHR RAM support
     auto& chr = m_cartridge->getCHR();
     if (!chr.empty()) {
+        // Only states 2 and 3 are actual BG pattern fetches (see readCHR for details)
+        const bool isBgFetch = m_ppuFetchState >= 2;
+        const u32* bankOffset = isBgFetch ? m_chrBgBankOffset : m_chrBankOffset;
+
         u8 bank = address / 0x400;
         u16 offset = address & 0x3FF;
-        chr[m_chrBankOffset[bank] + offset] = value;
+        chr[bankOffset[bank] + offset] = value;
     }
 }
 
+bool Mapper005::readNametable(u16 address, u8& value) {
+    bool isAttribute = ((address & 0x03C0) == 0x03C0);
+    
+    if (!isAttribute) {
+        // Nametable Fetch - Increment tile count
+        m_bgTileCount++;
+        
+        // Scanline detection logic (simplified)
+        // MMC5 detects 42 fetch cycles (34 BG + sprites etc.)
+        // We use 34 as a threshold for end of scanline because our PPU implementation
+        // performs 34 background fetches per line (32 visible + 2 prefetch)
+        if (m_bgTileCount == 34) {
+            m_bgTileCount = 0;
+            
+            if (!m_inFrame) {
+                // Coming out of VBlank - this is the pre-render scanline's tiles
+                // These tiles are for scanline 0, so we start the frame but
+                // don't increment the counter (it's already at 0)
+                m_inFrame = true;
+                m_irqStatus |= 0x40;
+                m_scanlineCounter = 0;
+                m_ppuFetchState = 0;  // Reset fetch state for new frame
+                
+                // Check if IRQ should fire at scanline 0
+                if (m_scanlineCounter == m_irqScanline) {
+                    m_irqStatus |= 0x80;
+                    if (m_irqEnable) {
+                        m_irqActive = true;
+                    }
+                }
+            } else {
+                // Normal in-frame scanline increment
+                m_scanlineCounter++;
+                
+                // Check for IRQ
+                if (m_scanlineCounter == m_irqScanline) {
+                    m_irqStatus |= 0x80;
+                    if (m_irqEnable) {
+                        m_irqActive = true;
+                    }
+                }
+                
+                // Handle end of visible frame
+                if (m_scanlineCounter >= 240) {
+                    m_inFrame = false;
+                    m_irqStatus &= ~0x40;
+                    m_scanlineCounter = 0; // Reset for next frame
+                }
+            }
+        }
+    }
+    
+    u8 nt = (address >> 10) & 0x03;
+    u8 mode = (m_nametableMapping >> (nt * 2)) & 0x03;
+
+    if (isAttribute) {
+        m_ppuFetchState = 2; // Next is Pattern Low
+        
+        if (m_exRamMode == 1) {
+            // ExRAM Mode 1: Use ExRAM for attributes
+            u8 pal = m_capturedExRam & 0x03;
+            // Replicate 2 bits to full byte: 00 00 00 00 -> P P P P
+            value = (pal << 6) | (pal << 4) | (pal << 2) | pal;
+            return true;
+        } else if (mode == 3) {
+            // Fill Mode: Use fill mode attribute
+            u8 pal = m_fillModeAttr & 0x03;
+            value = (pal << 6) | (pal << 4) | (pal << 2) | pal;
+            return true;
+        }
+        
+        // Standard modes: We must handle the read because we might have intercepted the NT read
+        // and PPU expects us to return data if we returned true for NT.
+        // Actually, PPU calls readNametable for each read independently.
+        // So we can return false here if we want PPU to handle it via VRAM...
+        // BUT if mode is CIRAM 0/1, we should probably be consistent.
+        
+        if (mode == 0) { // CIRAM 0
+             value = m_cartridge->readCIRAM(address & 0x03FF);
+             return true;
+        } else if (mode == 1) { // CIRAM 1
+             value = m_cartridge->readCIRAM(0x400 | (address & 0x03FF));
+             return true;
+        } else if (mode == 2) { // ExRAM as NT
+             value = m_exRam[address & 0x03FF];
+             return true;
+        }
+        
+        return false;
+    } 
+    else {
+        // Nametable Fetch
+        m_ppuFetchState = 1; // Next is Attribute
+        
+        // Capture ExRAM for next steps
+        m_capturedExRam = m_exRam[address & 0x03FF];
+        
+        switch (mode) {
+            case 0: // CIRAM 0
+                value = m_cartridge->readCIRAM(address & 0x03FF);
+                return true;
+            case 1: // CIRAM 1
+                value = m_cartridge->readCIRAM(0x400 | (address & 0x03FF));
+                return true;
+            case 2: // ExRAM as NT
+                value = m_exRam[address & 0x03FF];
+                return true;
+            case 3: // Fill Mode
+                value = m_fillModeTile;
+                return true;
+        }
+    }
+    
+    return false;
+}
+
 MirrorMode Mapper005::getMirrorMode() const {
-    // MMC5 has complex nametable mapping, simplified to basic modes
     return m_cartridge->getBaseMirrorMode();
 }
 
 void Mapper005::scanlineCounter() {
-    if (!m_inFrame) {
-        m_inFrame = true;
-        m_scanlineCounter = 0;
-    }
-    
-    m_scanlineCounter++;
-    
-    if (m_scanlineCounter == m_irqScanline) {
-        m_irqStatus |= 0x80;  // Set pending
-        if (m_irqEnable) {
-            m_irqActive = true;
-        }
-    }
-    
-    // Detect end of frame (scanline 240)
-    if (m_scanlineCounter >= 240) {
-        m_inFrame = false;
-        m_irqStatus &= ~0x40;  // Clear in-frame
-    } else {
-        m_irqStatus |= 0x40;   // Set in-frame
-    }
+    // External scanline counter is disabled in favor of PPU fetch counting
+    // We could leave it as a fallback or remove it.
+    // For now, we rely on readNametable.
 }
 
 void Mapper005::saveState(std::ofstream& file) const {
@@ -380,6 +556,14 @@ void Mapper005::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_multiplicand), sizeof(m_multiplicand));
     file.write(reinterpret_cast<const char*>(&m_multiplier), sizeof(m_multiplier));
     file.write(reinterpret_cast<const char*>(m_prgRamExt.data()), m_prgRamExt.size());
+    
+    // New state
+    file.write(reinterpret_cast<const char*>(&m_capturedExRam), sizeof(m_capturedExRam));
+    file.write(reinterpret_cast<const char*>(&m_ppuFetchState), sizeof(m_ppuFetchState));
+    file.write(reinterpret_cast<const char*>(&m_splitMode), sizeof(m_splitMode));
+    file.write(reinterpret_cast<const char*>(&m_splitScroll), sizeof(m_splitScroll));
+    file.write(reinterpret_cast<const char*>(&m_splitBank), sizeof(m_splitBank));
+    file.write(reinterpret_cast<const char*>(&m_bgTileCount), sizeof(m_bgTileCount));
 }
 
 void Mapper005::loadState(std::ifstream& file) {
@@ -403,9 +587,17 @@ void Mapper005::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_multiplicand), sizeof(m_multiplicand));
     file.read(reinterpret_cast<char*>(&m_multiplier), sizeof(m_multiplier));
     file.read(reinterpret_cast<char*>(m_prgRamExt.data()), m_prgRamExt.size());
+    
+    // New state
+    file.read(reinterpret_cast<char*>(&m_capturedExRam), sizeof(m_capturedExRam));
+    file.read(reinterpret_cast<char*>(&m_ppuFetchState), sizeof(m_ppuFetchState));
+    file.read(reinterpret_cast<char*>(&m_splitMode), sizeof(m_splitMode));
+    file.read(reinterpret_cast<char*>(&m_splitScroll), sizeof(m_splitScroll));
+    file.read(reinterpret_cast<char*>(&m_splitBank), sizeof(m_splitBank));
+    file.read(reinterpret_cast<char*>(&m_bgTileCount), sizeof(m_bgTileCount));
+    
     updatePRGBanks();
     updateCHRBanks();
 }
 
 } // namespace nes
-

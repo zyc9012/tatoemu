@@ -237,6 +237,20 @@ void Cartridge::writeCHR(u16 address, u8 value) {
     }
 }
 
+u8 Cartridge::readCIRAM(u16 address) const {
+    if (m_ppu) {
+        return m_ppu->readCIRAM(address);
+    }
+    return 0;
+}
+
+bool Cartridge::readNametable(u16 address, u8& value) {
+    if (m_mapper) {
+        return m_mapper->readNametable(address, value);
+    }
+    return false;
+}
+
 MirrorMode Cartridge::getMirrorMode() const {
     if (m_mapper) {
         return m_mapper->getMirrorMode();

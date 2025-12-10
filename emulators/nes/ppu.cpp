@@ -280,6 +280,11 @@ u8 PPU::ppuRead(u16 address) {
     }
     else if (address < 0x3F00) {
         // Nametables
+        // Check if mapper wants to handle nametable read
+        u8 value;
+        if (m_cartridge && m_cartridge->readNametable(address, value)) {
+            return value;
+        }
         return m_vram[mirrorNametableAddress(address)];
     }
     else {
