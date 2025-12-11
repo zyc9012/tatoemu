@@ -61,7 +61,7 @@ cd web && python3 -m http.server 8080
 ## Usage
 
 ```bash
-./gb-emu <path_to_rom.gb> [bootrom_file]
+./tatoemu <path_to_rom.gb> [bootrom_file]
 ```
 
 ### Controls

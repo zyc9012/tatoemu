@@ -71,32 +71,32 @@ set(HEADERS
 )
 
 # Create executable
-add_executable(gb-emu ${SOURCES} ${HEADERS})
+add_executable(tatoemu ${SOURCES} ${HEADERS})
 
 # Set output directory to build root
-set_target_properties(gb-emu PROPERTIES
+set_target_properties(tatoemu PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 
 # Include directories
-target_include_directories(gb-emu PRIVATE 
+target_include_directories(tatoemu PRIVATE 
     ${CMAKE_SOURCE_DIR}/emulators
 )
 
 # Link SDL3
 if(BUILD_STATIC AND NOT APPLE)
-  target_link_libraries(gb-emu PUBLIC SDL3::SDL3-static)
-  set_target_properties(gb-emu PROPERTIES LINK_SEARCH_END_STATIC TRUE)
-  target_link_options(gb-emu PRIVATE -static -s)
+  target_link_libraries(tatoemu PUBLIC SDL3::SDL3-static)
+  set_target_properties(tatoemu PROPERTIES LINK_SEARCH_END_STATIC TRUE)
+  target_link_options(tatoemu PRIVATE -static -s)
   if(WIN32)
-    target_link_options(gb-emu PRIVATE -municode)
+    target_link_options(tatoemu PRIVATE -municode)
   endif()
 else()
-  target_link_libraries(gb-emu PUBLIC SDL3::SDL3)
+  target_link_libraries(tatoemu PUBLIC SDL3::SDL3)
 endif()
 
 # Compiler warnings and optimization flags
-target_compile_options(gb-emu PRIVATE 
+target_compile_options(tatoemu PRIVATE 
     -Wall
     -Wextra
     -Wpedantic
@@ -109,7 +109,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     include(CheckIPOSupported)
     check_ipo_supported(RESULT ipo_supported OUTPUT ipo_error)
     if(ipo_supported)
-        set_property(TARGET gb-emu PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+        set_property(TARGET tatoemu PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
         message(STATUS "Link Time Optimization (LTO) enabled")
     else()
         message(STATUS "LTO not supported: ${ipo_error}")
@@ -117,6 +117,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 
 # Install the executable
-install(TARGETS gb-emu
+install(TARGETS tatoemu
     RUNTIME DESTINATION bin
 )

@@ -33,15 +33,15 @@ set(HEADERS
 )
 
 # Create executable
-add_executable(gb-emu ${SOURCES} ${HEADERS})
+add_executable(tatoemu ${SOURCES} ${HEADERS})
 
 # Include directories
-target_include_directories(gb-emu PRIVATE 
+target_include_directories(tatoemu PRIVATE 
     ${CMAKE_SOURCE_DIR}/emulators
 )
 
 # Link SDL3
-target_link_libraries(gb-emu PRIVATE SDL3::SDL3)
+target_link_libraries(tatoemu PRIVATE SDL3::SDL3)
 
 # Emscripten-specific settings
 set(EMSCRIPTEN_LINK_FLAGS
@@ -80,7 +80,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
         # Closure compiler disabled - causes issues with SDL3 exports
         # "--closure=1"
     )
-    target_compile_options(gb-emu PRIVATE -O3)
+    target_compile_options(tatoemu PRIVATE -O3)
 else()
     list(APPEND EMSCRIPTEN_LINK_FLAGS
         "-O0"
@@ -88,19 +88,19 @@ else()
         "-sASSERTIONS=1"
         "-sSTACK_OVERFLOW_CHECK=2"
     )
-    target_compile_options(gb-emu PRIVATE -O0 -g)
+    target_compile_options(tatoemu PRIVATE -O0 -g)
 endif()
 
 # Apply linker flags
 string(REPLACE ";" " " EMSCRIPTEN_LINK_FLAGS_STR "${EMSCRIPTEN_LINK_FLAGS}")
-set_target_properties(gb-emu PROPERTIES
+set_target_properties(tatoemu PROPERTIES
     LINK_FLAGS "${EMSCRIPTEN_LINK_FLAGS_STR}"
-    OUTPUT_NAME "gb-emu"
+    OUTPUT_NAME "tatoemu"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 
 # Compiler warnings
-target_compile_options(gb-emu PRIVATE 
+target_compile_options(tatoemu PRIVATE 
     -Wall 
     -Wextra 
     -Wpedantic
@@ -108,7 +108,7 @@ target_compile_options(gb-emu PRIVATE
 )
 
 # Shell file for HTML
-set_target_properties(gb-emu PROPERTIES
+set_target_properties(tatoemu PROPERTIES
     SUFFIX ".html"
     OUTPUT_NAME "index"
 )
