@@ -48,16 +48,16 @@ void Mapper010::cpuWrite(u16 address, u8 value) {
         m_prgBank = value & 0x0F;
     } else if (address >= 0xB000 && address < 0xC000) {
         // CHR bank 0 select ($FD)
-        m_chrBank0FD = value & 0x1F;
+        m_chrBank0FD = value;
     } else if (address >= 0xC000 && address < 0xD000) {
         // CHR bank 0 select ($FE)
-        m_chrBank0FE = value & 0x1F;
+        m_chrBank0FE = value;
     } else if (address >= 0xD000 && address < 0xE000) {
         // CHR bank 1 select ($FD)
-        m_chrBank1FD = value & 0x1F;
+        m_chrBank1FD = value;
     } else if (address >= 0xE000 && address < 0xF000) {
         // CHR bank 1 select ($FE)
-        m_chrBank1FE = value & 0x1F;
+        m_chrBank1FE = value;
     } else if (address >= 0xF000) {
         // Mirroring
         m_mirrorMode = (value & 0x01) ? MirrorMode::HORIZONTAL : MirrorMode::VERTICAL;
