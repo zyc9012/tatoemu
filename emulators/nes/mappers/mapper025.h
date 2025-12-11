@@ -17,6 +17,7 @@ public:
     
     MirrorMode getMirrorMode() const override;
     void scanlineCounter() override;
+    void clockAudio() override;
     
     void saveState(std::ofstream& file) const override;
     void loadState(std::ifstream& file) override;
@@ -33,8 +34,8 @@ private:
     // IRQ
     u8 m_irqLatch;
     u8 m_irqCounter;
-    u8 m_irqPrescaler;
-    u16 m_irqPrescalerCounter;
+    s16 m_irqPrescaler;
+    s16 m_irqPrescalerCounter;
     bool m_irqEnable;
     bool m_irqEnableOnAck;
     bool m_irqMode;

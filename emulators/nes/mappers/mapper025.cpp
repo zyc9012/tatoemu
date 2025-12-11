@@ -225,25 +225,33 @@ MirrorMode Mapper025::getMirrorMode() const {
 }
 
 void Mapper025::scanlineCounter() {
+    // VRC4 IRQ is clocked per CPU cycle (see clockAudio).
+    // Leave empty to avoid double-clocking when Core calls this at PPU scanline time.
+}
+
+void Mapper025::clockAudio() {
     if (!m_irqEnable) return;
     
     if (m_irqMode) {
-        m_irqPrescalerCounter--;
+        // Cycle mode: clock every CPU cycle.
+        if (m_irqCounter == 0xFF) {
+            m_irqCounter = m_irqLatch;
+            m_irqActive = true;
+        } else {
+            m_irqCounter++;
+        }
+    } else {
+        // Scanline mode: divide CPU cycles down to ~341 PPU cycles.
+        m_irqPrescalerCounter -= 3;  // 3 PPU cycles per CPU cycle
         if (m_irqPrescalerCounter <= 0) {
-            m_irqPrescalerCounter = 341;
+            m_irqPrescalerCounter += 341;
+            
             if (m_irqCounter == 0xFF) {
                 m_irqCounter = m_irqLatch;
                 m_irqActive = true;
             } else {
                 m_irqCounter++;
             }
-        }
-    } else {
-        if (m_irqCounter == 0xFF) {
-            m_irqCounter = m_irqLatch;
-            m_irqActive = true;
-        } else {
-            m_irqCounter++;
         }
     }
 }
