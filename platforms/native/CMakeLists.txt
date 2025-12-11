@@ -35,6 +35,7 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper004.cpp
     ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper005.cpp
     ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper010.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper019.cpp
     ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper023.cpp
     ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper024.cpp
     ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper025.cpp
