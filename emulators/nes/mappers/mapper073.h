@@ -16,6 +16,7 @@ public:
     void writeCHR(u16 address, u8 value) override;
     
     void scanlineCounter() override;
+    void clockAudio() override;  // Used to clock the IRQ timer every CPU cycle
     
     void saveState(std::ofstream& file) const override;
     void loadState(std::ifstream& file) override;
@@ -28,7 +29,7 @@ private:
     u16 m_irqCounter;
     bool m_irqEnable;
     bool m_irqEnableOnAck;
-    bool m_irqMode;         // 0 = 16-bit, 1 = 8-bit (high byte only)
+    bool m_irqMode;         // 0 = 16-bit, 1 = 8-bit (low byte only)
 };
 
 } // namespace nes

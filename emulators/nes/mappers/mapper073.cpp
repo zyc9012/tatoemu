@@ -67,7 +67,7 @@ void Mapper073::cpuWrite(u16 address, u8 value) {
             // IRQ control
             m_irqEnableOnAck = (value & 0x01) != 0;
             m_irqEnable = (value & 0x02) != 0;
-            m_irqMode = (value & 0x04) != 0;  // 0 = 16-bit, 1 = 8-bit mode
+            m_irqMode = (value & 0x04) != 0;  // 0 = 16-bit, 1 = 8-bit (low byte only)
             if (m_irqEnable) {
                 m_irqCounter = m_irqLatch;
             }
@@ -94,24 +94,31 @@ void Mapper073::writeCHR(u16 address, u8 value) {
 }
 
 void Mapper073::scanlineCounter() {
-    if (!m_irqEnable) return;
+    // VRC3 IRQ is clocked by CPU cycles, not by scanlines/A12 edges.
+    // Actual ticking happens in clockAudio() which is run every CPU cycle.
+}
+
+void Mapper073::clockAudio() {
+    if (!m_irqEnable) {
+        return;
+    }
     
-    // VRC3 IRQ counts CPU cycles, called ~341 times per scanline
-    // Simplified: increment per scanline call
+    // Clock the IRQ counter once per CPU cycle (called from APU::step).
     if (m_irqMode) {
-        // 8-bit mode (high byte only)
-        u8 high = (m_irqCounter >> 8) & 0xFF;
-        high++;
-        if (high == 0) {
-            m_irqCounter = m_irqLatch;
+        // 8-bit mode: increment the low byte only
+        u8 low = static_cast<u8>(m_irqCounter & 0x00FF);
+        low++;
+        if (low == 0x00) {
+            // Overflow: reload low byte from latch and assert IRQ
+            m_irqCounter = (m_irqCounter & 0xFF00) | (m_irqLatch & 0x00FF);
             m_irqActive = true;
         } else {
-            m_irqCounter = (m_irqCounter & 0x00FF) | (high << 8);
+            m_irqCounter = (m_irqCounter & 0xFF00) | low;
         }
     } else {
-        // 16-bit mode
+        // 16-bit mode: increment full counter
         m_irqCounter++;
-        if (m_irqCounter == 0) {
+        if (m_irqCounter == 0x0000) {
             m_irqCounter = m_irqLatch;
             m_irqActive = true;
         }
