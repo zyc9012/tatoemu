@@ -51,9 +51,11 @@ public:
 
     // Internal VRAM access (from PPU)
     u8 readCIRAM(u16 address) const;
+    void writeCIRAM(u16 address, u8 value);
 
     // Nametable access (for mappers that override VRAM)
     bool readNametable(u16 address, u8& value);
+    bool writeNametable(u16 address, u8 value);
     
     // Mirroring
     MirrorMode getMirrorMode() const;
@@ -136,6 +138,7 @@ public:
 
     // Nametable access
     virtual bool readNametable(u16 /*address*/, u8& /*value*/) { return false; }
+    virtual bool writeNametable(u16 /*address*/, u8 /*value*/) { return false; }
     
     virtual MirrorMode getMirrorMode() const { return m_cartridge->getBaseMirrorMode(); }
     virtual void setMirrorMode(MirrorMode mode) { m_cartridge->setMirrorMode(mode); }

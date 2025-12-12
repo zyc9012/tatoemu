@@ -98,6 +98,7 @@ public:
     
     // Internal RAM access for mappers (MMC5)
     u8 readCIRAM(u16 address) const { return m_vram[address & 0x07FF]; }
+    void writeCIRAM(u16 address, u8 value) { m_vram[address & 0x07FF] = value; }
 
     // Save/Load state
     void saveState(std::ofstream& file) const;

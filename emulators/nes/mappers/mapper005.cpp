@@ -529,6 +529,31 @@ bool Mapper005::readNametable(u16 address, u8& value) {
     return false;
 }
 
+bool Mapper005::writeNametable(u16 address, u8 value) {
+    // MMC5 nametable mapping via $5105 is per-nametable (not simple mirroring),
+    // so PPU writes must respect it as well.
+    address &= 0x3FFF;
+    if (address < 0x2000 || address >= 0x3F00) return false;
+
+    u8 nt = (address >> 10) & 0x03;
+    u8 mode = (m_nametableMapping >> (nt * 2)) & 0x03;
+
+    switch (mode) {
+        case 0: // CIRAM page 0
+            m_cartridge->writeCIRAM(address & 0x03FF, value);
+            return true;
+        case 1: // CIRAM page 1
+            m_cartridge->writeCIRAM(0x400 | (address & 0x03FF), value);
+            return true;
+        case 2: // ExRAM (1KB)
+            m_exRam[address & 0x03FF] = value;
+            return true;
+        case 3: // Fill mode - no backing storage (writes effectively ignored)
+        default:
+            return true;
+    }
+}
+
 MirrorMode Mapper005::getMirrorMode() const {
     return m_cartridge->getBaseMirrorMode();
 }

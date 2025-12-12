@@ -17,6 +17,7 @@ public:
     void writeCHR(u16 address, u8 value) override;
 
     bool readNametable(u16 address, u8& value) override;
+    bool writeNametable(u16 address, u8 value) override;
     
     MirrorMode getMirrorMode() const override;
     void scanlineCounter() override;

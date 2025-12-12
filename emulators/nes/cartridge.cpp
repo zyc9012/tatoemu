@@ -252,9 +252,22 @@ u8 Cartridge::readCIRAM(u16 address) const {
     return 0;
 }
 
+void Cartridge::writeCIRAM(u16 address, u8 value) {
+    if (m_ppu) {
+        m_ppu->writeCIRAM(address, value);
+    }
+}
+
 bool Cartridge::readNametable(u16 address, u8& value) {
     if (m_mapper) {
         return m_mapper->readNametable(address, value);
+    }
+    return false;
+}
+
+bool Cartridge::writeNametable(u16 address, u8 value) {
+    if (m_mapper) {
+        return m_mapper->writeNametable(address, value);
     }
     return false;
 }

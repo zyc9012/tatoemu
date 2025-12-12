@@ -318,6 +318,9 @@ void PPU::ppuWrite(u16 address, u8 value) {
     }
     else if (address < 0x3F00) {
         // Nametables
+        if (m_cartridge && m_cartridge->writeNametable(address, value)) {
+            return;
+        }
         m_vram[mirrorNametableAddress(address)] = value;
     }
     else {
