@@ -363,9 +363,12 @@ u8 Mapper005::readCHR(u16 address) {
     if (m_ppuFetchState >= 2) { // Expect Pattern Low or High
         // Handle ExRAM Mode 1 banking
         if (m_exRamMode == 1) {
-            // 4KB Bank selected by upper 6 bits of ExRAM
-            // This applies to both Pattern Low and High fetches for the background
-            u32 bankIndex = (m_capturedExRam & 0xFC) >> 2; // Upper 6 bits (bits 2-7)
+            // MMC5 ExRAM Mode 1 (Extended Attributes):
+            //   7..6 = palette select (AA)
+            //   5..0 = 4KB CHR bank select (CCCCCC)
+            // Pattern data for the current background tile comes from the 4KB bank
+            // selected by bits 0-5 of the *captured* ExRAM byte.
+            u32 bankIndex = (m_capturedExRam & 0x3F); // Lower 6 bits (bits 0-5)
             
             u32 offset = (bankIndex * 0x1000) + (address & 0x0FFF);
             
@@ -469,7 +472,8 @@ bool Mapper005::readNametable(u16 address, u8& value) {
         
         if (m_exRamMode == 1) {
             // ExRAM Mode 1: Use ExRAM for attributes
-            u8 pal = m_capturedExRam & 0x03;
+            // MMC5 provides per-tile palette in bits 6-7 of captured ExRAM.
+            u8 pal = (m_capturedExRam >> 6) & 0x03;
             // Replicate 2 bits to full byte: 00 00 00 00 -> P P P P
             value = (pal << 6) | (pal << 4) | (pal << 2) | pal;
             return true;
