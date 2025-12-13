@@ -1,6 +1,6 @@
-# GameBoy Emulator
+# TatoEmu - Multi-System Emulator
 
-A GameBoy emulator written in C++ with support for SDL3 and WebAssembly.
+TatoEmu is a multi-system emulator written in C++ with SDL3 and WebAssembly targets. It currently supports GB/GBC and NES ROMs.
 
 ## Requirements
 
@@ -61,10 +61,10 @@ cd web && python3 -m http.server 8080
 ## Usage
 
 ```bash
-./tatoemu <path_to_rom.gb> [bootrom_file]
+./tatoemu <path_to_rom> [bootrom_file]
 ```
 
-### Controls
+### Controls (both systems)
 
 - **Arrow Keys** - D-Pad (Up/Down/Left/Right)
 - **Z** - A Button
@@ -72,29 +72,42 @@ cd web && python3 -m http.server 8080
 - **Enter** - Start Button
 - **Shift** - Select Button
 - **ESC** - Quit emulator
-- **F5** - Quick save
-- **F9** - Quick load
+- **F5** - Quick save state
+- **F9** - Quick load state
 - **P** - Pause / Resume
 
-## Supported Cartridge Types
+## Supported Systems and Cartridge/Board Types
 
-- **ROM only** (Type 0x00) - No banking, up to 32KB ROM
-- **ROM + RAM** (Type 0x08-0x09) - ROM with external RAM
-- **MBC1** (Type 0x01) - Basic ROM banking, up to 2MB ROM
-- **MBC1 + RAM** (Type 0x02-0x03) - MBC1 with external RAM (8KB-32KB)
-- **MBC1M** - MBC1 with multi-ROM support (enhanced banking)
-- **MBC2** (Type 0x05) - 512x4 bits internal RAM
-- **MBC2 + Battery** (Type 0x06) - MBC2 with battery backup
-- **MBC3** (Type 0x11-0x13) - ROM banking with optional RAM
-- **MBC3 + Timer + Battery** (Type 0x0F-0x10) - MBC3 with Real-Time Clock (RTC)
-- **MBC30** - MBC3 variant with larger ROM/RAM support
-- **MBC5** (Type 0x19) - Up to 8MB ROM, 128KB RAM
-- **MBC5 + RAM** (Type 0x1A-0x1B) - MBC5 with external RAM
-- **MBC5 + Rumble** (Type 0x1C-0x1E) - MBC5 with rumble motor support
-- **MBC7** (Type 0x22) - Accelerometer support with 256KB RAM
+### Game Boy / Game Boy Color
+
+- ROM only (0x00) - No banking, up to 32KB ROM
+- ROM + RAM (0x08-0x09) - ROM with external RAM
+- MBC1 (0x01) - Basic ROM banking, up to 2MB ROM
+- MBC1 + RAM (0x02-0x03) - MBC1 with external RAM (8KB-32KB)
+- MBC1M - MBC1 with multi-ROM support (enhanced banking)
+- MBC2 (0x05) - 512x4 bits internal RAM
+- MBC2 + Battery (0x06) - MBC2 with battery backup
+- MBC3 (0x11-0x13) - ROM banking with optional RAM
+- MBC3 + Timer + Battery (0x0F-0x10) - MBC3 with Real-Time Clock (RTC)
+- MBC30 - MBC3 variant with larger ROM/RAM support
+- MBC5 (0x19) - Up to 8MB ROM, 128KB RAM
+- MBC5 + RAM (0x1A-0x1B) - MBC5 with external RAM
+- MBC5 + Rumble (0x1C-0x1E) - MBC5 with rumble motor support
+- MBC7 (0x22) - Accelerometer support with 256KB RAM
+
+### Nintendo Entertainment System
+
+Supported mapper/board implementations include:
+
+- NROM (000), MMC1 (001), UxROM (002), CNROM (003), MMC3 (004)
+- MMC5 (005), MMC4 (010), Namco 163/129 (019), VRC2/VRC4 family (023/024/025/026)
+- Konami VRC3 (073), VRC1 clone (074)
+
+If you find a ROM using an unsupported mapper, file an issue or contribute an implementation.
 
 ## Resources
 
 - [Pan Docs](https://gbdev.io/pandocs/) - Comprehensive GameBoy technical documentation
 - [GameBoy CPU Manual](http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf)
+- [NESDev Wiki](https://www.nesdev.org/wiki/Main_Page) - NES architecture, mappers, tests
 
