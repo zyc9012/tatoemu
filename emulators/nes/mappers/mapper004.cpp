@@ -17,7 +17,6 @@ Mapper004::Mapper004(Cartridge* cartridge)
 
 void Mapper004::reset() {
     m_bankSelect = 0;
-    std::memset(m_bankData, 0, sizeof(m_bankData));
     m_irqLatch = 0;
     m_irqCounter = 0;
     m_irqEnable = false;
@@ -25,6 +24,14 @@ void Mapper004::reset() {
     m_irqActive = false;
     m_mirrorMode = m_cartridge->getBaseMirrorMode();
     m_prgRamEnable = true;
+    m_bankData[0] = 0;
+    m_bankData[1] = 2;
+    m_bankData[2] = 4;
+    m_bankData[3] = 5;
+    m_bankData[4] = 6;
+    m_bankData[5] = 7;
+    m_bankData[6] = 0;
+    m_bankData[7] = 1;
     updateBanks();
 }
 
