@@ -75,7 +75,9 @@ public:
     // ROM info
     bool isLoaded() const { return m_loaded; }
     const std::string& getTitle() const { return m_title; }
-    u8 getMapperNumber() const { return m_mapperNumber; }
+    u16 getMapperNumber() const { return m_mapperNumber; }
+    u8 getSubMapper() const { return m_subMapper; }
+    bool isNES20() const { return m_isNES20; }
     
     // Raw ROM access (for mappers)
     std::vector<u8>& getPRG() { return m_prgRom; }
@@ -113,12 +115,14 @@ private:
     std::string m_title;
     fs::path m_romFilename;
     
-    u8 m_mapperNumber;
-    u8 m_prgBanks;               // Number of 16KB PRG ROM banks
-    u8 m_chrBanks;               // Number of 8KB CHR ROM banks
+    u16 m_mapperNumber;          // Mapper number (up to 4095 for NES 2.0)
+    u8 m_subMapper;              // Sub-mapper number (NES 2.0 only)
+    u8 m_prgBanks;               // Number of 16KB PRG ROM banks (legacy, for display)
+    u8 m_chrBanks;               // Number of 8KB CHR ROM banks (legacy, for display)
     MirrorMode m_mirrorMode;
     bool m_hasBattery;
     bool m_hasTrainer;
+    bool m_isNES20;              // NES 2.0 format flag
     bool m_loaded;
 };
 

@@ -26,11 +26,13 @@ Cartridge::Cartridge()
     : m_cpu(nullptr)
     , m_ppu(nullptr)
     , m_mapperNumber(0)
+    , m_subMapper(0)
     , m_prgBanks(0)
     , m_chrBanks(0)
     , m_mirrorMode(MirrorMode::HORIZONTAL)
     , m_hasBattery(false)
     , m_hasTrainer(false)
+    , m_isNES20(false)
     , m_loaded(false) {
 }
 
@@ -69,7 +71,11 @@ bool Cartridge::load(const fs::path& filename) {
     createMapper();
     
     if (!m_mapper) {
-        std::cerr << "Unsupported mapper: " << static_cast<int>(m_mapperNumber) << std::endl;
+        std::cerr << "Unsupported mapper: " << m_mapperNumber;
+        if (m_isNES20 && m_subMapper > 0) {
+            std::cerr << "." << static_cast<int>(m_subMapper);
+        }
+        std::cerr << std::endl;
         return false;
     }
     
@@ -82,10 +88,64 @@ bool Cartridge::load(const fs::path& filename) {
     m_mapper->reset();
     
     std::cout << "Loaded ROM: " << m_title << std::endl;
-    std::cout << "  Mapper: " << static_cast<int>(m_mapperNumber) << std::endl;
+    std::cout << "  Format: " << (m_isNES20 ? "NES 2.0" : "iNES") << std::endl;
+    std::cout << "  Mapper: " << static_cast<int>(m_mapperNumber);
+    if (m_isNES20 && m_subMapper > 0) {
+        std::cout << "." << static_cast<int>(m_subMapper);
+    }
+    std::cout << std::endl;
     std::cout << "  PRG ROM: " << static_cast<int>(m_prgBanks) << " x 16KB" << std::endl;
     std::cout << "  CHR ROM: " << static_cast<int>(m_chrBanks) << " x 8KB" << std::endl;
-    std::cout << "  Mirroring: " << (m_mirrorMode == MirrorMode::VERTICAL ? "Vertical" : "Horizontal") << std::endl;
+    
+    // Print RAM sizes
+    size_t prgRamSize = m_prgRam.size();
+    if (prgRamSize > 0) {
+        if (prgRamSize >= 1024) {
+            std::cout << "  PRG RAM: " << (prgRamSize / 1024) << "KB";
+        } else {
+            std::cout << "  PRG RAM: " << prgRamSize << " bytes";
+        }
+        if (m_hasBattery) {
+            std::cout << " (battery-backed)";
+        }
+        std::cout << std::endl;
+    }
+    
+    // CHR RAM is only allocated if there's no CHR ROM
+    if (m_chrBanks == 0) {
+        size_t chrRamSize = m_chrRom.size();
+        if (chrRamSize > 0) {
+            if (chrRamSize >= 1024) {
+                std::cout << "  CHR RAM: " << (chrRamSize / 1024) << "KB";
+            } else {
+                std::cout << "  CHR RAM: " << chrRamSize << " bytes";
+            }
+            std::cout << std::endl;
+        }
+    }
+    
+    std::cout << "  Mirroring: ";
+    switch (m_mirrorMode) {
+        case MirrorMode::HORIZONTAL:
+            std::cout << "Horizontal";
+            break;
+        case MirrorMode::VERTICAL:
+            std::cout << "Vertical";
+            break;
+        case MirrorMode::SINGLE_SCREEN_A:
+            std::cout << "Single Screen A";
+            break;
+        case MirrorMode::SINGLE_SCREEN_B:
+            std::cout << "Single Screen B";
+            break;
+        case MirrorMode::FOUR_SCREEN:
+            std::cout << "Four Screen";
+            break;
+        default:
+            std::cout << "Unknown";
+            break;
+    }
+    std::cout << std::endl;
     std::cout << "  Battery: " << (m_hasBattery ? "Yes" : "No") << std::endl;
     
     return true;
@@ -98,14 +158,26 @@ bool Cartridge::parseINES(const std::vector<u8>& data) {
         return false;
     }
     
-    m_prgBanks = data[4];
-    m_chrBanks = data[5];
-    
-    u8 flags6 = data[6];
+    // Check if this is NES 2.0 format
+    // NES 2.0 is detected by: (Byte7 & 0x0C) == 0x08
     u8 flags7 = data[7];
+    m_isNES20 = ((flags7 & 0x0C) == 0x08);
+    
+    u8 prgCount = data[4];
+    u8 chrCount = data[5];
+    u8 flags6 = data[6];
     
     // Mapper number
-    m_mapperNumber = ((flags6 >> 4) & 0x0F) | (flags7 & 0xF0);
+    if (m_isNES20) {
+        // NES 2.0: Mapper = ((Byte8 & 0x0F) << 8) | (Byte7 & 0xF0) | (Byte6 >> 4)
+        u8 byte8 = data[8];
+        m_mapperNumber = ((byte8 & 0x0F) << 8) | (flags7 & 0xF0) | (flags6 >> 4);
+        m_subMapper = (byte8 & 0xF0) >> 4;
+    } else {
+        // iNES: Mapper = (Byte7 & 0xF0) | (Byte6 >> 4)
+        m_mapperNumber = (flags7 & 0xF0) | (flags6 >> 4);
+        m_subMapper = 0;
+    }
     
     // Mirroring
     if (flags6 & 0x08) {
@@ -122,6 +194,117 @@ bool Cartridge::parseINES(const std::vector<u8>& data) {
     // Trainer
     m_hasTrainer = (flags6 & 0x04) != 0;
     
+    // Calculate PRG ROM size
+    size_t prgSize;
+    if (m_isNES20) {
+        u8 byte9 = data[9];
+        if ((byte9 & 0x0F) == 0x0F) {
+            // Exponential format: size = (2^exponent) * (multiplier * 2 + 1)
+            u8 exponent = prgCount >> 2;
+            u8 multiplier = prgCount & 0x03;
+            if (exponent > 60) {
+                std::cerr << "Unsupported PRG ROM size (exponent too large)" << std::endl;
+                return false;
+            }
+            u64 multiplierValue = multiplier * 2 + 1;
+            u64 size = multiplierValue * (static_cast<u64>(1) << exponent);
+            if (size > 0xFFFFFFFF) {
+                std::cerr << "Unsupported PRG ROM size (too large)" << std::endl;
+                return false;
+            }
+            prgSize = static_cast<size_t>(size);
+            size_t banks = (prgSize + PRG_ROM_BANK_SIZE - 1) / PRG_ROM_BANK_SIZE;
+            m_prgBanks = (banks > 255) ? 255 : static_cast<u8>(banks);
+        } else {
+            // Linear format: size = (((Byte9 & 0x0F) << 8) | PrgCount) * 0x4000
+            u16 banks = ((byte9 & 0x0F) << 8) | prgCount;
+            prgSize = banks * PRG_ROM_BANK_SIZE;
+            m_prgBanks = (banks > 255) ? 255 : static_cast<u8>(banks);
+        }
+    } else {
+        // iNES format
+        if (prgCount == 0) {
+            prgSize = 256 * PRG_ROM_BANK_SIZE;  // 0 means 256 banks
+            m_prgBanks = 255;  // Cap at 255 for display (actual size is correct)
+        } else {
+            prgSize = prgCount * PRG_ROM_BANK_SIZE;
+            m_prgBanks = prgCount;
+        }
+    }
+    
+    // Calculate CHR ROM size
+    size_t chrSize;
+    if (m_isNES20) {
+        u8 byte9 = data[9];
+        if ((byte9 & 0xF0) == 0xF0) {
+            // Exponential format: size = (2^exponent) * (multiplier * 2 + 1)
+            u8 exponent = chrCount >> 2;
+            u8 multiplier = chrCount & 0x03;
+            if (exponent > 60) {
+                std::cerr << "Unsupported CHR ROM size (exponent too large)" << std::endl;
+                return false;
+            }
+            u64 multiplierValue = multiplier * 2 + 1;
+            u64 size = multiplierValue * (static_cast<u64>(1) << exponent);
+            if (size > 0xFFFFFFFF) {
+                std::cerr << "Unsupported CHR ROM size (too large)" << std::endl;
+                return false;
+            }
+            chrSize = static_cast<size_t>(size);
+            size_t banks = (chrSize + CHR_ROM_BANK_SIZE - 1) / CHR_ROM_BANK_SIZE;
+            m_chrBanks = (banks > 255) ? 255 : static_cast<u8>(banks);
+        } else {
+            // Linear format: size = (((Byte9 & 0xF0) << 4) | ChrCount) * 0x2000
+            u16 banks = ((byte9 & 0xF0) << 4) | chrCount;
+            chrSize = banks * CHR_ROM_BANK_SIZE;
+            m_chrBanks = (banks > 255) ? 255 : static_cast<u8>(banks);
+        }
+    } else {
+        // iNES format
+        chrSize = chrCount * CHR_ROM_BANK_SIZE;
+        m_chrBanks = chrCount;
+    }
+    
+    // Calculate PRG RAM sizes (NES 2.0)
+    size_t prgRamSize = 0x2000;  // Default 8KB
+    if (m_isNES20) {
+        u8 byte10 = data[10];
+        // Work RAM (non-battery): lower nibble
+        u8 workRamExp = byte10 & 0x0F;
+        size_t workRamSize = 0;
+        if (workRamExp > 0) {
+            workRamSize = 128 * (static_cast<size_t>(1) << (workRamExp - 1));
+        }
+        // Save RAM (battery): upper nibble
+        u8 saveRamExp = (byte10 & 0xF0) >> 4;
+        size_t saveRamSize = 0;
+        if (saveRamExp > 0) {
+            saveRamSize = 128 * (static_cast<size_t>(1) << (saveRamExp - 1));
+        }
+        // Use the larger of the two, or default to 8KB if both are 0
+        prgRamSize = (workRamSize > 0 || saveRamSize > 0) ? 
+                     std::max(workRamSize, saveRamSize) : 0x2000;
+    }
+    
+    // Calculate CHR RAM sizes (NES 2.0)
+    size_t chrRamSize = 0;
+    if (m_isNES20) {
+        u8 byte11 = data[11];
+        // CHR RAM: lower nibble
+        u8 chrRamExp = byte11 & 0x0F;
+        if (chrRamExp > 0) {
+            chrRamSize = 128 * (static_cast<size_t>(1) << (chrRamExp - 1));
+        }
+        // Save CHR RAM: upper nibble (for battery-backed CHR RAM)
+        u8 saveChrRamExp = (byte11 & 0xF0) >> 4;
+        if (saveChrRamExp > 0) {
+            size_t saveChrRamSize = 128 * (static_cast<size_t>(1) << (saveChrRamExp - 1));
+            if (saveChrRamSize > chrRamSize) {
+                chrRamSize = saveChrRamSize;
+            }
+        }
+    }
+    
     // Calculate data offsets
     size_t offset = INES_HEADER_SIZE;
     if (m_hasTrainer) {
@@ -129,7 +312,6 @@ bool Cartridge::parseINES(const std::vector<u8>& data) {
     }
     
     // PRG ROM
-    size_t prgSize = m_prgBanks * PRG_ROM_BANK_SIZE;
     if (offset + prgSize > data.size()) {
         std::cerr << "PRG ROM data too small" << std::endl;
         return false;
@@ -138,20 +320,20 @@ bool Cartridge::parseINES(const std::vector<u8>& data) {
     offset += prgSize;
     
     // CHR ROM (or allocate CHR RAM)
-    if (m_chrBanks > 0) {
-        size_t chrSize = m_chrBanks * CHR_ROM_BANK_SIZE;
+    if (chrSize > 0) {
         if (offset + chrSize > data.size()) {
             std::cerr << "CHR ROM data too small" << std::endl;
             return false;
         }
         m_chrRom.assign(data.begin() + offset, data.begin() + offset + chrSize);
     } else {
-        // Allocate 8KB CHR RAM
-        m_chrRom.resize(CHR_ROM_BANK_SIZE, 0);
+        // Allocate CHR RAM (use NES 2.0 size if specified, otherwise default 8KB)
+        size_t allocatedChrRamSize = (chrRamSize > 0) ? chrRamSize : CHR_ROM_BANK_SIZE;
+        m_chrRom.resize(allocatedChrRamSize, 0);
     }
     
-    // Allocate PRG RAM (8KB default)
-    m_prgRam.resize(0x2000, 0);
+    // Allocate PRG RAM
+    m_prgRam.resize(prgRamSize, 0);
     
     return true;
 }
