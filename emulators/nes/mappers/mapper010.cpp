@@ -12,7 +12,7 @@ Mapper010::Mapper010(Cartridge* cartridge)
     , m_chrBank1FE(0)
     , m_latch0(0xFE)
     , m_latch1(0xFE)
-    , m_mirrorMode(MirrorMode::HORIZONTAL) {
+    , m_mirrorMode(cartridge->getBaseMirrorMode()) {
 }
 
 void Mapper010::reset() {
@@ -23,7 +23,7 @@ void Mapper010::reset() {
     m_chrBank1FE = 0;
     m_latch0 = 0xFE;
     m_latch1 = 0xFE;
-    m_mirrorMode = MirrorMode::HORIZONTAL;
+    m_mirrorMode = m_cartridge->getBaseMirrorMode();
 }
 
 u8 Mapper010::cpuRead(u16 address) {

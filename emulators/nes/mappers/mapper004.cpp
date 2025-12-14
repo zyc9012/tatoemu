@@ -1,7 +1,6 @@
 #include "mapper004.h"
 #include "../consts.h"
 #include <cstring>
-
 namespace nes {
 
 Mapper004::Mapper004(Cartridge* cartridge)
@@ -11,7 +10,7 @@ Mapper004::Mapper004(Cartridge* cartridge)
     , m_irqCounter(0)
     , m_irqEnable(false)
     , m_irqReload(false)
-    , m_mirrorMode(MirrorMode::HORIZONTAL)
+    , m_mirrorMode(cartridge->getBaseMirrorMode())
     , m_prgRamEnable(true) {
     std::memset(m_bankData, 0, sizeof(m_bankData));
 }
@@ -24,7 +23,7 @@ void Mapper004::reset() {
     m_irqEnable = false;
     m_irqReload = false;
     m_irqActive = false;
-    m_mirrorMode = MirrorMode::HORIZONTAL;
+    m_mirrorMode = m_cartridge->getBaseMirrorMode();
     m_prgRamEnable = true;
     updateBanks();
 }
