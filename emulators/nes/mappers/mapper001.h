@@ -31,6 +31,8 @@ private:
     u8 m_chrBank0;      // $A000-$BFFF
     u8 m_chrBank1;      // $C000-$DFFF
     u8 m_prgBank;       // $E000-$FFFF
+
+    u16 m_lastChrReg;   // Last CHR register written to (for SUROM page selection)
     
     u32 m_prgBankOffset[2];
     u32 m_chrBankOffset[2];

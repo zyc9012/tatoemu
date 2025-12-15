@@ -11,7 +11,8 @@ Mapper001::Mapper001(Cartridge* cartridge)
     , m_control(0x0C)
     , m_chrBank0(0)
     , m_chrBank1(0)
-    , m_prgBank(0) {
+    , m_prgBank(0)
+    , m_lastChrReg(0xA000) {
 }
 
 void Mapper001::reset() {
@@ -22,34 +23,44 @@ void Mapper001::reset() {
     m_chrBank0 = 0;
     m_chrBank1 = 0;
     m_prgBank = 0;
+    m_lastChrReg = 0xA000;
     updateBanks();
 }
 
 void Mapper001::updateBanks() {
     const auto& prg = m_cartridge->getPRG();
     const auto& chr = m_cartridge->getCHR();
-    
+
     u32 prgSize = prg.size();
     u32 chrSize = chr.size();
-    
+
+    // SUROM support: 512KB carts use bit 4 of CHR register for PRG page selection
+    u8 prgPageSelect = 0;
+    if (prgSize == 0x80000) {
+        // Use the last written CHR register to determine PRG page
+        u8 extraReg = (m_lastChrReg == 0xC000 && (m_control & 0x10)) ? m_chrBank1 : m_chrBank0;
+        prgPageSelect = extraReg & 0x10;  // bit 4 of CHR register becomes bit 4 of PRG bank select
+    }
+
     // PRG bank switching
     u8 prgMode = (m_control >> 2) & 0x03;
-    
+    u8 prgBankSelect = m_prgBank | prgPageSelect;
+
     switch (prgMode) {
         case 0:
         case 1:
             // 32KB mode (ignore low bit of bank number)
-            m_prgBankOffset[0] = ((m_prgBank & 0x0E) % (prgSize / 0x4000)) * 0x4000;
+            m_prgBankOffset[0] = ((prgBankSelect & ~0x01) % (prgSize / 0x4000)) * 0x4000;
             m_prgBankOffset[1] = m_prgBankOffset[0] + 0x4000;
             break;
         case 2:
             // Fix first bank, switch second
             m_prgBankOffset[0] = 0;
-            m_prgBankOffset[1] = ((m_prgBank & 0x0F) % (prgSize / 0x4000)) * 0x4000;
+            m_prgBankOffset[1] = (prgBankSelect % (prgSize / 0x4000)) * 0x4000;
             break;
         case 3:
             // Switch first bank, fix last
-            m_prgBankOffset[0] = ((m_prgBank & 0x0F) % (prgSize / 0x4000)) * 0x4000;
+            m_prgBankOffset[0] = (prgBankSelect % (prgSize / 0x4000)) * 0x4000;
             m_prgBankOffset[1] = prgSize - 0x4000;
             break;
     }
@@ -117,13 +128,15 @@ void Mapper001::cpuWrite(u16 address, u8 value) {
                         m_control = m_shiftRegister;
                         break;
                     case 1:  // $A000-$BFFF: CHR bank 0
-                        m_chrBank0 = m_shiftRegister;
+                        m_chrBank0 = m_shiftRegister & 0x1F;
+                        m_lastChrReg = address;
                         break;
                     case 2:  // $C000-$DFFF: CHR bank 1
-                        m_chrBank1 = m_shiftRegister;
+                        m_chrBank1 = m_shiftRegister & 0x1F;;
+                        m_lastChrReg = address;
                         break;
                     case 3:  // $E000-$FFFF: PRG bank
-                        m_prgBank = m_shiftRegister;
+                        m_prgBank = m_shiftRegister & 0x0F;
                         break;
                 }
                 
@@ -170,6 +183,7 @@ void Mapper001::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_chrBank0), sizeof(m_chrBank0));
     file.write(reinterpret_cast<const char*>(&m_chrBank1), sizeof(m_chrBank1));
     file.write(reinterpret_cast<const char*>(&m_prgBank), sizeof(m_prgBank));
+    file.write(reinterpret_cast<const char*>(&m_lastChrReg), sizeof(m_lastChrReg));
 }
 
 void Mapper001::loadState(std::ifstream& file) {
@@ -180,6 +194,7 @@ void Mapper001::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_chrBank0), sizeof(m_chrBank0));
     file.read(reinterpret_cast<char*>(&m_chrBank1), sizeof(m_chrBank1));
     file.read(reinterpret_cast<char*>(&m_prgBank), sizeof(m_prgBank));
+    file.read(reinterpret_cast<char*>(&m_lastChrReg), sizeof(m_lastChrReg));
     updateBanks();
 }
 
