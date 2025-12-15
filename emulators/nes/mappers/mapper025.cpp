@@ -7,7 +7,7 @@ namespace nes {
 Mapper025::Mapper025(Cartridge* cartridge)
     : Mapper(cartridge)
     , m_prgSwapMode(0)
-    , m_mirrorMode(MirrorMode::VERTICAL)
+    , m_mirrorMode(cartridge->getBaseMirrorMode())
     , m_irqLatch(0)
     , m_irqCounter(0)
     , m_irqPrescaler(0)
@@ -27,7 +27,7 @@ void Mapper025::reset() {
     std::memset(m_chrBank, 0, sizeof(m_chrBank));
     std::memset(m_chrBankHigh, 0, sizeof(m_chrBankHigh));
     m_prgSwapMode = 0;
-    m_mirrorMode = MirrorMode::VERTICAL;
+    m_mirrorMode = m_cartridge->getBaseMirrorMode();
     m_irqLatch = 0;
     m_irqCounter = 0;
     m_irqPrescaler = 0;
