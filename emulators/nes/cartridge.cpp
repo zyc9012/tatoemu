@@ -147,6 +147,7 @@ bool Cartridge::load(const fs::path& filename) {
     }
     std::cout << std::endl;
     std::cout << "  Battery: " << (m_hasBattery ? "Yes" : "No") << std::endl;
+    std::cout << "  Trainer: " << (m_hasTrainer ? "Yes" : "No") << std::endl;
     
     return true;
 }
@@ -308,7 +309,13 @@ bool Cartridge::parseINES(const std::vector<u8>& data) {
     // Calculate data offsets
     size_t offset = INES_HEADER_SIZE;
     if (m_hasTrainer) {
-        offset += 512;  // Skip trainer
+        // Load trainer data (512 bytes, mapped at $7000-$71FF)
+        if (offset + 512 > data.size()) {
+            std::cerr << "Trainer data too small" << std::endl;
+            return false;
+        }
+        m_trainer.assign(data.begin() + offset, data.begin() + offset + 512);
+        offset += 512;
     }
     
     // PRG ROM
@@ -334,6 +341,11 @@ bool Cartridge::parseINES(const std::vector<u8>& data) {
     
     // Allocate PRG RAM
     m_prgRam.resize(prgRamSize, 0);
+    
+    // Load trainer into PRG RAM at offset 0x1000 ($7000-$71FF in $6000-$7FFF range)
+    if (m_hasTrainer && m_prgRam.size() >= 0x2000 && m_trainer.size() > 0) {
+        std::copy(m_trainer.begin(), m_trainer.end(), m_prgRam.begin() + 0x1000);
+    }
     
     return true;
 }

@@ -98,6 +98,7 @@ public:
     void saveBattery() const;
     void loadBattery();
     bool hasBattery() const { return m_hasBattery; }
+    bool hasTrainer() const { return m_hasTrainer; }
 
 private:
     bool parseINES(const std::vector<u8>& data);
@@ -111,6 +112,7 @@ private:
     std::vector<u8> m_prgRom;    // PRG ROM
     std::vector<u8> m_chrRom;    // CHR ROM (or RAM)
     std::vector<u8> m_prgRam;    // PRG RAM (battery-backed SRAM)
+    std::vector<u8> m_trainer;   // Trainer data (512 bytes, mapped at $7000-$71FF)
     
     std::string m_title;
     fs::path m_romFilename;
