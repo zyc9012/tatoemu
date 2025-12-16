@@ -15,6 +15,7 @@
 #include "mappers/mapper026.h"
 #include "mappers/mapper073.h"
 #include "mappers/mapper074.h"
+#include "mappers/mapper163.h"
 #include <iostream>
 #include <fstream>
 #include <algorithm>
@@ -393,6 +394,9 @@ void Cartridge::createMapper() {
             break;
         case 74:
             m_mapper = std::make_unique<Mapper074>(this);
+            break;
+        case 163:
+            m_mapper = std::make_unique<Mapper163>(this);
             break;
         default:
             m_mapper = nullptr;

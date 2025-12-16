@@ -29,6 +29,7 @@ class Mapper026;
 class Mapper019;
 class Mapper073;
 class Mapper074;
+class Mapper163;
 
 class Cartridge {
 public:
@@ -89,6 +90,9 @@ public:
     
     // CPU cycle access (for mapper timing)
     u32 getCpuCycles() const;
+    
+    // PPU access (for mappers that need scanline/cycle info)
+    PPU* getPPU() const { return m_ppu; }
     
     // Save/Load state
     void saveState(std::ofstream& file) const;
