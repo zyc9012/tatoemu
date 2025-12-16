@@ -42,7 +42,10 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper026.cpp
     ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper073.cpp
     ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper074.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper162.cpp
     ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper163.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper164.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper178.cpp
     ${CMAKE_SOURCE_DIR}/emulators/emulator.cpp
     ${CMAKE_SOURCE_DIR}/platforms/native/main.cpp
 )

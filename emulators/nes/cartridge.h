@@ -29,7 +29,10 @@ class Mapper026;
 class Mapper019;
 class Mapper073;
 class Mapper074;
+class Mapper162;
 class Mapper163;
+class Mapper164;
+class Mapper178;
 
 class Cartridge {
 public:
