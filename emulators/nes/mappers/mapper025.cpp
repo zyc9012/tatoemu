@@ -62,7 +62,7 @@ void Mapper025::updateBanks() {
     
     // CHR banks
     for (int i = 0; i < 8; i++) {
-        u8 bank = m_chrBank[i] | (m_chrBankHigh[i] << 4);
+        u32 bank = m_chrBank[i] | (m_chrBankHigh[i] << 4);
         m_chrBankOffset[i] = (bank % chrBanks1k) * 0x400;
     }
 }
