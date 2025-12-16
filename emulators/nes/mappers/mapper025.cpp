@@ -92,119 +92,47 @@ void Mapper025::cpuWrite(u16 address, u8 value) {
     u16 a1 = ((address >> 0) & 0x01) | ((address >> 2) & 0x01);  // VRC4b: A0, VRC4d: A2
     u16 reg = (address & 0xF000) | (a1 << 1) | a0;
     
-    switch (reg) {
-        case 0x8000: case 0x8001: case 0x8002: case 0x8003:
-            m_prgBank[0] = value & 0x1F;
-            updateBanks();
-            break;
-            
-        case 0x9000: case 0x9001:
-            switch (value & 0x03) {
-                case 0: m_mirrorMode = MirrorMode::VERTICAL; break;
-                case 1: m_mirrorMode = MirrorMode::HORIZONTAL; break;
-                case 2: m_mirrorMode = MirrorMode::SINGLE_SCREEN_A; break;
-                case 3: m_mirrorMode = MirrorMode::SINGLE_SCREEN_B; break;
-            }
-            break;
-            
-        case 0x9002: case 0x9003:
-            m_prgSwapMode = value;
-            updateBanks();
-            break;
-            
-        case 0xA000: case 0xA001: case 0xA002: case 0xA003:
-            m_prgBank[1] = value & 0x1F;
-            updateBanks();
-            break;
-            
-        case 0xB000:
-            m_chrBank[0] = value & 0x0F;
-            updateBanks();
-            break;
-        case 0xB001:
-            m_chrBankHigh[0] = value & 0x1F;
-            updateBanks();
-            break;
-        case 0xB002:
-            m_chrBank[1] = value & 0x0F;
-            updateBanks();
-            break;
-        case 0xB003:
-            m_chrBankHigh[1] = value & 0x1F;
-            updateBanks();
-            break;
-            
-        case 0xC000:
-            m_chrBank[2] = value & 0x0F;
-            updateBanks();
-            break;
-        case 0xC001:
-            m_chrBankHigh[2] = value & 0x1F;
-            updateBanks();
-            break;
-        case 0xC002:
-            m_chrBank[3] = value & 0x0F;
-            updateBanks();
-            break;
-        case 0xC003:
-            m_chrBankHigh[3] = value & 0x1F;
-            updateBanks();
-            break;
-            
-        case 0xD000:
-            m_chrBank[4] = value & 0x0F;
-            updateBanks();
-            break;
-        case 0xD001:
-            m_chrBankHigh[4] = value & 0x1F;
-            updateBanks();
-            break;
-        case 0xD002:
-            m_chrBank[5] = value & 0x0F;
-            updateBanks();
-            break;
-        case 0xD003:
-            m_chrBankHigh[5] = value & 0x1F;
-            updateBanks();
-            break;
-            
-        case 0xE000:
-            m_chrBank[6] = value & 0x0F;
-            updateBanks();
-            break;
-        case 0xE001:
-            m_chrBankHigh[6] = value & 0x1F;
-            updateBanks();
-            break;
-        case 0xE002:
-            m_chrBank[7] = value & 0x0F;
-            updateBanks();
-            break;
-        case 0xE003:
-            m_chrBankHigh[7] = value & 0x1F;
-            updateBanks();
-            break;
-            
-        case 0xF000:
-            m_irqLatch = (m_irqLatch & 0xF0) | (value & 0x0F);
-            break;
-        case 0xF001:
-            m_irqLatch = (m_irqLatch & 0x0F) | ((value & 0x0F) << 4);
-            break;
-        case 0xF002:
-            m_irqEnableOnAck = (value & 0x01) != 0;
-            m_irqEnable = (value & 0x02) != 0;
-            m_irqMode = (value & 0x04) != 0;
-            if (m_irqEnable) {
-                m_irqCounter = m_irqLatch;
-                m_irqPrescalerCounter = 341;
-            }
-            m_irqActive = false;
-            break;
-        case 0xF003:
-            m_irqEnable = m_irqEnableOnAck;
-            m_irqActive = false;
-            break;
+    if (reg >= 0x8000 && reg <= 0x8006) {
+        m_prgBank[0] = value & 0x1F; 
+        updateBanks();
+    } else if (reg >= 0x9000 && reg <= 0x9001) {
+        switch (value & 0x03) {
+            case 0: m_mirrorMode = MirrorMode::VERTICAL; break;
+            case 1: m_mirrorMode = MirrorMode::HORIZONTAL; break;
+            case 2: m_mirrorMode = MirrorMode::SINGLE_SCREEN_A; break;
+            case 3: m_mirrorMode = MirrorMode::SINGLE_SCREEN_B; break;
+        }
+    } else if (reg >= 0x9002 && reg <= 0x9003) {
+        m_prgSwapMode = value;
+        updateBanks();
+    } else if (reg >= 0xA000 && reg <= 0xA006) {
+        m_prgBank[1] = value & 0x1F;
+        updateBanks();
+    } else if (reg >= 0xB000 && reg <= 0xE006) {
+        u8 regNumber = ((((reg >> 12) & 0x07) - 3) << 1) + ((reg >> 1) & 0x01);
+        bool lowBits = (reg & 0x01) == 0x00;
+        if (lowBits) {
+            m_chrBank[regNumber] = value & 0x0F;
+        } else {
+            m_chrBankHigh[regNumber] = value & 0x1F;
+        }
+        updateBanks();
+    } else if (reg == 0xF000) {
+        m_irqLatch = (m_irqLatch & 0xF0) | (value & 0x0F);
+    } else if (reg == 0xF001) {
+        m_irqLatch = (m_irqLatch & 0x0F) | ((value & 0x0F) << 4);
+    } else if (reg == 0xF002) {
+        m_irqEnableOnAck = (value & 0x01) != 0;
+        m_irqEnable = (value & 0x02) != 0;
+        m_irqMode = (value & 0x04) != 0;
+        if (m_irqEnable) {
+            m_irqCounter = m_irqLatch;
+            m_irqPrescalerCounter = 341;
+        }
+        m_irqActive = false;
+    } else if (reg == 0xF003) {
+        m_irqEnable = m_irqEnableOnAck;
+        m_irqActive = false;
     }
 }
 
