@@ -5,8 +5,6 @@
 #include <iostream>
 #include <string>
 
-using namespace gb;
-
 // Emulator wrapper class with public access to necessary methods
 class EmulatorWasm {
 public:
@@ -76,7 +74,7 @@ extern "C" {
 }
 
 int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused))) {
-    std::cout << "GameBoy Emulator (WebAssembly)" << std::endl;
+    std::cout << "TatoEmu (WebAssembly)" << std::endl;
     std::cout << std::endl;
     std::cout << "Controls:" << std::endl;
     std::cout << "  Arrow Keys - D-Pad" << std::endl;

@@ -57,7 +57,7 @@ emcmake cmake -DPLATFORM=wasm ..
 emmake make
 
 # Run (serves on http://localhost:8080)
-cd web && python3 -m http.server 8080
+python3 -m http.server 8080
 ```
 
 ## Usage

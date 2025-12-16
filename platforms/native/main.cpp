@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
     if (argc < 2) {
         std::cout << "Usage: " << argv[0] << " <rom_file> [bootrom_file]" << std::endl;
         std::cout << "\nAlternatively, set BOOTROM environment variable to bootrom path" << std::endl;
-        std::cout << "\nGameBoy Emulator Controls:" << std::endl;
+        std::cout << "\nControls:" << std::endl;
         std::cout << "  Arrow Keys  - D-Pad" << std::endl;
         std::cout << "  Z           - A Button" << std::endl;
         std::cout << "  X           - B Button" << std::endl;
