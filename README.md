@@ -2,6 +2,8 @@
 
 TatoEmu is a multi-system emulator written in C++ with SDL3 and WebAssembly targets. It currently supports GB/GBC and NES ROMs.
 
+This project is just for fun. It aims to build minimal emulators that work for most games, with only basic features like saving and loading states. It prioritizes playability over accuracy.
+
 ## Requirements
 
 - C++17 compatible compiler
