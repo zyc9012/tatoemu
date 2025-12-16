@@ -97,17 +97,16 @@ cd web && python3 -m http.server 8080
 
 ### Nintendo Entertainment System
 
-Supported mapper/board implementations include:
-
-- NROM (000), MMC1 (001), UxROM (002), CNROM (003), MMC3 (004)
-- MMC5 (005), MMC4 (010), Namco 163/129 (019), VRC2/VRC4 family (023/024/025/026)
-- Konami VRC3 (073), VRC1 clone (074)
-
-If you find a ROM using an unsupported mapper, file an issue or contribute an implementation.
+- **Nintendo**: NROM (000), MMC1 (001), UxROM (002), CNROM (003), MMC3 (004), MMC5 (005), MMC4 (010), MMC3 variant with CHR RAM (074)
+- **Namco**: Namco 163/129 (019)
+- **Konami**: VRC2/VRC4 (023/025), VRC6 (024/026), VRC3 (073)
+- **Unlicensed**: Waixing (162/164/178), Nanjing (163)
 
 ## Resources
 
 - [Pan Docs](https://gbdev.io/pandocs/) - Comprehensive GameBoy technical documentation
 - [GameBoy CPU Manual](http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf)
+- [NanoBoyAdvance](https://github.com/nba-emu/NanoBoyAdvance)
 - [NESDev Wiki](https://www.nesdev.org/wiki/Main_Page) - NES architecture, mappers, tests
+- [Mesen2](https://github.com/SourMesen/Mesen2)
 
