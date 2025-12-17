@@ -33,6 +33,7 @@ void Mapper001::updateBanks() {
 
     u32 prgSize = prg.size();
     u32 chrSize = chr.size();
+    u32 prgBanks = prgSize / 0x4000;
 
     // SUROM support: 512KB carts use bit 4 of CHR register for PRG page selection
     u8 prgPageSelect = 0;
@@ -44,24 +45,23 @@ void Mapper001::updateBanks() {
 
     // PRG bank switching
     u8 prgMode = (m_control >> 2) & 0x03;
-    u8 prgBankSelect = m_prgBank | prgPageSelect;
 
     switch (prgMode) {
         case 0:
         case 1:
             // 32KB mode (ignore low bit of bank number)
-            m_prgBankOffset[0] = ((prgBankSelect & ~0x01) % (prgSize / 0x4000)) * 0x4000;
+            m_prgBankOffset[0] = (((m_prgBank & 0xFE) | prgPageSelect) % prgBanks) * 0x4000;
             m_prgBankOffset[1] = m_prgBankOffset[0] + 0x4000;
             break;
         case 2:
             // Fix first bank, switch second
-            m_prgBankOffset[0] = 0;
-            m_prgBankOffset[1] = (prgBankSelect % (prgSize / 0x4000)) * 0x4000;
+            m_prgBankOffset[0] = ((0 | prgPageSelect) % prgBanks) * 0x4000;
+            m_prgBankOffset[1] = ((m_prgBank | prgPageSelect) % prgBanks) * 0x4000;
             break;
         case 3:
             // Switch first bank, fix last
-            m_prgBankOffset[0] = (prgBankSelect % (prgSize / 0x4000)) * 0x4000;
-            m_prgBankOffset[1] = prgSize - 0x4000;
+            m_prgBankOffset[0] = ((m_prgBank | prgPageSelect) % prgBanks) * 0x4000;
+            m_prgBankOffset[1] = ((0x0F | prgPageSelect) % prgBanks) * 0x4000;
             break;
     }
     
@@ -132,7 +132,7 @@ void Mapper001::cpuWrite(u16 address, u8 value) {
                         m_lastChrReg = address;
                         break;
                     case 2:  // $C000-$DFFF: CHR bank 1
-                        m_chrBank1 = m_shiftRegister & 0x1F;;
+                        m_chrBank1 = m_shiftRegister & 0x1F;
                         m_lastChrReg = address;
                         break;
                     case 3:  // $E000-$FFFF: PRG bank
