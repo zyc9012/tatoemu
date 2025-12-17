@@ -10,7 +10,8 @@ Mapper005::Mapper005(Cartridge* cartridge)
     , m_prgRamProtect1(false)
     , m_prgRamProtect2(false)
     , m_chrMode(0)
-    , m_chrBankHigh(false)
+    , m_chrUpperBits(0)
+    , m_lastChrReg(0)
     , m_nametableMapping(0)
     , m_fillModeTile(0)
     , m_fillModeAttr(0)
@@ -42,7 +43,8 @@ void Mapper005::reset() {
     m_prgRamProtect1 = false;
     m_prgRamProtect2 = false;
     m_chrMode = 0;
-    m_chrBankHigh = false;
+    m_chrUpperBits = 0;
+    m_lastChrReg = 0;
     m_nametableMapping = 0;
     m_fillModeTile = 0;
     m_fillModeAttr = 0;
@@ -135,10 +137,14 @@ void Mapper005::updateCHRBanks() {
     u32 chrBanks1k = chrSize / 0x400;
     if (chrBanks1k == 0) chrBanks1k = 1;
     
+    // Update both sprite and BG CHR bank offsets.
+    // readCHR() will choose which set to use based on:
+    // - During active rendering: PPU fetch state determines sprite vs BG
+    // - Outside active rendering: last written register set determines sprite vs BG
     switch (m_chrMode) {
         case 0:  // 8KB mode
             {
-                u16 bank = m_chrBankRegs[7] & 0xFF;
+                u16 bank = m_chrBankRegs[7] & 0x3FF;  // Use full 10-bit bank
                 u32 offset = (bank % (chrBanks1k / 8)) * 0x2000;
                 for (int i = 0; i < 8; i++) {
                     m_chrBankOffset[i] = offset + i * 0x400;
@@ -148,8 +154,8 @@ void Mapper005::updateCHRBanks() {
             
         case 1:  // 4KB mode
             {
-                u16 bank0 = m_chrBankRegs[3] & 0xFF;
-                u16 bank1 = m_chrBankRegs[7] & 0xFF;
+                u16 bank0 = m_chrBankRegs[3] & 0x3FF;
+                u16 bank1 = m_chrBankRegs[7] & 0x3FF;
                 u32 offset0 = (bank0 % (chrBanks1k / 4)) * 0x1000;
                 u32 offset1 = (bank1 % (chrBanks1k / 4)) * 0x1000;
                 for (int i = 0; i < 4; i++) {
@@ -161,10 +167,10 @@ void Mapper005::updateCHRBanks() {
             
         case 2:  // 2KB mode
             {
-                u16 bank0 = m_chrBankRegs[1] & 0xFF;
-                u16 bank1 = m_chrBankRegs[3] & 0xFF;
-                u16 bank2 = m_chrBankRegs[5] & 0xFF;
-                u16 bank3 = m_chrBankRegs[7] & 0xFF;
+                u16 bank0 = m_chrBankRegs[1] & 0x3FF;
+                u16 bank1 = m_chrBankRegs[3] & 0x3FF;
+                u16 bank2 = m_chrBankRegs[5] & 0x3FF;
+                u16 bank3 = m_chrBankRegs[7] & 0x3FF;
                 m_chrBankOffset[0] = ((bank0 % (chrBanks1k / 2)) * 0x800);
                 m_chrBankOffset[1] = m_chrBankOffset[0] + 0x400;
                 m_chrBankOffset[2] = ((bank1 % (chrBanks1k / 2)) * 0x800);
@@ -178,7 +184,7 @@ void Mapper005::updateCHRBanks() {
             
         case 3:  // 1KB mode
             for (int i = 0; i < 8; i++) {
-                u16 bank = m_chrBankRegs[i] & 0xFF;
+                u16 bank = m_chrBankRegs[i] & 0x3FF;
                 m_chrBankOffset[i] = (bank % chrBanks1k) * 0x400;
             }
             break;
@@ -188,7 +194,7 @@ void Mapper005::updateCHRBanks() {
     // Each selects a 1KB slice; mirror to both halves so either BG pattern
     // table selection works without extra checks.
     for (int i = 0; i < 4; i++) {
-        u16 bank = m_chrBankRegs[8 + i] & 0xFF;
+        u16 bank = m_chrBankRegs[8 + i] & 0x3FF;  // Use full 10-bit bank
         u32 offset = (bank % chrBanks1k) * 0x400;
         m_chrBgBankOffset[i] = offset;       // Pattern table at $0000
         m_chrBgBankOffset[i + 4] = offset;   // Pattern table at $1000
@@ -287,15 +293,35 @@ void Mapper005::cpuWrite(u16 address, u8 value) {
                 break;
             case 0x5120: case 0x5121: case 0x5122: case 0x5123:
             case 0x5124: case 0x5125: case 0x5126: case 0x5127:
-                // CHR banks (sprite)
-                m_chrBankRegs[address - 0x5120] = value;
-                m_chrBankHigh = false;
-                updateCHRBanks();
+                // CHR banks (sprite) - combine with upper bits from $5130
+                {
+                    u16 newValue = value | (m_chrUpperBits << 8);
+                    u8 regIndex = address - 0x5120;
+                    if (newValue != m_chrBankRegs[regIndex] || m_lastChrReg != address) {
+                        m_chrBankRegs[regIndex] = newValue;
+                        m_lastChrReg = address;
+                        updateCHRBanks();
+                    }
+                }
                 break;
             case 0x5128: case 0x5129: case 0x512A: case 0x512B:
-                // CHR banks (background)
-                m_chrBankRegs[8 + (address - 0x5128)] = value;
-                m_chrBankHigh = true;
+                // CHR banks (background) - combine with upper bits from $5130
+                {
+                    u16 newValue = value | (m_chrUpperBits << 8);
+                    u8 regIndex = 8 + (address - 0x5128);
+                    if (newValue != m_chrBankRegs[regIndex] || m_lastChrReg != address) {
+                        m_chrBankRegs[regIndex] = newValue;
+                        m_lastChrReg = address;
+                        updateCHRBanks();
+                    }
+                }
+                break;
+            case 0x5130:  // CHR upper bits (bits 8-9 of 10-bit CHR banks)
+                m_chrUpperBits = value & 0x03;
+                // Update all CHR banks with new upper bits
+                for (int i = 0; i < 12; i++) {
+                    m_chrBankRegs[i] = (m_chrBankRegs[i] & 0xFF) | (m_chrUpperBits << 8);
+                }
                 updateCHRBanks();
                 break;
             case 0x5200: // Split Mode
@@ -357,7 +383,17 @@ u8 Mapper005::readCHR(u16 address) {
     //   3 = After pattern low, before pattern high (BG pattern fetch)
     //
     // Only states 2 and 3 are actual BG pattern fetches.
-    const bool isBgFetch = m_ppuFetchState >= 2;
+    // 
+    // When outside of active rendering (!m_inFrame), use the last written register set
+    // to determine which banks to use.
+    bool isBgFetch;
+    if (!m_inFrame) {
+        // Outside of active rendering: use last written register set
+        isBgFetch = (m_lastChrReg >= 0x5128 && m_lastChrReg <= 0x512B);
+    } else {
+        // During active rendering: use PPU fetch state
+        isBgFetch = m_ppuFetchState >= 2;
+    }
     
     // Check if we are in the middle of a background fetch sequence
     if (m_ppuFetchState >= 2) { // Expect Pattern Low or High
@@ -368,7 +404,8 @@ u8 Mapper005::readCHR(u16 address) {
             //   5..0 = 4KB CHR bank select (CCCCCC)
             // Pattern data for the current background tile comes from the 4KB bank
             // selected by bits 0-5 of the *captured* ExRAM byte.
-            u32 bankIndex = (m_capturedExRam & 0x3F); // Lower 6 bits (bits 0-5)
+            // Upper bits from $5130 are also used: bits 6-7 of bank come from $5130
+            u32 bankIndex = (m_capturedExRam & 0x3F) | (m_chrUpperBits << 6);
             
             u32 offset = (bankIndex * 0x1000) + (address & 0x0FFF);
             
@@ -402,8 +439,15 @@ void Mapper005::writeCHR(u16 address, u8 value) {
     // CHR RAM support
     auto& chr = m_cartridge->getCHR();
     if (!chr.empty()) {
-        // Only states 2 and 3 are actual BG pattern fetches (see readCHR for details)
-        const bool isBgFetch = m_ppuFetchState >= 2;
+        // Determine which bank set to use (same logic as readCHR)
+        bool isBgFetch;
+        if (!m_inFrame) {
+            // Outside of active rendering: use last written register set
+            isBgFetch = (m_lastChrReg >= 0x5128 && m_lastChrReg <= 0x512B);
+        } else {
+            // During active rendering: use PPU fetch state
+            isBgFetch = m_ppuFetchState >= 2;
+        }
         const u32* bankOffset = isBgFetch ? m_chrBgBankOffset : m_chrBankOffset;
 
         u8 bank = address / 0x400;
@@ -570,8 +614,9 @@ void Mapper005::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_prgRamProtect1), sizeof(m_prgRamProtect1));
     file.write(reinterpret_cast<const char*>(&m_prgRamProtect2), sizeof(m_prgRamProtect2));
     file.write(reinterpret_cast<const char*>(&m_chrMode), sizeof(m_chrMode));
+    file.write(reinterpret_cast<const char*>(&m_chrUpperBits), sizeof(m_chrUpperBits));
     file.write(reinterpret_cast<const char*>(m_chrBankRegs), sizeof(m_chrBankRegs));
-    file.write(reinterpret_cast<const char*>(&m_chrBankHigh), sizeof(m_chrBankHigh));
+    file.write(reinterpret_cast<const char*>(&m_lastChrReg), sizeof(m_lastChrReg));
     file.write(reinterpret_cast<const char*>(&m_nametableMapping), sizeof(m_nametableMapping));
     file.write(reinterpret_cast<const char*>(&m_fillModeTile), sizeof(m_fillModeTile));
     file.write(reinterpret_cast<const char*>(&m_fillModeAttr), sizeof(m_fillModeAttr));
@@ -601,8 +646,9 @@ void Mapper005::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_prgRamProtect1), sizeof(m_prgRamProtect1));
     file.read(reinterpret_cast<char*>(&m_prgRamProtect2), sizeof(m_prgRamProtect2));
     file.read(reinterpret_cast<char*>(&m_chrMode), sizeof(m_chrMode));
+    file.read(reinterpret_cast<char*>(&m_chrUpperBits), sizeof(m_chrUpperBits));
     file.read(reinterpret_cast<char*>(m_chrBankRegs), sizeof(m_chrBankRegs));
-    file.read(reinterpret_cast<char*>(&m_chrBankHigh), sizeof(m_chrBankHigh));
+    file.read(reinterpret_cast<char*>(&m_lastChrReg), sizeof(m_lastChrReg));
     file.read(reinterpret_cast<char*>(&m_nametableMapping), sizeof(m_nametableMapping));
     file.read(reinterpret_cast<char*>(&m_fillModeTile), sizeof(m_fillModeTile));
     file.read(reinterpret_cast<char*>(&m_fillModeAttr), sizeof(m_fillModeAttr));

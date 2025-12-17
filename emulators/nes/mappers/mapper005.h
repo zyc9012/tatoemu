@@ -40,10 +40,11 @@ private:
     
     // CHR mode and banks
     u8 m_chrMode;           // CHR banking mode (0-3)
+    u8 m_chrUpperBits;      // CHR upper bits from $5130 (bits 8-9 of 10-bit banks)
     u16 m_chrBankRegs[12];  // CHR bank registers (extended to 10 bits)
     u32 m_chrBankOffset[8]; // Calculated CHR offsets
     u32 m_chrBgBankOffset[8]; // Calculated CHR offsets for background fetches
-    bool m_chrBankHigh;     // High CHR bank select (for sprite/bg separation)
+    u16 m_lastChrReg;       // Last written CHR register (0x5120-0x5127 for sprite, 0x5128-0x512B for BG)
     
     // Nametable mapping
     u8 m_nametableMapping;
