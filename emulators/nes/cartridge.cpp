@@ -7,12 +7,14 @@
 #include "mappers/mapper003.h"
 #include "mappers/mapper004.h"
 #include "mappers/mapper005.h"
+#include "mappers/mapper009.h"
 #include "mappers/mapper010.h"
 #include "mappers/mapper019.h"
 #include "mappers/mapper023.h"
 #include "mappers/mapper024.h"
 #include "mappers/mapper025.h"
 #include "mappers/mapper026.h"
+#include "mappers/mapper069.h"
 #include "mappers/mapper073.h"
 #include "mappers/mapper074.h"
 #include "mappers/mapper162.h"
@@ -374,6 +376,9 @@ void Cartridge::createMapper() {
         case 5:
             m_mapper = std::make_unique<Mapper005>(this);
             break;
+        case 9:
+            m_mapper = std::make_unique<Mapper009>(this);
+            break;
         case 10:
             m_mapper = std::make_unique<Mapper010>(this);
             break;
@@ -391,6 +396,9 @@ void Cartridge::createMapper() {
             break;
         case 25:
             m_mapper = std::make_unique<Mapper025>(this);
+            break;
+        case 69:
+            m_mapper = std::make_unique<Mapper069>(this);
             break;
         case 73:
             m_mapper = std::make_unique<Mapper073>(this);
