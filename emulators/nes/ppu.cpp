@@ -904,11 +904,13 @@ void PPU::step() {
         }
     }
     
-    // Check for scanline counter (for MMC3 IRQ)
+    // Check for scanline counter (for MMC3/MMC5 IRQ)
     // MMC3 clocks on A12 rising edge, which happens during PPU rendering
     // A12 only transitions when the PPU is fetching pattern data, which requires rendering to be enabled
     // Must also clock on pre-render scanline (261) so CHR banks are correct for scanline 0
-    if (m_cycle == 260 && 
+    // MMC5 clocks at PPU cycle 4, when the PPU does the attribute table byte read
+    u16 targetCycle = m_cartridge->getMapperNumber() == 5 ? 4 : 260;
+    if (m_cycle == targetCycle && 
         isRenderingEnabled() &&
         (m_scanline < VISIBLE_SCANLINES || m_scanline == PRE_RENDER_SCANLINE)) {
         if (m_cartridge) {

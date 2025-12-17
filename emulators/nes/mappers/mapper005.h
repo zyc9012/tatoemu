@@ -78,8 +78,8 @@ private:
     u8 m_splitScroll;
     u8 m_splitBank;
     
-    // Internal tracking
-    u16 m_bgTileCount; // To track scanline position
+    // Internal tracking for scanline detection
+    u16 m_lastScanline;     // Last scanline we processed (to detect changes)
 };
 
 } // namespace nes

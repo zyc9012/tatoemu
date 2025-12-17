@@ -1,7 +1,7 @@
 #include "mapper005.h"
 #include "../consts.h"
+#include "../ppu.h"
 #include <cstring>
-
 namespace nes {
 
 Mapper005::Mapper005(Cartridge* cartridge)
@@ -28,7 +28,7 @@ Mapper005::Mapper005(Cartridge* cartridge)
     , m_splitMode(0)
     , m_splitScroll(0)
     , m_splitBank(0)
-    , m_bgTileCount(0) {
+    , m_lastScanline(0) {
     std::memset(m_prgBankRegs, 0xFF, sizeof(m_prgBankRegs));
     std::memset(m_chrBankRegs, 0, sizeof(m_chrBankRegs));
     std::memset(m_prgBankOffset, 0, sizeof(m_prgBankOffset));
@@ -63,7 +63,7 @@ void Mapper005::reset() {
     m_splitMode = 0;
     m_splitScroll = 0;
     m_splitBank = 0;
-    m_bgTileCount = 0;
+    m_lastScanline = 0;
     
     std::memset(m_prgBankRegs, 0xFF, sizeof(m_prgBankRegs));
     std::memset(m_chrBankRegs, 0, sizeof(m_chrBankRegs));
@@ -459,55 +459,6 @@ void Mapper005::writeCHR(u16 address, u8 value) {
 bool Mapper005::readNametable(u16 address, u8& value) {
     bool isAttribute = ((address & 0x03C0) == 0x03C0);
     
-    if (!isAttribute) {
-        // Nametable Fetch - Increment tile count
-        m_bgTileCount++;
-        
-        // Scanline detection logic (simplified)
-        // MMC5 detects 42 fetch cycles (34 BG + sprites etc.)
-        // We use 34 as a threshold for end of scanline because our PPU implementation
-        // performs 34 background fetches per line (32 visible + 2 prefetch)
-        if (m_bgTileCount == 34) {
-            m_bgTileCount = 0;
-            
-            if (!m_inFrame) {
-                // Coming out of VBlank - this is the pre-render scanline's tiles
-                // These tiles are for scanline 0, so we start the frame but
-                // don't increment the counter (it's already at 0)
-                m_inFrame = true;
-                m_irqStatus |= 0x40;
-                m_scanlineCounter = 0;
-                m_ppuFetchState = 0;  // Reset fetch state for new frame
-                
-                // Check if IRQ should fire at scanline 0
-                if (m_scanlineCounter == m_irqScanline) {
-                    m_irqStatus |= 0x80;
-                    if (m_irqEnable) {
-                        m_irqActive = true;
-                    }
-                }
-            } else {
-                // Normal in-frame scanline increment
-                m_scanlineCounter++;
-                
-                // Check for IRQ
-                if (m_scanlineCounter == m_irqScanline) {
-                    m_irqStatus |= 0x80;
-                    if (m_irqEnable) {
-                        m_irqActive = true;
-                    }
-                }
-                
-                // Handle end of visible frame
-                if (m_scanlineCounter >= 240) {
-                    m_inFrame = false;
-                    m_irqStatus &= ~0x40;
-                    m_scanlineCounter = 0; // Reset for next frame
-                }
-            }
-        }
-    }
-    
     u8 nt = (address >> 10) & 0x03;
     u8 mode = (m_nametableMapping >> (nt * 2)) & 0x03;
 
@@ -603,9 +554,52 @@ MirrorMode Mapper005::getMirrorMode() const {
 }
 
 void Mapper005::scanlineCounter() {
-    // External scanline counter is disabled in favor of PPU fetch counting
-    // We could leave it as a fallback or remove it.
-    // For now, we rely on readNametable.
+    // Get current scanline from PPU
+    PPU* ppu = m_cartridge->getPPU();
+    if (!ppu) return;
+    
+    u16 currentScanline = ppu->getScanline();
+    
+    // Detect scanline change
+    if (currentScanline != m_lastScanline) {
+        // Check if we're entering a new frame (scanline 0, or wrapping from 261)
+        if (currentScanline == 0) {
+            // Entering new frame
+            m_inFrame = true;
+            m_irqStatus |= 0x40;
+            m_scanlineCounter = 0;
+            m_ppuFetchState = 0;  // Reset fetch state for new frame
+            
+            // Check if IRQ should fire at scanline 0
+            if (m_scanlineCounter == m_irqScanline) {
+                m_irqStatus |= 0x80;
+                if (m_irqEnable) {
+                    m_irqActive = true;
+                }
+            }
+        } else if (m_inFrame) {
+            // Within frame - update scanline counter
+            // Only count visible scanlines (0-239)
+            if (currentScanline < 240) {
+                m_scanlineCounter = currentScanline;
+                
+                // Check for IRQ
+                if (m_scanlineCounter == m_irqScanline) {
+                    m_irqStatus |= 0x80;
+                    if (m_irqEnable) {
+                        m_irqActive = true;
+                    }
+                }
+            } else if (currentScanline >= 240) {
+                // End of visible frame
+                m_inFrame = false;
+                m_irqStatus &= ~0x40;
+                m_scanlineCounter = 0; // Reset for next frame
+            }
+        }
+        
+        m_lastScanline = currentScanline;
+    }
 }
 
 void Mapper005::saveState(std::ofstream& file) const {
@@ -637,7 +631,7 @@ void Mapper005::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_splitMode), sizeof(m_splitMode));
     file.write(reinterpret_cast<const char*>(&m_splitScroll), sizeof(m_splitScroll));
     file.write(reinterpret_cast<const char*>(&m_splitBank), sizeof(m_splitBank));
-    file.write(reinterpret_cast<const char*>(&m_bgTileCount), sizeof(m_bgTileCount));
+    file.write(reinterpret_cast<const char*>(&m_lastScanline), sizeof(m_lastScanline));
 }
 
 void Mapper005::loadState(std::ifstream& file) {
@@ -669,7 +663,7 @@ void Mapper005::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_splitMode), sizeof(m_splitMode));
     file.read(reinterpret_cast<char*>(&m_splitScroll), sizeof(m_splitScroll));
     file.read(reinterpret_cast<char*>(&m_splitBank), sizeof(m_splitBank));
-    file.read(reinterpret_cast<char*>(&m_bgTileCount), sizeof(m_bgTileCount));
+    file.read(reinterpret_cast<char*>(&m_lastScanline), sizeof(m_lastScanline));
     
     updatePRGBanks();
     updateCHRBanks();
