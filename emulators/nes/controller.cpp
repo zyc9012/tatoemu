@@ -52,13 +52,11 @@ u8 Controller::read() {
 }
 
 void Controller::saveState(std::ofstream& file) const {
-    file.write(reinterpret_cast<const char*>(&m_buttons), sizeof(m_buttons));
     file.write(reinterpret_cast<const char*>(&m_shiftRegister), sizeof(m_shiftRegister));
     file.write(reinterpret_cast<const char*>(&m_strobe), sizeof(m_strobe));
 }
 
 void Controller::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(&m_buttons), sizeof(m_buttons));
     file.read(reinterpret_cast<char*>(&m_shiftRegister), sizeof(m_shiftRegister));
     file.read(reinterpret_cast<char*>(&m_strobe), sizeof(m_strobe));
 }
