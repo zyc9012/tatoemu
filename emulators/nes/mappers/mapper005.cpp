@@ -569,14 +569,6 @@ void Mapper005::scanlineCounter() {
             m_irqStatus |= 0x40;
             m_scanlineCounter = 0;
             m_ppuFetchState = 0;  // Reset fetch state for new frame
-            
-            // Check if IRQ should fire at scanline 0
-            if (m_scanlineCounter == m_irqScanline) {
-                m_irqStatus |= 0x80;
-                if (m_irqEnable) {
-                    m_irqActive = true;
-                }
-            }
         } else if (m_inFrame) {
             // Within frame - update scanline counter
             // Only count visible scanlines (0-239)
