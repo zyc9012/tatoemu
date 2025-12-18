@@ -132,72 +132,117 @@ void Mapper005::updatePRGBanks() {
 void Mapper005::updateCHRBanks() {
     const auto& chr = m_cartridge->getCHR();
     u32 chrSize = chr.size();
-    if (chrSize == 0) return;
     
-    u32 chrBanks1k = chrSize / 0x400;
-    if (chrBanks1k == 0) chrBanks1k = 1;
-    
-    // Update both sprite and BG CHR bank offsets.
-    // readCHR() will choose which set to use based on:
-    // - During active rendering: PPU fetch state determines sprite vs BG
-    // - Outside active rendering: last written register set determines sprite vs BG
+    // Calculate offsets for sprite banks (registers 0-7)
+    // and background banks (registers 8-11)
     switch (m_chrMode) {
-        case 0:  // 8KB mode
+        case 0:  // 8KB mode - 1 bank
             {
-                u16 bank = m_chrBankRegs[7] & 0x3FF;  // Use full 10-bit bank
-                u32 offset = (bank % (chrBanks1k / 8)) * 0x2000;
+                // Sprite banks: use register 7
+                u16 bank = m_chrBankRegs[7] & 0x3FF;  // 10-bit bank number
+                u32 chrBanks8k = chrSize / 0x2000;
+                u32 offset = (bank % chrBanks8k) * 0x2000;
                 for (int i = 0; i < 8; i++) {
-                    m_chrBankOffset[i] = offset + i * 0x400;
+                    m_chrBankOffset[i] = offset + (i * 0x400);
+                }
+                
+                // Background banks: use register 11
+                bank = m_chrBankRegs[11] & 0x3FF;
+                offset = (bank % chrBanks8k) * 0x2000;
+                for (int i = 0; i < 8; i++) {
+                    m_chrBgBankOffset[i] = offset + (i * 0x400);
                 }
             }
             break;
             
-        case 1:  // 4KB mode
+        case 1:  // 4KB mode - 2 banks
             {
+                u32 chrBanks4k = chrSize / 0x1000;
+                
+                // Sprite banks: use registers 3 and 7
                 u16 bank0 = m_chrBankRegs[3] & 0x3FF;
                 u16 bank1 = m_chrBankRegs[7] & 0x3FF;
-                u32 offset0 = (bank0 % (chrBanks1k / 4)) * 0x1000;
-                u32 offset1 = (bank1 % (chrBanks1k / 4)) * 0x1000;
-                for (int i = 0; i < 4; i++) {
-                    m_chrBankOffset[i] = offset0 + i * 0x400;
-                    m_chrBankOffset[i + 4] = offset1 + i * 0x400;
-                }
+                u32 offset0 = (bank0 % chrBanks4k) * 0x1000;
+                u32 offset1 = (bank1 % chrBanks4k) * 0x1000;
+                
+                m_chrBankOffset[0] = offset0;
+                m_chrBankOffset[1] = offset0 + 0x400;
+                m_chrBankOffset[2] = offset0 + 0x800;
+                m_chrBankOffset[3] = offset0 + 0xC00;
+                m_chrBankOffset[4] = offset1;
+                m_chrBankOffset[5] = offset1 + 0x400;
+                m_chrBankOffset[6] = offset1 + 0x800;
+                m_chrBankOffset[7] = offset1 + 0xC00;
+                
+                // Background banks: use registers 11 (both halves)
+                bank0 = m_chrBankRegs[11] & 0x3FF;
+                offset0 = (bank0 % chrBanks4k) * 0x1000;
+                m_chrBgBankOffset[0] = offset0;
+                m_chrBgBankOffset[1] = offset0 + 0x400;
+                m_chrBgBankOffset[2] = offset0 + 0x800;
+                m_chrBgBankOffset[3] = offset0 + 0xC00;
+                m_chrBgBankOffset[4] = offset0;
+                m_chrBgBankOffset[5] = offset0 + 0x400;
+                m_chrBgBankOffset[6] = offset0 + 0x800;
+                m_chrBgBankOffset[7] = offset0 + 0xC00;
             }
             break;
             
-        case 2:  // 2KB mode
+        case 2:  // 2KB mode - 4 banks
             {
+                u32 chrBanks2k = chrSize / 0x800;
+                
+                // Sprite banks: use registers 1, 3, 5, 7
                 u16 bank0 = m_chrBankRegs[1] & 0x3FF;
                 u16 bank1 = m_chrBankRegs[3] & 0x3FF;
                 u16 bank2 = m_chrBankRegs[5] & 0x3FF;
                 u16 bank3 = m_chrBankRegs[7] & 0x3FF;
-                m_chrBankOffset[0] = ((bank0 % (chrBanks1k / 2)) * 0x800);
+                
+                m_chrBankOffset[0] = ((bank0 % chrBanks2k) * 0x800);
                 m_chrBankOffset[1] = m_chrBankOffset[0] + 0x400;
-                m_chrBankOffset[2] = ((bank1 % (chrBanks1k / 2)) * 0x800);
+                m_chrBankOffset[2] = ((bank1 % chrBanks2k) * 0x800);
                 m_chrBankOffset[3] = m_chrBankOffset[2] + 0x400;
-                m_chrBankOffset[4] = ((bank2 % (chrBanks1k / 2)) * 0x800);
+                m_chrBankOffset[4] = ((bank2 % chrBanks2k) * 0x800);
                 m_chrBankOffset[5] = m_chrBankOffset[4] + 0x400;
-                m_chrBankOffset[6] = ((bank3 % (chrBanks1k / 2)) * 0x800);
+                m_chrBankOffset[6] = ((bank3 % chrBanks2k) * 0x800);
                 m_chrBankOffset[7] = m_chrBankOffset[6] + 0x400;
+                
+                // Background banks: use registers 9, 11, 9, 11 (as per reference)
+                bank0 = m_chrBankRegs[9] & 0x3FF;
+                bank1 = m_chrBankRegs[11] & 0x3FF;
+                
+                m_chrBgBankOffset[0] = ((bank0 % chrBanks2k) * 0x800);
+                m_chrBgBankOffset[1] = m_chrBgBankOffset[0] + 0x400;
+                m_chrBgBankOffset[2] = ((bank1 % chrBanks2k) * 0x800);
+                m_chrBgBankOffset[3] = m_chrBgBankOffset[2] + 0x400;
+                m_chrBgBankOffset[4] = ((bank0 % chrBanks2k) * 0x800);
+                m_chrBgBankOffset[5] = m_chrBgBankOffset[4] + 0x400;
+                m_chrBgBankOffset[6] = ((bank1 % chrBanks2k) * 0x800);
+                m_chrBgBankOffset[7] = m_chrBgBankOffset[6] + 0x400;
             }
             break;
             
-        case 3:  // 1KB mode
-            for (int i = 0; i < 8; i++) {
-                u16 bank = m_chrBankRegs[i] & 0x3FF;
-                m_chrBankOffset[i] = (bank % chrBanks1k) * 0x400;
+        case 3:  // 1KB mode - 8 banks
+            {
+                u32 chrBanks1k = chrSize / 0x400;
+                
+                // Sprite banks: use registers 0-7
+                for (int i = 0; i < 8; i++) {
+                    u16 bank = m_chrBankRegs[i] & 0x3FF;
+                    m_chrBankOffset[i] = (bank % chrBanks1k) * 0x400;
+                }
+                
+                // Background banks: use registers 8, 9, 10, 11, 8, 9, 10, 11
+                m_chrBgBankOffset[0] = ((m_chrBankRegs[8] & 0x3FF) % chrBanks1k) * 0x400;
+                m_chrBgBankOffset[1] = ((m_chrBankRegs[9] & 0x3FF) % chrBanks1k) * 0x400;
+                m_chrBgBankOffset[2] = ((m_chrBankRegs[10] & 0x3FF) % chrBanks1k) * 0x400;
+                m_chrBgBankOffset[3] = ((m_chrBankRegs[11] & 0x3FF) % chrBanks1k) * 0x400;
+                m_chrBgBankOffset[4] = ((m_chrBankRegs[8] & 0x3FF) % chrBanks1k) * 0x400;
+                m_chrBgBankOffset[5] = ((m_chrBankRegs[9] & 0x3FF) % chrBanks1k) * 0x400;
+                m_chrBgBankOffset[6] = ((m_chrBankRegs[10] & 0x3FF) % chrBanks1k) * 0x400;
+                m_chrBgBankOffset[7] = ((m_chrBankRegs[11] & 0x3FF) % chrBanks1k) * 0x400;
             }
             break;
-    }
-
-    // Background CHR banks come from the dedicated BG registers ($5128-$512B).
-    // Each selects a 1KB slice; mirror to both halves so either BG pattern
-    // table selection works without extra checks.
-    for (int i = 0; i < 4; i++) {
-        u16 bank = m_chrBankRegs[8 + i] & 0x3FF;  // Use full 10-bit bank
-        u32 offset = (bank % chrBanks1k) * 0x400;
-        m_chrBgBankOffset[i] = offset;       // Pattern table at $0000
-        m_chrBgBankOffset[i + 4] = offset;   // Pattern table at $1000
     }
 }
 
