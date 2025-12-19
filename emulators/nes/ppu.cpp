@@ -385,6 +385,26 @@ u8 PPU::getSpriteHeight() const {
     return (m_ppuCtrl & PPUCTRL_SPRITE_SIZE) ? 16 : 8;
 }
 
+bool PPU::isFetchingBackgroundPattern() const {
+    // Background pattern fetches happen during cycles 1-256 and 321-336
+    // Pattern fetches occur at cycle phases 5 (low byte) and 7 (high byte)
+    if (!isRenderingEnabled()) {
+        return false;
+    }
+    
+    // Check if we're in background fetch cycles
+    bool inBgFetchCycles = ((m_cycle >= 1 && m_cycle <= 256) || 
+                            (m_cycle >= 321 && m_cycle <= 336));
+    
+    if (!inBgFetchCycles) {
+        return false;
+    }
+    
+    // Check if we're in the pattern fetch phase (cases 5 or 7)
+    u8 cyclePhase = m_cycle & 0x07;
+    return (cyclePhase == 5 || cyclePhase == 7);
+}
+
 // ============================================================================
 // Address Manipulation (Loopy)
 // ============================================================================

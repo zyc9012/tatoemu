@@ -390,57 +390,27 @@ void Mapper005::writeExRAM(u16 address, u8 value) {
 }
 
 u8 Mapper005::readCHR(u16 address) {
-    // Determine if this is a background fetch BEFORE modifying state.
-    // Background fetches use dedicated BG banks ($5128-$512B).
-    // Sprite and other accesses use the main CHR bank mapping ($5120-$5127).
-    // 
-    // State machine:
-    //   0 = Idle/sprite fetch (use sprite banks)
-    //   1 = After NT read, before AT read (no pattern reads expected, treat as sprite)
-    //   2 = After AT read, before pattern low (BG pattern fetch)
-    //   3 = After pattern low, before pattern high (BG pattern fetch)
-    //
-    // Only states 2 and 3 are actual BG pattern fetches.
-    // 
-    // When outside of active rendering (!m_inFrame), use the last written register set
-    // to determine which banks to use.
-    bool isBgFetch;
-    if (!m_inFrame) {
-        // Outside of active rendering: use last written register set
-        isBgFetch = (m_lastChrReg >= 0x5128 && m_lastChrReg <= 0x512B);
-    } else {
-        // During active rendering: use PPU fetch state
-        isBgFetch = m_ppuFetchState >= 2;
-    }
+    // Determine if this is a background fetch from PPU state.
+    PPU* ppu = m_cartridge->getPPU();
+    bool isBgFetch = ppu ? ppu->isFetchingBackgroundPattern() : false;
     
-    // Check if we are in the middle of a background fetch sequence
-    if (m_ppuFetchState >= 2) { // Expect Pattern Low or High
-        // Handle ExRAM Mode 1 banking
-        if (m_exRamMode == 1) {
-            // MMC5 ExRAM Mode 1 (Extended Attributes):
-            //   7..6 = palette select (AA)
-            //   5..0 = 4KB CHR bank select (CCCCCC)
-            // Pattern data for the current background tile comes from the 4KB bank
-            // selected by bits 0-5 of the *captured* ExRAM byte.
-            // Upper bits from $5130 are also used: bits 6-7 of bank come from $5130
-            u32 bankIndex = (m_capturedExRam & 0x3F) | (m_chrUpperBits << 6);
-            
-            u32 offset = (bankIndex * 0x1000) + (address & 0x0FFF);
-            
-            // Advance state
-            if (m_ppuFetchState == 2) m_ppuFetchState = 3;
-            else m_ppuFetchState = 0; // Finished
-            
-            const auto& chr = m_cartridge->getCHR();
-            if (offset < chr.size()) {
-                return chr[offset];
-            }
-            return 0;
-        }
+    // Handle ExRAM Mode 1 banking (uses captured ExRAM byte for bank selection)
+    if (isBgFetch && m_exRamMode == 1) {
+        // MMC5 ExRAM Mode 1 (Extended Attributes):
+        //   7..6 = palette select (AA)
+        //   5..0 = 4KB CHR bank select (CCCCCC)
+        // Pattern data for the current background tile comes from the 4KB bank
+        // selected by bits 0-5 of the *captured* ExRAM byte.
+        // Upper bits from $5130 are also used: bits 6-7 of bank come from $5130
+        u32 bankIndex = (m_capturedExRam & 0x3F) | (m_chrUpperBits << 6);
         
-        // Advance state for non-ExRAM modes too (to track end of fetch)
-        if (m_ppuFetchState == 2) m_ppuFetchState = 3;
-        else m_ppuFetchState = 0;
+        u32 offset = (bankIndex * 0x1000) + (address & 0x0FFF);
+        
+        const auto& chr = m_cartridge->getCHR();
+        if (offset < chr.size()) {
+            return chr[offset];
+        }
+        return 0;
     }
 
     const auto& chr = m_cartridge->getCHR();
@@ -459,13 +429,8 @@ void Mapper005::writeCHR(u16 address, u8 value) {
     if (!chr.empty()) {
         // Determine which bank set to use (same logic as readCHR)
         bool isBgFetch;
-        if (!m_inFrame) {
-            // Outside of active rendering: use last written register set
-            isBgFetch = (m_lastChrReg >= 0x5128 && m_lastChrReg <= 0x512B);
-        } else {
-            // During active rendering: use PPU fetch state
-            isBgFetch = m_ppuFetchState >= 2;
-        }
+        PPU* ppu = m_cartridge->getPPU();
+        isBgFetch = ppu ? ppu->isFetchingBackgroundPattern() : false;
         const u32* bankOffset = isBgFetch ? m_chrBgBankOffset : m_chrBankOffset;
 
         u8 bank = address / 0x400;

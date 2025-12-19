@@ -93,6 +93,9 @@ public:
     // Rendering state (for mapper IRQ clocking - MMC3 only clocks when rendering)
     bool isRenderingEnabled() const { return (m_ppuMask & (PPUMASK_SHOW_BG | PPUMASK_SHOW_SPR)) != 0; }
     
+    // Check if PPU is currently fetching background pattern data (for MMC5 CHR banking)
+    bool isFetchingBackgroundPattern() const;
+    
     // Framebuffer access
     const u32* getFramebuffer() const { return m_framebuffer.data(); }
     
