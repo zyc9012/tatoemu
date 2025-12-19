@@ -4,12 +4,12 @@
 namespace nes {
 
 Mapper162::Mapper162(Cartridge* cartridge)
-    : Mapper(cartridge)
-    , m_prgBankOffset(0)
-    , m_chrBankOffset(0) {
+    : Mapper(cartridge) {
 }
 
 void Mapper162::reset() {
+    m_prgBankOffset = 0;
+    m_chrBankOffset = 0;
     m_regs[0] = 3;
     m_regs[1] = 0;
     m_regs[2] = 0;

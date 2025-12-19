@@ -4,13 +4,7 @@
 namespace nes {
 
 Mapper073::Mapper073(Cartridge* cartridge)
-    : Mapper(cartridge)
-    , m_prgBank(0)
-    , m_irqLatch(0)
-    , m_irqCounter(0)
-    , m_irqEnable(false)
-    , m_irqEnableOnAck(false)
-    , m_irqMode(false) {
+    : Mapper(cartridge) {
 }
 
 void Mapper073::reset() {

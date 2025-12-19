@@ -274,27 +274,14 @@ void VRC6Audio::loadState(std::ifstream& file) {
 // ============================================================
 
 Mapper024::Mapper024(Cartridge* cartridge)
-    : Mapper(cartridge)
-    , m_prgBank16k(0)
-    , m_prgBank8k(0)
-    , m_bankingMode(0)
-    , m_mirrorMode(MirrorMode::VERTICAL)
-    , m_irqLatch(0)
-    , m_irqCounter(0)
-    , m_irqEnable(false)
-    , m_irqEnableOnAck(false)
-    , m_irqCycleMode(false)
-    , m_irqPrescaler(0) {
-    std::memset(m_chrBank, 0, sizeof(m_chrBank));
-    std::memset(m_prgBankOffset, 0, sizeof(m_prgBankOffset));
-    std::memset(m_chrBankOffset, 0, sizeof(m_chrBankOffset));
+    : Mapper(cartridge) {
 }
 
 void Mapper024::reset() {
     m_prgBank16k = 0;
     m_prgBank8k = 0;
     m_bankingMode = 0;
-    m_mirrorMode = MirrorMode::VERTICAL;
+    m_mirrorMode = m_cartridge->getBaseMirrorMode();
     m_irqLatch = 0;
     m_irqCounter = 0;
     m_irqEnable = false;
@@ -304,6 +291,8 @@ void Mapper024::reset() {
     m_irqActive = false;
     
     std::memset(m_chrBank, 0, sizeof(m_chrBank));
+    std::memset(m_chrBankOffset, 0, sizeof(m_chrBankOffset));
+    std::memset(m_prgBankOffset, 0, sizeof(m_prgBankOffset));
     
     m_audio.reset();
     updateBanks();

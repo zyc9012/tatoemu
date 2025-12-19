@@ -4,15 +4,7 @@
 namespace nes {
 
 Mapper001::Mapper001(Cartridge* cartridge)
-    : Mapper(cartridge)
-    , m_shiftRegister(0x10)
-    , m_shiftCount(0)
-    , m_lastWriteCycle(0)
-    , m_control(0x0C)
-    , m_chrBank0(0)
-    , m_chrBank1(0)
-    , m_prgBank(0)
-    , m_lastChrReg(0xA000) {
+    : Mapper(cartridge) {
 }
 
 void Mapper001::reset() {

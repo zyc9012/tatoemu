@@ -6,13 +6,7 @@
 namespace nes {
 
 Mapper163::Mapper163(Cartridge* cartridge)
-    : Mapper(cartridge)
-    , m_toggle(true)
-    , m_autoSwitchCHR(false)
-    , m_prgBank(0)
-    , m_chrBank0(0)
-    , m_chrBank1(0) {
-    std::memset(m_registers, 0, sizeof(m_registers));
+    : Mapper(cartridge) {
 }
 
 void Mapper163::reset() {

@@ -5,29 +5,17 @@
 namespace nes {
 
 Mapper023::Mapper023(Cartridge* cartridge)
-    : Mapper(cartridge)
-    , m_prgSwapMode(0)
-    , m_mirrorMode(MirrorMode::VERTICAL)
-    , m_irqLatch(0)
-    , m_irqCounter(0)
-    , m_irqPrescaler(0)
-    , m_irqPrescalerCounter(0)
-    , m_irqEnable(false)
-    , m_irqEnableOnAck(false)
-    , m_irqMode(false) {
-    std::memset(m_prgBank, 0, sizeof(m_prgBank));
-    std::memset(m_chrBank, 0, sizeof(m_chrBank));
-    std::memset(m_chrBankHigh, 0, sizeof(m_chrBankHigh));
-    std::memset(m_prgBankOffset, 0, sizeof(m_prgBankOffset));
-    std::memset(m_chrBankOffset, 0, sizeof(m_chrBankOffset));
+    : Mapper(cartridge) {
 }
 
 void Mapper023::reset() {
     std::memset(m_prgBank, 0, sizeof(m_prgBank));
     std::memset(m_chrBank, 0, sizeof(m_chrBank));
     std::memset(m_chrBankHigh, 0, sizeof(m_chrBankHigh));
+    std::memset(m_prgBankOffset, 0, sizeof(m_prgBankOffset));
+    std::memset(m_chrBankOffset, 0, sizeof(m_chrBankOffset));
     m_prgSwapMode = 0;
-    m_mirrorMode = MirrorMode::VERTICAL;
+    m_mirrorMode = m_cartridge->getBaseMirrorMode();
     m_irqLatch = 0;
     m_irqCounter = 0;
     m_irqPrescaler = 0;

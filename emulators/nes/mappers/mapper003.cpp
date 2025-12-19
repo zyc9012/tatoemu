@@ -4,8 +4,7 @@
 namespace nes {
 
 Mapper003::Mapper003(Cartridge* cartridge)
-    : Mapper(cartridge)
-    , m_chrBank(0) {
+    : Mapper(cartridge) {
 }
 
 void Mapper003::reset() {

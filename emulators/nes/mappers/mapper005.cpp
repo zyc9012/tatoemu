@@ -5,37 +5,7 @@
 namespace nes {
 
 Mapper005::Mapper005(Cartridge* cartridge)
-    : Mapper(cartridge)
-    , m_prgMode(3)
-    , m_prgRamProtect1(false)
-    , m_prgRamProtect2(false)
-    , m_chrMode(0)
-    , m_chrUpperBits(0)
-    , m_lastChrReg(0)
-    , m_nametableMapping(0)
-    , m_fillModeTile(0)
-    , m_fillModeAttr(0)
-    , m_exRamMode(0)
-    , m_irqScanline(0)
-    , m_irqStatus(0)
-    , m_irqEnable(false)
-    , m_inFrame(false)
-    , m_scanlineCounter(0)
-    , m_multiplicand(0)
-    , m_multiplier(0)
-    , m_capturedExRam(0)
-    , m_ppuFetchState(0)
-    , m_splitMode(0)
-    , m_splitScroll(0)
-    , m_splitBank(0)
-    , m_lastScanline(0) {
-    std::memset(m_prgBankRegs, 0xFF, sizeof(m_prgBankRegs));
-    std::memset(m_chrBankRegs, 0, sizeof(m_chrBankRegs));
-    std::memset(m_prgBankOffset, 0, sizeof(m_prgBankOffset));
-    std::memset(m_chrBankOffset, 0, sizeof(m_chrBankOffset));
-    std::memset(m_chrBgBankOffset, 0, sizeof(m_chrBgBankOffset));
-    m_exRam.fill(0);
-    m_prgRamExt.fill(0);
+    : Mapper(cartridge) {
 }
 
 void Mapper005::reset() {
@@ -67,8 +37,11 @@ void Mapper005::reset() {
     
     std::memset(m_prgBankRegs, 0xFF, sizeof(m_prgBankRegs));
     std::memset(m_chrBankRegs, 0, sizeof(m_chrBankRegs));
+    std::memset(m_prgBankOffset, 0, sizeof(m_prgBankOffset));
+    std::memset(m_chrBankOffset, 0, sizeof(m_chrBankOffset));
     std::memset(m_chrBgBankOffset, 0, sizeof(m_chrBgBankOffset));
     m_exRam.fill(0);
+    m_prgRamExt.fill(0);
     
     updatePRGBanks();
     updateCHRBanks();

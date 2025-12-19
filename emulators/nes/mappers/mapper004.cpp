@@ -4,15 +4,7 @@
 namespace nes {
 
 Mapper004::Mapper004(Cartridge* cartridge)
-    : Mapper(cartridge)
-    , m_bankSelect(0)
-    , m_irqLatch(0)
-    , m_irqCounter(0)
-    , m_irqEnable(false)
-    , m_irqReload(false)
-    , m_mirrorMode(cartridge->getBaseMirrorMode())
-    , m_prgRamEnable(true) {
-    std::memset(m_bankData, 0, sizeof(m_bankData));
+    : Mapper(cartridge) {
 }
 
 void Mapper004::reset() {

@@ -4,15 +4,7 @@
 namespace nes {
 
 Mapper010::Mapper010(Cartridge* cartridge)
-    : Mapper(cartridge)
-    , m_prgBank(0)
-    , m_chrBank0FD(0)
-    , m_chrBank0FE(0)
-    , m_chrBank1FD(0)
-    , m_chrBank1FE(0)
-    , m_latch0(0xFE)
-    , m_latch1(0xFE)
-    , m_mirrorMode(cartridge->getBaseMirrorMode()) {
+    : Mapper(cartridge) {
 }
 
 void Mapper010::reset() {

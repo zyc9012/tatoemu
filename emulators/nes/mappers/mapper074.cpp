@@ -6,9 +6,6 @@ namespace nes {
 
 Mapper074::Mapper074(Cartridge* cartridge)
     : Mapper004(cartridge) {
-    std::memset(m_chrRam, 0, sizeof(m_chrRam));
-    std::memset(m_chrRamBank, false, sizeof(m_chrRamBank));
-    std::memset(m_chrBankValue, 0, sizeof(m_chrBankValue));
 }
 
 void Mapper074::reset() {

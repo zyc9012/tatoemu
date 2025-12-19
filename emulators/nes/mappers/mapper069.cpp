@@ -6,15 +6,7 @@ namespace nes {
 
 Mapper069::Mapper069(Cartridge* cartridge)
     : Mapper(cartridge)
-    , m_command(0)
-    , m_workRamValue(0)
-    , m_irqEnabled(false)
-    , m_irqCounterEnabled(false)
-    , m_irqCounter(0)
-    , m_mirrorMode(cartridge->getBaseMirrorMode())
     , m_workRam(0x8000, 0) {  // 32KB work RAM
-    std::memset(m_chrBanks, 0, sizeof(m_chrBanks));
-    std::memset(m_prgBanks, 0, sizeof(m_prgBanks));
 }
 
 void Mapper069::reset() {

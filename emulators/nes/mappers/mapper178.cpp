@@ -4,11 +4,7 @@
 namespace nes {
 
 Mapper178::Mapper178(Cartridge* cartridge)
-    : Mapper(cartridge)
-    , m_prgBank(0)
-    , m_prgLow(0)
-    , m_prgHigh(0)
-    , m_mirrorMode(m_cartridge->getBaseMirrorMode()) {
+    : Mapper(cartridge) {
 }
 
 void Mapper178::reset() {

@@ -4,12 +4,7 @@
 namespace nes {
 
 Mapper019::Mapper019(Cartridge* cartridge)
-    : Mapper(cartridge)
-    , m_prgBank{0, 0, 0}
-    , m_chrBank{0}
-    , m_chrUseCiram{false}
-    , m_irqCounter(0)
-    , m_irqEnable(false) {
+    : Mapper(cartridge) {
 }
 
 void Mapper019::reset() {
