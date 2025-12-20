@@ -93,8 +93,12 @@ public:
     // Rendering state (for mapper IRQ clocking - MMC3 only clocks when rendering)
     bool isRenderingEnabled() const { return (m_ppuMask & (PPUMASK_SHOW_BG | PPUMASK_SHOW_SPR)) != 0; }
     
-    // Check if PPU is currently fetching background pattern data (for MMC5 CHR banking)
+    // Sprite helpers
+    u8 getSpriteHeight() const;
+    
+    // Helpers for MMC5 CHR banking
     bool isFetchingBackgroundPattern() const;
+    bool isFetchingSpritePattern() const;
     
     // Framebuffer access
     const u32* getFramebuffer() const { return m_framebuffer.data(); }
@@ -125,7 +129,6 @@ private:
     
     // Sprite helpers
     bool isSpriteInRange(const OAMEntry& sprite, u16 scanline) const;
-    u8 getSpriteHeight() const;
     void fetchSpritePattern(u8 spriteIndex);
     
     // Background pixel

@@ -389,10 +389,10 @@ void Mapper005::writeExRAM(u16 address, u8 value) {
     }
 }
 
-u8 Mapper005::readCHR(u16 address) {
+u32 Mapper005::mapCHR(u16 address) {
     // Determine if this is a background fetch from PPU state.
     PPU* ppu = m_cartridge->getPPU();
-    bool isBgFetch = ppu ? ppu->isFetchingBackgroundPattern() : false;
+    bool isBgFetch = ppu->isFetchingBackgroundPattern();
     
     // Handle ExRAM Mode 1 banking (uses captured ExRAM byte for bank selection)
     if (isBgFetch && m_exRamMode == 1) {
@@ -404,39 +404,34 @@ u8 Mapper005::readCHR(u16 address) {
         // Upper bits from $5130 are also used: bits 6-7 of bank come from $5130
         u32 bankIndex = (m_capturedExRam & 0x3F) | (m_chrUpperBits << 6);
         
-        u32 offset = (bankIndex * 0x1000) + (address & 0x0FFF);
-        
-        const auto& chr = m_cartridge->getCHR();
-        if (offset < chr.size()) {
-            return chr[offset];
-        }
-        return 0;
+        return bankIndex * 0x1000 + (address & 0x0FFF);
     }
 
-    const auto& chr = m_cartridge->getCHR();
-    if (chr.empty()) return 0;
-    
-    const u32* bankOffset = isBgFetch ? m_chrBgBankOffset : m_chrBankOffset;
+    const u32* bankOffset;
+
+    if (ppu->getSpriteHeight() == 16) {
+        if (isBgFetch) {
+            bankOffset = m_chrBgBankOffset;
+        } else if (ppu->isFetchingSpritePattern()) {
+            bankOffset = m_chrBankOffset;
+        } else {
+            bankOffset = (m_lastChrReg >= 0x5120 && m_lastChrReg <= 0x5127) ? m_chrBankOffset : m_chrBgBankOffset;
+        }
+    } else {
+        bankOffset = m_chrBankOffset;
+    }
 
     u8 bank = address / 0x400;
     u16 offset = address & 0x3FF;
-    return chr[bankOffset[bank] + offset];
+    return bankOffset[bank] + offset;
+}
+
+u8 Mapper005::readCHR(u16 address) {
+    return m_cartridge->getCHR()[mapCHR(address)];
 }
 
 void Mapper005::writeCHR(u16 address, u8 value) {
-    // CHR RAM support
-    auto& chr = m_cartridge->getCHR();
-    if (!chr.empty()) {
-        // Determine which bank set to use (same logic as readCHR)
-        bool isBgFetch;
-        PPU* ppu = m_cartridge->getPPU();
-        isBgFetch = ppu ? ppu->isFetchingBackgroundPattern() : false;
-        const u32* bankOffset = isBgFetch ? m_chrBgBankOffset : m_chrBankOffset;
-
-        u8 bank = address / 0x400;
-        u16 offset = address & 0x3FF;
-        chr[bankOffset[bank] + offset] = value;
-    }
+    m_cartridge->getCHR()[mapCHR(address)] = value;
 }
 
 bool Mapper005::readNametable(u16 address, u8& value) {

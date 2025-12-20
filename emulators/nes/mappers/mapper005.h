@@ -26,6 +26,7 @@ public:
     void loadState(std::ifstream& file) override;
     
 private:
+    u32 mapCHR(u16 address);
     void updatePRGBanks();
     void updateCHRBanks();
     u8 readExRAM(u16 address);
