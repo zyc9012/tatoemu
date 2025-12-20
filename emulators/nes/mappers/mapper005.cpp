@@ -248,13 +248,10 @@ u8 Mapper005::cpuRead(u16 address) {
         u8 bank = (address - 0x8000) / 0x2000;
         u16 offset = address & 0x1FFF;
         
-        // Check if bank points to RAM or ROM
-        u8 bankReg = m_prgBankRegs[(m_prgMode == 3) ? (bank + 1) : ((bank < 2) ? 2 : 4)];
-        if (!(bankReg & 0x80)) {
-            // RAM bank
-            return m_prgRamExt[(bankReg & 0x07) * 0x2000 + offset];
-        }
-        return m_cartridge->getPRG()[m_prgBankOffset[bank] + offset];
+        const auto& prg = m_cartridge->getPRG();
+        u32 prgOffset = m_prgBankOffset[bank] + offset;
+        prgOffset = prgOffset % prg.size();
+        return prg[prgOffset];
     }
     return 0;
 }
