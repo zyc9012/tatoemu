@@ -4,6 +4,224 @@
 #include <cstring>
 namespace nes {
 
+// ============================================================
+// MMC5 Square Channel Implementation
+// ============================================================
+
+void MMC5Square::reset() {
+    m_channel.reset();
+    // Ensure sweep is disabled (MMC5 has no sweep)
+    m_channel.sweep.reset();
+    m_channel.sweep.enabled = false;
+}
+
+void MMC5Square::writeRegister(u8 addr, u8 value) {
+    switch (addr & 0x03) {
+        case 0:  // $5000/$5004: Control
+            m_channel.writeControl(value);
+            break;
+            
+        case 1:  // $5001/$5005: Sweep (no effect on MMC5, but we can ignore it)
+            // MMC5 square channels don't have sweep, so this register has no effect
+            // We don't call writeSweep() to keep sweep disabled
+            break;
+            
+        case 2:  // $5002/$5006: Timer Low
+            m_channel.writeTimerLow(value);
+            break;
+            
+        case 3:  // $5003/$5007: Timer High + Length Counter
+            m_channel.writeTimerHigh(value);
+            break;
+    }
+}
+
+u8 MMC5Square::getOutput() const {
+    // Use PulseChannel's output, but we need to bypass sweep muting
+    // since MMC5 doesn't mute at low frequencies
+    if (m_channel.lengthCounter.isZero()) return 0;
+    if (APU::PulseChannel::DUTY_TABLE[m_channel.dutyMode][m_channel.sequencerStep] == 0) return 0;
+    
+    return m_channel.envelope.volume();
+}
+
+void MMC5Square::saveState(std::ofstream& file) const {
+    // Save the entire PulseChannel state
+    file.write(reinterpret_cast<const char*>(&m_channel.timerPeriod), sizeof(m_channel.timerPeriod));
+    file.write(reinterpret_cast<const char*>(&m_channel.timerCounter), sizeof(m_channel.timerCounter));
+    file.write(reinterpret_cast<const char*>(&m_channel.dutyMode), sizeof(m_channel.dutyMode));
+    file.write(reinterpret_cast<const char*>(&m_channel.sequencerStep), sizeof(m_channel.sequencerStep));
+    file.write(reinterpret_cast<const char*>(&m_channel.envelope), sizeof(m_channel.envelope));
+    file.write(reinterpret_cast<const char*>(&m_channel.sweep), sizeof(m_channel.sweep));
+    file.write(reinterpret_cast<const char*>(&m_channel.lengthCounter), sizeof(m_channel.lengthCounter));
+    file.write(reinterpret_cast<const char*>(&m_channel.isPulse1), sizeof(m_channel.isPulse1));
+}
+
+void MMC5Square::loadState(std::ifstream& file) {
+    // Load the entire PulseChannel state
+    file.read(reinterpret_cast<char*>(&m_channel.timerPeriod), sizeof(m_channel.timerPeriod));
+    file.read(reinterpret_cast<char*>(&m_channel.timerCounter), sizeof(m_channel.timerCounter));
+    file.read(reinterpret_cast<char*>(&m_channel.dutyMode), sizeof(m_channel.dutyMode));
+    file.read(reinterpret_cast<char*>(&m_channel.sequencerStep), sizeof(m_channel.sequencerStep));
+    file.read(reinterpret_cast<char*>(&m_channel.envelope), sizeof(m_channel.envelope));
+    file.read(reinterpret_cast<char*>(&m_channel.sweep), sizeof(m_channel.sweep));
+    file.read(reinterpret_cast<char*>(&m_channel.lengthCounter), sizeof(m_channel.lengthCounter));
+    file.read(reinterpret_cast<char*>(&m_channel.isPulse1), sizeof(m_channel.isPulse1));
+    // Ensure sweep stays disabled
+    m_channel.sweep.enabled = false;
+}
+
+// ============================================================
+// MMC5 Audio Controller Implementation
+// ============================================================
+
+void MMC5Audio::reset() {
+    m_square1.reset();
+    m_square2.reset();
+    m_pcmReadMode = false;
+    m_pcmIrqEnabled = false;
+    m_pcmOutput = 0;
+    m_frameCounter = FRAME_COUNTER_PERIOD;  // Initialize to period so first clock happens after one period
+    m_oddCycle = false;
+}
+
+void MMC5Audio::writeRegister(u16 addr, u8 value) {
+    switch (addr) {
+        case 0x5000: case 0x5001: case 0x5002: case 0x5003:
+            m_square1.writeRegister(addr & 0x03, value);
+            break;
+            
+        case 0x5004: case 0x5005: case 0x5006: case 0x5007:
+            m_square2.writeRegister(addr & 0x03, value);
+            break;
+            
+        case 0x5010:
+            // PCM control
+            // D0: PCM read mode
+            // D7: PCM IRQ enable
+            m_pcmReadMode = (value & 0x01) != 0;
+            m_pcmIrqEnabled = (value & 0x80) != 0;
+            // TODO: Implement PCM IRQ
+            break;
+            
+        case 0x5011:
+            // PCM output (only when not in read mode)
+            if (!m_pcmReadMode && value != 0) {
+                m_pcmOutput = value;
+            }
+            // TODO: Implement PCM read mode
+            break;
+            
+        case 0x5015:
+            // Channel enable (maps to $4015 behavior)
+            m_square1.m_channel.lengthCounter.enabled = (value & 0x01) != 0;
+            m_square2.m_channel.lengthCounter.enabled = (value & 0x02) != 0;
+            
+            // Disable channels: clear length counter
+            if (!m_square1.m_channel.lengthCounter.enabled) {
+                m_square1.m_channel.lengthCounter.counter = 0;
+            }
+            if (!m_square2.m_channel.lengthCounter.enabled) {
+                m_square2.m_channel.lengthCounter.counter = 0;
+            }
+            break;
+    }
+}
+
+u8 MMC5Audio::readRegister(u16 addr) {
+    switch (addr) {
+        case 0x5010:
+            // PCM IRQ status (TODO: implement PCM IRQ)
+            return 0;
+            
+        case 0x5015:
+            // Channel status
+            u8 status = 0;
+            if (m_square1.isEnabled()) status |= 0x01;
+            if (m_square2.isEnabled()) status |= 0x02;
+            return status;
+    }
+    
+    return 0;  // Open bus (simplified)
+}
+
+void MMC5Audio::clock() {
+    // Toggle cycle counter
+    m_oddCycle = !m_oddCycle;
+
+    // Clock square channels every other CPU cycle (like APU pulse channels)
+    if (m_oddCycle) {
+        m_square1.clock();
+        m_square2.clock();
+    }
+
+    // Clock envelope/length counter at ~240 Hz
+    m_frameCounter--;
+    if (m_frameCounter <= 0) {
+        m_frameCounter = FRAME_COUNTER_PERIOD;
+        m_square1.clockLengthCounter();
+        m_square1.clockEnvelope();
+        m_square2.clockLengthCounter();
+        m_square2.clockEnvelope();
+    }
+}
+
+float MMC5Audio::getOutput() const {
+    // Get square channel outputs (0-15 each)
+    u8 square1Out = m_square1.getOutput();
+    u8 square2Out = m_square2.getOutput();
+    u8 pcmOut = m_pcmOutput;
+    
+    // Combine outputs
+    // Square channels output 0-15 each (like APU pulse channels)
+    // PCM outputs 0-255, but is rarely used
+    // For mixing, we treat PCM as equivalent to square channels for simplicity
+    u32 squareTotal = square1Out + square2Out;
+    u32 totalOutput = squareTotal;
+    
+    // Add PCM contribution (scale PCM to match square channel levels)
+    // PCM is 8-bit, square channels are 4-bit, so scale PCM by 1/16
+    if (pcmOut > 0) {
+        totalOutput += (pcmOut >> 4);  // Scale PCM to 0-15 range
+    }
+    
+    // Normalize to roughly match APU levels
+    // MMC5 square channels have equivalent volume to APU pulse channels
+    // Max output: 15 + 15 + 15 = 45 (if PCM is also at max scaled)
+    // Normalize similar to VRC6 (max 61, normalized to 0.5)
+    // For square-only: max 30, normalize to ~0.25 (half of VRC6 max)
+    float normalized = static_cast<float>(totalOutput) / 60.0f * 0.5f;
+    
+    // Note: MMC5 polarity is reversed compared to APU according to reference,
+    // but for simplicity we normalize as positive since the APU mixing
+    // just adds expansion audio directly.
+    return normalized;
+}
+
+void MMC5Audio::saveState(std::ofstream& file) const {
+    m_square1.saveState(file);
+    m_square2.saveState(file);
+    file.write(reinterpret_cast<const char*>(&m_pcmReadMode), sizeof(m_pcmReadMode));
+    file.write(reinterpret_cast<const char*>(&m_pcmIrqEnabled), sizeof(m_pcmIrqEnabled));
+    file.write(reinterpret_cast<const char*>(&m_pcmOutput), sizeof(m_pcmOutput));
+    file.write(reinterpret_cast<const char*>(&m_frameCounter), sizeof(m_frameCounter));
+    file.write(reinterpret_cast<const char*>(&m_oddCycle), sizeof(m_oddCycle));
+}
+
+void MMC5Audio::loadState(std::ifstream& file) {
+    m_square1.loadState(file);
+    m_square2.loadState(file);
+    file.read(reinterpret_cast<char*>(&m_pcmReadMode), sizeof(m_pcmReadMode));
+    file.read(reinterpret_cast<char*>(&m_pcmIrqEnabled), sizeof(m_pcmIrqEnabled));
+    file.read(reinterpret_cast<char*>(&m_pcmOutput), sizeof(m_pcmOutput));
+    file.read(reinterpret_cast<char*>(&m_frameCounter), sizeof(m_frameCounter));
+    file.read(reinterpret_cast<char*>(&m_oddCycle), sizeof(m_oddCycle));
+}
+
+// ============================================================
+// Mapper005 Implementation
+// ============================================================
+
 Mapper005::Mapper005(Cartridge* cartridge)
     : Mapper(cartridge) {
 }
@@ -42,6 +260,8 @@ void Mapper005::reset() {
     std::memset(m_chrBgBankOffset, 0, sizeof(m_chrBgBankOffset));
     m_exRam.fill(0);
     m_prgRamExt.fill(0);
+    
+    m_audio.reset();
     
     updatePRGBanks();
     updateCHRBanks();
@@ -223,6 +443,9 @@ u8 Mapper005::cpuRead(u16 address) {
     if (address >= 0x5000 && address < 0x5C00) {
         // MMC5 registers
         switch (address) {
+            case 0x5010:  // PCM control/status
+            case 0x5015:  // Audio status
+                return m_audio.readRegister(address);
             case 0x5204:  // IRQ Status
                 {
                     u8 result = m_irqStatus;
@@ -258,7 +481,13 @@ u8 Mapper005::cpuRead(u16 address) {
 
 void Mapper005::cpuWrite(u16 address, u8 value) {
     if (address >= 0x5000 && address < 0x5C00) {
-        // MMC5 registers
+        // MMC5 audio registers ($5000-$5015)
+        if (address >= 0x5000 && address <= 0x5015) {
+            m_audio.writeRegister(address, value);
+            return;
+        }
+        
+        // MMC5 other registers
         switch (address) {
             case 0x5100:  // PRG mode
                 m_prgMode = value & 0x03;
@@ -569,6 +798,14 @@ void Mapper005::scanlineCounter() {
     }
 }
 
+void Mapper005::clockAudio() {
+    m_audio.clock();
+}
+
+float Mapper005::getAudioOutput() const {
+    return m_audio.getOutput();
+}
+
 void Mapper005::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_prgMode), sizeof(m_prgMode));
     file.write(reinterpret_cast<const char*>(m_prgBankRegs), sizeof(m_prgBankRegs));
@@ -599,6 +836,9 @@ void Mapper005::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_splitScroll), sizeof(m_splitScroll));
     file.write(reinterpret_cast<const char*>(&m_splitBank), sizeof(m_splitBank));
     file.write(reinterpret_cast<const char*>(&m_lastScanline), sizeof(m_lastScanline));
+    
+    // Save audio state
+    m_audio.saveState(file);
 }
 
 void Mapper005::loadState(std::ifstream& file) {
@@ -631,6 +871,9 @@ void Mapper005::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_splitScroll), sizeof(m_splitScroll));
     file.read(reinterpret_cast<char*>(&m_splitBank), sizeof(m_splitBank));
     file.read(reinterpret_cast<char*>(&m_lastScanline), sizeof(m_lastScanline));
+    
+    // Load audio state
+    m_audio.loadState(file);
     
     updatePRGBanks();
     updateCHRBanks();

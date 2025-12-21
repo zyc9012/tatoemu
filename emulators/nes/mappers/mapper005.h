@@ -1,9 +1,71 @@
 #pragma once
 
 #include "../cartridge.h"
+#include "../apu.h"
 #include <array>
 
 namespace nes {
+
+// Forward declaration
+class MMC5Audio;
+
+// ============================================================
+// MMC5 Square Channel - Wrapper around APU PulseChannel
+// MMC5 square channels are identical to APU pulse channels
+// except they have no sweep
+// ============================================================
+class MMC5Square {
+    friend class MMC5Audio;  // Allow MMC5Audio to access private members
+    
+public:
+    void reset();
+    void writeRegister(u8 addr, u8 value);
+    void clock() { m_channel.clockTimer(); }
+    void clockLengthCounter() { m_channel.clockLength(); }
+    void clockEnvelope() { m_channel.clockEnvelope(); }
+    u8 getOutput() const;
+    bool isEnabled() const { return !m_channel.lengthCounter.isZero(); }
+    
+    // State save/load
+    void saveState(std::ofstream& file) const;
+    void loadState(std::ifstream& file);
+    
+private:
+    // Reuse APU PulseChannel (sweep will be disabled/ignored)
+    APU::PulseChannel m_channel;
+};
+
+// ============================================================
+// MMC5 Audio Controller
+// ============================================================
+class MMC5Audio {
+public:
+    void reset();
+    void writeRegister(u16 addr, u8 value);
+    u8 readRegister(u16 addr);
+    void clock();  // Called every CPU cycle
+    float getOutput() const;
+    
+    // State save/load
+    void saveState(std::ofstream& file) const;
+    void loadState(std::ifstream& file);
+    
+private:
+    MMC5Square m_square1;
+    MMC5Square m_square2;
+    
+    // PCM channel
+    bool m_pcmReadMode;
+    bool m_pcmIrqEnabled;
+    u8 m_pcmOutput;
+    
+    // Frame counter for envelope/length counter (~240 Hz)
+    s32 m_frameCounter;  // Countdown to next envelope/length clock
+    static constexpr s32 FRAME_COUNTER_PERIOD = 1789773 / 240;  // ~7457 CPU cycles
+
+    // Cycle counter for timer
+    bool m_oddCycle;
+};
 
 // Mapper 5: MMC5 (ExROM) - Most complex NES mapper
 class Mapper005 : public Mapper {
@@ -21,6 +83,11 @@ public:
     
     MirrorMode getMirrorMode() const override;
     void scanlineCounter() override;
+    
+    // Expansion audio
+    void clockAudio() override;
+    float getAudioOutput() const override;
+    bool hasExpansionAudio() const override { return true; }
     
     void saveState(std::ofstream& file) const override;
     void loadState(std::ifstream& file) override;
@@ -81,6 +148,9 @@ private:
     
     // Internal tracking for scanline detection
     u16 m_lastScanline;     // Last scanline we processed (to detect changes)
+    
+    // MMC5 expansion audio
+    MMC5Audio m_audio;
 };
 
 } // namespace nes
