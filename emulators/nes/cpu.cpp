@@ -49,7 +49,8 @@ CPU::CPU()
     , m_cycles(0)
     , m_stallCycles(0)
     , m_nmiPending(false)
-    , m_irqPending(false) {
+    , m_irqPending(false)
+    , m_nmiDelay(0) {
     reset();
 }
 
@@ -71,6 +72,7 @@ void CPU::reset() {
     m_stallCycles = 0;
     m_nmiPending = false;
     m_irqPending = false;
+    m_nmiDelay = 0;
 }
 
 void CPU::step() {
@@ -104,10 +106,18 @@ void CPU::step() {
     }
     
     executeInstruction();
+
+    if (m_nmiDelay > 0) {
+        m_nmiDelay--;
+        if (m_nmiDelay == 0) {
+            // Trigger NMI before the next instruction is executed
+            m_nmiPending = true;
+        }
+    }
 }
 
 void CPU::nmi() {
-    m_nmiPending = true;
+    m_nmiDelay = 2;
 }
 
 void CPU::irq() {
@@ -1173,6 +1183,7 @@ void CPU::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_cycles), sizeof(m_cycles));
     file.write(reinterpret_cast<const char*>(&m_stallCycles), sizeof(m_stallCycles));
     file.write(reinterpret_cast<const char*>(&m_nmiPending), sizeof(m_nmiPending));
+    file.write(reinterpret_cast<const char*>(&m_nmiDelay), sizeof(m_nmiDelay));
     file.write(reinterpret_cast<const char*>(&m_irqPending), sizeof(m_irqPending));
 }
 
@@ -1181,6 +1192,7 @@ void CPU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_cycles), sizeof(m_cycles));
     file.read(reinterpret_cast<char*>(&m_stallCycles), sizeof(m_stallCycles));
     file.read(reinterpret_cast<char*>(&m_nmiPending), sizeof(m_nmiPending));
+    file.read(reinterpret_cast<char*>(&m_nmiDelay), sizeof(m_nmiDelay));
     file.read(reinterpret_cast<char*>(&m_irqPending), sizeof(m_irqPending));
 }
 

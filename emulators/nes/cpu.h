@@ -206,6 +206,7 @@ private:
     // Interrupt flags
     bool m_nmiPending;
     bool m_irqPending;
+    u8 m_nmiDelay;
 };
 
 } // namespace nes

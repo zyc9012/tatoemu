@@ -206,7 +206,6 @@ private:
     // NMI state
     bool m_nmiOccurred;
     bool m_nmiOutput;
-    u8 m_nmiDelay;
     
     // Open bus behavior
     u8 m_openBus;

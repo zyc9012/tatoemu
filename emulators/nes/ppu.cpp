@@ -61,7 +61,6 @@ PPU::PPU()
     , m_spriteEvalComplete(false)
     , m_nmiOccurred(false)
     , m_nmiOutput(false)
-    , m_nmiDelay(0)
     , m_openBus(0) {
     reset();
 }
@@ -104,7 +103,6 @@ void PPU::reset() {
     
     m_nmiOccurred = false;
     m_nmiOutput = false;
-    m_nmiDelay = 0;
     
     m_openBus = 0;
     
@@ -206,7 +204,7 @@ void PPU::writeRegister(u16 address, u8 value) {
             
             // If NMI was just enabled and we're in VBlank, trigger NMI
             if (!wasNmiEnabled && m_nmiOutput && m_nmiOccurred) {
-                m_nmiDelay = 15;
+                m_cpu->nmi();
             }
             break;
         }
@@ -816,16 +814,6 @@ void PPU::renderPixel() {
 // ============================================================================
 
 void PPU::step() {
-    // Handle NMI delay (for accurate NMI timing)
-    if (m_nmiDelay > 0) {
-        m_nmiDelay--;
-        if (m_nmiDelay == 0 && m_nmiOutput && m_nmiOccurred) {
-            if (m_cpu) {
-                m_cpu->nmi();
-            }
-        }
-    }
-    
     // Visible scanlines (0-239)
     if (m_scanline < VISIBLE_SCANLINES) {
         // Sprite evaluation at cycle 257
@@ -866,10 +854,8 @@ void PPU::step() {
         
         // Generate NMI if enabled
         if (m_nmiOutput) {
-            // NMI delay needs to be long enough to allow current instruction to complete
-            // and the next instruction to start (so it can read the VBLANK flag)
-            // Using 15 PPU cycles (~5 CPU cycles) to match real hardware behavior
-            m_nmiDelay = 15;
+            // Start NMI. CPU will delay NMI by 2 instructions.
+            m_cpu->nmi();
         }
         
         // Render frame
@@ -1004,7 +990,6 @@ void PPU::saveState(std::ofstream& file) const {
     // NMI state
     file.write(reinterpret_cast<const char*>(&m_nmiOccurred), sizeof(m_nmiOccurred));
     file.write(reinterpret_cast<const char*>(&m_nmiOutput), sizeof(m_nmiOutput));
-    file.write(reinterpret_cast<const char*>(&m_nmiDelay), sizeof(m_nmiDelay));
     
     file.write(reinterpret_cast<const char*>(&m_openBus), sizeof(m_openBus));
 }
@@ -1055,7 +1040,6 @@ void PPU::loadState(std::ifstream& file) {
     // NMI state
     file.read(reinterpret_cast<char*>(&m_nmiOccurred), sizeof(m_nmiOccurred));
     file.read(reinterpret_cast<char*>(&m_nmiOutput), sizeof(m_nmiOutput));
-    file.read(reinterpret_cast<char*>(&m_nmiDelay), sizeof(m_nmiDelay));
     
     file.read(reinterpret_cast<char*>(&m_openBus), sizeof(m_openBus));
 }
