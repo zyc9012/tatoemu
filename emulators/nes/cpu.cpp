@@ -59,7 +59,7 @@ void CPU::reset() {
     m_regs.x = 0;
     m_regs.y = 0;
     m_regs.s = 0xFD;  // Stack pointer starts at 0xFD after reset
-    m_regs.p = 0x24;  // IRQ disabled, unused bit set
+    m_regs.p = 0x4;  // IRQ disabled, unused bit set
     
     // Read reset vector
     if (m_memory) {
@@ -754,7 +754,7 @@ void CPU::PLA() {
 }
 
 void CPU::PLP() {
-    m_regs.p = (pull() & ~FLAG_B) | FLAG_U;  // B ignored, U always 1
+    m_regs.p = pull() & ~FLAG_B & ~FLAG_U;  // B ignored, U ignored
 }
 
 void CPU::ADC(AddressMode mode) {
@@ -979,7 +979,7 @@ void CPU::RTS() {
 }
 
 void CPU::RTI() {
-    m_regs.p = (pull() & ~FLAG_B) | FLAG_U;
+    m_regs.p = pull() & ~FLAG_B & ~FLAG_U;
     m_regs.pc = pull16();
 }
 
