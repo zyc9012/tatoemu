@@ -465,7 +465,9 @@ u8 Mapper005::cpuRead(u16 address) {
         return readExRAM(address - 0x5C00);
     } else if (address >= 0x6000 && address < 0x8000) {
         // PRG RAM
-        return m_prgRamExt[address & 0x1FFF];
+        u8 bank = m_prgBankRegs[0] & 0x07;  // Lower 3 bits select bank (0-7)
+        u16 offset = address & 0x1FFF;  // Offset within 8KB bank
+        return m_prgRamExt[(bank * 0x2000) + offset];
     } else if (address >= 0x8000) {
         // PRG ROM
         u8 bank = (address - 0x8000) / 0x2000;
@@ -596,7 +598,9 @@ void Mapper005::cpuWrite(u16 address, u8 value) {
     } else if (address >= 0x6000 && address < 0x8000) {
         // PRG RAM (if write-enabled)
         if (m_prgRamProtect1 && m_prgRamProtect2) {
-            m_prgRamExt[address & 0x1FFF] = value;
+            u8 bank = m_prgBankRegs[0] & 0x07;  // Lower 3 bits select bank (0-7)
+            u16 offset = address & 0x1FFF;  // Offset within 8KB bank
+            m_prgRamExt[(bank * 0x2000) + offset] = value;
         }
     }
     // ROM writes ignored
