@@ -11,7 +11,7 @@ namespace Window {
 
 namespace Audio {
     constexpr u32 SAMPLE_RATE = 44100;
-    constexpr float VOLUME = 0.2f;
+    constexpr float VOLUME = 0.3f;
 }
 
 namespace Key {
