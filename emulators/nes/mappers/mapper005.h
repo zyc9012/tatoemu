@@ -98,6 +98,7 @@ private:
     void updateCHRBanks();
     u8 readExRAM(u16 address);
     void writeExRAM(u16 address, u8 value);
+    s8 getPRGRamBank(u16 address);  // Returns RAM bank (0-7) or -1 for ROM
     
     // PRG mode and banks
     u8 m_prgMode;           // PRG banking mode (0-3)

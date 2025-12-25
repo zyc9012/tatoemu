@@ -439,6 +439,58 @@ void Mapper005::updateCHRBanks() {
     }
 }
 
+s8 Mapper005::getPRGRamBank(u16 address) {
+    // Determine which PRG bank register controls this address based on PRG mode
+    u8 regIndex;
+    bool isRam;
+    
+    if (m_prgMode == 0) {
+        // Mode 0: Register 4 ($5117) controls $8000-$FFFF (always ROM)
+        return -1;  // ROM
+    } else if (m_prgMode == 1) {
+        // Mode 1: Register 2 ($5115) controls $8000-$BFFF, Register 4 ($5117) controls $C000-$FFFF
+        if (address < 0xC000) {
+            regIndex = 2;
+            isRam = (m_prgBankRegs[2] & 0x80) == 0;
+        } else {
+            return -1;  // Register 4 always uses ROM
+        }
+    } else if (m_prgMode == 2) {
+        // Mode 2: Register 2 ($5115) controls $8000-$BFFF, Register 3 ($5116) controls $C000-$DFFF, Register 4 ($5117) controls $E000-$FFFF
+        if (address < 0xC000) {
+            regIndex = 2;
+            isRam = (m_prgBankRegs[2] & 0x80) == 0;
+        } else if (address < 0xE000) {
+            regIndex = 3;
+            isRam = (m_prgBankRegs[3] & 0x80) == 0;
+        } else {
+            return -1;  // Register 4 always uses ROM
+        }
+    } else {  // m_prgMode == 3
+        // Mode 3: Register 1 ($5114) controls $8000-$9FFF, Register 2 ($5115) controls $A000-$BFFF, 
+        //         Register 3 ($5116) controls $C000-$DFFF, Register 4 ($5117) controls $E000-$FFFF
+        if (address < 0xA000) {
+            regIndex = 1;
+            isRam = (m_prgBankRegs[1] & 0x80) == 0;
+        } else if (address < 0xC000) {
+            regIndex = 2;
+            isRam = (m_prgBankRegs[2] & 0x80) == 0;
+        } else if (address < 0xE000) {
+            regIndex = 3;
+            isRam = (m_prgBankRegs[3] & 0x80) == 0;
+        } else {
+            return -1;  // Register 4 always uses ROM
+        }
+    }
+    
+    // Return RAM bank if it's RAM, otherwise -1 for ROM
+    if (isRam) {
+        return m_prgBankRegs[regIndex] & 0x07;  // Lower 3 bits select bank (0-7)
+    } else {
+        return -1;  // ROM
+    }
+}
+
 u8 Mapper005::cpuRead(u16 address) {
     if (address >= 0x5000 && address < 0x5C00) {
         // MMC5 registers
@@ -469,14 +521,23 @@ u8 Mapper005::cpuRead(u16 address) {
         u16 offset = address & 0x1FFF;  // Offset within 8KB bank
         return m_prgRamExt[(bank * 0x2000) + offset];
     } else if (address >= 0x8000) {
-        // PRG ROM
-        u8 bank = (address - 0x8000) / 0x2000;
-        u16 offset = address & 0x1FFF;
+        // PRG ROM/RAM - Determine if this address maps to RAM or ROM
+        s8 ramBank = getPRGRamBank(address);
         
-        const auto& prg = m_cartridge->getPRG();
-        u32 prgOffset = m_prgBankOffset[bank] + offset;
-        prgOffset = prgOffset % prg.size();
-        return prg[prgOffset];
+        if (ramBank >= 0) {
+            // PRG RAM
+            u16 offset = address & 0x1FFF;  // Offset within 8KB bank
+            return m_prgRamExt[(ramBank * 0x2000) + offset];
+        } else {
+            // PRG ROM
+            u8 bank = (address - 0x8000) / 0x2000;
+            u16 offset = address & 0x1FFF;
+            
+            const auto& prg = m_cartridge->getPRG();
+            u32 prgOffset = m_prgBankOffset[bank] + offset;
+            prgOffset = prgOffset % prg.size();
+            return prg[prgOffset];
+        }
     }
     return 0;
 }
@@ -602,8 +663,17 @@ void Mapper005::cpuWrite(u16 address, u8 value) {
             u16 offset = address & 0x1FFF;  // Offset within 8KB bank
             m_prgRamExt[(bank * 0x2000) + offset] = value;
         }
+    } else if (address >= 0x8000) {
+        // PRG RAM/ROM writes - Check if this address maps to RAM
+        s8 ramBank = getPRGRamBank(address);
+        
+        // Write to PRG RAM if mapped and write-enabled
+        if (ramBank >= 0 && m_prgRamProtect1 && m_prgRamProtect2) {
+            u16 offset = address & 0x1FFF;
+            m_prgRamExt[(ramBank * 0x2000) + offset] = value;
+        }
+        // ROM writes are ignored
     }
-    // ROM writes ignored
 }
 
 u8 Mapper005::readExRAM(u16 address) {
