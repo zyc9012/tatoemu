@@ -43,7 +43,6 @@ int main(int argc, char* argv[]) {
         std::cout << "  --scale-mode <mode>   Scale mode: linear, nearest (default: linear)" << std::endl;
         std::cout << "  --sample-rate <hz>    Audio sample rate (default: " << Config::Audio::SampleRate << ")" << std::endl;
         std::cout << "  --volume <0.0-1.0>    Audio volume (default: " << Config::Audio::Volume << ")" << std::endl;
-        std::cout << "\nAlternatively, set BOOTROM environment variable to bootrom path" << std::endl;
         std::cout << "\nControls:" << std::endl;
         std::cout << "  Arrow Keys  - D-Pad" << std::endl;
         std::cout << "  Z           - A Button" << std::endl;

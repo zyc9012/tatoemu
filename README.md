@@ -63,8 +63,16 @@ python3 -m http.server 8080
 ## Usage
 
 ```bash
-./tatoemu <path_to_rom> [bootrom_file]
+./tatoemu <path_to_rom> [options]
 ```
+
+### Command-Line Options
+
+- `--scale <n>` - Window scale factor (default: 2)
+- `--scale-mode <mode>` - Scale mode: `linear` or `nearest` (default: linear)
+- `--sample-rate <hz>` - Audio sample rate in Hz (default: 44100)
+- `--volume <0.0-1.0>` - Audio volume level (default: 0.3)
+- `--bootrom <path>` - Path to bootrom file (Game Boy only)
 
 ### Controls (both systems)
 
