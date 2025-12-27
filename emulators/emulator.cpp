@@ -63,7 +63,7 @@ SDLAudioDevice::~SDLAudioDevice() {
 
 bool SDLAudioDevice::initialize() {
     SDL_AudioSpec spec;
-    spec.freq = Config::Audio::SAMPLE_RATE;
+    spec.freq = Config::Audio::SampleRate;
     spec.format = SDL_AUDIO_F32;
     spec.channels = 2;  // Stereo
 
@@ -151,8 +151,8 @@ bool Emulator::initialize() {
     m_targetFrameTime = 1000.0 / m_targetFPS / m_gameSpeed;
 
     // Audio buffer thresholds: maintain 1.5-4 frames worth of audio for smooth playback
-    m_minAudioBufferSize = static_cast<int>((Config::Audio::SAMPLE_RATE * 2 * sizeof(float) / static_cast<double>(m_targetFPS)) * 1.5);
-    m_maxAudioBufferSize = static_cast<int>((Config::Audio::SAMPLE_RATE * 2 * sizeof(float) / static_cast<double>(m_targetFPS)) * 4.0);
+    m_minAudioBufferSize = static_cast<int>((Config::Audio::SampleRate * 2 * sizeof(float) / static_cast<double>(m_targetFPS)) * 1.5);
+    m_maxAudioBufferSize = static_cast<int>((Config::Audio::SampleRate * 2 * sizeof(float) / static_cast<double>(m_targetFPS)) * 4.0);
 
     // Initialize SDL
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
@@ -163,8 +163,8 @@ bool Emulator::initialize() {
     // Create window
     m_window = SDL_CreateWindow(
         "TatoEmu",
-        screenWidth * Config::Window::SCALE,
-        screenHeight * Config::Window::SCALE,
+        screenWidth * Config::Window::Scale,
+        screenHeight * Config::Window::Scale,
         SDL_WINDOW_RESIZABLE
     );
 
@@ -197,7 +197,7 @@ bool Emulator::initialize() {
         return false;
     }
 
-    SDL_SetTextureScaleMode(m_texture, Config::Window::SCALE_MODE);
+    SDL_SetTextureScaleMode(m_texture, Config::Window::ScaleMode);
 
     // Create video and audio devices
     m_videoDevice = std::make_unique<SDLVideoDevice>(m_renderer, m_texture, screenWidth, screenHeight);
@@ -215,8 +215,8 @@ bool Emulator::initialize() {
         return false;
     }
     
-    m_core->setAudioSampleRate(Config::Audio::SAMPLE_RATE);
-    m_core->setAudioVolume(Config::Audio::VOLUME);
+    m_core->setAudioSampleRate(Config::Audio::SampleRate);
+    m_core->setAudioVolume(Config::Audio::Volume);
     
     // Load bootrom if provided (optional, GB only)
     if (!m_bootromFilename.empty()) {

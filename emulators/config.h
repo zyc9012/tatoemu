@@ -5,13 +5,13 @@
 
 namespace Config {
 namespace Window {
-    constexpr u32 SCALE = 2;
-    constexpr SDL_ScaleMode SCALE_MODE = SDL_SCALEMODE_LINEAR;
+    inline u32 Scale = 2;
+    inline SDL_ScaleMode ScaleMode = SDL_SCALEMODE_LINEAR;
 }
 
 namespace Audio {
-    constexpr u32 SAMPLE_RATE = 44100;
-    constexpr float VOLUME = 0.3f;
+    inline u32 SampleRate = 44100;
+    inline float Volume = 0.3f;
 }
 
 namespace Key {
