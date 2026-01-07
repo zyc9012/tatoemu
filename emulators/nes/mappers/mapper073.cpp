@@ -8,6 +8,7 @@ Mapper073::Mapper073(Cartridge* cartridge)
 }
 
 void Mapper073::reset() {
+    Mapper::reset();
     m_prgBank = 0;
     m_irqLatch = 0;
     m_irqCounter = 0;
@@ -120,6 +121,7 @@ void Mapper073::clockAudio() {
 }
 
 void Mapper073::saveState(std::ofstream& file) const {
+    Mapper::saveState(file);
     file.write(reinterpret_cast<const char*>(&m_prgBank), sizeof(m_prgBank));
     file.write(reinterpret_cast<const char*>(&m_irqLatch), sizeof(m_irqLatch));
     file.write(reinterpret_cast<const char*>(&m_irqCounter), sizeof(m_irqCounter));
@@ -129,6 +131,7 @@ void Mapper073::saveState(std::ofstream& file) const {
 }
 
 void Mapper073::loadState(std::ifstream& file) {
+    Mapper::loadState(file);
     file.read(reinterpret_cast<char*>(&m_prgBank), sizeof(m_prgBank));
     file.read(reinterpret_cast<char*>(&m_irqLatch), sizeof(m_irqLatch));
     file.read(reinterpret_cast<char*>(&m_irqCounter), sizeof(m_irqCounter));

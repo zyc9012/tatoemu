@@ -9,13 +9,13 @@ Mapper025::Mapper025(Cartridge* cartridge)
 }
 
 void Mapper025::reset() {
+    Mapper::reset();
     std::memset(m_prgBank, 0, sizeof(m_prgBank));
     std::memset(m_chrBank, 0, sizeof(m_chrBank));
     std::memset(m_chrBankHigh, 0, sizeof(m_chrBankHigh));
     std::memset(m_prgBankOffset, 0, sizeof(m_prgBankOffset));
     std::memset(m_chrBankOffset, 0, sizeof(m_chrBankOffset));
     m_prgSwapMode = 0;
-    m_mirrorMode = m_cartridge->getBaseMirrorMode();
     m_irqLatch = 0;
     m_irqCounter = 0;
     m_irqPrescaler = 0;
@@ -136,10 +136,6 @@ void Mapper025::writeCHR(u16 address, u8 value) {
     m_cartridge->getCHR()[m_chrBankOffset[bank] + offset] = value;
 }
 
-MirrorMode Mapper025::getMirrorMode() const {
-    return m_mirrorMode;
-}
-
 void Mapper025::scanlineCounter() {
     // VRC4 IRQ is clocked per CPU cycle (see clockAudio).
     // Leave empty to avoid double-clocking when Core calls this at PPU scanline time.
@@ -173,11 +169,11 @@ void Mapper025::clockAudio() {
 }
 
 void Mapper025::saveState(std::ofstream& file) const {
+    Mapper::saveState(file);
     file.write(reinterpret_cast<const char*>(m_prgBank), sizeof(m_prgBank));
     file.write(reinterpret_cast<const char*>(m_chrBank), sizeof(m_chrBank));
     file.write(reinterpret_cast<const char*>(m_chrBankHigh), sizeof(m_chrBankHigh));
     file.write(reinterpret_cast<const char*>(&m_prgSwapMode), sizeof(m_prgSwapMode));
-    file.write(reinterpret_cast<const char*>(&m_mirrorMode), sizeof(m_mirrorMode));
     file.write(reinterpret_cast<const char*>(&m_irqLatch), sizeof(m_irqLatch));
     file.write(reinterpret_cast<const char*>(&m_irqCounter), sizeof(m_irqCounter));
     file.write(reinterpret_cast<const char*>(&m_irqPrescaler), sizeof(m_irqPrescaler));
@@ -188,11 +184,11 @@ void Mapper025::saveState(std::ofstream& file) const {
 }
 
 void Mapper025::loadState(std::ifstream& file) {
+    Mapper::loadState(file);
     file.read(reinterpret_cast<char*>(m_prgBank), sizeof(m_prgBank));
     file.read(reinterpret_cast<char*>(m_chrBank), sizeof(m_chrBank));
     file.read(reinterpret_cast<char*>(m_chrBankHigh), sizeof(m_chrBankHigh));
     file.read(reinterpret_cast<char*>(&m_prgSwapMode), sizeof(m_prgSwapMode));
-    file.read(reinterpret_cast<char*>(&m_mirrorMode), sizeof(m_mirrorMode));
     file.read(reinterpret_cast<char*>(&m_irqLatch), sizeof(m_irqLatch));
     file.read(reinterpret_cast<char*>(&m_irqCounter), sizeof(m_irqCounter));
     file.read(reinterpret_cast<char*>(&m_irqPrescaler), sizeof(m_irqPrescaler));

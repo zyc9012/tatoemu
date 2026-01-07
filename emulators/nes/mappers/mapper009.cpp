@@ -8,6 +8,7 @@ Mapper009::Mapper009(Cartridge* cartridge)
 }
 
 void Mapper009::reset() {
+    Mapper::reset();
     m_prgBank = 0;
     m_leftLatch = 1;
     m_rightLatch = 1;
@@ -15,7 +16,6 @@ void Mapper009::reset() {
     m_leftChrPage[1] = 0;
     m_rightChrPage[0] = 0;
     m_rightChrPage[1] = 0;
-    m_mirrorMode = m_cartridge->getBaseMirrorMode();
     updateBanks();
 }
 
@@ -140,26 +140,22 @@ void Mapper009::writeCHR(u16 address, u8 value) {
     // CHR ROM - ignore writes
 }
 
-MirrorMode Mapper009::getMirrorMode() const {
-    return m_mirrorMode;
-}
-
 void Mapper009::saveState(std::ofstream& file) const {
+    Mapper::saveState(file);
     file.write(reinterpret_cast<const char*>(&m_prgBank), sizeof(m_prgBank));
     file.write(reinterpret_cast<const char*>(m_leftChrPage), sizeof(m_leftChrPage));
     file.write(reinterpret_cast<const char*>(m_rightChrPage), sizeof(m_rightChrPage));
     file.write(reinterpret_cast<const char*>(&m_leftLatch), sizeof(m_leftLatch));
     file.write(reinterpret_cast<const char*>(&m_rightLatch), sizeof(m_rightLatch));
-    file.write(reinterpret_cast<const char*>(&m_mirrorMode), sizeof(m_mirrorMode));
 }
 
 void Mapper009::loadState(std::ifstream& file) {
+    Mapper::loadState(file);
     file.read(reinterpret_cast<char*>(&m_prgBank), sizeof(m_prgBank));
     file.read(reinterpret_cast<char*>(m_leftChrPage), sizeof(m_leftChrPage));
     file.read(reinterpret_cast<char*>(m_rightChrPage), sizeof(m_rightChrPage));
     file.read(reinterpret_cast<char*>(&m_leftLatch), sizeof(m_leftLatch));
     file.read(reinterpret_cast<char*>(&m_rightLatch), sizeof(m_rightLatch));
-    file.read(reinterpret_cast<char*>(&m_mirrorMode), sizeof(m_mirrorMode));
     updateBanks();
 }
 

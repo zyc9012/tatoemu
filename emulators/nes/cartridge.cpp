@@ -91,6 +91,7 @@ bool Cartridge::load(const fs::path& filename) {
     }
     
     m_loaded = true;
+    m_mapper->setBaseMirrorMode(m_mirrorMode);
     m_mapper->reset();
     
     std::cout << "Loaded ROM: " << m_title << std::endl;
@@ -495,10 +496,6 @@ MirrorMode Cartridge::getMirrorMode() const {
         return m_mapper->getMirrorMode();
     }
     return m_mirrorMode;
-}
-
-void Cartridge::setMirrorMode(MirrorMode mode) {
-    m_mirrorMode = mode;
 }
 
 void Cartridge::scanlineCounter() {

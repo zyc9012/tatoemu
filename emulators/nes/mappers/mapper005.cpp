@@ -227,6 +227,7 @@ Mapper005::Mapper005(Cartridge* cartridge)
 }
 
 void Mapper005::reset() {
+    Mapper::reset();
     m_prgMode = 3;
     m_prgRamProtect1 = false;
     m_prgRamProtect2 = false;
@@ -827,10 +828,6 @@ bool Mapper005::writeNametable(u16 address, u8 value) {
     }
 }
 
-MirrorMode Mapper005::getMirrorMode() const {
-    return m_cartridge->getBaseMirrorMode();
-}
-
 void Mapper005::scanlineCounter() {
     // Get current scanline from PPU
     PPU* ppu = m_cartridge->getPPU();
@@ -881,6 +878,7 @@ float Mapper005::getAudioOutput() const {
 }
 
 void Mapper005::saveState(std::ofstream& file) const {
+    Mapper::saveState(file);
     file.write(reinterpret_cast<const char*>(&m_prgMode), sizeof(m_prgMode));
     file.write(reinterpret_cast<const char*>(m_prgBankRegs), sizeof(m_prgBankRegs));
     file.write(reinterpret_cast<const char*>(&m_prgRamProtect1), sizeof(m_prgRamProtect1));
@@ -916,6 +914,7 @@ void Mapper005::saveState(std::ofstream& file) const {
 }
 
 void Mapper005::loadState(std::ifstream& file) {
+    Mapper::loadState(file);
     file.read(reinterpret_cast<char*>(&m_prgMode), sizeof(m_prgMode));
     file.read(reinterpret_cast<char*>(m_prgBankRegs), sizeof(m_prgBankRegs));
     file.read(reinterpret_cast<char*>(&m_prgRamProtect1), sizeof(m_prgRamProtect1));

@@ -15,7 +15,6 @@ public:
     u8 readCHR(u16 address) override;
     void writeCHR(u16 address, u8 value) override;
     
-    MirrorMode getMirrorMode() const override;
     void scanlineCounter() override;
     
     void saveState(std::ofstream& file) const override;
@@ -32,7 +31,6 @@ protected:
     bool m_irqEnable;
     bool m_irqReload;
     
-    MirrorMode m_mirrorMode;
     bool m_prgRamEnable;
     
     u32 m_prgBankOffset[4];

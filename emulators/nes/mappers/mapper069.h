@@ -15,7 +15,6 @@ public:
     u8 readCHR(u16 address) override;
     void writeCHR(u16 address, u8 value) override;
     
-    MirrorMode getMirrorMode() const override;
     void clockAudio() override;
     
     void saveState(std::ofstream& file) const override;
@@ -32,7 +31,6 @@ private:
     bool m_irqEnabled;
     bool m_irqCounterEnabled;
     u16 m_irqCounter;
-    MirrorMode m_mirrorMode;
     
     u32 m_prgBankOffset[4];
     u32 m_chrBankOffset[8];

@@ -8,6 +8,7 @@ Mapper010::Mapper010(Cartridge* cartridge)
 }
 
 void Mapper010::reset() {
+    Mapper::reset();
     m_prgBank = 0;
     m_chrBank0FD = 0;
     m_chrBank0FE = 0;
@@ -15,7 +16,6 @@ void Mapper010::reset() {
     m_chrBank1FE = 0;
     m_latch0 = 0xFE;
     m_latch1 = 0xFE;
-    m_mirrorMode = m_cartridge->getBaseMirrorMode();
 }
 
 u8 Mapper010::cpuRead(u16 address) {
@@ -96,11 +96,8 @@ void Mapper010::writeCHR(u16 address, u8 value) {
     // CHR ROM - ignore writes
 }
 
-MirrorMode Mapper010::getMirrorMode() const {
-    return m_mirrorMode;
-}
-
 void Mapper010::saveState(std::ofstream& file) const {
+    Mapper::saveState(file);
     file.write(reinterpret_cast<const char*>(&m_prgBank), sizeof(m_prgBank));
     file.write(reinterpret_cast<const char*>(&m_chrBank0FD), sizeof(m_chrBank0FD));
     file.write(reinterpret_cast<const char*>(&m_chrBank0FE), sizeof(m_chrBank0FE));
@@ -108,10 +105,10 @@ void Mapper010::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_chrBank1FE), sizeof(m_chrBank1FE));
     file.write(reinterpret_cast<const char*>(&m_latch0), sizeof(m_latch0));
     file.write(reinterpret_cast<const char*>(&m_latch1), sizeof(m_latch1));
-    file.write(reinterpret_cast<const char*>(&m_mirrorMode), sizeof(m_mirrorMode));
 }
 
 void Mapper010::loadState(std::ifstream& file) {
+    Mapper::loadState(file);
     file.read(reinterpret_cast<char*>(&m_prgBank), sizeof(m_prgBank));
     file.read(reinterpret_cast<char*>(&m_chrBank0FD), sizeof(m_chrBank0FD));
     file.read(reinterpret_cast<char*>(&m_chrBank0FE), sizeof(m_chrBank0FE));
@@ -119,7 +116,6 @@ void Mapper010::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_chrBank1FE), sizeof(m_chrBank1FE));
     file.read(reinterpret_cast<char*>(&m_latch0), sizeof(m_latch0));
     file.read(reinterpret_cast<char*>(&m_latch1), sizeof(m_latch1));
-    file.read(reinterpret_cast<char*>(&m_mirrorMode), sizeof(m_mirrorMode));
 }
 
 } // namespace nes

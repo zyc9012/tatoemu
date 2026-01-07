@@ -8,6 +8,7 @@ Mapper162::Mapper162(Cartridge* cartridge)
 }
 
 void Mapper162::reset() {
+    Mapper::reset();
     m_prgBankOffset = 0;
     m_chrBankOffset = 0;
     m_regs[0] = 3;
@@ -79,17 +80,15 @@ void Mapper162::writeCHR(u16 address, u8 value) {
     m_cartridge->getCHR()[m_chrBankOffset + (address & 0x1FFF)] = value;
 }
 
-MirrorMode Mapper162::getMirrorMode() const {
-    return m_cartridge->getBaseMirrorMode();
-}
-
 void Mapper162::saveState(std::ofstream& file) const {
+    Mapper::saveState(file);
     file.write(reinterpret_cast<const char*>(&m_regs), sizeof(m_regs));
     file.write(reinterpret_cast<const char*>(&m_prgBankOffset), sizeof(m_prgBankOffset));
     file.write(reinterpret_cast<const char*>(&m_chrBankOffset), sizeof(m_chrBankOffset));
 }
 
 void Mapper162::loadState(std::ifstream& file) {
+    Mapper::loadState(file);
     file.read(reinterpret_cast<char*>(&m_regs), sizeof(m_regs));
     file.read(reinterpret_cast<char*>(&m_prgBankOffset), sizeof(m_prgBankOffset));
     file.read(reinterpret_cast<char*>(&m_chrBankOffset), sizeof(m_chrBankOffset));

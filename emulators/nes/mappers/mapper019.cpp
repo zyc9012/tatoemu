@@ -8,6 +8,7 @@ Mapper019::Mapper019(Cartridge* cartridge)
 }
 
 void Mapper019::reset() {
+    Mapper::reset();
     m_prgBank[0] = 0;
     m_prgBank[1] = 1;
     m_prgBank[2] = 2;
@@ -153,6 +154,7 @@ void Mapper019::clockAudio() {
 }
 
 void Mapper019::saveState(std::ofstream& file) const {
+    Mapper::saveState(file);
     file.write(reinterpret_cast<const char*>(m_prgBank), sizeof(m_prgBank));
     file.write(reinterpret_cast<const char*>(m_chrBank), sizeof(m_chrBank));
     file.write(reinterpret_cast<const char*>(m_chrUseCiram), sizeof(m_chrUseCiram));
@@ -161,6 +163,7 @@ void Mapper019::saveState(std::ofstream& file) const {
 }
 
 void Mapper019::loadState(std::ifstream& file) {
+    Mapper::loadState(file);
     file.read(reinterpret_cast<char*>(m_prgBank), sizeof(m_prgBank));
     file.read(reinterpret_cast<char*>(m_chrBank), sizeof(m_chrBank));
     file.read(reinterpret_cast<char*>(m_chrUseCiram), sizeof(m_chrUseCiram));

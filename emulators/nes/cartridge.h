@@ -65,8 +65,6 @@ public:
     
     // Mirroring
     MirrorMode getMirrorMode() const;
-    MirrorMode getBaseMirrorMode() const { return m_mirrorMode; }  // Direct access without mapper delegation
-    void setMirrorMode(MirrorMode mode);
     
     // Mapper IRQ (for MMC3 etc.)
     void scanlineCounter();
@@ -143,7 +141,10 @@ public:
     Mapper(Cartridge* cartridge) : m_cartridge(cartridge), m_irqActive(false) {}
     virtual ~Mapper() = default;
     
-    virtual void reset() = 0;
+    virtual void reset() {
+        m_mirrorMode = m_baseMirrorMode;
+        m_irqActive = false;
+    }
     
     virtual u8 cpuRead(u16 address) = 0;
     virtual void cpuWrite(u16 address, u8 value) = 0;
@@ -155,8 +156,8 @@ public:
     virtual bool readNametable(u16 /*address*/, u8& /*value*/) { return false; }
     virtual bool writeNametable(u16 /*address*/, u8 /*value*/) { return false; }
     
-    virtual MirrorMode getMirrorMode() const { return m_cartridge->getBaseMirrorMode(); }
-    virtual void setMirrorMode(MirrorMode mode) { m_cartridge->setMirrorMode(mode); }
+    virtual MirrorMode getMirrorMode() const { return m_mirrorMode; }
+    void setBaseMirrorMode(MirrorMode mode) { m_baseMirrorMode = mode; }
     
     // Scanline counter (for MMC3)
     virtual void scanlineCounter() {}
@@ -171,12 +172,22 @@ public:
     virtual bool hasExpansionAudio() const { return false; }
     
     // Save/Load state
-    virtual void saveState(std::ofstream& file) const = 0;
-    virtual void loadState(std::ifstream& file) = 0;
+    virtual void saveState(std::ofstream& file) const {
+        file.write(reinterpret_cast<const char*>(&m_irqActive), sizeof(m_irqActive));
+        file.write(reinterpret_cast<const char*>(&m_baseMirrorMode), sizeof(m_baseMirrorMode));
+        file.write(reinterpret_cast<const char*>(&m_mirrorMode), sizeof(m_mirrorMode));
+    }
+    virtual void loadState(std::ifstream& file) {
+        file.read(reinterpret_cast<char*>(&m_irqActive), sizeof(m_irqActive));
+        file.read(reinterpret_cast<char*>(&m_baseMirrorMode), sizeof(m_baseMirrorMode));
+        file.read(reinterpret_cast<char*>(&m_mirrorMode), sizeof(m_mirrorMode));
+    }
     
 protected:
     Cartridge* m_cartridge;
     bool m_irqActive;
+    MirrorMode m_baseMirrorMode;
+    MirrorMode m_mirrorMode;
 };
 
 

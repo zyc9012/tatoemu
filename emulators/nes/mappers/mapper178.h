@@ -15,8 +15,6 @@ public:
     u8 readCHR(u16 address) override;
     void writeCHR(u16 address, u8 value) override;
 
-    MirrorMode getMirrorMode() const override;
-
     void saveState(std::ofstream& file) const override;
     void loadState(std::ifstream& file) override;
 
@@ -24,7 +22,6 @@ private:
     u8 m_prgBank;
     u8 m_prgLow; // Low 4 bits of PRG bank
     u8 m_prgHigh; // High bits of PRG bank
-    MirrorMode m_mirrorMode;
 };
 
 } // namespace nes

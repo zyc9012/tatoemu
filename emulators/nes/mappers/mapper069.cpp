@@ -10,13 +10,13 @@ Mapper069::Mapper069(Cartridge* cartridge)
 }
 
 void Mapper069::reset() {
+    Mapper::reset();
     m_command = 0;
     m_workRamValue = 0;
     m_irqEnabled = false;
     m_irqCounterEnabled = false;
     m_irqCounter = 0;
     m_irqActive = false;
-    m_mirrorMode = m_cartridge->getBaseMirrorMode();
     std::memset(m_chrBanks, 0, sizeof(m_chrBanks));
     std::memset(m_prgBanks, 0, sizeof(m_prgBanks));
     std::fill(m_workRam.begin(), m_workRam.end(), 0);
@@ -175,10 +175,6 @@ void Mapper069::writeCHR(u16 address, u8 value) {
     (void)value;
 }
 
-MirrorMode Mapper069::getMirrorMode() const {
-    return m_mirrorMode;
-}
-
 void Mapper069::clockAudio() {
     // FME-7 IRQ counter decrements on CPU cycles
     // This is called every CPU cycle from APU::step()
@@ -194,6 +190,7 @@ void Mapper069::clockAudio() {
 }
 
 void Mapper069::saveState(std::ofstream& file) const {
+    Mapper::saveState(file);
     file.write(reinterpret_cast<const char*>(&m_command), sizeof(m_command));
     file.write(reinterpret_cast<const char*>(m_chrBanks), sizeof(m_chrBanks));
     file.write(reinterpret_cast<const char*>(m_prgBanks), sizeof(m_prgBanks));
@@ -201,7 +198,6 @@ void Mapper069::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_irqEnabled), sizeof(m_irqEnabled));
     file.write(reinterpret_cast<const char*>(&m_irqCounterEnabled), sizeof(m_irqCounterEnabled));
     file.write(reinterpret_cast<const char*>(&m_irqCounter), sizeof(m_irqCounter));
-    file.write(reinterpret_cast<const char*>(&m_mirrorMode), sizeof(m_mirrorMode));
     
     // Save work RAM
     u32 workRamSize = static_cast<u32>(m_workRam.size());
@@ -210,6 +206,7 @@ void Mapper069::saveState(std::ofstream& file) const {
 }
 
 void Mapper069::loadState(std::ifstream& file) {
+    Mapper::loadState(file);
     file.read(reinterpret_cast<char*>(&m_command), sizeof(m_command));
     file.read(reinterpret_cast<char*>(m_chrBanks), sizeof(m_chrBanks));
     file.read(reinterpret_cast<char*>(m_prgBanks), sizeof(m_prgBanks));
@@ -217,7 +214,6 @@ void Mapper069::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_irqEnabled), sizeof(m_irqEnabled));
     file.read(reinterpret_cast<char*>(&m_irqCounterEnabled), sizeof(m_irqCounterEnabled));
     file.read(reinterpret_cast<char*>(&m_irqCounter), sizeof(m_irqCounter));
-    file.read(reinterpret_cast<char*>(&m_mirrorMode), sizeof(m_mirrorMode));
     
     // Load work RAM
     u32 workRamSize;

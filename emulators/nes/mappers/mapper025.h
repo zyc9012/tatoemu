@@ -15,7 +15,6 @@ public:
     u8 readCHR(u16 address) override;
     void writeCHR(u16 address, u8 value) override;
     
-    MirrorMode getMirrorMode() const override;
     void scanlineCounter() override;
     void clockAudio() override;
     
@@ -29,7 +28,6 @@ private:
     u8 m_chrBank[8];
     u8 m_chrBankHigh[8];
     u8 m_prgSwapMode;
-    MirrorMode m_mirrorMode;
     
     // IRQ
     u8 m_irqLatch;

@@ -8,6 +8,7 @@ Mapper002::Mapper002(Cartridge* cartridge)
 }
 
 void Mapper002::reset() {
+    Mapper::reset();
     m_prgBank = 0;
 }
 
@@ -44,10 +45,12 @@ void Mapper002::writeCHR(u16 address, u8 value) {
 }
 
 void Mapper002::saveState(std::ofstream& file) const {
+    Mapper::saveState(file);
     file.write(reinterpret_cast<const char*>(&m_prgBank), sizeof(m_prgBank));
 }
 
 void Mapper002::loadState(std::ifstream& file) {
+    Mapper::loadState(file);
     file.read(reinterpret_cast<char*>(&m_prgBank), sizeof(m_prgBank));
 }
 

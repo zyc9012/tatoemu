@@ -10,6 +10,7 @@ Mapper163::Mapper163(Cartridge* cartridge)
 }
 
 void Mapper163::reset() {
+    Mapper::reset();
     std::memset(m_registers, 0, sizeof(m_registers));
     m_autoSwitchCHR = false;
     
@@ -202,6 +203,7 @@ void Mapper163::writeCHR(u16 address, u8 value) {
 }
 
 void Mapper163::saveState(std::ofstream& file) const {
+    Mapper::saveState(file);
     file.write(reinterpret_cast<const char*>(m_registers), sizeof(m_registers));
     file.write(reinterpret_cast<const char*>(&m_toggle), sizeof(m_toggle));
     file.write(reinterpret_cast<const char*>(&m_autoSwitchCHR), sizeof(m_autoSwitchCHR));
@@ -211,6 +213,7 @@ void Mapper163::saveState(std::ofstream& file) const {
 }
 
 void Mapper163::loadState(std::ifstream& file) {
+    Mapper::loadState(file);
     file.read(reinterpret_cast<char*>(m_registers), sizeof(m_registers));
     file.read(reinterpret_cast<char*>(&m_toggle), sizeof(m_toggle));
     file.read(reinterpret_cast<char*>(&m_autoSwitchCHR), sizeof(m_autoSwitchCHR));

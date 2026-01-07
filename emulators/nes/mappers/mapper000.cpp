@@ -6,9 +6,6 @@ namespace nes {
 Mapper000::Mapper000(Cartridge* cartridge) : Mapper(cartridge) {
 }
 
-void Mapper000::reset() {
-}
-
 u8 Mapper000::cpuRead(u16 address) {
     if (address >= 0x6000 && address < 0x8000) {
         // PRG RAM
@@ -38,14 +35,6 @@ void Mapper000::writeCHR(u16 address, u8 value) {
     if (m_cartridge->getCHR().size() == CHR_ROM_BANK_SIZE) {
         m_cartridge->getCHR()[address & 0x1FFF] = value;
     }
-}
-
-void Mapper000::saveState(std::ofstream& file) const {
-    (void)file;  // No mapper state
-}
-
-void Mapper000::loadState(std::ifstream& file) {
-    (void)file;  // No mapper state
 }
 
 } // namespace nes

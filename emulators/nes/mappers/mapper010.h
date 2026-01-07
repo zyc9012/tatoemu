@@ -15,8 +15,6 @@ public:
     u8 readCHR(u16 address) override;
     void writeCHR(u16 address, u8 value) override;
     
-    MirrorMode getMirrorMode() const override;
-    
     void saveState(std::ofstream& file) const override;
     void loadState(std::ifstream& file) override;
     
@@ -28,7 +26,6 @@ private:
     u8 m_chrBank1FE;
     u8 m_latch0;
     u8 m_latch1;
-    MirrorMode m_mirrorMode;
 };
 
 } // namespace nes

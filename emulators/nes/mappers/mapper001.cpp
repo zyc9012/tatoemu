@@ -8,6 +8,7 @@ Mapper001::Mapper001(Cartridge* cartridge)
 }
 
 void Mapper001::reset() {
+    Mapper::reset();
     m_shiftRegister = 0x10;
     m_shiftCount = 0;
     m_lastWriteCycle = 0;
@@ -168,6 +169,7 @@ MirrorMode Mapper001::getMirrorMode() const {
 }
 
 void Mapper001::saveState(std::ofstream& file) const {
+    Mapper::saveState(file);
     file.write(reinterpret_cast<const char*>(&m_shiftRegister), sizeof(m_shiftRegister));
     file.write(reinterpret_cast<const char*>(&m_shiftCount), sizeof(m_shiftCount));
     file.write(reinterpret_cast<const char*>(&m_lastWriteCycle), sizeof(m_lastWriteCycle));
@@ -179,6 +181,7 @@ void Mapper001::saveState(std::ofstream& file) const {
 }
 
 void Mapper001::loadState(std::ifstream& file) {
+    Mapper::loadState(file);
     file.read(reinterpret_cast<char*>(&m_shiftRegister), sizeof(m_shiftRegister));
     file.read(reinterpret_cast<char*>(&m_shiftCount), sizeof(m_shiftCount));
     file.read(reinterpret_cast<char*>(&m_lastWriteCycle), sizeof(m_lastWriteCycle));

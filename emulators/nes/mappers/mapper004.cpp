@@ -8,13 +8,13 @@ Mapper004::Mapper004(Cartridge* cartridge)
 }
 
 void Mapper004::reset() {
+    Mapper::reset();
     m_bankSelect = 0;
     m_irqLatch = 0;
     m_irqCounter = 0;
     m_irqEnable = false;
     m_irqReload = false;
     m_irqActive = false;
-    m_mirrorMode = m_cartridge->getBaseMirrorMode();
     m_prgRamEnable = true;
     m_bankData[0] = 0;
     m_bankData[1] = 2;
@@ -160,10 +160,6 @@ void Mapper004::writeCHR(u16 address, u8 value) {
     m_cartridge->getCHR()[m_chrBankOffset[bank] + offset] = value;
 }
 
-MirrorMode Mapper004::getMirrorMode() const {
-    return m_mirrorMode;
-}
-
 void Mapper004::scanlineCounter() {
     if (m_irqCounter == 0 || m_irqReload) {
         m_irqCounter = m_irqLatch;
@@ -178,6 +174,7 @@ void Mapper004::scanlineCounter() {
 }
 
 void Mapper004::saveState(std::ofstream& file) const {
+    Mapper::saveState(file);
     file.write(reinterpret_cast<const char*>(&m_bankSelect), sizeof(m_bankSelect));
     file.write(reinterpret_cast<const char*>(m_bankData), sizeof(m_bankData));
     file.write(reinterpret_cast<const char*>(&m_irqLatch), sizeof(m_irqLatch));
@@ -185,11 +182,11 @@ void Mapper004::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_irqEnable), sizeof(m_irqEnable));
     file.write(reinterpret_cast<const char*>(&m_irqReload), sizeof(m_irqReload));
     file.write(reinterpret_cast<const char*>(&m_irqActive), sizeof(m_irqActive));
-    file.write(reinterpret_cast<const char*>(&m_mirrorMode), sizeof(m_mirrorMode));
     file.write(reinterpret_cast<const char*>(&m_prgRamEnable), sizeof(m_prgRamEnable));
 }
 
 void Mapper004::loadState(std::ifstream& file) {
+    Mapper::loadState(file);
     file.read(reinterpret_cast<char*>(&m_bankSelect), sizeof(m_bankSelect));
     file.read(reinterpret_cast<char*>(m_bankData), sizeof(m_bankData));
     file.read(reinterpret_cast<char*>(&m_irqLatch), sizeof(m_irqLatch));
@@ -197,7 +194,6 @@ void Mapper004::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_irqEnable), sizeof(m_irqEnable));
     file.read(reinterpret_cast<char*>(&m_irqReload), sizeof(m_irqReload));
     file.read(reinterpret_cast<char*>(&m_irqActive), sizeof(m_irqActive));
-    file.read(reinterpret_cast<char*>(&m_mirrorMode), sizeof(m_mirrorMode));
     file.read(reinterpret_cast<char*>(&m_prgRamEnable), sizeof(m_prgRamEnable));
     updateBanks();
 }

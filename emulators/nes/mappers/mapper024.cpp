@@ -278,10 +278,10 @@ Mapper024::Mapper024(Cartridge* cartridge)
 }
 
 void Mapper024::reset() {
+    Mapper::reset();
     m_prgBank16k = 0;
     m_prgBank8k = 0;
     m_bankingMode = 0;
-    m_mirrorMode = m_cartridge->getBaseMirrorMode();
     m_irqLatch = 0;
     m_irqCounter = 0;
     m_irqEnable = false;
@@ -577,10 +577,6 @@ void Mapper024::writeCHR(u16 address, u8 value) {
     m_cartridge->getCHR()[m_chrBankOffset[bank] + offset] = value;
 }
 
-MirrorMode Mapper024::getMirrorMode() const {
-    return m_mirrorMode;
-}
-
 void Mapper024::scanlineCounter() {
     // VRC6 doesn't use scanline-based IRQ in the traditional sense
     // The IRQ is clocked every CPU cycle in clockAudio() instead
@@ -617,11 +613,11 @@ float Mapper024::getAudioOutput() const {
 }
 
 void Mapper024::saveState(std::ofstream& file) const {
+    Mapper::saveState(file);
     file.write(reinterpret_cast<const char*>(&m_prgBank16k), sizeof(m_prgBank16k));
     file.write(reinterpret_cast<const char*>(&m_prgBank8k), sizeof(m_prgBank8k));
     file.write(reinterpret_cast<const char*>(m_chrBank), sizeof(m_chrBank));
     file.write(reinterpret_cast<const char*>(&m_bankingMode), sizeof(m_bankingMode));
-    file.write(reinterpret_cast<const char*>(&m_mirrorMode), sizeof(m_mirrorMode));
     file.write(reinterpret_cast<const char*>(&m_irqLatch), sizeof(m_irqLatch));
     file.write(reinterpret_cast<const char*>(&m_irqCounter), sizeof(m_irqCounter));
     file.write(reinterpret_cast<const char*>(&m_irqEnable), sizeof(m_irqEnable));
@@ -632,11 +628,11 @@ void Mapper024::saveState(std::ofstream& file) const {
 }
 
 void Mapper024::loadState(std::ifstream& file) {
+    Mapper::loadState(file);
     file.read(reinterpret_cast<char*>(&m_prgBank16k), sizeof(m_prgBank16k));
     file.read(reinterpret_cast<char*>(&m_prgBank8k), sizeof(m_prgBank8k));
     file.read(reinterpret_cast<char*>(m_chrBank), sizeof(m_chrBank));
     file.read(reinterpret_cast<char*>(&m_bankingMode), sizeof(m_bankingMode));
-    file.read(reinterpret_cast<char*>(&m_mirrorMode), sizeof(m_mirrorMode));
     file.read(reinterpret_cast<char*>(&m_irqLatch), sizeof(m_irqLatch));
     file.read(reinterpret_cast<char*>(&m_irqCounter), sizeof(m_irqCounter));
     file.read(reinterpret_cast<char*>(&m_irqEnable), sizeof(m_irqEnable));

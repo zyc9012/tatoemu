@@ -85,7 +85,6 @@ public:
     u8 readCHR(u16 address) override;
     void writeCHR(u16 address, u8 value) override;
     
-    MirrorMode getMirrorMode() const override;
     void scanlineCounter() override;
     
     // Expansion audio
@@ -112,7 +111,6 @@ private:
     
     // Banking mode (controls mirroring and PPU banking)
     u8 m_bankingMode;
-    MirrorMode m_mirrorMode;
     
     // IRQ (VRC-style CPU cycle counter)
     u8 m_irqLatch;             // IRQ reload value
