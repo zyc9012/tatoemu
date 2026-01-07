@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GameBoy Emulator - WebAssembly</title>
+    <title>TatoEmu - WebAssembly</title>
     <style>
         * {
             margin: 0;
@@ -11,40 +11,62 @@
             box-sizing: border-box;
         }
 
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
         body {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
             color: #e0e0e0;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         }
 
-        .container {
-            background: rgba(45, 45, 45, 0.95);
-            border-radius: 20px;
-            padding: 30px;
-            max-width: 900px;
-            width: 100%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-        }
-
-        h1 {
-            text-align: center;
-            color: #e0e0e0;
-            margin-bottom: 10px;
-            font-size: 2.5em;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        }
-
-        .emulator-wrapper {
+        .toolbar {
+            background: #1e1e1e;
+            padding: 10px 15px;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 20px;
+            gap: 15px;
+            border-bottom: 2px solid #333;
+            flex-shrink: 0;
+        }
+
+        .toolbar-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #e0e0e0;
+            margin-right: auto;
+        }
+
+        .toolbar-btn {
+            background: #4a90e2;
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .toolbar-btn:hover {
+            background: #357abd;
+        }
+
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            background: #000;
         }
 
         /* SDL canvas styling */
@@ -52,65 +74,11 @@
             display: block;
             image-rendering: pixelated;
             image-rendering: crisp-edges;
-            width: 640px;
-            height: 576px;
-            border: 3px solid #555;
-            border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
             background: #000;
             outline: none;
-        }
-
-        #output {
-            width: 100%;
-            height: 300px;
-            background: #1e1e1e;
-            border: 2px solid #555;
-            border-radius: 8px;
-            padding: 15px;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            color: #00ff00;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        .controls-info {
-            width: 100%;
-            background: #3a3a3a;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-
-        .controls-info h3 {
-            color: #e0e0e0;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .controls-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 10px;
-        }
-
-        .control-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 12px;
-            background: #2d2d2d;
-            border-radius: 5px;
-        }
-
-        .control-key {
-            font-weight: 600;
-            color: #90caf9;
-        }
-
-        .control-action {
-            color: #b0b0b0;
         }
 
         .spinner {
@@ -128,15 +96,21 @@
         }
 
         .status {
-            text-align: center;
-            padding: 15px;
-            background: #3a3a3a;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(45, 45, 45, 0.95);
+            padding: 20px 30px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            z-index: 10;
         }
 
         #status {
             font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .loading {
@@ -151,145 +125,197 @@
             color: #ff6b6b;
         }
 
-        .note {
-            background: #2d3a4a;
-            border-left: 4px solid #4a90e2;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 20px;
-            font-size: 0.95em;
-            line-height: 1.5;
-        }
-
-        .note strong {
-            color: #4a90e2;
-        }
-
-        .upload-section {
+        /* Help Modal */
+        .help-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            padding: 20px;
-            background: #3a3a3a;
-            border-radius: 8px;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .help-modal.show {
+            display: flex;
+        }
+
+        .help-modal-content {
+            background: rgba(45, 45, 45, 0.98);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .help-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
         }
 
-        .upload-box {
-            text-align: center;
-            padding: 20px;
-        }
-
-        .upload-box h3 {
+        .help-modal-header h2 {
             color: #e0e0e0;
-            margin-bottom: 10px;
+            font-size: 1.5em;
         }
 
-        .upload-btn {
-            padding: 12px 30px;
-            font-size: 16px;
-            font-weight: 600;
+        .help-modal-close {
+            background: transparent;
             border: none;
-            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 24px;
             cursor: pointer;
-            background: #4a90e2;
-            color: white;
-            transition: all 0.3s ease;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background 0.2s;
         }
 
-        .upload-btn:hover {
-            background: #357abd;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(74, 144, 226, 0.3);
+        .help-modal-close:hover {
+            background: rgba(255, 255, 255, 0.1);
         }
 
-        .upload-btn:active {
-            transform: translateY(0);
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+        }
+
+        .control-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background: #2d2d2d;
+            border-radius: 6px;
+        }
+
+        .control-key {
+            font-weight: 600;
+            color: #90caf9;
+        }
+
+        .control-action {
+            color: #b0b0b0;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🎮 GameBoy Emulator</h1>
-        
-        <div class="emulator-wrapper">
-            <div class="status">
-                <div id="status">
-                    <span class="spinner"></span> Loading emulator...
+    <div class="toolbar">
+        <div class="toolbar-title" id="gameTitle">TatoEmu</div>
+        <input type="file" id="romInput" accept=".gb,.gbc,.nes" style="display: none;">
+        <button class="toolbar-btn" id="loadRomBtn">
+            Load ROM
+        </button>
+        <input type="file" id="bootromInput" accept=".bin" style="display: none;">
+        <button class="toolbar-btn" id="loadBootromBtn">
+            Load Bootrom
+        </button>
+        <button class="toolbar-btn" id="helpBtn">
+            Help
+        </button>
+    </div>
+
+    <div class="canvas-container">
+        <div class="status" id="status">
+            <span class="spinner"></span>
+            <span>Loading emulator...</span>
+        </div>
+        <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="help-modal">
+        <div class="help-modal-content">
+            <div class="help-modal-header">
+                <h2>🎯 Controls</h2>
+                <button class="help-modal-close" id="helpModalClose">&times;</button>
+            </div>
+            <div class="controls-grid">
+                <div class="control-item">
+                    <span class="control-key">Arrow Keys</span>
+                    <span class="control-action">D-Pad</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-key">Z</span>
+                    <span class="control-action">A Button</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-key">X</span>
+                    <span class="control-action">B Button</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-key">Enter</span>
+                    <span class="control-action">Start</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-key">Shift</span>
+                    <span class="control-action">Select</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-key">P</span>
+                    <span class="control-action">Pause/Resume</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-key">F5</span>
+                    <span class="control-action">Save State</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-key">F9</span>
+                    <span class="control-action">Load State</span>
                 </div>
             </div>
-
-            <!-- File upload section -->
-            <div id="uploadSection" class="upload-section" style="display: none;">
-                <div class="upload-box">
-                    <h3>📁 Load ROM File</h3>
-                    <p style="margin-bottom: 15px; color: #b0b0b0;">Select a GameBoy ROM file (.gb or .gbc)</p>
-                    <input type="file" id="romInput" accept=".gb,.gbc,.nes" style="display: none;">
-                    <button class="upload-btn" onclick="document.getElementById('romInput').click()">
-                        Choose ROM File
-                    </button>
-                    <div id="romFileName" style="margin-top: 10px; color: #90ee90; min-height: 20px;"></div>
-                    <input type="file" id="bootromInput" accept=".bin" style="display: none;">
-                    <button class="upload-btn" onclick="document.getElementById('bootromInput').click()">
-                        Choose Bootrom File (optional)
-                    </button>
-                    <div id="bootromFileName" style="margin-top: 10px; color: #90ee90; min-height: 20px;"></div>
-                </div>
-            </div>
-
-            <!-- SDL will insert its canvas here -->
-            <!-- Canvas must be visible for SDL3 to initialize properly in Emscripten -->
-            <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
-
-            <div class="controls-info">
-                <h3>🎯 Controls</h3>
-                <div class="controls-grid">
-                    <div class="control-item">
-                        <span class="control-key">Arrow Keys</span>
-                        <span class="control-action">D-Pad</span>
-                    </div>
-                    <div class="control-item">
-                        <span class="control-key">Z</span>
-                        <span class="control-action">A Button</span>
-                    </div>
-                    <div class="control-item">
-                        <span class="control-key">X</span>
-                        <span class="control-action">B Button</span>
-                    </div>
-                    <div class="control-item">
-                        <span class="control-key">Enter</span>
-                        <span class="control-action">Start</span>
-                    </div>
-                    <div class="control-item">
-                        <span class="control-key">Shift</span>
-                        <span class="control-action">Select</span>
-                    </div>
-                    <div class="control-item">
-                        <span class="control-key">P</span>
-                        <span class="control-action">Pause/Resume</span>
-                    </div>
-                    <div class="control-item">
-                        <span class="control-key">F5</span>
-                        <span class="control-action">Save State</span>
-                    </div>
-                    <div class="control-item">
-                        <span class="control-key">F9</span>
-                        <span class="control-action">Load State</span>
-                    </div>
-                </div>
-            </div>
-
-
-            <details>
-                <summary style="cursor: pointer; padding: 10px; background: #3a3a3a; border-radius: 8px; margin-top: 10px;">
-                    📋 Console Output (click to expand)
-                </summary>
-                <div id="output"></div>
-            </details>
         </div>
     </div>
 
     <script type='text/javascript'>
         let romLoaded = false;
         let bootromLoaded = false;
+
+        const titleElement = document.getElementById('gameTitle');
+
+        // Help Modal functionality
+        const helpModal = document.getElementById('helpModal');
+        const helpBtn = document.getElementById('helpBtn');
+        const helpModalClose = document.getElementById('helpModalClose');
+
+        helpBtn.addEventListener('click', function() {
+            helpModal.classList.add('show');
+        });
+
+        helpModalClose.addEventListener('click', function() {
+            helpModal.classList.remove('show');
+        });
+
+        helpModal.addEventListener('click', function(e) {
+            if (e.target === helpModal) {
+                helpModal.classList.remove('show');
+            }
+        });
+
+        // File upload button handlers
+        const loadRomBtn = document.getElementById('loadRomBtn');
+        const loadBootromBtn = document.getElementById('loadBootromBtn');
+        const romInput = document.getElementById('romInput');
+        const bootromInput = document.getElementById('bootromInput');
+
+        loadRomBtn.addEventListener('click', function() {
+            romInput.click();
+        });
+
+        loadBootromBtn.addEventListener('click', function() {
+            bootromInput.click();
+        });
 
         // Emscripten configuration
         var Module = {
@@ -306,30 +332,15 @@
                 }
             }],
             postRun: [function() {
-                // Show upload section once module is ready
-                document.getElementById('uploadSection').style.display = 'block';
                 setupFileUploads();
             }],
-            print: (function() {
-                var element = document.getElementById('output');
-                if (element) element.value = ''; // clear browser cache
-                return function(text) {
-                    if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-                    console.log(text);
-                    if (element) {
-                        element.textContent += text + "\n";
-                        element.scrollTop = element.scrollHeight; // scroll to bottom
-                    }
-                };
-            })(),
+            print: function(text) {
+                if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+                console.log(text);
+            },
             printErr: function(text) {
                 if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
                 console.error(text);
-                var element = document.getElementById('output');
-                if (element) {
-                    element.textContent += '[ERROR] ' + text + "\n";
-                    element.scrollTop = element.scrollHeight;
-                }
             },
             canvas: (function() {
                 var canvas = document.getElementById('canvas');
@@ -346,16 +357,16 @@
                 
                 if (text) {
                     var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
-                    var now = Date.now();
                     if (m) {
                         // Progress
-                        text = m[1] + ' (' + Math.round(parseFloat(m[2]) * 100) + '%)';
+                        var percent = Math.round((parseFloat(m[2]) / parseFloat(m[4])) * 100);
+                        text = m[1] + ' (' + percent + '%)';
                         statusElement.innerHTML = '<span class="loading"><span class="spinner"></span> ' + text + '</span>';
                     } else {
-                        statusElement.innerHTML = '<span class="loading">' + text + '</span>';
+                        statusElement.innerHTML = '<span class="loading"><span class="spinner"></span> ' + text + '</span>';
                     }
                 } else {
-                    statusElement.innerHTML = '<span class="ready">✓ Emulator ready!</span>';
+                    statusElement.style.display = 'none';
                 }
             },
             totalDependencies: 0,
@@ -367,16 +378,11 @@
 
         // File upload handling
         function setupFileUploads() {
-            const romInput = document.getElementById('romInput');
-            const bootromInput = document.getElementById('bootromInput');
-
             romInput.addEventListener('change', async function(e) {
                 const file = e.target.files[0];
                 if (!file) return;
 
                 try {
-                    document.getElementById('romFileName').textContent = '⏳ Loading ' + file.name + '...';
-                    
                     // Read file
                     const arrayBuffer = await file.arrayBuffer();
                     const uint8Array = new Uint8Array(arrayBuffer);
@@ -389,19 +395,15 @@
                     const result = Module.ccall('loadROMFile', 'number', ['string'], [filename]);
                     
                     if (result === 1) {
-                        document.getElementById('romFileName').textContent = '✓ Loaded: ' + file.name;
-                        document.getElementById('uploadSection').style.display = 'none';
-                        document.getElementById('canvas').style.display = 'block';
                         Module.setStatus('');
                         romLoaded = true;
+                        titleElement.textContent = file.name;
                     } else {
-                        document.getElementById('romFileName').textContent = '✗ Failed to load ROM';
-                        document.getElementById('romFileName').style.color = '#ff6b6b';
+                        alert('Failed to load ROM file');
                     }
                 } catch (error) {
                     console.error('Error loading ROM:', error);
-                    document.getElementById('romFileName').textContent = '✗ Error: ' + error.message;
-                    document.getElementById('romFileName').style.color = '#ff6b6b';
+                    alert('Error loading ROM: ' + error.message);
                 }
             });
 
@@ -410,8 +412,6 @@
                 if (!file) return;
 
                 try {
-                    document.getElementById('bootromFileName').textContent = '⏳ Loading ' + file.name + '...';
-                    
                     // Read file
                     const arrayBuffer = await file.arrayBuffer();
                     const uint8Array = new Uint8Array(arrayBuffer);
@@ -424,16 +424,13 @@
                     const result = Module.ccall('loadBootromFile', 'number', ['string'], [filename]);
                     
                     if (result === 1) {
-                        document.getElementById('bootromFileName').textContent = '✓ Loaded: ' + file.name;
                         bootromLoaded = true;
                     } else {
-                        document.getElementById('bootromFileName').textContent = '✗ Failed to load bootrom';
-                        document.getElementById('bootromFileName').style.color = '#ff6b6b';
+                        alert('Failed to load bootrom file');
                     }
                 } catch (error) {
                     console.error('Error loading bootrom:', error);
-                    document.getElementById('bootromFileName').textContent = '✗ Error: ' + error.message;
-                    document.getElementById('bootromFileName').style.color = '#ff6b6b';
+                    alert('Error loading bootrom: ' + error.message);
                 }
             });
         }
@@ -446,6 +443,7 @@
                 if (text) {
                     var statusElement = document.getElementById('status');
                     if (statusElement) {
+                        statusElement.style.display = 'block';
                         statusElement.innerHTML = '<span class="error">⚠ ' + text + '</span>';
                     }
                 }
