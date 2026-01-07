@@ -241,6 +241,11 @@ bool Emulator::loadBootrom(const fs::path& filename) {
 }
 
 bool Emulator::loadROM(const fs::path& filename) {
+    // If already initialized, shutdown first to clean up resources
+    if (m_window != nullptr || m_core != nullptr) {
+        shutdown();
+    }
+    
     m_romFilename = filename;
     return initialize();
 }
