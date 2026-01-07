@@ -80,6 +80,8 @@ target_include_directories(tatoemu PRIVATE
 # Link SDL3
 target_link_libraries(tatoemu PRIVATE SDL3::SDL3)
 
+set(SHELL_FILE "${CMAKE_CURRENT_SOURCE_DIR}/shell.html")
+
 # Emscripten-specific settings
 set(EMSCRIPTEN_LINK_FLAGS
     # Use SDL3 port
@@ -107,7 +109,7 @@ set(EMSCRIPTEN_LINK_FLAGS
     "-sNO_DISABLE_EXCEPTION_CATCHING"
     
     # Use custom HTML shell
-    "--shell-file=${CMAKE_CURRENT_SOURCE_DIR}/shell.html"
+    "--shell-file=${SHELL_FILE}"
 )
 
 # Optimization flags
@@ -134,6 +136,7 @@ set_target_properties(tatoemu PROPERTIES
     LINK_FLAGS "${EMSCRIPTEN_LINK_FLAGS_STR}"
     OUTPUT_NAME "tatoemu"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+    LINK_DEPENDS "${SHELL_FILE}"
 )
 
 # Compiler warnings
