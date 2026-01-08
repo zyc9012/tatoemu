@@ -468,6 +468,9 @@ void Emulator::updateWindowStats() {
 }
 
 void Emulator::updateGameSpeed(double gameSpeed) {
+    if (gameSpeed <= 0) {
+        return;
+    }
     m_gameSpeed = gameSpeed;
     m_targetFrameTime = 1000.0 / m_targetFPS / m_gameSpeed;
     if (m_core) {
