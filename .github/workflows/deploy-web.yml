@@ -18,11 +18,44 @@ jobs:
           version: '4.0.22'
           actions-cache-folder: '.emsdk-cache'
       
+      - name: Cache SDL3
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.cache/sdl3-install
+          key: sdl3-3.4.0-${{ runner.os }}-emsdk-4.0.22
+          restore-keys: |
+            sdl3-3.4.0-${{ runner.os }}-
+        id: sdl3-cache
+      
+      - name: Download and build SDL3
+        if: steps.sdl3-cache.outputs.cache-hit != 'true'
+        run: |
+          SDL3_VERSION="3.4.0"
+          SDL3_DIR="${{ github.workspace }}/.cache/sdl3-install"
+          mkdir -p $SDL3_DIR
+          
+          # Download SDL3 source
+          curl -L "https://github.com/libsdl-org/SDL/archive/refs/tags/release-${SDL3_VERSION}.tar.gz" -o sdl3.tar.gz
+          tar -xzf sdl3.tar.gz
+          cd SDL-release-${SDL3_VERSION}
+          
+          # Configure SDL3 for Emscripten
+          emcmake cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$SDL3_DIR \
+            -DSDL_DISABLE_INSTALL_DOCS=ON \
+            -DSDL_TESTS=OFF
+          
+          # Build and install SDL3
+          emmake cmake --build build -j$(nproc)
+          emmake cmake --install build
+      
       - name: Configure CMake
         run: |
           mkdir -p build-wasm
           cd build-wasm
-          emcmake cmake -DPLATFORM=wasm ..
+          SDL3_DIR="${{ github.workspace }}/.cache/sdl3-install"
+          emcmake cmake -DPLATFORM=wasm -DCMAKE_PREFIX_PATH=$SDL3_DIR -DSDL3_DIR=$SDL3_DIR/lib/cmake/SDL3 ..
       
       - name: Build WASM
         run: |
