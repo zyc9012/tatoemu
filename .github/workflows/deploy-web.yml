@@ -75,6 +75,7 @@ jobs:
       - name: Deploy to Netlify
         uses: netlify/actions/cli@master
         with:
-          args: deploy --dir=build-wasm/dist --site tatoemu --prod
+          args: deploy --dir=build-wasm/dist --prod
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: 6031616f-ce66-437f-a0f9-5f32445c449f
