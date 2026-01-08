@@ -114,10 +114,10 @@ bool Cartridge::load(const fs::path& filename) {
     m_loaded = true;
 
     std::cout << "Loaded ROM: " << m_title << std::endl;
-    std::cout << "Cartridge Type: 0x" << std::hex << (int)m_cartridgeType << std::dec << std::endl;
-    std::cout << "ROM Size: " << m_rom.size() / 1024.0 << " KB (0x" << std::hex << (int)m_romSize << std::dec << ")" << std::endl;
-    std::cout << "RAM Size: " << m_ram.size() / 1024.0 << " KB (0x" << std::hex << (int)m_ramSize << std::dec << ")" << std::endl;
-    std::cout << "Mode: " << (m_isGBCOnly ? "GBC Only" : (m_isGBC ? "GBC Compatible" : "DMG")) << std::endl;
+    std::cout << "  Cartridge Type: 0x" << std::hex << (int)m_cartridgeType << std::dec << std::endl;
+    std::cout << "  ROM Size: " << m_rom.size() / 1024.0 << " KB (0x" << std::hex << (int)m_romSize << std::dec << ")" << std::endl;
+    std::cout << "  RAM Size: " << m_ram.size() / 1024.0 << " KB (0x" << std::hex << (int)m_ramSize << std::dec << ")" << std::endl;
+    std::cout << "  Mode: " << (m_isGBCOnly ? "GBC Only" : (m_isGBC ? "GBC Compatible" : "DMG")) << std::endl;
     
     // Load battery save if available
     if (hasBattery()) {

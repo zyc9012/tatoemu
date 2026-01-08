@@ -549,7 +549,7 @@ void Cartridge::saveBattery() const {
     if (file.is_open()) {
         file.write(reinterpret_cast<const char*>(m_prgRam.data()), m_prgRam.size());
         file.close();
-        std::cout << "Battery save written to: " << savePath << std::endl;
+        std::cout << "Battery data saved to: " << savePath << std::endl;
     }
 }
 
@@ -565,7 +565,7 @@ void Cartridge::loadBattery() {
     if (file.is_open()) {
         file.read(reinterpret_cast<char*>(m_prgRam.data()), m_prgRam.size());
         file.close();
-        std::cout << "Battery save loaded from: " << savePath << std::endl;
+        std::cout << "Battery data loaded from: " << savePath << std::endl;
     }
 }
 
