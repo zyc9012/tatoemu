@@ -106,23 +106,12 @@
             z-index: 10;
         }
 
-        #status {
+        #status > span {
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 10px;
-        }
-
-        .loading {
-            color: #ffd700;
-        }
-
-        .ready {
-            color: #90ee90;
-        }
-
-        .error {
-            color: #ff6b6b;
+            gap: 8px;
+            color: #e0e0e0;
         }
 
         /* Help Modal */
@@ -369,10 +358,8 @@
                         // Progress
                         var percent = Math.round((parseFloat(m[2]) / parseFloat(m[4])) * 100);
                         text = m[1] + ' (' + percent + '%)';
-                        statusElement.innerHTML = '<span class="loading"><span class="spinner"></span> ' + text + '</span>';
-                    } else {
-                        statusElement.innerHTML = '<span class="loading"><span class="spinner"></span> ' + text + '</span>';
                     }
+                    statusElement.innerHTML = '<span><span class="spinner"></span> ' + text + '</span>';
                 } else {
                     statusElement.style.display = 'none';
                 }
@@ -447,15 +434,6 @@
         
         window.onerror = function(event) {
             Module.setStatus('Exception thrown, see JavaScript console');
-            Module.setStatus = function(text) {
-                if (text) {
-                    var statusElement = document.getElementById('status');
-                    if (statusElement) {
-                        statusElement.style.display = 'block';
-                        statusElement.innerHTML = '<span class="error">⚠ ' + text + '</span>';
-                    }
-                }
-            };
         };
     </script>
     
