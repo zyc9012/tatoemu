@@ -1,0 +1,47 @@
+name: Build and Deploy Web App
+
+on:
+  push:
+    branches: main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      
+      - name: Setup Emscripten
+        uses: pyodide/setup-emsdk@v15
+        with:
+          version: '4.0.22'
+          actions-cache-folder: '.emsdk-cache'
+      
+      - name: Configure CMake
+        run: |
+          mkdir -p build-wasm
+          cd build-wasm
+          emcmake cmake -DPLATFORM=wasm ..
+      
+      - name: Build WASM
+        run: |
+          cd build-wasm
+          emmake make -j$(nproc)
+      
+      - name: Verify build artifacts
+        run: ls -lah build-wasm/dist/
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-build
+          path: build-wasm/dist/
+          retention-days: 30
+      
+      - name: Deploy to Netlify
+        uses: netlify/actions/cli@master
+        with:
+          args: deploy --dir=build-wasm/dist --site tatoemu --prod
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
