@@ -4,6 +4,10 @@ TatoEmu is a multi-system emulator written in C++ with SDL3 and WebAssembly targ
 
 This project is just for fun. It aims to build minimal emulators that work for most games, with only basic features like saving and loading states. It prioritizes playability over accuracy.
 
+## Try it Online
+
+**Play in your browser**: [https://tatoemu.netlify.app](https://tatoemu.netlify.app)
+
 ## Requirements
 
 - C++17 compatible compiler
