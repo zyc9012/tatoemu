@@ -52,6 +52,8 @@ int main(int argc, char* argv[]) {
         std::cout << "  F5          - Save State" << std::endl;
         std::cout << "  F9          - Load State" << std::endl;
         std::cout << "  P           - Pause / Resume" << std::endl;
+        std::cout << "  +(=)        - Game speed up" << std::endl;
+        std::cout << "  -           - Game speed down" << std::endl;
         std::cout << "  ESC         - Quit" << std::endl;
         return 1;
     }

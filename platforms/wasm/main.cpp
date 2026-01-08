@@ -85,6 +85,8 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     std::cout << "  F5         - Save State" << std::endl;
     std::cout << "  F9         - Load State" << std::endl;
     std::cout << "  P          - Pause / Resume" << std::endl;
+    std::cout << "  +(=)       - Game speed up" << std::endl;
+    std::cout << "  -          - Game speed down" << std::endl;
     std::cout << std::endl;
     std::cout << "Waiting for ROM file upload..." << std::endl;
 
