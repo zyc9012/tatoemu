@@ -758,12 +758,6 @@ bool Mapper005::readNametable(u16 address, u8& value) {
             return true;
         }
         
-        // Standard modes: We must handle the read because we might have intercepted the NT read
-        // and PPU expects us to return data if we returned true for NT.
-        // Actually, PPU calls readNametable for each read independently.
-        // So we can return false here if we want PPU to handle it via VRAM...
-        // BUT if mode is CIRAM 0/1, we should probably be consistent.
-        
         if (mode == 0) { // CIRAM 0
              value = m_cartridge->readCIRAM(address & 0x03FF);
              return true;
@@ -900,8 +894,6 @@ void Mapper005::saveState(std::ofstream& file) const {
     file.write(reinterpret_cast<const char*>(&m_multiplicand), sizeof(m_multiplicand));
     file.write(reinterpret_cast<const char*>(&m_multiplier), sizeof(m_multiplier));
     file.write(reinterpret_cast<const char*>(m_prgRamExt.data()), m_prgRamExt.size());
-    
-    // New state
     file.write(reinterpret_cast<const char*>(&m_capturedExRam), sizeof(m_capturedExRam));
     file.write(reinterpret_cast<const char*>(&m_ppuFetchState), sizeof(m_ppuFetchState));
     file.write(reinterpret_cast<const char*>(&m_splitMode), sizeof(m_splitMode));
@@ -936,8 +928,6 @@ void Mapper005::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_multiplicand), sizeof(m_multiplicand));
     file.read(reinterpret_cast<char*>(&m_multiplier), sizeof(m_multiplier));
     file.read(reinterpret_cast<char*>(m_prgRamExt.data()), m_prgRamExt.size());
-    
-    // New state
     file.read(reinterpret_cast<char*>(&m_capturedExRam), sizeof(m_capturedExRam));
     file.read(reinterpret_cast<char*>(&m_ppuFetchState), sizeof(m_ppuFetchState));
     file.read(reinterpret_cast<char*>(&m_splitMode), sizeof(m_splitMode));
