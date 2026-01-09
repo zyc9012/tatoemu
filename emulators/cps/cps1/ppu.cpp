@@ -633,9 +633,14 @@ void PPU::step() {
     if (newScanline != m_scanline) {
         m_scanline = newScanline;
         
-        // At VBlank start (scanline 224), render the frame
+        // At VBlank start (scanline 224), render the frame and trigger interrupt
         if (m_scanline == VISIBLE_SCANLINES) {
             renderFrame();
+
+            // Trigger VBlank interrupt
+            if (m_cpu) {
+                m_cpu->irq(2);
+            }
         }
     }
     
