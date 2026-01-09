@@ -455,9 +455,9 @@ BoardConfig GameDatabase::getBoardConfig(CPSBoard board) {
     
     switch (board) {
         case CPSBoard::CPS_B_11:
-            config.boardIdOffset = 0x82;
-            config.boardIdValue1 = 0x40;
-            config.boardIdValue2 = 0x43;
+            config.boardIdOffset = 0x72;
+            config.boardIdValue1 = 0x04;
+            config.boardIdValue2 = 0x01;
             config.layerControlReg = 0x66;
             config.paletteControlReg = 0x70;
             config.maskAddr[0] = 0x68;
