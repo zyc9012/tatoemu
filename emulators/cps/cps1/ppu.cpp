@@ -181,10 +181,6 @@ PPU::PPU()
 
 void PPU::setCartridge(cps::CartridgeBase* cartridge) {
     m_cartridge = static_cast<Cartridge*>(cartridge);
-    if (m_cartridge) {
-        m_boardConfig = m_cartridge->getBoardConfig();
-        setupGfxMapper();
-    }
 }
 
 void PPU::reset() {
@@ -203,8 +199,9 @@ void PPU::reset() {
     m_layer3XOffs = 0; m_layer3YOffs = 0;
     m_globalXOffs = 0; m_globalYOffs = 0;
     
-    // If cartridge is loaded, decode graphics ROM
-    if (m_cartridge && m_decodedGfx.empty()) {
+    if (m_cartridge) {
+        m_boardConfig = m_cartridge->getBoardConfig();
+        setupGfxMapper();
         decodeGraphicsROM();
     }
 }

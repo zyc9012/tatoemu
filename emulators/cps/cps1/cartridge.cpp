@@ -28,10 +28,6 @@ void Cartridge::setPPU(cps::PPUBase* ppu) {
 }
 
 u8 Cartridge::getDIPSwitch(u8 index) const {
-    if (!m_gameInfo || index > 3) {
-        return 0xFF;  // Return default if no game loaded
-    }
-    
     switch (index) {
         case 0: return m_gameInfo->dipSwitch1;
         case 1: return m_gameInfo->dipSwitch2;
@@ -42,24 +38,14 @@ u8 Cartridge::getDIPSwitch(u8 index) const {
 }
 
 BoardConfig Cartridge::getBoardConfig() const {
-    if (!m_gameInfo) {
-        // Return default CPS_B_11 config
-        return GameDatabase::getBoardConfig(CPSBoard::CPS_B_11);
-    }
     return GameDatabase::getBoardConfig(m_gameInfo->board);
 }
 
 CPSBoard Cartridge::getBoardType() const {
-    if (!m_gameInfo) {
-        return CPSBoard::CPS_B_11;  // Default
-    }
     return m_gameInfo->board;
 }
 
 CPSMapper Cartridge::getMapper() const {
-    if (!m_gameInfo) {
-        return CPSMapper::MAPPER_STF29;  // Default
-    }
     return m_gameInfo->mapper;
 }
 
