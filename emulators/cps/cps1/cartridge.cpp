@@ -189,8 +189,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     // Some games (SF2) use pairs of ROMs that need interleaving
     // Other games (SF2CE) use larger ROMs that just need concatenation
     if (!programRomChips.empty()) {
-        // Check if we need interleaving (even number of chips) or simple concatenation (odd number)
-        bool needsInterleaving = (programRomChips.size() % 2 == 0) && (programRomChips.size() == 8);
+        bool needsInterleaving = m_programByteswap;
         
         if (needsInterleaving) {
             // FBNeo loads ROMs in the exact order they appear in the ROM list
@@ -277,11 +276,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     m_graphicsRomSize = static_cast<u32>(m_graphicsRom.size());
     m_soundRomSize = static_cast<u32>(m_soundRom.size());
     
-    // Only byte-swap if explicitly marked in the database
-    // SF2 (interleaved ROMs) needs byte-swap, SF2CE (concatenated ROMs) does not
-    if (m_programByteswap) {
-        byteswapProgramROM();
-    }
+    byteswapProgramROM();
     
     return true;
 }
