@@ -106,25 +106,9 @@ bool Cartridge::load(const fs::path& filename) {
     
     std::cout << "Loaded CPS1 ROM: " << m_title << std::endl;
     std::cout << "  ROM Set: " << m_romSetName << std::endl;
-    std::cout << "  Board Type: ";
-    switch (m_gameInfo->board) {
-        case CPSBoard::CPS_B_11: std::cout << "CPS_B_11"; break;
-        case CPSBoard::CPS_B_21_DEF: std::cout << "CPS_B_21_DEF"; break;
-        default: std::cout << "CPS_B_" << static_cast<int>(m_gameInfo->board); break;
-    }
-    std::cout << std::endl;
-    std::cout << "  Graphics Mapper: ";
-    switch (m_gameInfo->mapper) {
-        case CPSMapper::MAPPER_STF29: std::cout << "STF29"; break;
-        case CPSMapper::MAPPER_S9263B: std::cout << "S9263B"; break;
-        default: std::cout << "MAPPER_" << static_cast<int>(m_gameInfo->mapper); break;
-    }
-    std::cout << std::endl;
-    std::cout << "  Program ROM: " << (m_programRomSize / 1024) << " KB";
-    if (m_programByteswap) {
-        std::cout << " (byteswapped)";
-    }
-    std::cout << std::endl;
+    std::cout << "  Board Type: " << static_cast<int>(m_gameInfo->board) << std::endl;
+    std::cout << "  Graphics Mapper: " << static_cast<int>(m_gameInfo->mapper) << std::endl;
+    std::cout << "  Program ROM: " << (m_programRomSize / 1024) << " KB" << std::endl;
     std::cout << "  Graphics ROM: " << (m_graphicsRomSize / 1024) << " KB" << std::endl;
     std::cout << "  Sound ROM: " << (m_soundRomSize / 1024) << " KB" << std::endl;
     
@@ -169,13 +153,16 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                 switch (entry.type) {
                     case ROMType::PROGRAM:
                         // Store program ROMs separately for interleaving
+                        std::cout << "Loading program: " << entry.filename << std::endl;
                         programRomChips.push_back(pair.second);
                         break;
                     case ROMType::GRAPHICS:
+                        std::cout << "Loading graphics: " << entry.filename << std::endl;
                         m_graphicsRom.insert(m_graphicsRom.end(), pair.second.begin(), pair.second.end());
                         break;
                     case ROMType::SOUND_PROGRAM:
                     case ROMType::SOUND_SAMPLE:
+                        std::cout << "Loading sound: " << entry.filename << std::endl;
                         m_soundRom.insert(m_soundRom.end(), pair.second.begin(), pair.second.end());
                         break;
                     case ROMType::PLD:
@@ -202,8 +189,6 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     // Some games (SF2) use pairs of ROMs that need interleaving
     // Other games (SF2CE) use larger ROMs that just need concatenation
     if (!programRomChips.empty()) {
-        std::cout << "Loading " << programRomChips.size() << " program ROM chip(s)..." << std::endl;
-        
         // Check if we need interleaving (even number of chips) or simple concatenation (odd number)
         bool needsInterleaving = (programRomChips.size() % 2 == 0) && (programRomChips.size() == 8);
         

@@ -39,7 +39,7 @@ enum class CPSBoard {
     CPS_B_03 = 2,
     CPS_B_04 = 3,
     CPS_B_05 = 4,
-    CPS_B_11 = 5,      // Street Fighter 2
+    CPS_B_11 = 5,
     CPS_B_12 = 6,
     CPS_B_13 = 7,
     CPS_B_14 = 8,
@@ -47,7 +47,7 @@ enum class CPSBoard {
     CPS_B_16 = 10,
     CPS_B_17 = 11,
     CPS_B_18 = 12,
-    CPS_B_21_DEF = 13, // Street Fighter 2 Champion Edition
+    CPS_B_21_DEF = 13,
     CPS_B_21_BT1 = 14,
     CPS_B_21_BT2 = 15,
     CPS_B_21_BT3 = 16,
@@ -66,8 +66,14 @@ enum class CPSBoard {
 // Different boards organize graphics banks differently
 enum class CPSMapper {
     MAPPER_LWCHR = 0,
-    MAPPER_STF29 = 19,  // Street Fighter 2
-    MAPPER_S9263B = 25, // Street Fighter 2 Champion Edition
+    MAPPER_NM24B = 16,
+    MAPPER_STF29 = 19,
+    MAPPER_RT24B = 20,
+    MAPPER_KD29B = 22,
+    MAPPER_CC63B = 23,
+    MAPPER_KR63B = 24,
+    MAPPER_S9263B = 25,
+    MAPPER_CP1B1F = 45,
     // Add more as needed for other games
 };
 
