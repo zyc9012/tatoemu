@@ -1,6 +1,7 @@
 #include "emulator.h"
 #include "gb/core.h"
 #include "nes/core.h"
+#include "cps/cps1/core.h"
 #include <SDL3/SDL.h>
 #include <iostream>
 #include <fstream>
@@ -134,6 +135,9 @@ bool Emulator::initialize() {
         m_core = std::make_unique<gb::Core>();
     } else if (ext == ".nes") {
         m_core = std::make_unique<nes::Core>();
+    } else if (ext == ".zip") {
+        // CPS1 ROMs use .zip format (MAME format)
+        m_core = std::make_unique<cps1::Core>();
     } else {
         std::cerr << "Unsupported ROM file extension: " << ext << std::endl;
         return false;

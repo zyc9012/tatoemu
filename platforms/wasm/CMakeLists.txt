@@ -39,6 +39,16 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper163.cpp
     ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper164.cpp
     ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper178.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cpu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/sound_cpu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/controller.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/core.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/ppu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/apu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/memory.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/cartridge.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/db.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/zip_reader.cpp
     ${CMAKE_SOURCE_DIR}/emulators/emulator.cpp
     ${CMAKE_SOURCE_DIR}/platforms/wasm/main.cpp
 )
@@ -63,6 +73,23 @@ set(HEADERS
     ${CMAKE_SOURCE_DIR}/emulators/nes/core.h
     ${CMAKE_SOURCE_DIR}/emulators/nes/consts.h
     ${CMAKE_SOURCE_DIR}/emulators/nes/config.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cpu.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/sound_cpu.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/controller.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/config.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/consts.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/memory_base.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/ppu_base.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/apu_base.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cartridge_base.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/core.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/ppu.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/apu.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/memory.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/cartridge.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/db.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/zip_reader.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/consts.h
     ${CMAKE_SOURCE_DIR}/emulators/emulator.h
     ${CMAKE_SOURCE_DIR}/emulators/core.h
     ${CMAKE_SOURCE_DIR}/emulators/types.h
@@ -75,6 +102,13 @@ add_executable(tatoemu ${SOURCES} ${HEADERS})
 # Include directories
 target_include_directories(tatoemu PRIVATE 
     ${CMAKE_SOURCE_DIR}/emulators
+    ${CMAKE_SOURCE_DIR}/utilities
+)
+
+# Add miniz.c and compile it as C
+target_sources(tatoemu PRIVATE ${CMAKE_SOURCE_DIR}/utilities/miniz/miniz.c)
+set_source_files_properties(${CMAKE_SOURCE_DIR}/utilities/miniz/miniz.c PROPERTIES
+    LANGUAGE C
 )
 
 # Link SDL3
