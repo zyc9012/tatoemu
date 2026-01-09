@@ -442,7 +442,31 @@ void CPU::executeInstruction() {
             break;
             
         case 0x4: // Miscellaneous
-            if (opcode == 0x4E71) {
+            if ((opcode & 0xFFC0) == 0x46C0) {
+                // MOVE <ea>,SR - Move to Status Register (privileged)
+                // Only allowed in supervisor mode
+                if (getFlag(FLAG_S)) {
+                    u8 srcMode = (opcode >> 3) & 0x07;
+                    u8 srcReg = opcode & 0x07;
+                    
+                    // Read source operand (word size)
+                    u16 value;
+                    if (srcMode == 7 && srcReg == 4) {
+                        // Immediate mode
+                        value = fetchWord();
+                    } else {
+                        // Other addressing modes
+                        u32 addr = getEffectiveAddress(srcMode, srcReg, 2);
+                        value = read16(addr);
+                    }
+                    
+                    // Move to SR
+                    m_sr = value;
+                } else {
+                    // Privilege violation - should trap, but for now just ignore
+                    executeNop(opcode);
+                }
+            } else if (opcode == 0x4E71) {
                 // NOP - do nothing
                 m_cycles += 4;
             } else if ((opcode & 0xFF00) == 0x4E40) {
@@ -828,9 +852,14 @@ void CPU::executeMove(u16 opcode) {
     u32 value = readOperand(srcMode, srcReg, size);
     writeOperand(dstMode, dstReg, size, value);
     
-    updateZeroNegative(value, size);
-    setFlag(FLAG_V, false);
-    setFlag(FLAG_C, false);
+    // MOVEA (destination is address register, mode 1) does NOT affect condition codes
+    if (dstMode != 1) {
+        // Regular MOVE - update condition codes
+        updateZeroNegative(value, size);
+        setFlag(FLAG_V, false);
+        setFlag(FLAG_C, false);
+    }
+    // MOVEA preserves all condition codes unchanged
 }
 
 void CPU::executeMoveq(u16 opcode) {
