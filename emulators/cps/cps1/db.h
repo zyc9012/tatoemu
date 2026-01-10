@@ -89,6 +89,13 @@ struct BoardConfig {
     u16 layerEnable[3];    // Layer enable bits (for layers 1-3)
 };
 
+// DIP switch information
+// Maps a port address to its DIP switch value (stored inverted, hardware inverts on read)
+struct DIPInfo {
+    u16 port;              // Port address (e.g., 0x018, 0x019, 0x01A, etc.)
+    u8 value;              // DIP switch value (stored inverted)
+};
+
 // Game database entry
 struct GameInfo {
     const char* name;              // Game name
@@ -102,11 +109,10 @@ struct GameInfo {
     CPSMapper mapper;              // Graphics ROM mapper
     
     // DIP switch defaults (from FBNeo)
-    // These values control gameplay settings like difficulty, coinage, etc.
-    u8 dipSwitch1;                 // DIP switch 1 (coinage, cabinet)
-    u8 dipSwitch2;                 // DIP switch 2 (difficulty, gameplay)
-    u8 dipSwitch3;                 // DIP switch 3 (free play, demo sound, etc.)
-    u8 dipSwitch4;                 // DIP switch 4 (game-specific)
+    // Array of port->value mappings for DIP switches
+    // Values are stored inverted (hardware inverts on read)
+    const DIPInfo* dipSwitches;    // Array of DIP switch entries
+    u32 dipSwitchCount;            // Number of DIP switch entries
 };
 
 // Game database

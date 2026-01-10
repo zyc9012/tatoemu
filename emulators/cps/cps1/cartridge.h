@@ -45,8 +45,8 @@ public:
     void setCPU(cps::CPU* cpu) override { m_cpu = cpu; }
     void setPPU(cps::PPUBase* ppu) override;
     
-    // DIP switch access
-    u8 getDIPSwitch(u8 index) const;  // Get DIP switch value (0-3)
+    // Game info access
+    const GameInfo* getGameInfo() const { return m_gameInfo; }
     
     // Board configuration access
     BoardConfig getBoardConfig() const;

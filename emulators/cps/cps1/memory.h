@@ -73,17 +73,14 @@ private:
     void writeVRAM16(u32 address, u16 value);
     void writeVRAM32(u32 address, u32 value);
     
-    // DIP switch initialization
-    void initDIPSwitches();
+    // DIP switch lookup
+    u8 getDIPSwitchValue(u16 port) const;
     
     // Protection calculation (some games use multiplication at specific addresses)
     u16 m_protCalc[2];
     
     // Board ID (each CPS1 game has a specific board identifier)
     u8 m_boardId[3];  // {offset, ID byte 1, ID byte 2}
-    
-    // DIP switch values (stored separately for clarity)
-    u8 m_dipSwitches[4];  // DIP switches 1-4
 };
 
 } // namespace cps1

@@ -27,15 +27,6 @@ void Cartridge::setPPU(cps::PPUBase* ppu) {
     m_ppu = static_cast<PPU*>(ppu);
 }
 
-u8 Cartridge::getDIPSwitch(u8 index) const {
-    switch (index) {
-        case 0: return m_gameInfo->dipSwitch1;
-        case 1: return m_gameInfo->dipSwitch2;
-        case 2: return m_gameInfo->dipSwitch3;
-        case 3: return m_gameInfo->dipSwitch4;
-        default: return 0xFF;
-    }
-}
 
 BoardConfig Cartridge::getBoardConfig() const {
     return GameDatabase::getBoardConfig(m_gameInfo->board);

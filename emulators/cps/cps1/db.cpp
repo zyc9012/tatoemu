@@ -340,6 +340,17 @@ static const ROMEntry pang3_roms[] = {
     { "c632.ic1",      0x000117, 0x0fbd9270, ROMType::PLD, ROM_FLAG_OPTIONAL },
 };
 
+// DIP switch arrays
+static const DIPInfo common_dips[] = {
+    {0x01A, 0x00},
+    {0x01C, 0x03},
+    {0x01E, 0x60},
+};
+
+static const DIPInfo pang3_dips[] = {
+    {0x01A, 0x00},
+};
+
 // Game database
 const GameInfo GameDatabase::s_games[] = {
     {
@@ -350,10 +361,8 @@ const GameInfo GameDatabase::s_games[] = {
         true,
         CPSBoard::CPS_B_11,
         CPSMapper::MAPPER_STF29,
-        0x00,
-        0x03,
-        0x60,
-        0xFF
+        common_dips,
+        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "Street Fighter II: Champion Edition",
@@ -363,10 +372,8 @@ const GameInfo GameDatabase::s_games[] = {
         false,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_S9263B,
-        0x00,
-        0x03,
-        0x60,
-        0xFF
+        common_dips,
+        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "Three Wonders",
@@ -376,10 +383,8 @@ const GameInfo GameDatabase::s_games[] = {
         true,
         CPSBoard::CPS_B_21_BT1,
         CPSMapper::MAPPER_RT24B,
-        0x00,
-        0x03,
-        0x60,
-        0xFF
+        common_dips,
+        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "Captain Commando",
@@ -389,10 +394,8 @@ const GameInfo GameDatabase::s_games[] = {
         false,
         CPSBoard::CPS_B_21_BT3,
         CPSMapper::MAPPER_CC63B,
-        0x00,
-        0x03,
-        0x60,
-        0xFF
+        common_dips,
+        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "Knights of the Round",
@@ -402,10 +405,8 @@ const GameInfo GameDatabase::s_games[] = {
         false,
         CPSBoard::CPS_B_21_BT4,
         CPSMapper::MAPPER_KR63B,
-        0x00,
-        0x03,
-        0x60,
-        0xFF
+        common_dips,
+        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "The King of Dragons",
@@ -415,10 +416,8 @@ const GameInfo GameDatabase::s_games[] = {
         true,
         CPSBoard::CPS_B_21_BT2,
         CPSMapper::MAPPER_KD29B,
-        0x00,
-        0x03,
-        0x60,
-        0xFF
+        common_dips,
+        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "Nemo",
@@ -428,10 +427,8 @@ const GameInfo GameDatabase::s_games[] = {
         true,
         CPSBoard::CPS_B_15,
         CPSMapper::MAPPER_NM24B,
-        0x00,
-        0x03,
-        0x60,
-        0xFF
+        common_dips,
+        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "Pang! 3",
@@ -441,10 +438,8 @@ const GameInfo GameDatabase::s_games[] = {
         false,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_CP1B1F,
-        0x00,
-        0x03,
-        0x60,
-        0xFF
+        pang3_dips,
+        static_cast<u32>(sizeof(pang3_dips) / sizeof(pang3_dips[0]))
     },
 };
 

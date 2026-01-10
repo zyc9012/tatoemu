@@ -74,41 +74,30 @@ Memory::Memory()
     , m_controller1(nullptr)
     , m_controller2(nullptr)
     , m_protCalc{0, 0}
-    , m_boardId{0x00, 0x00, 0x00}
-    , m_dipSwitches{0xFF, 0xFF, 0xFF, 0xFF} {
+    , m_boardId{0x00, 0x00, 0x00} {
 }
 
-void Memory::initDIPSwitches() {
-    /*
-     * DIP Switch Configuration for CPS1 Games
-     * ========================================
-     * 
-     * CPS1 games use 3-4 DIP switch banks to configure gameplay.
-     * Values are ACTIVE LOW (0 = ON, 1 = OFF)
-     * 
-     * We load game-specific defaults from the database, then apply
-     * emulator-friendly overrides (like enabling free play).
-     */
+u8 Memory::getDIPSwitchValue(u16 port) const {
+    if (!m_cartridge) {
+        return 0;
+    }
     
-    // Load game-specific DIP switch defaults from cartridge database
     Cartridge* cart = static_cast<Cartridge*>(m_cartridge);
-    m_dipSwitches[0] = cart->getDIPSwitch(0);
-    m_dipSwitches[1] = cart->getDIPSwitch(1);
-    m_dipSwitches[2] = cart->getDIPSwitch(2);
-    m_dipSwitches[3] = cart->getDIPSwitch(3);
+    const GameInfo* gameInfo = cart->getGameInfo();
     
-    // Apply emulator-friendly overrides for better testing experience
-    // Enable Free Play (bit 2 of DIP 3, active low)
-    m_dipSwitches[2] &= ~0x04;  // Clear bit 2 = Free play ON
+    if (!gameInfo || !gameInfo->dipSwitches) {
+        return 0;
+    }
     
-    // Ensure Demo Sound is ON (bit 5 of DIP 3)
-    m_dipSwitches[2] |= 0x20;   // Set bit 5 = Demo sound ON
+    // Search for matching port in DIP switch array
+    for (u32 i = 0; i < gameInfo->dipSwitchCount; i++) {
+        if (gameInfo->dipSwitches[i].port == port) {
+            return gameInfo->dipSwitches[i].value;
+        }
+    }
     
-    // Ensure Allow Continue is ON (bit 6 of DIP 3)
-    m_dipSwitches[2] |= 0x40;   // Set bit 6 = Continue ON
-    
-    // Ensure we're in Game mode, not Test mode (bit 7 of DIP 3)
-    m_dipSwitches[2] &= ~0x80;  // Clear bit 7 = Game mode
+    // Port not found, return default (all bits set)
+    return 0;
 }
 
 void Memory::reset() {
@@ -128,9 +117,6 @@ void Memory::reset() {
     m_boardId[0] = config.boardIdOffset;
     m_boardId[1] = config.boardIdValue1;
     m_boardId[2] = config.boardIdValue2;
-    
-    // Initialize DIP switches from game database
-    initDIPSwitches();
 }
 
 // ============================================================================
@@ -369,22 +355,16 @@ u8 Memory::readPort(u16 port) {
             return 0xFF;
             
         case 0x018:
-            // DIP switch 1 (active low) - Coinage and cabinet settings
-            return m_dipSwitches[0];
-            
         case 0x019:
-            // DIP switch 2 (active low) - Difficulty and gameplay
-            return m_dipSwitches[1];
-            
         case 0x01A:
-            // DIP switch 3 (active low) - Demo sound, continue, etc.
-            return m_dipSwitches[2];
-            
         case 0x01B:
         case 0x01C:
+        case 0x01D:
         case 0x01E:
-            // DIP switch 4 (varies by game)
-            return m_dipSwitches[3];
+        case 0x01F:
+            // DIP switches - lookup by port address
+            // Hardware inverts the bits before returning
+            return ~getDIPSwitchValue(port);
     }
     
     // Board ID - CPS1 games read their board identifier here
@@ -504,9 +484,6 @@ void Memory::saveState(std::ofstream& file) {
     // Save protection state
     file.write(reinterpret_cast<const char*>(&m_protCalc), sizeof(m_protCalc));
     file.write(reinterpret_cast<const char*>(&m_boardId), sizeof(m_boardId));
-    
-    // Save DIP switches
-    file.write(reinterpret_cast<const char*>(&m_dipSwitches), sizeof(m_dipSwitches));
 }
 
 void Memory::loadState(std::ifstream& file) {
@@ -518,9 +495,6 @@ void Memory::loadState(std::ifstream& file) {
     // Load protection state
     file.read(reinterpret_cast<char*>(&m_protCalc), sizeof(m_protCalc));
     file.read(reinterpret_cast<char*>(&m_boardId), sizeof(m_boardId));
-    
-    // Load DIP switches
-    file.read(reinterpret_cast<char*>(&m_dipSwitches), sizeof(m_dipSwitches));
 }
 
 } // namespace cps1
