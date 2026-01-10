@@ -972,25 +972,37 @@ void PPU::renderSprites() {
     
     // CPS1 has 256 sprites, each 8 bytes
     // Sprite format:
-    // Word 0: Tile number
-    // Word 1: Y position (9-bit signed), high bits are extra tile bits
-    // Word 2: X position (9-bit signed)  
-    // Word 3: Attributes (palette, flip, size)
+    // Word 0 (bytes 0-1): X position (9-bit signed)
+    // Word 1 (bytes 2-3): Y position (9-bit signed), high bits are extra tile bits
+    // Word 2 (bytes 4-5): Tile number
+    // Word 3 (bytes 6-7): Attributes (palette, flip, size)
     
-    // Sprites are rendered in reverse order (last sprite on top)
-    for (s32 i = 255; i >= 0; i--) {
+    // First, find where the sprite list ends by iterating forward
+    s32 spriteEnd = 256;  // Default to end of sprite table
+    for (s32 i = 0; i < 256; i++) {
         u8* ps = sprBase + (i * 8);
-        
-        u16 tileNum = (static_cast<u16>(ps[0]) << 8) | ps[1];
-        u16 yData = (static_cast<u16>(ps[2]) << 8) | ps[3];
-        u16 xData = (static_cast<u16>(ps[4]) << 8) | ps[5];
-        u16 attrib = (static_cast<u16>(ps[6]) << 8) | ps[7];
+        u16 attrib = (static_cast<u16>(ps[6]) << 8) | ps[7]; // Attributes
         
         // Check for end of sprite list
-        if (attrib >= 0xFF00) break;
+        if (attrib >= 0xFF00) {
+            spriteEnd = i;
+            break;  // Found end marker, stop searching
+        }
+    }
+    
+    // Now render sprites in reverse order (last sprite on top)
+    // We iterate backward from spriteEnd-1 down to 0
+    for (s32 i = spriteEnd - 1; i >= 0; i--) {
+        u8* ps = sprBase + (i * 8);
+        
+        // Read sprite data in correct order
+        u16 xData = (static_cast<u16>(ps[0]) << 8) | ps[1];  // X position
+        u16 yData = (static_cast<u16>(ps[2]) << 8) | ps[3];  // Y position
+        u16 tileNum = (static_cast<u16>(ps[4]) << 8) | ps[5]; // Tile number
+        u16 attrib = (static_cast<u16>(ps[6]) << 8) | ps[7]; // Attributes
         
         // Skip blank sprites
-        if ((tileNum | attrib) == 0) continue;
+        if ((xData | attrib) == 0) continue;
         
         // Get sprite size (in 16x16 blocks)
         s32 bx = ((attrib >> 8) & 15) + 1;   // Width in tiles
