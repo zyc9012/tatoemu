@@ -19,8 +19,7 @@ Cartridge::Cartridge()
     , m_gameInfo(nullptr)
     , m_programRomSize(0)
     , m_graphicsRomSize(0)
-    , m_soundRomSize(0)
-    , m_programByteswap(false) {
+    , m_soundRomSize(0) {
 }
 
 void Cartridge::setPPU(cps::PPUBase* ppu) {
@@ -60,7 +59,6 @@ bool Cartridge::load(const fs::path& filename) {
     }
     
     m_title = m_gameInfo->name;
-    m_programByteswap = m_gameInfo->programByteswap;
     
     // Open and extract ZIP file
     ZipReader zip;
@@ -109,6 +107,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     
     // Temporary storage for program ROMs (need to interleave them)
     std::vector<std::vector<u8>> programRomChips;
+    std::vector<bool> programRomNeedsInterleave;  // Track which ROMs need interleaving
     
     // Load ROMs in database order
     for (u32 i = 0; i < m_gameInfo->romCount; i++) {
@@ -132,6 +131,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                         // Store program ROMs separately for interleaving
                         std::cout << "Loading program: " << entry.filename << std::endl;
                         programRomChips.push_back(pair.second);
+                        programRomNeedsInterleave.push_back(entry.flags & ROM_FLAG_INTERLEAVE);
                         break;
                     case ROMType::GRAPHICS:
                         std::cout << "Loading graphics: " << entry.filename << std::endl;
@@ -166,21 +166,32 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     // Some games (SF2) use pairs of ROMs that need interleaving
     // Other games (SF2CE) use larger ROMs that just need concatenation
     if (!programRomChips.empty()) {
-        bool needsInterleaving = m_programByteswap;
+        // Calculate total size
+        u32 totalSize = 0;
+        for (const auto& chip : programRomChips) {
+            totalSize += static_cast<u32>(chip.size());
+        }
+        m_programRom.resize(totalSize);
         
-        if (needsInterleaving) {
-            // FBNeo loads ROMs in the exact order they appear in the ROM list
-            // No reordering needed - use database order directly
-            // Calculate total size
-            u32 totalSize = 0;
-            for (const auto& chip : programRomChips) {
-                totalSize += static_cast<u32>(chip.size());
-            }
-            m_programRom.resize(totalSize);
+        // Process each ROM chip based on its interleave flag
+        u32 offset = 0;
+        for (size_t i = 0; i < programRomChips.size(); i++) {
+            bool needsInterleaving = programRomNeedsInterleave[i];
             
-            // Interleave in pairs: even chip, odd chip, even chip, odd chip...
-            u32 offset = 0;
-            for (size_t i = 0; i < programRomChips.size(); i += 2) {
+            if (needsInterleaving) {
+                // This ROM needs interleaving - it should be part of a pair
+                // Check if we have a pair (even/odd)
+                if (i + 1 >= programRomChips.size()) {
+                    std::cerr << "Error: ROM chip at index " << i << " needs interleaving but has no pair" << std::endl;
+                    return false;
+                }
+                
+                // Verify the pair also needs interleaving
+                if (!programRomNeedsInterleave[i + 1]) {
+                    std::cerr << "Error: ROM chip at index " << i << " needs interleaving but its pair doesn't" << std::endl;
+                    return false;
+                }
+                
                 const auto& evenChip = programRomChips[i];
                 const auto& oddChip = programRomChips[i + 1];
                 
@@ -195,18 +206,12 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                     m_programRom[offset++] = oddChip[j];  // "f" chip has even address bytes
                     m_programRom[offset++] = evenChip[j];  // "e" chip has odd address bytes
                 }
-            }
-        } else {
-            // For SF2CE and similar games, simple concatenation (NO byte-swapping needed)
-            // Per FBNeo: CPS1_68K_PROGRAM_NO_BYTESWAP just concatenates ROMs in order
-            u32 totalSize = 0;
-            for (const auto& chip : programRomChips) {
-                totalSize += static_cast<u32>(chip.size());
-            }
-            m_programRom.resize(totalSize);
-            
-            u32 offset = 0;
-            for (const auto& chip : programRomChips) {
+                
+                // Skip the next chip since we've already processed it as part of the pair
+                i++;
+            } else {
+                // Simple concatenation
+                const auto& chip = programRomChips[i];
                 std::memcpy(&m_programRom[offset], chip.data(), chip.size());
                 offset += static_cast<u32>(chip.size());
             }
@@ -340,7 +345,6 @@ void Cartridge::saveState(std::ofstream& file) {
     file.write(reinterpret_cast<const char*>(&m_programRomSize), sizeof(m_programRomSize));
     file.write(reinterpret_cast<const char*>(&m_graphicsRomSize), sizeof(m_graphicsRomSize));
     file.write(reinterpret_cast<const char*>(&m_soundRomSize), sizeof(m_soundRomSize));
-    file.write(reinterpret_cast<const char*>(&m_programByteswap), sizeof(m_programByteswap));
 }
 
 void Cartridge::loadState(std::ifstream& file) {
@@ -357,7 +361,6 @@ void Cartridge::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_programRomSize), sizeof(m_programRomSize));
     file.read(reinterpret_cast<char*>(&m_graphicsRomSize), sizeof(m_graphicsRomSize));
     file.read(reinterpret_cast<char*>(&m_soundRomSize), sizeof(m_soundRomSize));
-    file.read(reinterpret_cast<char*>(&m_programByteswap), sizeof(m_programByteswap));
 }
 
 } // namespace cps1

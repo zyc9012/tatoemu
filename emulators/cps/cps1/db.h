@@ -18,7 +18,7 @@ enum class ROMType {
 
 // ROM entry flags
 enum ROMFlags {
-    ROM_FLAG_BYTESWAP = 0x01,      // Program ROM needs byte swapping
+    ROM_FLAG_INTERLEAVE = 0x01,      // Program ROM needs interleaving
     ROM_FLAG_OPTIONAL = 0x02,      // Optional ROM (PLDs, etc.)
 };
 
@@ -32,7 +32,6 @@ struct ROMEntry {
 };
 
 // CPS1 Board types (B-board revisions)
-// From FBNeo cps.h lines 84-115
 enum class CPSBoard {
     CPS_B_01 = 0,
     CPS_B_02 = 1,
@@ -102,13 +101,12 @@ struct GameInfo {
     const char* romSetName;        // MAME ROM set name
     const ROMEntry* roms;          // Array of ROM entries
     u32 romCount;                  // Number of ROM entries
-    bool programByteswap;          // Whether program ROMs need byte swapping
     
-    // Board configuration (from FBNeo)
+    // Board configuration
     CPSBoard board;                // B-board type
     CPSMapper mapper;              // Graphics ROM mapper
     
-    // DIP switch defaults (from FBNeo)
+    // DIP switch defaults
     // Array of port->value mappings for DIP switches
     // Values are stored inverted (hardware inverts on read)
     const DIPInfo* dipSwitches;    // Array of DIP switch entries

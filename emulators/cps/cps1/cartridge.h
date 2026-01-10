@@ -74,8 +74,6 @@ private:
     u32 m_graphicsRomSize;
     u32 m_soundRomSize;
     
-    bool m_programByteswap;  // Whether program ROMs need byte swapping
-    
     bool loadROMsFromDatabase(const std::map<std::string, std::vector<u8>>& romFiles);
     void byteswapProgramROM();
 };

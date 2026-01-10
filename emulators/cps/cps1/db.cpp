@@ -7,15 +7,15 @@ namespace cps1 {
 
 // Street Fighter II: The World Warrior (sf2)
 static const ROMEntry sf2_roms[] = {
-    // Program ROMs (68000, byteswapped)
-    { "sf2e_30g.11e",  0x020000, 0xfe39ee33, ROMType::PROGRAM, 0 },
-    { "sf2e_37g.11f",  0x020000, 0xfb92cd74, ROMType::PROGRAM, 0 },
-    { "sf2e_31g.12e",  0x020000, 0x69a0a301, ROMType::PROGRAM, 0 },
-    { "sf2e_38g.12f",  0x020000, 0x5e22db70, ROMType::PROGRAM, 0 },
-    { "sf2e_28g.9e",   0x020000, 0x8bf9f1e5, ROMType::PROGRAM, 0 },
-    { "sf2e_35g.9f",   0x020000, 0x626ef934, ROMType::PROGRAM, 0 },
-    { "sf2_29b.10e",   0x020000, 0xbb4af315, ROMType::PROGRAM, 0 },
-    { "sf2_36b.10f",   0x020000, 0xc02a13eb, ROMType::PROGRAM, 0 },
+    // Program ROMs (68000)
+    { "sf2e_30g.11e",  0x020000, 0xfe39ee33, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "sf2e_37g.11f",  0x020000, 0xfb92cd74, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "sf2e_31g.12e",  0x020000, 0x69a0a301, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "sf2e_38g.12f",  0x020000, 0x5e22db70, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "sf2e_28g.9e",   0x020000, 0x8bf9f1e5, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "sf2e_35g.9f",   0x020000, 0x626ef934, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "sf2_29b.10e",   0x020000, 0xbb4af315, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "sf2_36b.10f",   0x020000, 0xc02a13eb, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
     
     // Graphics ROMs
     { "sf2-5m.4a",     0x080000, 0x22c9cc8e, ROMType::GRAPHICS, 0 },
@@ -55,7 +55,7 @@ static const ROMEntry sf2_roms[] = {
 
 // Street Fighter II: Champion Edition (sf2ce)
 static const ROMEntry sf2ce_roms[] = {
-    // Program ROMs (68000, no byteswap)
+    // Program ROMs (68000)
     { "s92e_23b.8f",   0x080000, 0x0aaa1a3a, ROMType::PROGRAM, 0 },
     { "s92_22b.7f",    0x080000, 0x2bbe15ed, ROMType::PROGRAM, 0 },
     { "s92_21a.6f",    0x080000, 0x925a7877, ROMType::PROGRAM, 0 },
@@ -100,15 +100,15 @@ static const ROMEntry sf2ce_roms[] = {
 
 // Three Wonders (3wonders)
 static const ROMEntry threewonders_roms[] = {
-    // Program ROMs (68000, byteswapped)
-    { "rte_30a.11f",   0x020000, 0xef5b8b33, ROMType::PROGRAM, 0 },
-    { "rte_35a.11h",   0x020000, 0x7d705529, ROMType::PROGRAM, 0 },
-    { "rte_31a.12f",   0x020000, 0x32835e5e, ROMType::PROGRAM, 0 },
-    { "rte_36a.12h",   0x020000, 0x7637975f, ROMType::PROGRAM, 0 },
-    { "rt_28a.9f",     0x020000, 0x054137c8, ROMType::PROGRAM, 0 },
-    { "rt_33a.9h",     0x020000, 0x7264cb1b, ROMType::PROGRAM, 0 },
-    { "rte_29a.10f",   0x020000, 0xcddaa919, ROMType::PROGRAM, 0 },
-    { "rte_34a.10h",   0x020000, 0xed52e7e5, ROMType::PROGRAM, 0 },
+    // Program ROMs (68000)
+    { "rte_30a.11f",   0x020000, 0xef5b8b33, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "rte_35a.11h",   0x020000, 0x7d705529, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "rte_31a.12f",   0x020000, 0x32835e5e, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "rte_36a.12h",   0x020000, 0x7637975f, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "rt_28a.9f",     0x020000, 0x054137c8, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "rt_33a.9h",     0x020000, 0x7264cb1b, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "rte_29a.10f",   0x020000, 0xcddaa919, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "rte_34a.10h",   0x020000, 0xed52e7e5, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
     
     // Graphics ROMs
     { "rt-5m.7a",      0x080000, 0x86aef804, ROMType::GRAPHICS, 0 },
@@ -144,11 +144,11 @@ static const ROMEntry threewonders_roms[] = {
 
 // Captain Commando (captcomm)
 static const ROMEntry captcomm_roms[] = {
-    // Program ROMs (68000, no byteswap for main ROMs, byteswap for last 2)
+    // Program ROMs (68000)
     { "cce_23f.8f",    0x080000, 0x42c814c5, ROMType::PROGRAM, 0 },
     { "cc_22f.7f",     0x080000, 0x0fd34195, ROMType::PROGRAM, 0 },
-    { "cc_24f.9e",     0x020000, 0x3a794f25, ROMType::PROGRAM, 0 },
-    { "cc_28f.9f",     0x020000, 0xfc3c2906, ROMType::PROGRAM, 0 },
+    { "cc_24f.9e",     0x020000, 0x3a794f25, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "cc_28f.9f",     0x020000, 0xfc3c2906, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
     
     // Graphics ROMs
     { "cc-5m.3a",      0x080000, 0x7261d8ba, ROMType::GRAPHICS, 0 },
@@ -186,7 +186,7 @@ static const ROMEntry captcomm_roms[] = {
 
 // Knights of the Round (knights)
 static const ROMEntry knights_roms[] = {
-    // Program ROMs (68000, no byteswap)
+    // Program ROMs (68000)
     { "kr_23e.8f",     0x080000, 0x1b3997eb, ROMType::PROGRAM, 0 },
     { "kr_22.7f",      0x080000, 0xd0b671a9, ROMType::PROGRAM, 0 },
     
@@ -226,15 +226,15 @@ static const ROMEntry knights_roms[] = {
 
 // The King of Dragons (kod)
 static const ROMEntry kod_roms[] = {
-    // Program ROMs (68000, byteswapped)
-    { "kde_30a.11e",   0x020000, 0xfcb5efe2, ROMType::PROGRAM, 0 },
-    { "kde_37a.11f",   0x020000, 0xf22e5266, ROMType::PROGRAM, 0 },
-    { "kde_31a.12e",   0x020000, 0xc710d722, ROMType::PROGRAM, 0 },
-    { "kde_38a.12f",   0x020000, 0x57d6ed3a, ROMType::PROGRAM, 0 },
-    { "kd_28.9e",      0x020000, 0x9367bcd9, ROMType::PROGRAM, 0 },
-    { "kd_35.9f",      0x020000, 0x4ca6a48a, ROMType::PROGRAM, 0 },
-    { "kd_29.10e",     0x020000, 0x0360fa72, ROMType::PROGRAM, 0 },
-    { "kd_36a.10f",    0x020000, 0x95a3cef8, ROMType::PROGRAM, 0 },
+    // Program ROMs (68000)
+    { "kde_30a.11e",   0x020000, 0xfcb5efe2, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "kde_37a.11f",   0x020000, 0xf22e5266, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "kde_31a.12e",   0x020000, 0xc710d722, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "kde_38a.12f",   0x020000, 0x57d6ed3a, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "kd_28.9e",      0x020000, 0x9367bcd9, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "kd_35.9f",      0x020000, 0x4ca6a48a, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "kd_29.10e",     0x020000, 0x0360fa72, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "kd_36a.10f",    0x020000, 0x95a3cef8, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
     
     // Graphics ROMs
     { "kd-5m.4a",      0x080000, 0xe45b8701, ROMType::GRAPHICS, 0 },
@@ -271,11 +271,11 @@ static const ROMEntry kod_roms[] = {
 
 // Nemo (nemo)
 static const ROMEntry nemo_roms[] = {
-    // Program ROMs (68000, byteswapped for first 4, no byteswap for last)
-    { "nme_30a.11f",   0x020000, 0xd2c03e56, ROMType::PROGRAM, 0 },
-    { "nme_35a.11h",   0x020000, 0x5fd31661, ROMType::PROGRAM, 0 },
-    { "nme_31a.12f",   0x020000, 0xb2bd4f6f, ROMType::PROGRAM, 0 },
-    { "nme_36a.12h",   0x020000, 0xee9450e3, ROMType::PROGRAM, 0 },
+    // Program ROMs (68000)
+    { "nme_30a.11f",   0x020000, 0xd2c03e56, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "nme_35a.11h",   0x020000, 0x5fd31661, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "nme_31a.12f",   0x020000, 0xb2bd4f6f, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
+    { "nme_36a.12h",   0x020000, 0xee9450e3, ROMType::PROGRAM, ROM_FLAG_INTERLEAVE },
     { "nm-32m.8h",     0x080000, 0xd6d1add3, ROMType::PROGRAM, 0 },
     
     // Graphics ROMs
@@ -308,7 +308,7 @@ static const ROMEntry nemo_roms[] = {
 
 // Pang! 3 (pang3)
 static const ROMEntry pang3_roms[] = {
-    // Program ROMs (68000, no byteswap)
+    // Program ROMs (68000)
     { "pa3e_17a.11l",  0x080000, 0xa213fa80, ROMType::PROGRAM, 0 },
     { "pa3e_16a.10l",  0x080000, 0x7169ea67, ROMType::PROGRAM, 0 },
     
@@ -358,7 +358,6 @@ const GameInfo GameDatabase::s_games[] = {
         "sf2",
         sf2_roms,
         static_cast<u32>(sizeof(sf2_roms) / sizeof(sf2_roms[0])),
-        true,
         CPSBoard::CPS_B_11,
         CPSMapper::MAPPER_STF29,
         common_dips,
@@ -369,7 +368,6 @@ const GameInfo GameDatabase::s_games[] = {
         "sf2ce",
         sf2ce_roms,
         static_cast<u32>(sizeof(sf2ce_roms) / sizeof(sf2ce_roms[0])),
-        false,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_S9263B,
         common_dips,
@@ -380,7 +378,6 @@ const GameInfo GameDatabase::s_games[] = {
         "3wonders",
         threewonders_roms,
         static_cast<u32>(sizeof(threewonders_roms) / sizeof(threewonders_roms[0])),
-        true,
         CPSBoard::CPS_B_21_BT1,
         CPSMapper::MAPPER_RT24B,
         common_dips,
@@ -391,7 +388,6 @@ const GameInfo GameDatabase::s_games[] = {
         "captcomm",
         captcomm_roms,
         static_cast<u32>(sizeof(captcomm_roms) / sizeof(captcomm_roms[0])),
-        false,
         CPSBoard::CPS_B_21_BT3,
         CPSMapper::MAPPER_CC63B,
         common_dips,
@@ -402,7 +398,6 @@ const GameInfo GameDatabase::s_games[] = {
         "knights",
         knights_roms,
         static_cast<u32>(sizeof(knights_roms) / sizeof(knights_roms[0])),
-        false,
         CPSBoard::CPS_B_21_BT4,
         CPSMapper::MAPPER_KR63B,
         common_dips,
@@ -413,7 +408,6 @@ const GameInfo GameDatabase::s_games[] = {
         "kod",
         kod_roms,
         static_cast<u32>(sizeof(kod_roms) / sizeof(kod_roms[0])),
-        true,
         CPSBoard::CPS_B_21_BT2,
         CPSMapper::MAPPER_KD29B,
         common_dips,
@@ -424,7 +418,6 @@ const GameInfo GameDatabase::s_games[] = {
         "nemo",
         nemo_roms,
         static_cast<u32>(sizeof(nemo_roms) / sizeof(nemo_roms[0])),
-        true,
         CPSBoard::CPS_B_15,
         CPSMapper::MAPPER_NM24B,
         common_dips,
@@ -435,7 +428,6 @@ const GameInfo GameDatabase::s_games[] = {
         "pang3",
         pang3_roms,
         static_cast<u32>(sizeof(pang3_roms) / sizeof(pang3_roms[0])),
-        false,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_CP1B1F,
         pang3_dips,
