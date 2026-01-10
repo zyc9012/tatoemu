@@ -115,13 +115,6 @@ struct BoardConfig {
     u16 layerEnable[3];    // Layer enable bits (for layers 1-3)
 };
 
-// DIP switch information
-// Maps a port address to its DIP switch value (stored inverted, hardware inverts on read)
-struct DIPInfo {
-    u16 port;              // Port address (e.g., 0x018, 0x019, 0x01A, etc.)
-    u8 value;              // DIP switch value (stored inverted)
-};
-
 // Game database entry
 struct GameInfo {
     const char* name;              // Game name
@@ -132,12 +125,6 @@ struct GameInfo {
     // Board configuration
     CPSBoard board;                // B-board type
     CPSMapper mapper;              // Graphics ROM mapper
-    
-    // DIP switch defaults
-    // Array of port->value mappings for DIP switches
-    // Values are stored inverted (hardware inverts on read)
-    const DIPInfo* dipSwitches;    // Array of DIP switch entries
-    u32 dipSwitchCount;            // Number of DIP switch entries
 };
 
 // Game database

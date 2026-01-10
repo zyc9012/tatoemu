@@ -915,13 +915,6 @@ static const ROMEntry msword_roms[] = {
     { "iob1.11e",      0x000117, 0x3abc0700, ROMType::PLD, ROM_FLAG_OPTIONAL },
 };
 
-// DIP switch arrays
-static const DIPInfo common_dips[] = {
-    {0x01A, 0x00},
-    {0x01C, 0x03},
-    {0x01E, 0x60},
-};
-
 // Game database
 const GameInfo GameDatabase::s_games[] = {
     {
@@ -930,9 +923,7 @@ const GameInfo GameDatabase::s_games[] = {
         sf2_roms,
         static_cast<u32>(sizeof(sf2_roms) / sizeof(sf2_roms[0])),
         CPSBoard::CPS_B_11,
-        CPSMapper::MAPPER_STF29,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
+        CPSMapper::MAPPER_STF29
     },
     {
         "Street Fighter II: Champion Edition",
@@ -940,9 +931,7 @@ const GameInfo GameDatabase::s_games[] = {
         sf2ce_roms,
         static_cast<u32>(sizeof(sf2ce_roms) / sizeof(sf2ce_roms[0])),
         CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_S9263B,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
+        CPSMapper::MAPPER_S9263B
     },
     {
         "Street Fighter II: Hyper Fighting",
@@ -951,8 +940,6 @@ const GameInfo GameDatabase::s_games[] = {
         static_cast<u32>(sizeof(sf2hf_roms) / sizeof(sf2hf_roms[0])),
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_S9263B,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0])),
     },
     {
         "Three Wonders",
@@ -961,8 +948,6 @@ const GameInfo GameDatabase::s_games[] = {
         static_cast<u32>(sizeof(threewonders_roms) / sizeof(threewonders_roms[0])),
         CPSBoard::CPS_B_21_BT1,
         CPSMapper::MAPPER_RT24B,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "Captain Commando",
@@ -971,8 +956,6 @@ const GameInfo GameDatabase::s_games[] = {
         static_cast<u32>(sizeof(captcomm_roms) / sizeof(captcomm_roms[0])),
         CPSBoard::CPS_B_21_BT3,
         CPSMapper::MAPPER_CC63B,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "Knights of the Round",
@@ -981,8 +964,6 @@ const GameInfo GameDatabase::s_games[] = {
         static_cast<u32>(sizeof(knights_roms) / sizeof(knights_roms[0])),
         CPSBoard::CPS_B_21_BT4,
         CPSMapper::MAPPER_KR63B,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "The King of Dragons",
@@ -991,8 +972,6 @@ const GameInfo GameDatabase::s_games[] = {
         static_cast<u32>(sizeof(kod_roms) / sizeof(kod_roms[0])),
         CPSBoard::CPS_B_21_BT2,
         CPSMapper::MAPPER_KD29B,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "Nemo",
@@ -1001,8 +980,6 @@ const GameInfo GameDatabase::s_games[] = {
         static_cast<u32>(sizeof(nemo_roms) / sizeof(nemo_roms[0])),
         CPSBoard::CPS_B_15,
         CPSMapper::MAPPER_NM24B,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "Final Fight",
@@ -1011,8 +988,6 @@ const GameInfo GameDatabase::s_games[] = {
         static_cast<u32>(sizeof(ffight_roms) / sizeof(ffight_roms[0])),
         CPSBoard::CPS_B_04,
         CPSMapper::MAPPER_S224B,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "Warriors of Fate",
@@ -1021,8 +996,6 @@ const GameInfo GameDatabase::s_games[] = {
         static_cast<u32>(sizeof(wof_roms) / sizeof(wof_roms[0])),
         CPSBoard::CPS_B_21_QS1,
         CPSMapper::MAPPER_TK263B,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "The Punisher",
@@ -1031,8 +1004,6 @@ const GameInfo GameDatabase::s_games[] = {
         static_cast<u32>(sizeof(punisher_roms) / sizeof(punisher_roms[0])),
         CPSBoard::CPS_B_21_QS3,
         CPSMapper::MAPPER_PS63B,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "Mega Man: The Power Battle",
@@ -1041,8 +1012,6 @@ const GameInfo GameDatabase::s_games[] = {
         static_cast<u32>(sizeof(megaman_roms) / sizeof(megaman_roms[0])),
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_RCM63B,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "Willow",
@@ -1051,8 +1020,6 @@ const GameInfo GameDatabase::s_games[] = {
         static_cast<u32>(sizeof(willow_roms) / sizeof(willow_roms[0])),
         CPSBoard::CPS_B_03,
         CPSMapper::MAPPER_WL24B,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "Mercs",
@@ -1061,8 +1028,6 @@ const GameInfo GameDatabase::s_games[] = {
         static_cast<u32>(sizeof(mercs_roms) / sizeof(mercs_roms[0])),
         CPSBoard::CPS_B_12,
         CPSMapper::MAPPER_O224B,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "Varth: Operation Thunderstorm",
@@ -1071,8 +1036,6 @@ const GameInfo GameDatabase::s_games[] = {
         static_cast<u32>(sizeof(varth_roms) / sizeof(varth_roms[0])),
         CPSBoard::CPS_B_04,
         CPSMapper::MAPPER_VA63B,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "Carrier Air Wing",
@@ -1081,8 +1044,6 @@ const GameInfo GameDatabase::s_games[] = {
         static_cast<u32>(sizeof(cawing_roms) / sizeof(cawing_roms[0])),
         CPSBoard::CPS_B_16,
         CPSMapper::MAPPER_CA24B,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "1941: Counter Attack",
@@ -1091,8 +1052,6 @@ const GameInfo GameDatabase::s_games[] = {
         static_cast<u32>(sizeof(game1941_roms) / sizeof(game1941_roms[0])),
         CPSBoard::CPS_B_05,
         CPSMapper::MAPPER_YI24B,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
     {
         "Magic Sword",
@@ -1101,8 +1060,6 @@ const GameInfo GameDatabase::s_games[] = {
         static_cast<u32>(sizeof(msword_roms) / sizeof(msword_roms[0])),
         CPSBoard::CPS_B_13,
         CPSMapper::MAPPER_MS24B,
-        common_dips,
-        static_cast<u32>(sizeof(common_dips) / sizeof(common_dips[0]))
     },
 };
 

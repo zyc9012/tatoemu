@@ -73,9 +73,6 @@ private:
     void writeVRAM16(u32 address, u16 value);
     void writeVRAM32(u32 address, u32 value);
     
-    // DIP switch lookup
-    u8 getDIPSwitchValue(u16 port) const;
-    
     // Protection calculation (some games use multiplication at specific addresses)
     u16 m_protCalc[2];
     

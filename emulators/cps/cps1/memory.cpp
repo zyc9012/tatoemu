@@ -77,29 +77,6 @@ Memory::Memory()
     , m_boardId{0x00, 0x00, 0x00} {
 }
 
-u8 Memory::getDIPSwitchValue(u16 port) const {
-    if (!m_cartridge) {
-        return 0;
-    }
-    
-    Cartridge* cart = static_cast<Cartridge*>(m_cartridge);
-    const GameInfo* gameInfo = cart->getGameInfo();
-    
-    if (!gameInfo || !gameInfo->dipSwitches) {
-        return 0;
-    }
-    
-    // Search for matching port in DIP switch array
-    for (u32 i = 0; i < gameInfo->dipSwitchCount; i++) {
-        if (gameInfo->dipSwitches[i].port == port) {
-            return gameInfo->dipSwitches[i].value;
-        }
-    }
-    
-    // Port not found, return default (all bits set)
-    return 0;
-}
-
 void Memory::reset() {
     // Clear RAM
     m_workRam.fill(0);
@@ -327,6 +304,10 @@ u8 Memory::readPort(u16 port) {
     u8 value = 0xFF;
     
     // Input ports (0x000-0x01F)
+    // Based on Street Fighter II's input definitions
+    // NOTE: These are typical input settings that work for most CPS1 games, but are not
+    // guaranteed to work correctly for all games. Some games may use different port
+    // addresses or bit layouts for their inputs.
     switch (port) {
         case 0x000:
             // Player 2 inputs (active low) - port 0x000
@@ -394,16 +375,47 @@ u8 Memory::readPort(u16 port) {
             }
             return value;
             
-        case 0x019:
         case 0x01A:
-        case 0x01B:
+            // DIP Switch A: Coinage settings
+            // Bit 0-2 (mask 0x07): Coin A
+            //   000 = 1 Coin 1 Credit
+            //   001 = 1 Coin 2 Credits
+            //   010 = 1 Coin 3 Credits
+            //   011 = 1 Coin 4 Credits
+            //   100 = 1 Coin 6 Credits
+            //   101 = 2 Coins 1 Credit
+            //   110 = 3 Coins 1 Credit
+            //   111 = 4 Coins 1 Credit
+            // Bit 3-5 (mask 0x38): Coin B (same encoding as Coin A, shifted by 3 bits)
+            // Bit 6 (mask 0x40): 2C to Start, 1 to Cont (0 = Off, 1 = On)
+            // Bit 7 (mask 0x80): Unused or game-specific
+            return ~0x00; // (all bits on = 1 Coin 1 Credit for both)
+
         case 0x01C:
-        case 0x01D:
+            // DIP Switch B: Difficulty settings
+            // Bit 0-2 (mask 0x07): Difficulty
+            //   000 = 1 (Easiest)
+            //   001 = 2
+            //   010 = 3
+            //   011 = 4 (Normal)
+            //   100 = 5
+            //   101 = 6
+            //   110 = 7
+            //   111 = 8 (Hardest)
+            // Bit 3-7: Unused or game-specific settings
+            return ~0x03; // (bits 0-2 = 011 = Difficulty 4/Normal)
+                        
         case 0x01E:
-        case 0x01F:
-            // DIP switches - lookup by port address
-            // Hardware inverts the bits before returning
-            return ~getDIPSwitchValue(port);
+            // DIP Switch C: System settings
+            // Bit 0-1: Unused
+            // Bit 2 (mask 0x04): Free Play (0 = Off, 1 = On)
+            // Bit 3 (mask 0x08): Freeze (0 = Off, 1 = On)
+            // Bit 4 (mask 0x10): Flip Screen (0 = Off, 1 = On)
+            // Bit 5 (mask 0x20): Demo Sound (0 = Off, 1 = On)
+            // Bit 6 (mask 0x40): Allow Continue (0 = Off, 1 = On)
+            // Bit 7 (mask 0x80): Game Mode (0 = Game, 1 = Test)
+            return ~0x60; // (bits 5-6 set = Demo Sound ON, Continue ON)
+
     }
     
     // Board ID - CPS1 games read their board identifier here
