@@ -867,8 +867,8 @@ void PPU::renderScroll2(const u8* base, s32 scrollX, s32 scrollY) {
             s32 fy = iy + y;
             
             // Calculate tile map address (16x16 tiles)
-            // Format: ((fy & 0x10) << 8) | ((fx & 0x3F) << 6) | ((fy & 0x0F) << 2)
-            u32 p = ((fy & 0x10) << 8) | ((fx & 0x3F) << 6) | ((fy & 0x0F) << 2);
+            // Format: ((fy & 0x30) << 8) | ((fx & 0x3F) << 6) | ((fy & 0x0F) << 2)
+            u32 p = ((fy & 0x30) << 8) | ((fx & 0x3F) << 6) | ((fy & 0x0F) << 2);
             p &= 0x3FFF;
             
             // Read tile data
