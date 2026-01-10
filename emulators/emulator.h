@@ -14,12 +14,13 @@ public:
     ~SDLVideoDevice();
 
     void render(u32* buffer) override;
+    void setDisplayAspectRatio(double aspectRatio) { m_displayAspectRatio = aspectRatio; }
 
 private:
     SDL_Renderer* m_renderer;
     SDL_Texture* m_texture;
     u16 m_screenWidth;
-    u16 m_screenHeight;
+    double m_displayAspectRatio;  // Display aspect ratio (may differ from pixel aspect ratio)
 };
 
 class SDLAudioDevice : public AudioDevice {

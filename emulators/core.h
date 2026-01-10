@@ -36,6 +36,13 @@ public:
     virtual u16 getScreenWidth() const = 0;
     virtual u16 getScreenHeight() const = 0;
     
+    // Display aspect ratio (defaults to pixel aspect ratio if not overridden)
+    // This represents the intended display aspect ratio on the original hardware,
+    // which may differ from pixel aspect ratio due to non-square pixels on CRTs
+    virtual double getDisplayAspectRatio() const {
+        return static_cast<double>(getScreenWidth()) / static_cast<double>(getScreenHeight());
+    }
+    
     // Save/Load state
     virtual bool saveState(const fs::path& filename) = 0;
     virtual bool loadState(const fs::path& filename) = 0;

@@ -11,7 +11,7 @@ SDLVideoDevice::SDLVideoDevice(SDL_Renderer* renderer, SDL_Texture* texture, u16
     : m_renderer(renderer)
     , m_texture(texture)
     , m_screenWidth(screenWidth)
-    , m_screenHeight(screenHeight) {
+    , m_displayAspectRatio(static_cast<double>(screenWidth) / static_cast<double>(screenHeight)) {
 }
 
 SDLVideoDevice::~SDLVideoDevice() {
@@ -28,7 +28,9 @@ void SDLVideoDevice::render(u32* buffer) {
     SDL_GetRenderOutputSize(m_renderer, &windowWidth, &windowHeight);
     
     // Calculate aspect ratio preserving destination rectangle
-    float targetAspect = static_cast<float>(m_screenWidth) / static_cast<float>(m_screenHeight);
+    // Use display aspect ratio (which accounts for non-square pixels on original hardware)
+    // rather than pixel aspect ratio
+    float targetAspect = static_cast<float>(m_displayAspectRatio);
     float windowAspect = static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
     
     SDL_FRect destRect;
@@ -152,6 +154,7 @@ bool Emulator::initialize() {
     m_targetFPS = m_core->getTargetFPS();
     u16 screenWidth = m_core->getScreenWidth();
     u16 screenHeight = m_core->getScreenHeight();
+    double displayAspectRatio = m_core->getDisplayAspectRatio();
     m_targetFrameTime = 1000.0 / m_targetFPS / m_gameSpeed;
 
     // Audio buffer thresholds: maintain 1.5-4 frames worth of audio for smooth playback
@@ -164,11 +167,16 @@ bool Emulator::initialize() {
         return false;
     }
 
+    // Calculate window size respecting display aspect ratio
+    // Scale the height, then calculate width from aspect ratio
+    int windowHeight = screenHeight * Config::Window::Scale;
+    int windowWidth = static_cast<int>(windowHeight * displayAspectRatio + 0.5);  // Round to nearest
+
     // Create window
     m_window = SDL_CreateWindow(
         "TatoEmu",
-        screenWidth * Config::Window::Scale,
-        screenHeight * Config::Window::Scale,
+        windowWidth,
+        windowHeight,
         SDL_WINDOW_RESIZABLE
     );
 
@@ -218,6 +226,9 @@ bool Emulator::initialize() {
         std::cerr << "Failed to initialize core" << std::endl;
         return false;
     }
+    
+    // Set display aspect ratio from core (accounts for non-square pixels on original hardware)
+    m_videoDevice->setDisplayAspectRatio(m_core->getDisplayAspectRatio());
     
     m_core->setAudioSampleRate(Config::Audio::SampleRate);
     m_core->setAudioVolume(Config::Audio::Volume);

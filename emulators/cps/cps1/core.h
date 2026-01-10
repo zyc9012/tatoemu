@@ -37,6 +37,10 @@ public:
     u16 getScreenWidth() const override { return cps::SCREEN_WIDTH; }
     u16 getScreenHeight() const override { return cps::SCREEN_HEIGHT; }
     
+    // CPS1 games were designed for 4:3 CRT displays with non-square pixels
+    // The internal resolution is 384x224, but should be displayed at 4:3 aspect ratio
+    double getDisplayAspectRatio() const override { return 4.0 / 3.0; }
+    
     // Save/Load state
     bool saveState(const fs::path& filename) override;
     bool loadState(const fs::path& filename) override;
