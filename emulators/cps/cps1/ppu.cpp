@@ -852,16 +852,52 @@ void PPU::renderScroll1(const u8* base, s32 scrollX, s32 scrollY) {
 
 void PPU::renderScroll2(const u8* base, s32 scrollX, s32 scrollY) {
     if (!base || m_decodedGfx.empty()) return;
-    
-    s32 ix = (scrollX >> 4) + 1;
+
+    // Check for row scroll enable (bit 0 of register 0x22)
+    u16 rowScrollReg = (static_cast<u16>(m_cpsRegs[0x22]) << 8) | m_cpsRegs[0x23];
+    bool rowScrollEnabled = (rowScrollReg & 1) != 0;
+
+    // Initialize row scroll if enabled
+    const u16* rowScrollTable = nullptr;
+    u32 rowScrollStart = 0;
+    if (rowScrollEnabled) {
+        // Get row scroll table address from register 0x08
+        u32 rowScrollTableAddr = ((static_cast<u32>(m_cpsRegs[0x08]) << 8) | m_cpsRegs[0x09]) << 8;
+        rowScrollTableAddr &= 0xFFF800; // Mask to align to 2KB boundary
+
+        // Get the row scroll table from VRAM
+        rowScrollTable = reinterpret_cast<const u16*>(findGfxRam(rowScrollTableAddr, 0x0800));
+
+        // Get row scroll start offset from register 0x20
+        rowScrollStart = (static_cast<u16>(m_cpsRegs[0x20]) << 8) | m_cpsRegs[0x21];
+        rowScrollStart += 16; // Add 16 like in FBNeo
+    }
+
     s32 iy = (scrollY >> 4) + 1;
-    s32 sx = 16 - (scrollX & 15);
     s32 sy = 16 - (scrollY & 15);
-    
+
     s32 nXTile = SCREEN_WIDTH >> 4;   // 24 tiles
     s32 nYTile = SCREEN_HEIGHT >> 4;  // 14 tiles
-    
+
     for (s32 y = -1; y < nYTile; y++) {
+        // Calculate row-specific scroll X for row scroll
+        s32 scrollX_row = scrollX;
+        if (rowScrollEnabled && rowScrollTable) {
+            // Calculate screen Y position for this row
+            s32 screenY = sy + (y << 4);
+            // Add row scroll start offset
+            s32 rowIndex = screenY + rowScrollStart;
+            // Clamp row index to valid range (0-1023 for 1024 entries)
+            rowIndex &= 0x3FF;
+            // Get row scroll offset from table (big-endian)
+            u16 tableValue = rowScrollTable[rowIndex];
+            s16 rowOffset = static_cast<s16>((tableValue << 8) | (tableValue >> 8));
+            scrollX_row += rowOffset;
+        }
+
+        s32 ix = (scrollX_row >> 4) + 1;
+        s32 sx = 16 - (scrollX_row & 15);
+
         for (s32 x = -1; x < nXTile; x++) {
             s32 fx = ix + x;
             s32 fy = iy + y;
