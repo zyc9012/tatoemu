@@ -6,6 +6,15 @@
 
 namespace cps1 {
 
+// Graphics types for ROM bank mapping
+enum GfxType {
+    GFXTYPE_SPRITES = (1 << 0),
+    GFXTYPE_SCROLL1 = (1 << 1),
+    GFXTYPE_SCROLL2 = (1 << 2),
+    GFXTYPE_SCROLL3 = (1 << 3),
+    GFXTYPE_STARS   = (1 << 4),
+};
+
 // ROM entry types
 enum class ROMType {
     PROGRAM,      // 68000 program ROM
@@ -61,17 +70,35 @@ enum class CPSBoard {
     CPS_B_21_QS5 = 25,
 };
 
+// Graphics bank range entry (for ROM bank mapping)
+struct GfxRange {
+    u32 type;
+    u32 start;
+    u32 end;
+    u32 bank;
+};
+
 // Graphics ROM mappers
 // Different boards organize graphics banks differently
 enum class CPSMapper {
     MAPPER_LWCHR = 0,
+    MAPPER_WL24B = 8,
+    MAPPER_S224B = 9,
+    MAPPER_YI24B = 10,
+    MAPPER_O224B = 13,
+    MAPPER_MS24B = 14,
     MAPPER_NM24B = 16,
+    MAPPER_CA24B = 17,
     MAPPER_STF29 = 19,
     MAPPER_RT24B = 20,
     MAPPER_KD29B = 22,
     MAPPER_CC63B = 23,
     MAPPER_KR63B = 24,
     MAPPER_S9263B = 25,
+    MAPPER_VA63B = 26,
+    MAPPER_TK263B = 29,
+    MAPPER_PS63B = 31,
+    MAPPER_RCM63B = 36,
     MAPPER_CP1B1F = 45,
     // Add more as needed for other games
 };
@@ -122,6 +149,12 @@ public:
     
     // Get board configuration for a specific board type
     static BoardConfig getBoardConfig(CPSBoard board);
+    
+    // Get graphics ROM mapper table for a specific mapper
+    static const GfxRange* getGfxMapperTable(CPSMapper mapper);
+    
+    // Get graphics ROM bank sizes for a specific mapper
+    static void getGfxBankSizes(CPSMapper mapper, u32 sizes[4]);
     
 private:
     static const GameInfo s_games[];

@@ -15,15 +15,6 @@ class Cartridge;
 // Palette size (0xC00 bytes = 3072 bytes, 1536 16-bit entries across 6 pages)
 constexpr u32 PALETTE_RAM_SIZE = 0xC00;
 
-// Graphics types for ROM bank mapping
-enum GfxType {
-    GFXTYPE_SPRITES = (1 << 0),
-    GFXTYPE_SCROLL1 = (1 << 1),
-    GFXTYPE_SCROLL2 = (1 << 2),
-    GFXTYPE_SCROLL3 = (1 << 3),
-    GFXTYPE_STARS   = (1 << 4),
-};
-
 // Tile type constants
 enum TileType {
     CTT_8X8   = 0,
@@ -31,14 +22,6 @@ enum TileType {
     CTT_32X32 = 24,
     CTT_FLIPX = 1,
     CTT_CARE  = 2,  // Need to clip
-};
-
-// Graphics bank range entry
-struct GfxRange {
-    u32 type;       // Combination of GfxType flags
-    u32 start;
-    u32 end;
-    u32 bank;
 };
 
 // CPS1 PPU (Picture Processing Unit)

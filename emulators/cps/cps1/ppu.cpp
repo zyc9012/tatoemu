@@ -39,84 +39,6 @@
 namespace cps1 {
 
 // ============================================================================
-// Graphics ROM Bank Mapper Tables
-// ============================================================================
-
-static const GfxRange mapper_STF29_table[] = {
-    { GFXTYPE_SPRITES, 0x00000, 0x07fff, 0 },
-    { GFXTYPE_SPRITES, 0x08000, 0x0ffff, 1 },
-    { GFXTYPE_SPRITES, 0x10000, 0x11fff, 2 },
-    { GFXTYPE_SCROLL3, 0x02000, 0x03fff, 2 },
-    { GFXTYPE_SCROLL1, 0x04000, 0x04fff, 2 },
-    { GFXTYPE_SCROLL2, 0x05000, 0x07fff, 2 },
-    { 0, 0, 0, 0 }
-};
-
-static const GfxRange mapper_S9263B_table[] = {
-	{ GFXTYPE_SPRITES, 0x00000, 0x07fff, 0 },
-	{ GFXTYPE_SPRITES, 0x08000, 0x0ffff, 1 },
-	{ GFXTYPE_SPRITES, 0x10000, 0x11fff, 2 },
-	{ GFXTYPE_SCROLL3, 0x02000, 0x03fff, 2 },
-	{ GFXTYPE_SCROLL1, 0x04000, 0x04fff, 2 },
-	{ GFXTYPE_SCROLL2, 0x05000, 0x07fff, 2 },
-    { 0, 0, 0, 0 }
-};
-
-static const GfxRange mapper_NM24B_table[] = {
-	{ GFXTYPE_SPRITES, 0x0000, 0x3fff, 0 },
-	{ GFXTYPE_SCROLL2, 0x0000, 0x3fff, 0 },
-	{ GFXTYPE_SCROLL1, 0x4000, 0x47ff, 0 },
-	{ GFXTYPE_SPRITES, 0x4800, 0x67ff, 0 },
-	{ GFXTYPE_SCROLL2, 0x4800, 0x67ff, 0 },
-	{ GFXTYPE_SCROLL3, 0x6800, 0x7fff, 0 },
-	{ 0, 0, 0, 0 }
-};
-
-static const GfxRange mapper_RT24B_table[] = {
-	{ GFXTYPE_SPRITES, 0x0000, 0x53ff, 0 },
-	{ GFXTYPE_SCROLL1, 0x5400, 0x6fff, 0 },
-	{ GFXTYPE_SCROLL3, 0x7000, 0x7fff, 0 },
-	{ GFXTYPE_SCROLL3, 0x0000, 0x3fff, 1 },
-	{ GFXTYPE_SCROLL2, 0x2800, 0x7fff, 1 },
-	{ GFXTYPE_SPRITES, 0x5400, 0x7fff, 1 },
-	{ 0, 0, 0, 0 }
-};
-
-static const GfxRange mapper_KD29B_table[] = {
-	{ GFXTYPE_SPRITES, 0x0000, 0x7fff, 0 },
-	{ GFXTYPE_SPRITES, 0x8000, 0x8fff, 1 },
-	{ GFXTYPE_SCROLL2, 0x9000, 0xbfff, 1 },
-	{ GFXTYPE_SCROLL1, 0xc000, 0xd7ff, 1 },
-	{ GFXTYPE_SCROLL3, 0xd800, 0xffff, 1 },
-	{ 0, 0, 0, 0 }
-};
-
-static const GfxRange mapper_CC63B_table[] = {
-	{ GFXTYPE_SPRITES, 0x0000, 0x7fff, 0 },
-	{ GFXTYPE_SCROLL2, 0x0000, 0x7fff, 0 },
-	{ GFXTYPE_SPRITES, 0x8000, 0xffff, 1 },
-	{ GFXTYPE_SCROLL1, 0x8000, 0xffff, 1 },
-	{ GFXTYPE_SCROLL2, 0x8000, 0xffff, 1 },
-	{ GFXTYPE_SCROLL3, 0x8000, 0xffff, 1 },
-	{ 0, 0, 0, 0 }
-};
-
-static const GfxRange mapper_KR63B_table[] = {
-	{ GFXTYPE_SPRITES, 0x0000, 0x7fff, 0 },
-	{ GFXTYPE_SCROLL2, 0x0000, 0x7fff, 0 },
-	{ GFXTYPE_SCROLL1, 0x8000, 0x9fff, 1 },
-	{ GFXTYPE_SPRITES, 0x8000, 0xcfff, 1 },
-	{ GFXTYPE_SCROLL2, 0x8000, 0xcfff, 1 },
-	{ GFXTYPE_SCROLL3, 0xd000, 0xffff, 1 },
-	{ 0, 0, 0, 0 }
-};
-
-static const GfxRange mapper_CP1B1F_table[] = {
-	{ GFXTYPE_SPRITES | GFXTYPE_SCROLL1 | GFXTYPE_SCROLL2 | GFXTYPE_SCROLL3, 0x0000, 0xffff, 0 },
-	{ 0, 0, 0, 0 }
-};
-
-// ============================================================================
 // Separation table for graphics decoding
 // Converts a byte to spread-out bits: ABCDEFGH -> A00B00C00D00E00F00G00H00
 // ============================================================================
@@ -211,74 +133,13 @@ void PPU::setupGfxMapper() {
     
     CPSMapper mapper = m_cartridge->getMapper();
     
-    switch (mapper) {
-        case CPSMapper::MAPPER_STF29:
-            m_gfxMapper = mapper_STF29_table;
-            m_gfxBankSizes[0] = 0x08000;
-            m_gfxBankSizes[1] = 0x08000;
-            m_gfxBankSizes[2] = 0x08000;
-            m_gfxBankSizes[3] = 0x00000;
-            break;
-            
-        case CPSMapper::MAPPER_S9263B:
-            m_gfxMapper = mapper_S9263B_table;
-            m_gfxBankSizes[0] = 0x08000;
-            m_gfxBankSizes[1] = 0x08000;
-            m_gfxBankSizes[2] = 0x08000;
-            m_gfxBankSizes[3] = 0x08000;
-            break;
-            
-        case CPSMapper::MAPPER_NM24B:
-            m_gfxMapper = mapper_NM24B_table;
-            m_gfxBankSizes[0] = 0x8000;
-            m_gfxBankSizes[1] = 0x0000;
-            m_gfxBankSizes[2] = 0x0000;
-            m_gfxBankSizes[3] = 0x0000;
-            break;
-            
-        case CPSMapper::MAPPER_RT24B:
-            m_gfxMapper = mapper_RT24B_table;
-            m_gfxBankSizes[0] = 0x8000;
-            m_gfxBankSizes[1] = 0x8000;
-            m_gfxBankSizes[2] = 0x0000;
-            m_gfxBankSizes[3] = 0x0000;
-            break;
-            
-        case CPSMapper::MAPPER_KD29B:
-            m_gfxMapper = mapper_KD29B_table;
-            m_gfxBankSizes[0] = 0x8000;
-            m_gfxBankSizes[1] = 0x8000;
-            m_gfxBankSizes[2] = 0x0000;
-            m_gfxBankSizes[3] = 0x0000;
-            break;
-            
-        case CPSMapper::MAPPER_CC63B:
-            m_gfxMapper = mapper_CC63B_table;
-            m_gfxBankSizes[0] = 0x8000;
-            m_gfxBankSizes[1] = 0x8000;
-            m_gfxBankSizes[2] = 0x0000;
-            m_gfxBankSizes[3] = 0x0000;
-            break;
-            
-        case CPSMapper::MAPPER_KR63B:
-            m_gfxMapper = mapper_KR63B_table;
-            m_gfxBankSizes[0] = 0x8000;
-            m_gfxBankSizes[1] = 0x8000;
-            m_gfxBankSizes[2] = 0x0000;
-            m_gfxBankSizes[3] = 0x0000;
-            break;
-            
-        case CPSMapper::MAPPER_CP1B1F:
-            m_gfxMapper = mapper_CP1B1F_table;
-            m_gfxBankSizes[0] = 0x10000;
-            m_gfxBankSizes[1] = 0x00000;
-            m_gfxBankSizes[2] = 0x00000;
-            m_gfxBankSizes[3] = 0x00000;
-            break;
-            
-        default:
-            throw std::runtime_error("Unsupported mapper");
+    // Get mapper table and bank sizes from database
+    m_gfxMapper = GameDatabase::getGfxMapperTable(mapper);
+    if (!m_gfxMapper) {
+        throw std::runtime_error("Unsupported mapper");
     }
+    
+    GameDatabase::getGfxBankSizes(mapper, m_gfxBankSizes);
 }
 
 // ============================================================================
