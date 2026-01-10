@@ -48,8 +48,14 @@ extern void m68ki_build_opcode_table(void);
 #include "m68kops.h"
 #include "m68kcpu.h"
 
+// FPU and MMU support only needed for 68020/68030/68040
+// 68000 doesn't have FPU or MMU, so we can exclude these
+#if defined(M68K_EMULATE_020) && (M68K_EMULATE_020 == OPT_ON) || \
+    defined(M68K_EMULATE_030) && (M68K_EMULATE_030 == OPT_ON) || \
+    defined(M68K_EMULATE_040) && (M68K_EMULATE_040 == OPT_ON)
 #include "m68kfpu.c"
 #include "m68kmmu.h" // uses some functions from m68kfpu.c which are static !
+#endif
 
 /* ======================================================================== */
 /* ================================= DATA ================================= */

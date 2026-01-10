@@ -74,6 +74,12 @@ typedef unsigned char  uint8;
 typedef unsigned short uint16;
 typedef unsigned int   uint32; 			/* AWJ: changed from long to int */
 
+/* Aliases for compatibility */
+typedef sint8 int8;
+typedef sint16 int16;
+typedef sint32 int32;
+typedef uint8 uint8_t;
+
 /* signed and unsigned int must be at least 32 bits wide */
 typedef signed   int sint;
 typedef unsigned int uint;
@@ -96,8 +102,23 @@ typedef uint32 uint64;
 #define S64(val) val
 #endif
 
+// Softfloat headers only needed for FPU support (68020+)
+// 68000 doesn't have FPU, so we provide minimal stubs
+#if defined(M68K_EMULATE_020) && (M68K_EMULATE_020 == OPT_ON) || \
+    defined(M68K_EMULATE_030) && (M68K_EMULATE_030 == OPT_ON) || \
+    defined(M68K_EMULATE_040) && (M68K_EMULATE_040 == OPT_ON)
+// Full FPU support needed
 #include "softfloat/milieu.h"
 #include "softfloat/softfloat.h"
+#else
+// Stub definitions for softfloat types (only needed for 68030/68040 FPU)
+typedef struct {
+    uint64 low;
+    uint16 high;
+} floatx80;
+typedef uint8 flag;
+typedef sint32 int32;
+#endif
 
 
 /* Allow for architectures that don't have 8-bit sizes */

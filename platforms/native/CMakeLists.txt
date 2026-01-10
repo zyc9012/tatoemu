@@ -51,6 +51,8 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/cps/cpu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/sound_cpu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/controller.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/m68k/m68kcpu.c
+    ${CMAKE_SOURCE_DIR}/emulators/cps/m68k/m68kops.c
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/core.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/ppu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/apu.cpp
@@ -116,6 +118,7 @@ set_target_properties(tatoemu PROPERTIES
 # Include directories
 target_include_directories(tatoemu PRIVATE 
     ${CMAKE_SOURCE_DIR}/emulators
+    ${CMAKE_SOURCE_DIR}/emulators/cps/m68k
     ${CMAKE_SOURCE_DIR}/utilities
 )
 
@@ -123,6 +126,13 @@ target_include_directories(tatoemu PRIVATE
 target_sources(tatoemu PRIVATE ${CMAKE_SOURCE_DIR}/utilities/miniz/miniz.c)
 set_source_files_properties(${CMAKE_SOURCE_DIR}/utilities/miniz/miniz.c PROPERTIES
     LANGUAGE C
+)
+
+# Add m68k source files and compile them as C
+set_source_files_properties(
+    ${CMAKE_SOURCE_DIR}/emulators/cps/m68k/m68kcpu.c
+    ${CMAKE_SOURCE_DIR}/emulators/cps/m68k/m68kops.c
+    PROPERTIES LANGUAGE C
 )
 
 # Link SDL3
