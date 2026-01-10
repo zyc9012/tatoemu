@@ -257,11 +257,6 @@ void Core::update() {
         u32 ppuCycles = cpuCycles;
         for (u32 i = 0; i < ppuCycles; i++) {
             m_ppu->step();
-
-            // Break out of the loop if the frame is complete
-            if (m_ppu->isFrameComplete()) {
-                break;
-            }
         }
         
         // Run APU

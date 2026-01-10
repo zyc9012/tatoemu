@@ -670,8 +670,6 @@ void PPU::renderFrame() {
     
     // Copy frame buffer to video device
     m_videoDevice->render(m_frameBuffer.data());
-    
-    m_frameComplete = true;
 }
 
 void PPU::clearScreen() {
