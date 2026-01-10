@@ -19,7 +19,8 @@ enum ControllerButton : u8 {
     BUTTON_KICK1 = 7,
     BUTTON_KICK2 = 8,
     BUTTON_KICK3 = 9,
-    BUTTON_START = 10
+    BUTTON_START = 10,
+    BUTTON_COIN = 11
 };
 
 class Controller {
@@ -30,9 +31,10 @@ public:
     void reset();
     void pressButton(ControllerButton button);
     void releaseButton(ControllerButton button);
-    void insertCoin();
     
-    u8 read() const;
+    u8 read() const;  // Read direction + punch buttons (ports 0x000/0x001, 0x010/0x011)
+    u8 readKicks() const;  // Read kick buttons (port 0x012 for 6-button games)
+    u8 readCoinStart() const;  // Read coin/start buttons (port 0x018)
     void setMemory(MemoryBase* memory) { m_memory = memory; }
     
     // Save/Load state
@@ -41,7 +43,6 @@ public:
 
 private:
     u16 m_buttons;  // Button states (bitmask)
-    bool m_coinInserted;
     MemoryBase* m_memory;
 };
 

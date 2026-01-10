@@ -135,10 +135,10 @@ bool Core::handleInput(SDL_Event& event) {
                     m_controller2->pressButton(cps::BUTTON_KICK3);
                     return true;
                 case cps::Config::Key::COIN_P1:
-                    m_controller1->insertCoin();
+                    m_controller1->pressButton(cps::BUTTON_COIN);
                     return true;
                 case cps::Config::Key::COIN_P2:
-                    m_controller2->insertCoin();
+                    m_controller2->pressButton(cps::BUTTON_COIN);
                     return true;
                 case cps::Config::Key::START_P1:
                     m_controller1->pressButton(cps::BUTTON_START);
@@ -152,6 +152,12 @@ bool Core::handleInput(SDL_Event& event) {
 
         case SDL_EVENT_KEY_UP:
             switch (event.key.key) {
+                case cps::Config::Key::COIN_P1:
+                    m_controller1->releaseButton(cps::BUTTON_COIN);
+                    return true;
+                case cps::Config::Key::COIN_P2:
+                    m_controller2->releaseButton(cps::BUTTON_COIN);
+                    return true;
                 case cps::Config::Key::BUTTON_P1_UP:
                     m_controller1->releaseButton(cps::BUTTON_UP);
                     return true;

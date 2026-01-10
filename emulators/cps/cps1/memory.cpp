@@ -329,32 +329,71 @@ u8 Memory::readPort(u16 port) {
     // Input ports (0x000-0x01F)
     switch (port) {
         case 0x000:
+            // Player 2 inputs (active low) - port 0x000
+            if (m_controller2) {
+                value = ~m_controller2->read();
+            }
+            return value;
+            
         case 0x001:
-            // Player 1 inputs (active low)
+            // Player 1 inputs (active low) - port 0x001
             if (m_controller1) {
                 value = ~m_controller1->read();
             }
             return value;
             
         case 0x010:
-        case 0x011:
-            // Player 2 inputs (active low)
+            // Player 2 inputs (active low) - port 0x010 (some games)
             if (m_controller2) {
                 value = ~m_controller2->read();
             }
             return value;
             
+        case 0x011:
+            // Player 1 inputs (active low) - port 0x011 (some games)
+            if (m_controller1) {
+                value = ~m_controller1->read();
+            }
+            return value;
+            
         case 0x012:
-            // System inputs (active low)
-            // Bit 0: P1 Start
-            // Bit 1: P2 Start  
-            // Bit 2: P1 Coin
-            // Bit 3: P2 Coin
-            // Bit 6: Service button
-            // Bit 7: Test button
-            return 0xFF;
+        case 0x177:
+            // Bit 0: P1 Kick 1
+            // Bit 1: P1 Kick 2
+            // Bit 2: P1 Kick 3
+            // Bit 4: P2 Kick 1
+            // Bit 5: P2 Kick 2
+            // Bit 6: P2 Kick 3
+            value = 0xFF;
+            if (m_controller1) {
+                value &= ~(m_controller1->readKicks() & 0x07);  // Clear bits 0-2 for P1 kicks
+            }
+            if (m_controller2) {
+                value &= ~((m_controller2->readKicks() & 0x07) << 4);  // Clear bits 4-6 for P2 kicks
+            }
+            return value;
             
         case 0x018:
+            // Coin/Start inputs (active low)
+            // Bit 0: P1 Coin
+            // Bit 1: P2 Coin
+            // Bit 2: Service button
+            // Bit 4: P1 Start
+            // Bit 5: P2 Start
+            // Bit 6: Diagnostic
+            value = 0xFF;
+            if (m_controller1) {
+                u8 p1 = m_controller1->readCoinStart();
+                if (p1 & 0x01) value &= ~0x01;  // Clear bit 0 for P1 coin
+                if (p1 & 0x10) value &= ~0x10;  // Clear bit 4 for P1 start
+            }
+            if (m_controller2) {
+                u8 p2 = m_controller2->readCoinStart();
+                if (p2 & 0x01) value &= ~0x02;  // Clear bit 1 for P2 coin
+                if (p2 & 0x10) value &= ~0x20;  // Clear bit 5 for P2 start
+            }
+            return value;
+            
         case 0x019:
         case 0x01A:
         case 0x01B:
