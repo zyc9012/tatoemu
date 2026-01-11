@@ -78,11 +78,10 @@ u8 Controller::readCoinStart() const {
 }
 
 void Controller::saveState(std::ofstream& file) {
-    file.write(reinterpret_cast<const char*>(&m_buttons), sizeof(m_buttons));
+    // Don't save button states
 }
 
 void Controller::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(&m_buttons), sizeof(m_buttons));
 }
 
 } // namespace cps
