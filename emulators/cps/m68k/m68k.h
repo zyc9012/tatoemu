@@ -357,6 +357,9 @@ void m68k_pulse_bus_error(void);
 /* Get the size of the cpu context in bytes */
 unsigned int m68k_context_size(void);
 
+/* Get the size of the cpu context without the pointer-block, for savestates */
+unsigned int m68k_context_size_no_pointers(void);
+
 /* Get a cpu context */
 unsigned int m68k_get_context(void* dst);
 

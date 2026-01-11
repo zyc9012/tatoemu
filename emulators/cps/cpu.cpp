@@ -172,22 +172,39 @@ void CPU::resetInterrupt() {
 void CPU::saveState(std::ofstream& file) {
     // Save Musashi CPU context
     unsigned int contextSize = m68k_context_size();
+    unsigned int contextSizeNoPointers = m68k_context_size_no_pointers();
     std::vector<char> context(contextSize);
     m68k_get_context(context.data());
     
-    file.write(reinterpret_cast<const char*>(&contextSize), sizeof(contextSize));
-    file.write(context.data(), contextSize);
+    file.write(reinterpret_cast<const char*>(&contextSizeNoPointers), sizeof(contextSizeNoPointers));
+    file.write(context.data(), contextSizeNoPointers);
     file.write(reinterpret_cast<const char*>(&m_cycles), sizeof(m_cycles));
 }
 
 void CPU::loadState(std::ifstream& file) {
     // Load Musashi CPU context
-    unsigned int contextSize;
-    file.read(reinterpret_cast<char*>(&contextSize), sizeof(contextSize));
+    unsigned int contextSizeNoPointers;
+    unsigned int contextSize = m68k_context_size();
+    file.read(reinterpret_cast<char*>(&contextSizeNoPointers), sizeof(contextSizeNoPointers));
+
+    if (contextSizeNoPointers != m68k_context_size_no_pointers()) {
+        std::cerr << "Error: Saved CPU context size mismatch" << std::endl;
+        return;
+    }
     
-    std::vector<char> context(contextSize);
-    file.read(context.data(), contextSize);
-    m68k_set_context(context.data());
+    // Load saved context (without pointers)
+    std::vector<char> savedContext(contextSizeNoPointers);
+    file.read(savedContext.data(), contextSizeNoPointers);
+
+    // Get current context
+    std::vector<char> currentContext(contextSize);
+    m68k_get_context(currentContext.data());
+
+    // Copy saved context to current context, only copy the non-pointer portion
+    memcpy(currentContext.data(), savedContext.data(), contextSizeNoPointers);
+
+    // Set current context back
+    m68k_set_context(currentContext.data());
     
     file.read(reinterpret_cast<char*>(&m_cycles), sizeof(m_cycles));
     

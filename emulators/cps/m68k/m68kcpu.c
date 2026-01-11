@@ -1162,6 +1162,13 @@ unsigned int m68k_context_size(void)
 	return sizeof(m68ki_cpu_core);
 }
 
+/* Used to calculate the context size minus the system-specific pointers, for savestates */
+unsigned int m68k_context_size_no_pointers(void)
+{
+	/* Pointers start at cyc_instruction field, so calculate size up to (but not including) it */
+	return (unsigned int)((char*)&m68ki_cpu.cyc_instruction - (char*)&m68ki_cpu);
+}
+
 unsigned int m68k_get_context(void* dst)
 {
 	if(dst) *(m68ki_cpu_core*)dst = m68ki_cpu;
