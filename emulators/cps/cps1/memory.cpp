@@ -74,6 +74,7 @@ Memory::Memory()
     , m_controller1(nullptr)
     , m_controller2(nullptr)
     , m_protCalc{0, 0}
+    , m_memProt{0x00, 0x00, 0x00, 0x00}
     , m_boardId{0x00, 0x00, 0x00} {
 }
 
@@ -86,13 +87,19 @@ void Memory::reset() {
     m_protCalc[0] = 0;
     m_protCalc[1] = 0;
     
-    // Set board ID from game database
+    // Set board ID and memProt from game database
     Cartridge* cart = static_cast<Cartridge*>(m_cartridge);
     BoardConfig config = cart->getBoardConfig();
     
     m_boardId[0] = config.boardIdOffset;
     m_boardId[1] = config.boardIdValue1;
     m_boardId[2] = config.boardIdValue2;
+    
+    // Set memory protection offsets
+    m_memProt[0] = config.memProt[0];
+    m_memProt[1] = config.memProt[1];
+    m_memProt[2] = config.memProt[2];
+    m_memProt[3] = config.memProt[3];
 }
 
 // ============================================================================
@@ -138,14 +145,13 @@ u16 Memory::read16(u32 address) {
     
     // I/O Ports and CPS Registers (0x800000-0x807FFF, mirrored)
     if ((address & 0xFF8000) == 0x800000) {
-        // Protection multiplication result (some games use this)
-        u32 offset = address & 0x1FF;
-        if ((offset & 0xFE) == 0x82) {  // Default multiplication addresses
+        // Protection multiplication result
+        if ((address & 0xFF8FFF) == (0x800100 + m_memProt[3])) {
             // Return multiplication result (high word)
             u32 result = static_cast<u32>(m_protCalc[0]) * static_cast<u32>(m_protCalc[1]);
             return static_cast<u16>((result >> 16) & 0xFFFF);
         }
-        if ((offset & 0xFE) == 0x84) {
+        if ((address & 0xFF8FFF) == (0x800100 + m_memProt[2])) {
             // Return multiplication result (low word)
             u32 result = static_cast<u32>(m_protCalc[0]) * static_cast<u32>(m_protCalc[1]);
             return static_cast<u16>(result & 0xFFFF);
@@ -210,15 +216,12 @@ void Memory::write16(u32 address, u16 value) {
     
     // I/O Ports and CPS Registers (0x800000-0x807FFF, mirrored)
     if ((address & 0xFF8000) == 0x800000) {
-        // Protection multiplication input (some games use this)
-        u32 offset = address & 0x1FF;
-        if ((offset & 0xFE) == 0x86) {
+        // Protection multiplication input
+        if ((address & 0xFF8FFF) == (0x800100 + m_memProt[0])) {
             m_protCalc[0] = value;
-            return;
         }
-        if ((offset & 0xFE) == 0x88) {
+        if ((address & 0xFF8FFF) == (0x800100 + m_memProt[1])) {
             m_protCalc[1] = value;
-            return;
         }
         
         writePort(address & 0x1FF, (value >> 8) & 0xFF);
@@ -526,6 +529,7 @@ void Memory::saveState(std::ofstream& file) {
     
     // Save protection state
     file.write(reinterpret_cast<const char*>(&m_protCalc), sizeof(m_protCalc));
+    file.write(reinterpret_cast<const char*>(&m_memProt), sizeof(m_memProt));
     file.write(reinterpret_cast<const char*>(&m_boardId), sizeof(m_boardId));
 }
 
@@ -536,6 +540,7 @@ void Memory::loadState(std::ifstream& file) {
     
     // Load protection state
     file.read(reinterpret_cast<char*>(&m_protCalc), sizeof(m_protCalc));
+    file.read(reinterpret_cast<char*>(&m_memProt), sizeof(m_memProt));
     file.read(reinterpret_cast<char*>(&m_boardId), sizeof(m_boardId));
 }
 

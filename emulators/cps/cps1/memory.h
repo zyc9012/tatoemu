@@ -75,6 +75,11 @@ private:
     // Protection calculation (some games use multiplication at specific addresses)
     u16 m_protCalc[2];
     
+    // Memory protection offsets - defines addresses for multiplication registers
+    // [0] = write operand 1, [1] = write operand 2
+    // [2] = read low word, [3] = read high word
+    u8 m_memProt[4];
+    
     // Board ID (each CPS1 game has a specific board identifier)
     u8 m_boardId[3];  // {offset, ID byte 1, ID byte 2}
 };

@@ -1082,6 +1082,10 @@ BoardConfig GameDatabase::getBoardConfig(CPSBoard board) {
             config.layerEnable[0] = 0x08;
             config.layerEnable[1] = 0x10;
             config.layerEnable[2] = 0x20;
+            config.memProt[0] = 0x00;
+            config.memProt[1] = 0x00;
+            config.memProt[2] = 0x00;
+            config.memProt[3] = 0x00;
             break;
             
         case CPSBoard::CPS_B_21_DEF:
@@ -1097,6 +1101,10 @@ BoardConfig GameDatabase::getBoardConfig(CPSBoard board) {
             config.layerEnable[0] = 0x02;
             config.layerEnable[1] = 0x04;
             config.layerEnable[2] = 0x08;
+            config.memProt[0] = 0x40;
+            config.memProt[1] = 0x42;
+            config.memProt[2] = 0x44;
+            config.memProt[3] = 0x46;
             break;
             
         case CPSBoard::CPS_B_21_BT1:
@@ -1112,6 +1120,10 @@ BoardConfig GameDatabase::getBoardConfig(CPSBoard board) {
             config.layerEnable[0] = 0x20;
             config.layerEnable[1] = 0x04;
             config.layerEnable[2] = 0x08;
+            config.memProt[0] = 0x4e;
+            config.memProt[1] = 0x4c;
+            config.memProt[2] = 0x4a;
+            config.memProt[3] = 0x48;
             break;
             
         case CPSBoard::CPS_B_21_BT2:
@@ -1127,6 +1139,10 @@ BoardConfig GameDatabase::getBoardConfig(CPSBoard board) {
             config.layerEnable[0] = 0x30;
             config.layerEnable[1] = 0x08;
             config.layerEnable[2] = 0x30;
+            config.memProt[0] = 0x5e;
+            config.memProt[1] = 0x5c;
+            config.memProt[2] = 0x5a;
+            config.memProt[3] = 0x58;
             break;
             
         case CPSBoard::CPS_B_21_BT3:
@@ -1142,6 +1158,10 @@ BoardConfig GameDatabase::getBoardConfig(CPSBoard board) {
             config.layerEnable[0] = 0x20;
             config.layerEnable[1] = 0x12;
             config.layerEnable[2] = 0x12;
+            config.memProt[0] = 0x46;
+            config.memProt[1] = 0x44;
+            config.memProt[2] = 0x42;
+            config.memProt[3] = 0x40;
             break;
             
         case CPSBoard::CPS_B_21_BT4:
@@ -1157,6 +1177,10 @@ BoardConfig GameDatabase::getBoardConfig(CPSBoard board) {
             config.layerEnable[0] = 0x20;
             config.layerEnable[1] = 0x10;
             config.layerEnable[2] = 0x02;
+            config.memProt[0] = 0x46;
+            config.memProt[1] = 0x44;
+            config.memProt[2] = 0x42;
+            config.memProt[3] = 0x40;
             break;
             
         case CPSBoard::CPS_B_15:
@@ -1172,6 +1196,10 @@ BoardConfig GameDatabase::getBoardConfig(CPSBoard board) {
             config.layerEnable[0] = 0x04;
             config.layerEnable[1] = 0x02;
             config.layerEnable[2] = 0x20;
+            config.memProt[0] = 0x00;
+            config.memProt[1] = 0x00;
+            config.memProt[2] = 0x00;
+            config.memProt[3] = 0x00;
             break;
             
         case CPSBoard::CPS_B_03:
@@ -1187,6 +1215,10 @@ BoardConfig GameDatabase::getBoardConfig(CPSBoard board) {
             config.layerEnable[0] = 0x20;
             config.layerEnable[1] = 0x10;
             config.layerEnable[2] = 0x08;
+            config.memProt[0] = 0x00;
+            config.memProt[1] = 0x00;
+            config.memProt[2] = 0x00;
+            config.memProt[3] = 0x00;
             break;
             
         case CPSBoard::CPS_B_04:
@@ -1202,6 +1234,10 @@ BoardConfig GameDatabase::getBoardConfig(CPSBoard board) {
             config.layerEnable[0] = 0x02;
             config.layerEnable[1] = 0x04;
             config.layerEnable[2] = 0x08;
+            config.memProt[0] = 0x00;
+            config.memProt[1] = 0x00;
+            config.memProt[2] = 0x00;
+            config.memProt[3] = 0x00;
             break;
             
         case CPSBoard::CPS_B_05:
@@ -1217,6 +1253,10 @@ BoardConfig GameDatabase::getBoardConfig(CPSBoard board) {
             config.layerEnable[0] = 0x02;
             config.layerEnable[1] = 0x08;
             config.layerEnable[2] = 0x20;
+            config.memProt[0] = 0x00;
+            config.memProt[1] = 0x00;
+            config.memProt[2] = 0x00;
+            config.memProt[3] = 0x00;
             break;
             
         case CPSBoard::CPS_B_12:
@@ -1232,6 +1272,10 @@ BoardConfig GameDatabase::getBoardConfig(CPSBoard board) {
             config.layerEnable[0] = 0x02;
             config.layerEnable[1] = 0x04;
             config.layerEnable[2] = 0x08;
+            config.memProt[0] = 0x00;
+            config.memProt[1] = 0x00;
+            config.memProt[2] = 0x00;
+            config.memProt[3] = 0x00;
             break;
             
         case CPSBoard::CPS_B_13:
@@ -1247,6 +1291,10 @@ BoardConfig GameDatabase::getBoardConfig(CPSBoard board) {
             config.layerEnable[0] = 0x20;
             config.layerEnable[1] = 0x02;
             config.layerEnable[2] = 0x04;
+            config.memProt[0] = 0x00;
+            config.memProt[1] = 0x00;
+            config.memProt[2] = 0x00;
+            config.memProt[3] = 0x00;
             break;
             
         case CPSBoard::CPS_B_16:
@@ -1262,6 +1310,10 @@ BoardConfig GameDatabase::getBoardConfig(CPSBoard board) {
             config.layerEnable[0] = 0x10;
             config.layerEnable[1] = 0x0a;
             config.layerEnable[2] = 0x0a;
+            config.memProt[0] = 0x00;
+            config.memProt[1] = 0x00;
+            config.memProt[2] = 0x00;
+            config.memProt[3] = 0x00;
             break;
             
         case CPSBoard::CPS_B_21_QS1:
@@ -1277,6 +1329,10 @@ BoardConfig GameDatabase::getBoardConfig(CPSBoard board) {
             config.layerEnable[0] = 0x10;
             config.layerEnable[1] = 0x08;
             config.layerEnable[2] = 0x04;
+            config.memProt[0] = 0x00;
+            config.memProt[1] = 0x00;
+            config.memProt[2] = 0x00;
+            config.memProt[3] = 0x00;
             break;
             
         case CPSBoard::CPS_B_21_QS3:
@@ -1292,6 +1348,10 @@ BoardConfig GameDatabase::getBoardConfig(CPSBoard board) {
             config.layerEnable[0] = 0x04;
             config.layerEnable[1] = 0x02;
             config.layerEnable[2] = 0x20;
+            config.memProt[0] = 0x00;
+            config.memProt[1] = 0x00;
+            config.memProt[2] = 0x00;
+            config.memProt[3] = 0x00;
             break;
             
         default:

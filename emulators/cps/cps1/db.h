@@ -113,6 +113,9 @@ struct BoardConfig {
     u8 paletteControlReg;  // Palette control register offset
     u8 maskAddr[4];        // Priority mask addresses
     u16 layerEnable[3];    // Layer enable bits (for layers 1-3)
+    u8 memProt[4];         // Memory protection offsets for multiplication registers
+                           // [0] = write operand 1, [1] = write operand 2
+                           // [2] = read low word, [3] = read high word
 };
 
 // Game database entry
