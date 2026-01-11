@@ -58,7 +58,6 @@ private:
     // RAM banks
     std::array<u8, 64 * 1024> m_workRam;      // 0xFF0000-0xFFFFFF (64KB)
     // Note: VRAM is now owned by PPU (192KB at 0x900000-0x92FFFF)
-    std::array<u8, 256> m_cpsRegs;            // CPS1 registers (0x800100-0x8001FF)
     std::array<u8, 2 * 1024> m_soundRam;      // Z80 RAM (2KB)
     
     // Input port reading

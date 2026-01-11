@@ -80,7 +80,6 @@ Memory::Memory()
 void Memory::reset() {
     // Clear RAM
     m_workRam.fill(0);
-    m_cpsRegs.fill(0);
     m_soundRam.fill(0);
     
     // Reset protection calc
@@ -430,11 +429,8 @@ u8 Memory::readPort(u16 port) {
         }
         
         // CPS Registers - forward to PPU
-        if (m_ppu) {
-            PPU* ppu = static_cast<PPU*>(m_ppu);
-            return ppu->readRegister8(port - 0x100);
-        }
-        return m_cpsRegs[port - 0x100];
+        PPU* ppu = static_cast<PPU*>(m_ppu);
+        return ppu->readRegister8(port - 0x100);
     }
     
     // Unmapped port - return 0xFF (bus pull-up)
@@ -463,13 +459,10 @@ void Memory::writePort(u16 port, u8 value) {
     // These control video layer scrolling, priorities, palette selection, etc.
     if (port >= 0x100 && port < 0x200) {
         u8 regNum = port - 0x100;
-        m_cpsRegs[regNum] = value;
         
         // Forward to PPU for layer control and scroll registers
-        if (m_ppu) {
-            PPU* ppu = static_cast<PPU*>(m_ppu);
-            ppu->writeRegister8(regNum, value);
-        }
+        PPU* ppu = static_cast<PPU*>(m_ppu);
+        ppu->writeRegister8(regNum, value);
         
         return;
     }
@@ -529,7 +522,6 @@ void Memory::writeZ80(u16 address, u8 value) {
 void Memory::saveState(std::ofstream& file) {
     // Save RAM
     file.write(reinterpret_cast<const char*>(m_workRam.data()), m_workRam.size());
-    file.write(reinterpret_cast<const char*>(m_cpsRegs.data()), m_cpsRegs.size());
     file.write(reinterpret_cast<const char*>(m_soundRam.data()), m_soundRam.size());
     
     // Save protection state
@@ -540,7 +532,6 @@ void Memory::saveState(std::ofstream& file) {
 void Memory::loadState(std::ifstream& file) {
     // Load RAM
     file.read(reinterpret_cast<char*>(m_workRam.data()), m_workRam.size());
-    file.read(reinterpret_cast<char*>(m_cpsRegs.data()), m_cpsRegs.size());
     file.read(reinterpret_cast<char*>(m_soundRam.data()), m_soundRam.size());
     
     // Load protection state
