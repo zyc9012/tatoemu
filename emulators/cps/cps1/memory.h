@@ -41,10 +41,6 @@ public:
     void setController1(cps::Controller* controller) override { m_controller1 = controller; }
     void setController2(cps::Controller* controller) override { m_controller2 = controller; }
     
-    // ROM data access (for APU)
-    const u8* getSoundROMData() const;
-    u32 getSoundROMSize() const;
-    
     // Save/Load state
     void saveState(std::ofstream& file) override;
     void loadState(std::ifstream& file) override;

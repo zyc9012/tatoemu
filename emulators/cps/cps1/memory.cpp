@@ -499,16 +499,9 @@ u8 Memory::readZ80(u16 address) {
             // Calculate bank offset: (bank << 14) + 0x8000
             u32 bankOffset = (static_cast<u32>(m_z80Bank) << 14) + 0x8000;
             u32 romAddress = bankOffset + (address - 0x8000);
-            u32 romSize = cart->getSoundROMSize();
             
-            // Check bounds
-            if (romAddress < romSize) {
-                return cart->readSoundROM8(romAddress);
-            }
-            // If bank is out of range, wrap to start
-            if (bankOffset >= romSize) {
-                return cart->readSoundROM8(address - 0x8000);
-            }
+            // readSoundROM8 handles bounds checking internally
+            return cart->readSoundROM8(romAddress);
         }
         return 0xFF;
     }
@@ -671,26 +664,6 @@ void Memory::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_z80Bank), sizeof(m_z80Bank));
     file.read(reinterpret_cast<char*>(&m_soundCommand), sizeof(m_soundCommand));
     file.read(reinterpret_cast<char*>(&m_soundFade), sizeof(m_soundFade));
-}
-
-// ============================================================================
-// ROM Data Access (for APU)
-// ============================================================================
-
-const u8* Memory::getSoundROMData() const {
-    if (m_cartridge) {
-        auto* cart = static_cast<Cartridge*>(m_cartridge);
-        return cart->getSoundROMData();
-    }
-    return nullptr;
-}
-
-u32 Memory::getSoundROMSize() const {
-    if (m_cartridge) {
-        auto* cart = static_cast<Cartridge*>(m_cartridge);
-        return cart->getSoundROMSize();
-    }
-    return 0;
 }
 
 } // namespace cps1

@@ -98,7 +98,8 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     // Clear existing ROMs
     m_programRom.clear();
     m_graphicsRom.clear();
-    m_soundRom.clear();
+    m_soundProgramRom.clear();
+    m_soundSampleRom.clear();
     
     // Track which ROMs we've found
     std::vector<bool> foundROMs(m_gameInfo->romCount, false);
@@ -138,9 +139,12 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                         m_graphicsRom.insert(m_graphicsRom.end(), pair.second.begin(), pair.second.end());
                         break;
                     case ROMType::SOUND_PROGRAM:
+                        std::cout << "Loading sound program: " << entry.filename << std::endl;
+                        m_soundProgramRom.insert(m_soundProgramRom.end(), pair.second.begin(), pair.second.end());
+                        break;
                     case ROMType::SOUND_SAMPLE:
-                        std::cout << "Loading sound: " << entry.filename << std::endl;
-                        m_soundRom.insert(m_soundRom.end(), pair.second.begin(), pair.second.end());
+                        std::cout << "Loading sound sample: " << entry.filename << std::endl;
+                        m_soundSampleRom.insert(m_soundSampleRom.end(), pair.second.begin(), pair.second.end());
                         break;
                     case ROMType::PLD:
                         // Skip PLD files
@@ -256,7 +260,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     // Update sizes
     m_programRomSize = static_cast<u32>(m_programRom.size());
     m_graphicsRomSize = static_cast<u32>(m_graphicsRom.size());
-    m_soundRomSize = static_cast<u32>(m_soundRom.size());
+    m_soundRomSize = static_cast<u32>(m_soundProgramRom.size());
     
     byteswapProgramROM();
     
@@ -318,8 +322,8 @@ u32 Cartridge::readGraphicsROM32(u32 address) const {
 }
 
 u8 Cartridge::readSoundROM8(u16 address) const {
-    if (address < m_soundRomSize) {
-        return m_soundRom[address];
+    if (address < m_soundProgramRom.size()) {
+        return m_soundProgramRom[address];
     }
     return 0;
 }

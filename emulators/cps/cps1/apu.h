@@ -26,6 +26,7 @@ public:
     void setSoundCPU(cps::SoundCPU* soundCpu) override;
     void setMemory(cps::MemoryBase* memory) override;
     void setAudioDevice(::AudioDevice* audioDevice) override { m_audioDevice = audioDevice; }
+    void setCartridge(Cartridge* cartridge);
     
     void setSampleRate(u32 sampleRate) override;
     void setVolume(float volume) override;
@@ -41,6 +42,7 @@ public:
 private:
     cps::SoundCPU* m_soundCpu;
     Memory* m_memory;
+    Cartridge* m_cartridge;
     ::AudioDevice* m_audioDevice;
     
     u32 m_sampleRate;

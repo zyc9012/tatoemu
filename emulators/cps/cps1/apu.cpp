@@ -40,6 +40,7 @@ static void ym2151PortWriteHandler(UINT8 port, UINT8 data) {
 APU::APU()
     : m_soundCpu(nullptr)
     , m_memory(nullptr)
+    , m_cartridge(nullptr)
     , m_audioDevice(nullptr)
     , m_sampleRate(44100)
     , m_volume(1.0f)
@@ -99,6 +100,10 @@ void APU::setSoundCPU(cps::SoundCPU* soundCpu) {
 
 void APU::setMemory(cps::MemoryBase* memory) {
     m_memory = static_cast<Memory*>(memory);
+}
+
+void APU::setCartridge(Cartridge* cartridge) {
+    m_cartridge = cartridge;
     setROMData();
 }
 
@@ -119,22 +124,18 @@ void APU::reset() {
 }
 
 void APU::setROMData() {
-    if (!m_memory) {
+    if (!m_cartridge) {
         return;
     }
     
-    // Get ROM data from memory (which accesses cartridge)
-    const u8* romData = m_memory->getSoundROMData();
-    u32 romSize = m_memory->getSoundROMSize();
+    // Get sound sample data from cartridge (MSM6295 only needs samples, not Z80 program code)
+    const u8* sampleData = m_cartridge->getSoundSample();
+    u32 sampleSize = m_cartridge->getSoundSampleSize();
     
-    if (romData && romSize > 0) {
-        // Set bank (entire ROM, but limit to 256KB per chip as per FBNeo)
-        // MSM6295SetBank will handle the ROM pointer internally
-        INT32 endAddr = static_cast<INT32>(romSize - 1);
-        if (endAddr > 0x3FFFF) {
-            endAddr = 0x3FFFF;
-        }
-        MSM6295SetBank(MSM6295_CHIP, const_cast<UINT8*>(romData), 0, endAddr);
+    if (sampleData && sampleSize > 0) {
+        // Set bank
+        INT32 endAddr = static_cast<INT32>(sampleSize - 1);
+        MSM6295SetBank(MSM6295_CHIP, const_cast<UINT8*>(sampleData), 0, endAddr);
     }
 }
 
@@ -236,8 +237,8 @@ void APU::generateSamples(u32 cycles) {
         float ymRight = static_cast<float>(m_ym2151RightBuffer[i]) / 32768.0f;
         
         // Convert MSM6295 samples to float
-        float msmLeft = static_cast<float>(m_msm6295Buffer[i * 2]) / 32768.0f;
-        float msmRight = static_cast<float>(m_msm6295Buffer[i * 2 + 1]) / 32768.0f;
+        float msmLeft = static_cast<float>(m_msm6295Buffer[i]) / 32768.0f;
+        float msmRight = static_cast<float>(m_msm6295Buffer[i + 1]) / 32768.0f;
         
         // Mix channels
         float left = ymLeft + msmLeft;

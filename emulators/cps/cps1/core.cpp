@@ -33,6 +33,7 @@ bool Core::initialize(VideoDevice* videoDevice, AudioDevice* audioDevice) {
     
     m_apu->setSoundCPU(m_soundCpu.get());
     m_apu->setMemory(m_memory.get());
+    m_apu->setCartridge(m_cartridge.get());
     m_apu->setAudioDevice(audioDevice);
     
     m_memory->setCPU(m_cpu.get());

@@ -39,8 +39,10 @@ public:
     // Sound ROM access (for Z80 sound CPU)
     u8 readSoundROM8(u16 address) const;
     u16 readSoundROM16(u16 address) const;
-    u32 getSoundROMSize() const { return static_cast<u32>(m_soundRom.size()); }
-    const u8* getSoundROMData() const { return m_soundRom.data(); }
+    
+    // Sound sample data access (for MSM6295)
+    const u8* getSoundSample() const { return m_soundSampleRom.data(); }
+    u32 getSoundSampleSize() const { return static_cast<u32>(m_soundSampleRom.size()); }
     
     // Component connections
     void setCPU(cps::CPU* cpu) override { m_cpu = cpu; }
@@ -67,9 +69,10 @@ private:
     const GameInfo* m_gameInfo;  // Game database entry
     
     // ROM banks organized by type
-    std::vector<u8> m_programRom;    // 68000 program ROMs
-    std::vector<u8> m_graphicsRom;   // Graphics/tile ROMs
-    std::vector<u8> m_soundRom;      // Z80 sound ROMs + ADPCM samples
+    std::vector<u8> m_programRom;      // 68000 program ROMs
+    std::vector<u8> m_graphicsRom;     // Graphics/tile ROMs
+    std::vector<u8> m_soundProgramRom; // Z80 sound program ROM
+    std::vector<u8> m_soundSampleRom;  // ADPCM sample ROMs
     
     u32 m_programRomSize;
     u32 m_graphicsRomSize;
