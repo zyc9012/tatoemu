@@ -40,6 +40,7 @@ public:
     u8 readSoundROM8(u16 address) const;
     u16 readSoundROM16(u16 address) const;
     u32 getSoundROMSize() const { return static_cast<u32>(m_soundRom.size()); }
+    const u8* getSoundROMData() const { return m_soundRom.data(); }
     
     // Component connections
     void setCPU(cps::CPU* cpu) override { m_cpu = cpu; }

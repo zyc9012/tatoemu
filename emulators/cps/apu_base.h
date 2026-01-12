@@ -24,6 +24,10 @@ public:
     virtual void setSampleRate(u32 sampleRate) = 0;
     virtual void setVolume(float volume) = 0;
     
+    // I/O port access for Z80
+    virtual u8 readPort(u16 port) = 0;
+    virtual void writePort(u16 port, u8 value) = 0;
+    
     // Save/Load state
     virtual void saveState(std::ofstream& file) = 0;
     virtual void loadState(std::ifstream& file) = 0;

@@ -245,12 +245,9 @@ void Core::update() {
         // Calculate how many CPU cycles the instruction took
         u32 cpuCycles = m_cpu->getCycles() - cyclesBefore;
         
-        // Run sound CPU proportionally (Z80 runs at ~3.58 MHz vs 68000 at 10 MHz)
-        // Ratio: 3.579545 / 10.0 = 0.3579545
-        u32 soundCpuCycles = static_cast<u32>(cpuCycles * 0.3579545);
-        for (u32 i = 0; i < soundCpuCycles; i++) {
-            m_soundCpu->step();
-        }
+        // Run sound CPU proportionally
+        u32 soundCpuCycles = static_cast<u32>(cpuCycles * SOUND_CYCLES_RATIO);
+        m_soundCpu->step(soundCpuCycles);
         
         // Run PPU (graphics chip runs in parallel)
         // PPU typically runs at similar speed to main CPU
@@ -260,7 +257,7 @@ void Core::update() {
         }
         
         // Run APU
-        m_apu->step(cpuCycles, m_gameSpeed);
+        m_apu->step(soundCpuCycles, m_gameSpeed);
         
         m_cpuCyclesThisFrame += cpuCycles;
         m_soundCpuCyclesThisFrame += soundCpuCycles;

@@ -42,6 +42,8 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/cps/cpu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/sound_cpu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/controller.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80daisy.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/m68k/m68kcpu.c
     ${CMAKE_SOURCE_DIR}/emulators/cps/m68k/m68kops.c
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/core.cpp
@@ -105,6 +107,7 @@ add_executable(tatoemu ${SOURCES} ${HEADERS})
 target_include_directories(tatoemu PRIVATE 
     ${CMAKE_SOURCE_DIR}/emulators
     ${CMAKE_SOURCE_DIR}/emulators/cps/m68k
+    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80
     ${CMAKE_SOURCE_DIR}/utilities
 )
 
@@ -114,7 +117,8 @@ set_source_files_properties(${CMAKE_SOURCE_DIR}/utilities/miniz/miniz.c PROPERTI
     LANGUAGE C
 )
 
-# Add m68k source files and compile them as C
+# Add m68k and Z80 source files and compile them as C
+# Note: z80.cpp, z80daisy.cpp, z80ctc.cpp, and z80pio.cpp are C++ code
 set_source_files_properties(
     ${CMAKE_SOURCE_DIR}/emulators/cps/m68k/m68kcpu.c
     ${CMAKE_SOURCE_DIR}/emulators/cps/m68k/m68kops.c

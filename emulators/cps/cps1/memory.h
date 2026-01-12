@@ -41,6 +41,10 @@ public:
     void setController1(cps::Controller* controller) override { m_controller1 = controller; }
     void setController2(cps::Controller* controller) override { m_controller2 = controller; }
     
+    // ROM data access (for APU)
+    const u8* getSoundROMData() const;
+    u32 getSoundROMSize() const;
+    
     // Save/Load state
     void saveState(std::ofstream& file) override;
     void loadState(std::ifstream& file) override;
@@ -58,7 +62,10 @@ private:
     // RAM banks
     std::array<u8, 64 * 1024> m_workRam;      // 0xFF0000-0xFFFFFF (64KB)
     // Note: VRAM is now owned by PPU (192KB at 0x900000-0x92FFFF)
-    std::array<u8, 2 * 1024> m_soundRam;      // Z80 RAM (2KB)
+    std::array<u8, 2 * 1024> m_soundRam;      // Z80 RAM (2KB at 0xD000-0xD7FF)
+    
+    // Z80 ROM banking
+    u8 m_z80Bank;                              // Current ROM bank (0-15)
     
     // Input port reading
     u8 readPort(u16 port);
@@ -82,6 +89,10 @@ private:
     
     // Board ID (each CPS1 game has a specific board identifier)
     u8 m_boardId[3];  // {offset, ID byte 1, ID byte 2}
+    
+    // Sound communication (from 68000 to Z80)
+    u8 m_soundCommand;  // Sound command latch (Z80 reads from 0xF008)
+    u8 m_soundFade;     // Sound fade value (Z80 reads from 0xF00A)
 };
 
 } // namespace cps1

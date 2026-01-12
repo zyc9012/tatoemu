@@ -73,9 +73,12 @@ Memory::Memory()
     , m_cartridge(nullptr)
     , m_controller1(nullptr)
     , m_controller2(nullptr)
+    , m_z80Bank(0)
     , m_protCalc{0, 0}
     , m_memProt{0x00, 0x00, 0x00, 0x00}
-    , m_boardId{0x00, 0x00, 0x00} {
+    , m_boardId{0x00, 0x00, 0x00}
+    , m_soundCommand(0)
+    , m_soundFade(0) {
 }
 
 void Memory::reset() {
@@ -86,6 +89,9 @@ void Memory::reset() {
     // Reset protection calc
     m_protCalc[0] = 0;
     m_protCalc[1] = 0;
+    
+    // Reset Z80 bank
+    m_z80Bank = 0;
     
     // Set board ID and memProt from game database
     Cartridge* cart = static_cast<Cartridge*>(m_cartridge);
@@ -443,18 +449,19 @@ u8 Memory::readPort(u16 port) {
 void Memory::writePort(u16 port, u8 value) {
     // Sound command (0x181)
     // This is how the 68000 sends commands to the Z80 sound CPU
+    // The Z80 reads this from 0xF008
     if (port == 0x181) {
-        // Write sound command to Z80 shared memory
-        // The Z80 polls address 0x001 in its RAM to check for new commands
-        m_soundRam[0x001] = value;
+        // Store sound command (Z80 reads from 0xF008)
+        m_soundCommand = value;
         return;
     }
     
     // Sound fade (0x189)
     // Used by some games to fade music in/out
+    // The Z80 reads this from 0xF00A
     if (port == 0x189) {
-        // Store fade value in Z80 shared memory
-        m_soundRam[0x002] = value;
+        // Store fade value (Z80 reads from 0xF00A)
+        m_soundFade = value;
         return;
     }
     
@@ -476,9 +483,8 @@ void Memory::writePort(u16 port, u8 value) {
 // ============================================================================
 
 u8 Memory::readZ80(u16 address) {
-    // Sound ROM (0x0000-0x7FFF)
+    // Sound ROM (0x0000-0x7FFF) - first 32KB, direct mapping
     if (address < 0x8000) {
-        // Use the cartridge's sound ROM reader (not the program ROM reader)
         if (m_cartridge) {
             auto* cart = static_cast<Cartridge*>(m_cartridge);
             return cart->readSoundROM8(address);
@@ -486,15 +492,80 @@ u8 Memory::readZ80(u16 address) {
         return 0xFF;
     }
     
-    // Sound RAM (0x8000-0x9FFF, mirrored)
-    if (address >= 0x8000 && address < 0xA000) {
-        return m_soundRam[address & 0x7FF];
+    // Bank-switchable ROM (0x8000-0xBFFF) - 16KB bank
+    if (address >= 0x8000 && address < 0xC000) {
+        if (m_cartridge) {
+            auto* cart = static_cast<Cartridge*>(m_cartridge);
+            // Calculate bank offset: (bank << 14) + 0x8000
+            u32 bankOffset = (static_cast<u32>(m_z80Bank) << 14) + 0x8000;
+            u32 romAddress = bankOffset + (address - 0x8000);
+            u32 romSize = cart->getSoundROMSize();
+            
+            // Check bounds
+            if (romAddress < romSize) {
+                return cart->readSoundROM8(romAddress);
+            }
+            // If bank is out of range, wrap to start
+            if (bankOffset >= romSize) {
+                return cart->readSoundROM8(address - 0x8000);
+            }
+        }
+        return 0xFF;
     }
     
-    // YM2151 and ADPCM registers (handled by APU)
-    // 0xC000-0xC001: YM2151
-    // 0xD000: ADPCM data
-    // 0xE000-0xE00F: ADPCM control
+    // ROM fallback for fetches (0xC000-0xCFFF)
+    if (address >= 0xC000 && address < 0xD000) {
+        if (m_cartridge) {
+            auto* cart = static_cast<Cartridge*>(m_cartridge);
+            return cart->readSoundROM8(address - 0xC000);
+        }
+        return 0xFF;
+    }
+    
+    // Z80 RAM (0xD000-0xD7FF) - 2KB
+    if (address >= 0xD000 && address < 0xD800) {
+        return m_soundRam[address - 0xD000];
+    }
+    
+    // ROM fallback for fetches (0xD800-0xEFFF)
+    if (address >= 0xD800 && address < 0xF000) {
+        if (m_cartridge) {
+            auto* cart = static_cast<Cartridge*>(m_cartridge);
+            return cart->readSoundROM8((address - 0xD800) & 0x7FFF);
+        }
+        return 0xFF;
+    }
+    
+    // I/O Area (0xF000-0xFFFF) - memory-mapped I/O
+    if (address >= 0xF000) {
+        switch (address) {
+            case 0xF001:
+                // YM2151 status register
+                if (m_apu) {
+                    return m_apu->readPort(0x01);
+                }
+                return 0xFF;
+                
+            case 0xF002:
+                // MSM6295 status
+                if (m_apu) {
+                    return m_apu->readPort(0x02);
+                }
+                return 0xFF;
+                
+            case 0xF008:
+                // Sound command latch (from 68000)
+                return m_soundCommand;
+                
+            case 0xF00A:
+                // Sound fade value (from 68000)
+                return m_soundFade;
+                
+            default:
+                // Unmapped I/O
+                return 0xFF;
+        }
+    }
     
     return 0xFF;
 }
@@ -505,16 +576,64 @@ void Memory::writeZ80(u16 address, u8 value) {
         return;
     }
     
-    // Sound RAM (0x8000-0x9FFF, mirrored)
-    if (address >= 0x8000 && address < 0xA000) {
-        m_soundRam[address & 0x7FF] = value;
+    // Bank-switchable ROM area is read-only
+    if (address >= 0x8000 && address < 0xC000) {
         return;
     }
     
-    // Sound hardware registers (YM2151, OKI ADPCM, etc.)
-    // (Implementation depends on APU)
-    if (m_apu) {
-        // Forward to APU for processing
+    // ROM fallback area is read-only
+    if (address >= 0xC000 && address < 0xD000) {
+        return;
+    }
+    
+    // Z80 RAM (0xD000-0xD7FF) - 2KB
+    if (address >= 0xD000 && address < 0xD800) {
+        m_soundRam[address - 0xD000] = value;
+        return;
+    }
+    
+    // ROM fallback area is read-only
+    if (address >= 0xD800 && address < 0xF000) {
+        return;
+    }
+    
+    // I/O Area (0xF000-0xFFFF) - memory-mapped I/O
+    if (address >= 0xF000) {
+        switch (address) {
+            case 0xF000:
+                // YM2151 register select
+                if (m_apu) {
+                    m_apu->writePort(0x00, value);
+                }
+                return;
+                
+            case 0xF001:
+                // YM2151 data write
+                if (m_apu) {
+                    m_apu->writePort(0x01, value);
+                }
+                return;
+                
+            case 0xF002:
+                // MSM6295 command
+                if (m_apu) {
+                    m_apu->writePort(0x02, value);
+                }
+                return;
+                
+            case 0xF004: {
+                // ROM bank switching (0-15)
+                u8 newBank = value & 0x0F;
+                if (m_z80Bank != newBank) {
+                    m_z80Bank = newBank;
+                }
+                return;
+            }
+            
+            default:
+                // Unmapped I/O - ignore
+                return;
+        }
     }
 }
 
@@ -531,6 +650,11 @@ void Memory::saveState(std::ofstream& file) {
     file.write(reinterpret_cast<const char*>(&m_protCalc), sizeof(m_protCalc));
     file.write(reinterpret_cast<const char*>(&m_memProt), sizeof(m_memProt));
     file.write(reinterpret_cast<const char*>(&m_boardId), sizeof(m_boardId));
+    
+    // Save Z80 state
+    file.write(reinterpret_cast<const char*>(&m_z80Bank), sizeof(m_z80Bank));
+    file.write(reinterpret_cast<const char*>(&m_soundCommand), sizeof(m_soundCommand));
+    file.write(reinterpret_cast<const char*>(&m_soundFade), sizeof(m_soundFade));
 }
 
 void Memory::loadState(std::ifstream& file) {
@@ -542,6 +666,31 @@ void Memory::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_protCalc), sizeof(m_protCalc));
     file.read(reinterpret_cast<char*>(&m_memProt), sizeof(m_memProt));
     file.read(reinterpret_cast<char*>(&m_boardId), sizeof(m_boardId));
+    
+    // Load Z80 state
+    file.read(reinterpret_cast<char*>(&m_z80Bank), sizeof(m_z80Bank));
+    file.read(reinterpret_cast<char*>(&m_soundCommand), sizeof(m_soundCommand));
+    file.read(reinterpret_cast<char*>(&m_soundFade), sizeof(m_soundFade));
+}
+
+// ============================================================================
+// ROM Data Access (for APU)
+// ============================================================================
+
+const u8* Memory::getSoundROMData() const {
+    if (m_cartridge) {
+        auto* cart = static_cast<Cartridge*>(m_cartridge);
+        return cart->getSoundROMData();
+    }
+    return nullptr;
+}
+
+u32 Memory::getSoundROMSize() const {
+    if (m_cartridge) {
+        auto* cart = static_cast<Cartridge*>(m_cartridge);
+        return cart->getSoundROMSize();
+    }
+    return 0;
 }
 
 } // namespace cps1
