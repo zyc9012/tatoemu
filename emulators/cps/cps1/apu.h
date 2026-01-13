@@ -49,18 +49,18 @@ private:
     float m_volume;
     
     // Sample buffers
-    std::vector<INT16> m_ym2151LeftBuffer;
-    std::vector<INT16> m_ym2151RightBuffer;
-    std::vector<INT16> m_msm6295Buffer;
+    INT16 m_ym2151LeftSample = 0;
+    INT16 m_ym2151RightSample = 0;
+    INT16 m_msm6295Samples[2] = { 0, 0 };
     
     // Sample generation
-    u64 m_cycleAccumulator;   // Accumulator for cycle timing
+    double m_cycleAccumulator;   // Accumulator for cycle timing
     u64 m_cyclesPerSample;    // CPU cycles per audio sample
     
     // YM2151 register addressing (two-step process)
     u8 m_ym2151RegSelect;
     
-    void generateSamples(u32 cycles);
+    void generateSamples(u32 cycles, double gameSpeed);
     void setROMData();
 };
 

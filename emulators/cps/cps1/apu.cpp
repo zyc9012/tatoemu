@@ -35,10 +35,6 @@ APU::APU()
     , m_cyclesPerSample(0)
     , m_ym2151RegSelect(0) {
 
-    m_ym2151LeftBuffer.resize(0x100);
-    m_ym2151RightBuffer.resize(0x100);
-    m_msm6295Buffer.resize(0x100 * 2);
-
     // Initialize YM2151
     YM2151Init(1, 0, 3579540, 44100, nullptr);
     
@@ -104,7 +100,7 @@ void APU::setROMData() {
 
 void APU::step(u32 cycles, double gameSpeed) {
     (void)gameSpeed;
-    generateSamples(cycles);
+    generateSamples(cycles, gameSpeed);
 }
 
 void APU::setSampleRate(u32 sampleRate) {
@@ -156,59 +152,49 @@ void APU::writePort(u16 port, u8 value) {
     }
 }
 
-void APU::generateSamples(u32 cycles) {
+void APU::generateSamples(u32 cycles, double gameSpeed) {
     if (!m_audioDevice) {
         return;
     }
     
     // Accumulate cycles and calculate how many samples to generate
     m_cycleAccumulator += cycles;
-    u32 numSamples = static_cast<u32>(m_cycleAccumulator / m_cyclesPerSample);
-    m_cycleAccumulator %= m_cyclesPerSample;
-    
-    if (numSamples == 0) {
+    if (m_cycleAccumulator < m_cyclesPerSample * gameSpeed) {
         return;
     }
+    m_cycleAccumulator -= m_cyclesPerSample * gameSpeed;
 
-    if (numSamples > m_ym2151LeftBuffer.size()) {
-        m_ym2151LeftBuffer.resize(numSamples);
-        m_ym2151RightBuffer.resize(numSamples);
-        m_msm6295Buffer.resize(numSamples * 2);
-    }
-    
-    INT16* ym2151Buffers[2] = { m_ym2151LeftBuffer.data(), m_ym2151RightBuffer.data() };
+    INT16* ym2151Buffers[2] = { &m_ym2151LeftSample, &m_ym2151RightSample };
     
     // Generate YM2151 samples
-    YM2151UpdateOne(0, ym2151Buffers, static_cast<int>(numSamples));
+    YM2151UpdateOne(0, ym2151Buffers, 1);
 
     // Generate MSM6295 samples
-    MSM6295Render(0, m_msm6295Buffer.data(), static_cast<INT32>(numSamples));
+    MSM6295Render(0, m_msm6295Samples, 1);
 
     // Mix and convert to float
-    for (u32 i = 0; i < numSamples; i++) {
-        // Convert YM2151 samples to float
-        float ymLeft = static_cast<float>(m_ym2151LeftBuffer[i]) / 32768.0f;
-        float ymRight = static_cast<float>(m_ym2151RightBuffer[i]) / 32768.0f;
+    // Convert YM2151 samples to float
+    float ymLeft = static_cast<float>(m_ym2151LeftSample) / 32768.0f;
+    float ymRight = static_cast<float>(m_ym2151RightSample) / 32768.0f;
         
-        // Convert MSM6295 samples to float
-        float msmLeft = static_cast<float>(m_msm6295Buffer[i]) / 32768.0f;
-        float msmRight = static_cast<float>(m_msm6295Buffer[i + 1]) / 32768.0f;
+    // Convert MSM6295 samples to float
+    float msmLeft = static_cast<float>(m_msm6295Samples[0]) / 32768.0f;
+    float msmRight = static_cast<float>(m_msm6295Samples[1]) / 32768.0f;
         
-        // Mix channels
-        float left = ymLeft * 0.35 + msmLeft * 0.30;
-        float right = ymRight * 0.35 + msmRight * 0.30;
-        
-        // Apply volume
-        left *= m_volume;
-        right *= m_volume;
-        
-        // Clamp to [-1.0, 1.0]
-        left = std::clamp(left, -1.0f, 1.0f);
-        right = std::clamp(right, -1.0f, 1.0f);
-        
-        float samples[2] = {left, right};
-        m_audioDevice->writeSamples(samples, sizeof(samples));
-    }
+    // Mix channels
+    float left = ymLeft * 0.35 + msmLeft * 0.30;
+    float right = ymRight * 0.35 + msmRight * 0.30;
+    
+    // Apply volume
+    left *= m_volume;
+    right *= m_volume;
+    
+    // Clamp to [-1.0, 1.0]
+    left = std::clamp(left, -1.0f, 1.0f);
+    right = std::clamp(right, -1.0f, 1.0f);
+    
+    float samples[2] = {left, right};
+    m_audioDevice->writeSamples(samples, sizeof(samples));
 }
 
 void APU::saveState(std::ofstream& file) {
