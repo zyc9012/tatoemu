@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cstring>
 
-namespace cps2 {
+namespace cps {
 
 // ============================================================================
 // ROM Definitions
@@ -474,261 +474,189 @@ static const ROMEntry game_xmvsf_roms[] = {
 // Game Database
 // ============================================================================
 
-const GameInfo GameDatabase::s_games[] = {
+const GameInfo GameDatabase::s_cps2_games[] = {
     {
+        2,
         "1944: The Loop Master",
         "1944",
         game_1944_roms,
         sizeof(game_1944_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},  // Decryption key placeholder
-        0x000000,      // Decrypt start
-        0x400000,      // Decrypt end
-        0              // Watchdog opcode
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "Alien vs. Predator",
         "avsp",
         game_avsp_roms,
         sizeof(game_avsp_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "Dungeons & Dragons: Shadow over Mystara",
         "ddsom",
         game_ddsom_roms,
         sizeof(game_ddsom_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "Dungeons & Dragons: Tower of Doom",
         "ddtod",
         game_ddtod_roms,
         sizeof(game_ddtod_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "Hyper Street Fighter II: The Anniversary Edition",
         "hsf2",
         game_hsf2_roms,
         sizeof(game_hsf2_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "Marvel Super Heroes",
         "msh",
         game_msh_roms,
         sizeof(game_msh_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "Marvel Super Heroes vs. Street Fighter",
         "mshvsf",
         game_mshvsf_roms,
         sizeof(game_mshvsf_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "Marvel vs. Capcom: Clash of Super Heroes",
         "mvsc",
         game_mvsc_roms,
         sizeof(game_mvsc_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "Progear",
         "progear",
         game_progear_roms,
         sizeof(game_progear_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "Street Fighter Alpha: Warriors' Dreams",
         "sfa",
         game_sfa_roms,
         sizeof(game_sfa_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "Street Fighter Alpha 2",
         "sfa2",
         game_sfa2_roms,
         sizeof(game_sfa2_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "Street Fighter Alpha 3",
         "sfa3",
         game_sfa3_roms,
         sizeof(game_sfa3_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "Super Puzzle Fighter II Turbo",
         "spf2t",
         game_spf2t_roms,
         sizeof(game_spf2t_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "Super Street Fighter II: The New Challengers",
         "ssf2",
         game_ssf2_roms,
         sizeof(game_ssf2_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "Super Street Fighter II Turbo",
         "ssf2t",
         game_ssf2t_roms,
         sizeof(game_ssf2t_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "Super Street Fighter II Turbo (Brazil)",
         "ssf2tb",
         game_ssf2tb_roms,
         sizeof(game_ssf2tb_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "Vampire Savior: The Lord of Vampire",
         "vsav",
         game_vsav_roms,
         sizeof(game_vsav_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "Vampire Savior 2: The Lord of Vampire",
         "vsav2",
         game_vsav2_roms,
         sizeof(game_vsav2_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "X-Men: Children of the Atom",
         "xmcota",
         game_xmcota_roms,
         sizeof(game_xmcota_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
     {
+        2,
         "X-Men vs. Street Fighter",
         "xmvsf",
         game_xmvsf_roms,
         sizeof(game_xmvsf_roms) / sizeof(ROMEntry),
-        {0, 0, 0, 0},
-        0x000000,
-        0x400000,
-        0
+        CPSBoard::CPS_B_UNUSED,
+        CPSMapper::MAPPER_UNUSED
     },
 };
 
-const u32 GameDatabase::s_gameCount = static_cast<u32>(sizeof(GameDatabase::s_games) / sizeof(GameDatabase::s_games[0]));
+const u32 GameDatabase::s_cps2_gameCount = static_cast<u32>(sizeof(s_cps2_games) / sizeof(s_cps2_games[0]));
 
-// ============================================================================
-// Database Functions
-// ============================================================================
-
-const GameInfo* GameDatabase::findGame(const std::string& romSetName) {
-    // Convert to lowercase for case-insensitive matching
-    std::string lower = romSetName;
-    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
-    
-    for (u32 i = 0; i < GameDatabase::s_gameCount; i++) {
-        std::string gameName = GameDatabase::s_games[i].romSetName;
-        std::transform(gameName.begin(), gameName.end(), gameName.begin(), ::tolower);
-        
-        if (lower == gameName) {
-            return &GameDatabase::s_games[i];
-        }
-    }
-    
-    return nullptr;
-}
-
-u32 GameDatabase::calculateCRC32(const std::vector<u8>& data) {
-    return static_cast<u32>(mz_crc32(0, data.data(), static_cast<size_t>(data.size())));
-}
-
-bool GameDatabase::validateROM(const std::string& filename, const std::vector<u8>& data, const ROMEntry& entry) {
-    // Check filename (case-insensitive)
-    std::string lowerFilename = filename;
-    std::transform(lowerFilename.begin(), lowerFilename.end(), lowerFilename.begin(), ::tolower);
-    std::string lowerEntry = entry.filename;
-    std::transform(lowerEntry.begin(), lowerEntry.end(), lowerEntry.begin(), ::tolower);
-    
-    if (lowerFilename != lowerEntry) {
-        return false;
-    }
-    
-    // Check size
-    if (data.size() != entry.size) {
-        return false;
-    }
-    
-    // Check CRC32 (skip for optional ROMs and encryption keys)
-    if (!(entry.flags & ROM_FLAG_OPTIONAL) && entry.type != ROMType::ENCRYPTION_KEY) {
-        u32 calculatedCRC = calculateCRC32(data);
-        if (calculatedCRC != entry.crc32) {
-            return false;
-        }
-    }
-    
-    return true;
-}
-
-} // namespace cps2
+} // namespace cps

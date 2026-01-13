@@ -37,7 +37,7 @@ public:
     void setSoundCPU(cps::SoundCPU* soundCpu) override { m_soundCpu = soundCpu; }
     void setPPU(cps::PPUBase* ppu) override { m_ppu = ppu; }
     void setAPU(cps::APUBase* apu) override { m_apu = apu; }
-    void setCartridge(cps::CartridgeBase* cartridge) override { m_cartridge = cartridge; }
+    void setCartridge(cps::Cartridge* cartridge) override { m_cartridge = cartridge; }
     void setController1(cps::Controller* controller) override { m_controller1 = controller; }
     void setController2(cps::Controller* controller) override { m_controller2 = controller; }
     
@@ -51,7 +51,7 @@ private:
     cps::SoundCPU* m_soundCpu;
     cps::PPUBase* m_ppu;
     cps::APUBase* m_apu;
-    cps::CartridgeBase* m_cartridge;
+    cps::Cartridge* m_cartridge;
     cps::Controller* m_controller1;
     cps::Controller* m_controller2;
     

@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../../types.h"
-#include "../cartridge_base.h"
+#include "../types.h"
 #include "db.h"
 #include <filesystem>
 #include <string>
@@ -9,25 +8,35 @@
 #include <fstream>
 #include <map>
 
+namespace cps {
+
+class CPU;
+class PPUBase;
+
+// Forward declarations
 namespace cps1 {
+    class PPU;
+}
 
-class PPU;
+namespace cps2 {
+    class PPU;
+}
 
-// CPS1 ROM/Cartridge loader
-class Cartridge : public cps::CartridgeBase {
+// Unified CPS ROM/Cartridge loader supporting both CPS1 and CPS2
+class Cartridge {
 public:
     Cartridge();
     ~Cartridge() = default;
 
-    bool load(const fs::path& filename) override;
-    void reset() override;
+    bool load(const fs::path& filename);
+    void reset();
     
-    const std::string& getTitle() const override { return m_title; }
+    const std::string& getTitle() const { return m_title; }
     
     // ROM access (for 68000 CPU - program ROMs)
-    u8 readROM8(u32 address) override;
-    u16 readROM16(u32 address) override;
-    u32 readROM32(u32 address) override;
+    u8 readROM8(u32 address);
+    u16 readROM16(u32 address);
+    u32 readROM32(u32 address);
     u32 getProgramROMSize() const { return m_programRomSize; }
     
     // Graphics ROM access (for PPU)
@@ -40,29 +49,36 @@ public:
     u8 readSoundROM8(u16 address) const;
     u16 readSoundROM16(u16 address) const;
     
-    // Sound sample data access (for MSM6295)
+    // Sound sample data access
     const u8* getSoundSample() const { return m_soundSampleRom.data(); }
     u32 getSoundSampleSize() const { return static_cast<u32>(m_soundSampleRom.size()); }
     
     // Component connections
-    void setCPU(cps::CPU* cpu) override { m_cpu = cpu; }
-    void setPPU(cps::PPUBase* ppu) override;
+    void setCPU(CPU* cpu) { m_cpu = cpu; }
+    void setPPU(PPUBase* ppu);
+    
+    // CPS version
+    u8 getCPSVersion() const { return m_cpsVer; }
+    void setCPSVersion(u8 version) { m_cpsVer = version; }
     
     // Game info access
     const GameInfo* getGameInfo() const { return m_gameInfo; }
+    const std::string& getRomSetName() const { return m_romSetName; }
     
-    // Board configuration access
+    // CPS1-specific board configuration access
     BoardConfig getBoardConfig() const;
     CPSBoard getBoardType() const;
     CPSMapper getMapper() const;
-    
+
     // Save/Load state
-    void saveState(std::ofstream& file) override;
-    void loadState(std::ifstream& file) override;
+    void saveState(std::ofstream& file);
+    void loadState(std::ifstream& file);
 
 private:
-    cps::CPU* m_cpu;
-    PPU* m_ppu;
+    CPU* m_cpu;
+    PPUBase* m_ppu;
+    
+    u8 m_cpsVer = 1;  // CPS version: 1 for CPS1, 2 for CPS2
     
     std::string m_title;
     std::string m_romSetName;  // MAME ROM set name (from ZIP filename)
@@ -70,16 +86,26 @@ private:
     
     // ROM banks organized by type
     std::vector<u8> m_programRom;      // 68000 program ROMs
+    std::vector<u8> m_programRomEncrypted;  // Encrypted ROMs (CPS2 only, before decryption)
     std::vector<u8> m_graphicsRom;     // Graphics/tile ROMs
     std::vector<u8> m_soundProgramRom; // Z80 sound program ROM
-    std::vector<u8> m_soundSampleRom;  // ADPCM sample ROMs
+    std::vector<u8> m_soundSampleRom;  // ADPCM sample ROMs (CPS1) or QSound samples (CPS2)
     
     u32 m_programRomSize;
     u32 m_graphicsRomSize;
-    u32 m_soundRomSize;
+    u32 m_soundProgramRomSize;
+    u32 m_soundSampleRomSize;
+    
+    // CPS2 decryption key (64-bit key for CPS2 encryption, stored as 4x32-bit)
+    // m_decryptKey[0-1] = first 64-bit key, m_decryptKey[2-3] = second 64-bit key
+    u32 m_decryptKey[4];  // Two 64-bit keys stored as 4x32-bit values
+    u32 m_decryptStart;   // Start address for decryption
+    u32 m_decryptEnd;     // End address for decryption
+    u32 m_watchdogOpcode; // Watchdog opcode (from encryption key file)
     
     bool loadROMsFromDatabase(const std::map<std::string, std::vector<u8>>& romFiles);
+    void decryptProgramROM();
     void byteswapProgramROM();
 };
 
-} // namespace cps1
+} // namespace cps

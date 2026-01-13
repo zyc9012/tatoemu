@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../../types.h"
+#include "../types.h"
 #include <string>
 #include <vector>
 
-namespace cps1 {
+namespace cps {
 
-// Graphics types for ROM bank mapping
+// Graphics types for ROM bank mapping (CPS1 only)
 enum GfxType {
     GFXTYPE_SPRITES = (1 << 0),
     GFXTYPE_SCROLL1 = (1 << 1),
@@ -15,20 +15,21 @@ enum GfxType {
     GFXTYPE_STARS   = (1 << 4),
 };
 
-// ROM entry types
+// ROM entry types (merged from CPS1 and CPS2)
 enum class ROMType {
-    PROGRAM,      // 68000 program ROM
-    GRAPHICS,     // Graphics/tile ROM
-    SOUND_PROGRAM,// Z80 sound program ROM
-    SOUND_SAMPLE, // OKI6295 ADPCM samples
-    PLD,          // PLD files (optional)
+    PROGRAM,        // 68000 program ROM
+    GRAPHICS,       // Graphics/tile ROM
+    SOUND_PROGRAM,  // Z80 sound program ROM
+    SOUND_SAMPLE,   // ADPCM sample ROMs (CPS1) or QSound samples (CPS2)
+    PLD,            // PLD files (optional, CPS1 only)
+    ENCRYPTION_KEY, // Decryption key (CPS2 only)
     UNKNOWN
 };
 
-// ROM entry flags
+// ROM entry flags (merged from CPS1 and CPS2)
 enum ROMFlags {
-    ROM_FLAG_INTERLEAVE = 0x01,      // Program ROM needs interleaving
-    ROM_FLAG_OPTIONAL = 0x02,      // Optional ROM (PLDs, etc.)
+    ROM_FLAG_INTERLEAVE = 0x01,  // Program ROM needs interleaving (CPS1 only)
+    ROM_FLAG_OPTIONAL = 0x02,    // Optional ROM
 };
 
 // ROM file entry
@@ -68,9 +69,10 @@ enum class CPSBoard {
     CPS_B_21_QS3 = 23,
     CPS_B_21_QS4 = 24,
     CPS_B_21_QS5 = 25,
+    CPS_B_UNUSED = 255,
 };
 
-// Graphics bank range entry (for ROM bank mapping)
+// Graphics bank range entry (for ROM bank mapping, CPS1 only)
 struct GfxRange {
     u32 type;
     u32 start;
@@ -78,8 +80,7 @@ struct GfxRange {
     u32 bank;
 };
 
-// Graphics ROM mappers
-// Different boards organize graphics banks differently
+// Graphics ROM mappers (CPS1 only)
 enum class CPSMapper {
     MAPPER_LWCHR = 0,
     MAPPER_WL24B = 8,
@@ -100,11 +101,10 @@ enum class CPSMapper {
     MAPPER_PS63B = 31,
     MAPPER_RCM63B = 36,
     MAPPER_CP1B1F = 45,
-    // Add more as needed for other games
+    MAPPER_UNUSED = 255,
 };
 
-// Board configuration
-// Contains register locations and enable bits that vary per board
+// Board configuration (CPS1 only)
 struct BoardConfig {
     u8 boardIdOffset;      // Offset where board ID is stored (from 0x800100)
     u8 boardIdValue1;      // First byte of board ID
@@ -114,18 +114,18 @@ struct BoardConfig {
     u8 maskAddr[4];        // Priority mask addresses
     u16 layerEnable[3];    // Layer enable bits (for layers 1-3)
     u8 memProt[4];         // Memory protection offsets for multiplication registers
-                           // [0] = write operand 1, [1] = write operand 2
-                           // [2] = read low word, [3] = read high word
 };
 
-// Game database entry
+// Game database entry (unified for CPS1 and CPS2)
 struct GameInfo {
+    u8 cpsVer;                     // CPS version: 1 for CPS1, 2 for CPS2
+
     const char* name;              // Game name
     const char* romSetName;        // MAME ROM set name
     const ROMEntry* roms;          // Array of ROM entries
     u32 romCount;                  // Number of ROM entries
     
-    // Board configuration
+    // CPS1-specific fields
     CPSBoard board;                // B-board type
     CPSMapper mapper;              // Graphics ROM mapper
 };
@@ -137,18 +137,16 @@ public:
     static bool validateROM(const std::string& filename, const std::vector<u8>& data, const ROMEntry& entry);
     static u32 calculateCRC32(const std::vector<u8>& data);
     
-    // Get board configuration for a specific board type
+    // CPS1-specific functions
     static BoardConfig getBoardConfig(CPSBoard board);
-    
-    // Get graphics ROM mapper table for a specific mapper
     static const GfxRange* getGfxMapperTable(CPSMapper mapper);
-    
-    // Get graphics ROM bank sizes for a specific mapper
     static void getGfxBankSizes(CPSMapper mapper, u32 sizes[4]);
     
 private:
-    static const GameInfo s_games[];
-    static const u32 s_gameCount;
+    static const GameInfo s_cps1_games[];
+    static const GameInfo s_cps2_games[];
+    static const u32 s_cps1_gameCount;
+    static const u32 s_cps2_gameCount;
 };
 
-} // namespace cps1
+} // namespace cps

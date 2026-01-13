@@ -1,5 +1,5 @@
 #include "ppu.h"
-#include "cartridge.h"
+#include "../cartridge.h"
 #include "../cpu.h"
 #include <cstring>
 #include <iostream>
@@ -101,8 +101,8 @@ PPU::PPU()
     m_gfxBankSizes[3] = 0;
 }
 
-void PPU::setCartridge(cps::CartridgeBase* cartridge) {
-    m_cartridge = static_cast<Cartridge*>(cartridge);
+void PPU::setCartridge(cps::Cartridge* cartridge) {
+    m_cartridge = cartridge;
 }
 
 void PPU::reset() {
@@ -131,15 +131,15 @@ void PPU::reset() {
 void PPU::setupGfxMapper() {
     if (!m_cartridge) return;
     
-    CPSMapper mapper = m_cartridge->getMapper();
+    cps::CPSMapper mapper = m_cartridge->getMapper();
     
     // Get mapper table and bank sizes from database
-    m_gfxMapper = GameDatabase::getGfxMapperTable(mapper);
+    m_gfxMapper = cps::GameDatabase::getGfxMapperTable(mapper);
     if (!m_gfxMapper) {
         throw std::runtime_error("Unsupported mapper");
     }
     
-    GameDatabase::getGfxBankSizes(mapper, m_gfxBankSizes);
+    cps::GameDatabase::getGfxBankSizes(mapper, m_gfxBankSizes);
 }
 
 // ============================================================================
@@ -345,16 +345,16 @@ s32 PPU::gfxRomBankMapper(u32 type, s32 code) const {
     
     s32 shift = 0;
     switch (type) {
-        case GFXTYPE_SPRITES: shift = 1; break;
-        case GFXTYPE_SCROLL1: shift = 0; break;
-        case GFXTYPE_SCROLL2: shift = 1; break;
-        case GFXTYPE_SCROLL3: shift = 3; break;
+        case cps::GFXTYPE_SPRITES: shift = 1; break;
+        case cps::GFXTYPE_SCROLL1: shift = 0; break;
+        case cps::GFXTYPE_SCROLL2: shift = 1; break;
+        case cps::GFXTYPE_SCROLL3: shift = 3; break;
         default: shift = 0; break;
     }
     
     s32 shiftedCode = code << shift;
     
-    const GfxRange* range = m_gfxMapper;
+    const cps::GfxRange* range = m_gfxMapper;
     while (range->type) {
         // Match against shifted code range
         if ((range->type & type) &&
@@ -673,7 +673,7 @@ void PPU::renderScroll1(const u8* base, s32 scrollX, s32 scrollY) {
             u16 attrib = (static_cast<u16>(base[p + 2]) << 8) | base[p + 3];
             
             // Map tile through graphics bank mapper
-            s32 t = gfxRomBankMapper(GFXTYPE_SCROLL1, tileNum);
+            s32 t = gfxRomBankMapper(cps::GFXTYPE_SCROLL1, tileNum);
             if (t == -1) continue;
             
             // Calculate tile ROM address (8x8 = 64 bytes per tile in decoded format)
@@ -765,7 +765,7 @@ void PPU::renderScroll2(const u8* base, s32 scrollX, s32 scrollY) {
             u16 attrib = (static_cast<u16>(base[p + 2]) << 8) | base[p + 3];
             
             // Map tile through graphics bank mapper
-            s32 t = gfxRomBankMapper(GFXTYPE_SCROLL2, tileNum);
+            s32 t = gfxRomBankMapper(cps::GFXTYPE_SCROLL2, tileNum);
             if (t == -1) continue;
             
             // Calculate tile ROM address (16x16 = 128 bytes per tile, 4bpp)
@@ -820,7 +820,7 @@ void PPU::renderScroll3(const u8* base, s32 scrollX, s32 scrollY) {
             u16 attrib = (static_cast<u16>(base[p + 2]) << 8) | base[p + 3];
             
             // Map tile through graphics bank mapper
-            s32 t = gfxRomBankMapper(GFXTYPE_SCROLL3, tileNum);
+            s32 t = gfxRomBankMapper(cps::GFXTYPE_SCROLL3, tileNum);
             if (t == -1) continue;
             
             // Calculate tile ROM address (32x32 = 512 bytes per tile, 4bpp)
@@ -898,7 +898,7 @@ void PPU::renderSprites() {
         s32 by = ((attrib >> 12) & 15) + 1;  // Height in tiles
         
         // Map tile through graphics bank mapper
-        s32 n = gfxRomBankMapper(GFXTYPE_SPRITES, tileNum);
+        s32 n = gfxRomBankMapper(cps::GFXTYPE_SPRITES, tileNum);
         if (n == -1) continue;
         
         // Add high bits from Y data

@@ -9,7 +9,7 @@ class CPU;
 class SoundCPU;
 class PPUBase;
 class APUBase;
-class CartridgeBase;
+class Cartridge;
 class Controller;
 
 // Base class for Memory management (shared interface)
@@ -36,7 +36,7 @@ public:
     virtual void setSoundCPU(SoundCPU* soundCpu) = 0;
     virtual void setPPU(PPUBase* ppu) = 0;
     virtual void setAPU(APUBase* apu) = 0;
-    virtual void setCartridge(CartridgeBase* cartridge) = 0;
+    virtual void setCartridge(Cartridge* cartridge) = 0;
     virtual void setController1(Controller* controller) = 0;
     virtual void setController2(Controller* controller) = 0;
     

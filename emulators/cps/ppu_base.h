@@ -6,7 +6,7 @@
 namespace cps {
 
 class CPU;
-class CartridgeBase;
+class Cartridge;
 
 // Base class for Picture Processing Unit (shared interface)
 class PPUBase {
@@ -20,7 +20,7 @@ public:
     virtual void clearFrameComplete() = 0;
     
     virtual void setCPU(CPU* cpu) = 0;
-    virtual void setCartridge(CartridgeBase* cartridge) = 0;
+    virtual void setCartridge(Cartridge* cartridge) = 0;
     virtual void setVideoDevice(::VideoDevice* videoDevice) = 0;
     
     // Save/Load state

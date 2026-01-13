@@ -2,7 +2,7 @@
 
 #include "../../types.h"
 
-namespace cps2 {
+namespace cps {
 
 // CPS2 decryption functions
 // All credit goes to Andreas Naive for breaking the encryption algorithm
@@ -17,4 +17,4 @@ namespace cps2 {
 void decryptCPS2(const u32* master_key, u32 lower_limit, u32 upper_limit,
                  const u8* rom, u8* dec, u32 length);
 
-} // namespace cps2
+} // namespace cps

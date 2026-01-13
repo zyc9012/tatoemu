@@ -6,7 +6,7 @@
 #include "../sound_cpu.h"
 #include "ppu.h"
 #include "memory.h"
-#include "cartridge.h"
+#include "../cartridge.h"
 #include "../controller.h"
 #include "../config.h"
 #include "../consts.h"
@@ -52,7 +52,7 @@ private:
     std::unique_ptr<cps::SoundCPU> m_soundCpu;
     std::unique_ptr<PPU> m_ppu;
     std::unique_ptr<Memory> m_memory;
-    std::unique_ptr<Cartridge> m_cartridge;
+    std::unique_ptr<cps::Cartridge> m_cartridge;
     std::unique_ptr<cps::Controller> m_controller1;
     std::unique_ptr<cps::Controller> m_controller2;
     

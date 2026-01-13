@@ -2,9 +2,8 @@
 #include "gb/core.h"
 #include "nes/core.h"
 #include "cps/cps1/core.h"
-#include "cps/cps1/db.h"
 #include "cps/cps2/core.h"
-#include "cps/cps2/db.h"
+#include "cps/db.h"
 #include <SDL3/SDL.h>
 #include <iostream>
 #include <fstream>
@@ -143,24 +142,25 @@ bool Emulator::initialize() {
         m_core = std::make_unique<nes::Core>();
     } else if (ext == ".zip") {
         // CPS1/CPS2 ROMs use .zip format (MAME format)
-        // Check game databases to determine which core to use
+        // Check unified game database to determine which core to use
         std::string romSetName = m_romFilename.stem().string();
         std::transform(romSetName.begin(), romSetName.end(), romSetName.begin(), ::tolower);
         
-        // Check CPS2 database first
-        const cps2::GameInfo* cps2Game = cps2::GameDatabase::findGame(romSetName);
-        if (cps2Game) {
+        const cps::GameInfo* gameInfo = cps::GameDatabase::findGame(romSetName);
+        if (!gameInfo) {
+            std::cerr << "Unknown CPS game: " << romSetName << std::endl;
+            std::cerr << "Game not found in database" << std::endl;
+            return false;
+        }
+        
+        // Determine core type based on CPS version
+        if (gameInfo->cpsVer == 1) {
+            m_core = std::make_unique<cps1::Core>();
+        } else if (gameInfo->cpsVer == 2) {
             m_core = std::make_unique<cps2::Core>();
         } else {
-            // Check CPS1 database
-            const cps1::GameInfo* cps1Game = cps1::GameDatabase::findGame(romSetName);
-            if (cps1Game) {
-                m_core = std::make_unique<cps1::Core>();
-            } else {
-                std::cerr << "Unknown CPS game: " << romSetName << std::endl;
-                std::cerr << "Game not found in CPS1 or CPS2 database" << std::endl;
-                return false;
-            }
+            std::cerr << "Invalid CPS version in database: " << static_cast<int>(gameInfo->cpsVer) << std::endl;
+            return false;
         }
     } else {
         std::cerr << "Unsupported ROM file extension: " << ext << std::endl;

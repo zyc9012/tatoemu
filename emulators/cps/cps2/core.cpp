@@ -13,7 +13,8 @@ Core::Core()
 
 bool Core::initialize(VideoDevice* videoDevice, AudioDevice* audioDevice) {
     // Create core components
-    m_cartridge = std::make_unique<Cartridge>();
+    m_cartridge = std::make_unique<cps::Cartridge>();
+    m_cartridge->setCPSVersion(2);
     m_cpu = std::make_unique<cps::CPU>();
     m_soundCpu = std::make_unique<cps::SoundCPU>();
     m_ppu = std::make_unique<PPU>();

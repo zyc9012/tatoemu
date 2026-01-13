@@ -3,7 +3,7 @@
 #include <iostream>
 #include <cstring>
 
-namespace cps2 {
+namespace cps {
 
 // Helper macros
 #define BIT(x, n) (((x) >> (n)) & 1)
@@ -304,4 +304,4 @@ void decryptCPS2(const u32* master_key, u32 lower_limit, u32 upper_limit,
     }
 }
 
-} // namespace cps2
+} // namespace cps

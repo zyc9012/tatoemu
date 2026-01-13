@@ -1,11 +1,10 @@
 #include "memory.h"
-#include "cartridge.h"
+#include "../cartridge.h"
 #include "ppu.h"
 #include "../cpu.h"
 #include "../sound_cpu.h"
 #include "../ppu_base.h"
 #include "../apu_base.h"
-#include "../cartridge_base.h"
 #include "../controller.h"
 #include <iostream>
 #include <cstring>
@@ -94,8 +93,8 @@ void Memory::reset() {
     m_z80Bank = 0;
     
     // Set board ID and memProt from game database
-    Cartridge* cart = static_cast<Cartridge*>(m_cartridge);
-    BoardConfig config = cart->getBoardConfig();
+    cps::Cartridge* cart = m_cartridge;
+    cps::BoardConfig config = cart->getBoardConfig();
     
     m_boardId[0] = config.boardIdOffset;
     m_boardId[1] = config.boardIdValue1;
@@ -486,7 +485,7 @@ u8 Memory::readZ80(u16 address) {
     // Sound ROM (0x0000-0x7FFF) - first 32KB, direct mapping
     if (address < 0x8000) {
         if (m_cartridge) {
-            auto* cart = static_cast<Cartridge*>(m_cartridge);
+            auto* cart = m_cartridge;
             return cart->readSoundROM8(address);
         }
         return 0xFF;
@@ -495,7 +494,7 @@ u8 Memory::readZ80(u16 address) {
     // Bank-switchable ROM (0x8000-0xBFFF) - 16KB bank
     if (address >= 0x8000 && address < 0xC000) {
         if (m_cartridge) {
-            auto* cart = static_cast<Cartridge*>(m_cartridge);
+            auto* cart = m_cartridge;
             // Calculate bank offset: (bank << 14) + 0x8000
             u32 bankOffset = (static_cast<u32>(m_z80Bank) << 14) + 0x8000;
             u32 romAddress = bankOffset + (address - 0x8000);
@@ -509,7 +508,7 @@ u8 Memory::readZ80(u16 address) {
     // ROM fallback for fetches (0xC000-0xCFFF)
     if (address >= 0xC000 && address < 0xD000) {
         if (m_cartridge) {
-            auto* cart = static_cast<Cartridge*>(m_cartridge);
+            auto* cart = m_cartridge;
             return cart->readSoundROM8(address - 0xC000);
         }
         return 0xFF;
@@ -523,7 +522,7 @@ u8 Memory::readZ80(u16 address) {
     // ROM fallback for fetches (0xD800-0xEFFF)
     if (address >= 0xD800 && address < 0xF000) {
         if (m_cartridge) {
-            auto* cart = static_cast<Cartridge*>(m_cartridge);
+            auto* cart = m_cartridge;
             return cart->readSoundROM8((address - 0xD800) & 0x7FFF);
         }
         return 0xFF;

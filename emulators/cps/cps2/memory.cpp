@@ -1,10 +1,9 @@
 #include "memory.h"
-#include "cartridge.h"
+#include "../cartridge.h"
 #include "ppu.h"
 #include "../cpu.h"
 #include "../sound_cpu.h"
 #include "../ppu_base.h"
-#include "../cartridge_base.h"
 #include "../controller.h"
 #include <iostream>
 #include <cstring>
@@ -439,7 +438,7 @@ u8 Memory::readZ80(u16 address) {
     // Sound ROM (0x0000-0x7FFF)
     if (address < 0x8000) {
         if (m_cartridge) {
-            auto* cart = static_cast<Cartridge*>(m_cartridge);
+            auto* cart = m_cartridge;
             return cart->readSoundROM8(address);
         }
         return 0xFF;
@@ -448,7 +447,7 @@ u8 Memory::readZ80(u16 address) {
     // Bank-switchable ROM (0x8000-0xBFFF)
     if (address >= 0x8000 && address < 0xC000) {
         if (m_cartridge) {
-            auto* cart = static_cast<Cartridge*>(m_cartridge);
+            auto* cart = m_cartridge;
             u32 bankOffset = (static_cast<u32>(m_z80Bank) << 14) + 0x8000;
             u32 romAddress = bankOffset + (address - 0x8000);
             return cart->readSoundROM8(romAddress);

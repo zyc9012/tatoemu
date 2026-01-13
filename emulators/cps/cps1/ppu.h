@@ -2,15 +2,13 @@
 
 #include "../../types.h"
 #include "../ppu_base.h"
+#include "../db.h"
 #include "consts.h"
-#include "db.h"
 #include <array>
 #include <vector>
 #include <fstream>
 
 namespace cps1 {
-
-class Cartridge;
 
 // Palette size (0xC00 bytes = 3072 bytes, 1536 16-bit entries across 6 pages)
 constexpr u32 PALETTE_RAM_SIZE = 0xC00;
@@ -38,7 +36,7 @@ public:
     void clearFrameComplete() override { m_frameComplete = false; }
     
     void setCPU(cps::CPU* cpu) override { m_cpu = cpu; }
-    void setCartridge(cps::CartridgeBase* cartridge) override;
+    void setCartridge(cps::Cartridge* cartridge) override;
     void setVideoDevice(::VideoDevice* videoDevice) override { m_videoDevice = videoDevice; }
     
     // VRAM access (from Memory class)
@@ -62,7 +60,7 @@ public:
 
 private:
     cps::CPU* m_cpu;
-    Cartridge* m_cartridge;
+    cps::Cartridge* m_cartridge;
     VideoDevice* m_videoDevice;
     
     // Frame buffer (ARGB8888 format)
@@ -85,7 +83,7 @@ private:
     std::array<u8, 256> m_cpsRegs;
     
     // Board configuration (from cartridge/database)
-    BoardConfig m_boardConfig;
+    cps::BoardConfig m_boardConfig;
     
     // Scroll offsets (can be adjusted per-game)
     s32 m_layer1XOffs, m_layer1YOffs;
@@ -97,7 +95,7 @@ private:
     u32 m_gfxScroll[4];  // Offsets to scroll tiles
     
     // Graphics ROM bank mapper
-    const GfxRange* m_gfxMapper;
+    const cps::GfxRange* m_gfxMapper;
     u32 m_gfxBankSizes[4];
     
     // Frame state

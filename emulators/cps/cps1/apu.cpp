@@ -1,7 +1,7 @@
 #include "apu.h"
 #include "../sound_cpu.h"
 #include "memory.h"
-#include "cartridge.h"
+#include "../cartridge.h"
 #include "../../types.h"
 #include "../../components/compact.h"
 #include <cstring>
@@ -61,7 +61,7 @@ void APU::setMemory(cps::MemoryBase* memory) {
     m_memory = static_cast<Memory*>(memory);
 }
 
-void APU::setCartridge(Cartridge* cartridge) {
+void APU::setCartridge(cps::Cartridge* cartridge) {
     m_cartridge = cartridge;
     setROMData();
 }
