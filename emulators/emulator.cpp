@@ -298,10 +298,10 @@ void Emulator::runFrame() {
         // Dynamically adjust emulation speed based on audio buffer level
         if (queuedAudio < m_minAudioBufferSize) {
             // Buffer is running low - speed up slightly to catch up
-            m_emulationSpeed = 1.05;
+            m_emulationSpeed += 0.01;
         } else if (queuedAudio > m_maxAudioBufferSize) {
             // Buffer is too full - slow down slightly
-            m_emulationSpeed = 0.95;
+            m_emulationSpeed -= 0.01;
         } else {
             // Buffer is in good range - normalize speed gradually
             if (m_emulationSpeed > 1.0) {
@@ -310,6 +310,7 @@ void Emulator::runFrame() {
                 m_emulationSpeed = 1.0 - (1.0 - m_emulationSpeed) * 0.95;
             }
         }
+        m_emulationSpeed = std::clamp(m_emulationSpeed, 0.8, 1.2);
     }
     
     // Calculate target frame time adjusted for emulation speed
