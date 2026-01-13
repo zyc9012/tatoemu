@@ -1,6 +1,6 @@
 # TatoEmu - Multi-System Emulator
 
-TatoEmu is a multi-system emulator written in C++ with SDL3 and WebAssembly targets. It currently supports GB/GBC and NES ROMs.
+TatoEmu is a multi-system emulator written in C++ with SDL3 and WebAssembly targets. It currently supports GB/GBC, NES, and CPS1 ROMs.
 
 This project is just for fun. It aims to build minimal emulators that work for most games, with only basic features like saving and loading states. It prioritizes playability over accuracy.
 
@@ -78,13 +78,30 @@ python3 -m http.server 8080
 - `--volume <0.0-1.0>` - Audio volume level (default: 0.3)
 - `--bootrom <path>` - Path to bootrom file (Game Boy only)
 
-### Controls (both systems)
+### Controls
 
+#### Game Boy / NES
 - **Arrow Keys** - D-Pad (Up/Down/Left/Right)
 - **Z** - A Button
 - **X** - B Button
 - **Enter** - Start Button
 - **Shift** - Select Button
+
+#### CPS1 (Arcade)
+- **Player 1:**
+  - **Arrow Keys** - Movement (Up/Down/Left/Right)
+  - **A/S/D** - Punch buttons (Light/Medium/Heavy)
+  - **Z/X/C** - Kick buttons (Light/Medium/Heavy)
+  - **1** - Start
+  - **5** - Insert Coin
+- **Player 2:**
+  - **Keypad 8/5/4/6** - Movement (Up/Down/Left/Right)
+  - **J/K/L** - Punch buttons (Light/Medium/Heavy)
+  - **M/Comma/Period** - Kick buttons (Light/Medium/Heavy)
+  - **2** - Start
+  - **6** - Insert Coin
+
+#### Common Controls
 - **ESC** - Quit emulator
 - **F5** - Quick save state
 - **F9** - Quick load state
@@ -117,6 +134,12 @@ python3 -m http.server 8080
 - **Sunsoft**: FME-7 (069)
 - **Unlicensed**: Waixing (162/164/178), Nanjing (163)
 
+### Capcom Play System 1 (CPS1)
+
+Supports FBNeo ROM sets (partial).
+
+ROM sets available at: [Myrient](https://myrient.erista.me/files/Internet%20Archive/chadmaster/fbnarcade-fullnonmerged/arcade/)
+
 ## Resources
 
 - [Pan Docs](https://gbdev.io/pandocs/) - Comprehensive GameBoy technical documentation
@@ -124,4 +147,4 @@ python3 -m http.server 8080
 - [NanoBoyAdvance](https://github.com/nba-emu/NanoBoyAdvance)
 - [NESDev Wiki](https://www.nesdev.org/wiki/Main_Page) - NES architecture, mappers, tests
 - [Mesen2](https://github.com/SourMesen/Mesen2)
-
+- [FBNeo](https://github.com/finalburnneo/FBNeo)
