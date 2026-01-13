@@ -1365,10 +1365,6 @@ int YM2151ReadStatus( int n )
 	return YMPSG[n].status;
 }
 
-static void ym2151_state_save_register( int numchips )
-{
-}
-
 static void ym2151_postload_refresh(void)
 {
 	int i,j;
@@ -1464,8 +1460,6 @@ int YM2151Init(int num, int chipbase, int clock, int rate, void (*timer_cb)(INT3
 		return 1;
 
 	memset(YMPSG, 0, sizeof(YM2151) * YMNumChips);
-
-	ym2151_state_save_register( YMNumChips );
 
 	init_tables();
 

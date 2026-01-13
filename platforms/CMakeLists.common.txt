@@ -121,6 +121,12 @@ function(apply_common_target_settings target_name)
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kops.c
         PROPERTIES LANGUAGE C
     )
+    
+    # Build minimal miniz
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/utilities/miniz/miniz.c
+        PROPERTIES COMPILE_DEFINITIONS "MINIZ_NO_DEFLATE_APIS;MINIZ_NO_TIME;MINIZ_NO_ARCHIVE_WRITING_APIS;MINIZ_NO_ZLIB_APIS;MINIZ_NO_ZLIB_COMPATIBLE_NAMES"
+    )
 
     # Common compiler warnings
     target_compile_options(${target_name} PRIVATE 
