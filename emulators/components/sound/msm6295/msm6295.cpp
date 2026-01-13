@@ -20,6 +20,7 @@
 #include "../../compact.h"
 #include "msm6295.h"
 #include <stddef.h>
+#include <fstream>
 
 UINT8* MSM6295ROM;
 
@@ -46,7 +47,6 @@ struct MSM6295Struct {
 	bool bIsCommand;
 	INT32 nSampleInfo;
 
-	// Not scanned.
 	INT32 nVolume;
 	INT32 nOutputDir;
 	INT32 nSampleRate;
@@ -119,12 +119,33 @@ void MSM6295ResetAll(void)
 	}
 }
 
-void MSM6295Scan(INT32 , INT32 *)
+void MSM6295SaveContext(std::ofstream& file)
 {
+	// Save number of chips
+	INT32 numChips = nLastMSM6295Chip + 1;
+	file.write(reinterpret_cast<const char*>(&numChips), sizeof(numChips));
+	
+	// Save each chip's state and status
 	for (INT32 nChip = 0; nChip <= nLastMSM6295Chip; nChip++)
 	{
-		ScanVar(&MSM6295[nChip], STRUCT_SIZE_HELPER(struct MSM6295Struct, nSampleInfo), "MSM6295 Chip");
-		SCAN_VAR(nMSM6295Status[nChip]);
+		file.write(reinterpret_cast<const char*>(&MSM6295[nChip]), sizeof(MSM6295Struct));
+		file.write(reinterpret_cast<const char*>(&nMSM6295Status[nChip]), sizeof(UINT32));
+	}
+}
+
+void MSM6295LoadContext(std::ifstream& file)
+{
+	// Load number of chips
+	INT32 numChips;
+	file.read(reinterpret_cast<char*>(&numChips), sizeof(numChips));
+	
+	nLastMSM6295Chip = numChips - 1;
+	
+	// Load each chip's state and status
+	for (INT32 nChip = 0; nChip < numChips; nChip++)
+	{
+		file.read(reinterpret_cast<char*>(&MSM6295[nChip]), sizeof(MSM6295Struct));
+		file.read(reinterpret_cast<char*>(&nMSM6295Status[nChip]), sizeof(UINT32));
 	}
 }
 

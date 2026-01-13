@@ -203,10 +203,12 @@ void APU::saveState(std::ofstream& file) {
     file.write(reinterpret_cast<const char*>(&m_cycleAccumulator), sizeof(m_cycleAccumulator));
     file.write(reinterpret_cast<const char*>(&m_cyclesPerSample), sizeof(m_cyclesPerSample));
     file.write(reinterpret_cast<const char*>(&m_ym2151RegSelect), sizeof(m_ym2151RegSelect));
-    s32 nAction = ACB_READ;
-    BurnYM2151Scan_int(nAction);
-    s32 pnMin = 0;
-    MSM6295Scan(nAction, &pnMin);
+    
+    // Save YM2151 state
+    YM2151SaveContext(file);
+    
+    // Save MSM6295 state
+    MSM6295SaveContext(file);
 }
 
 void APU::loadState(std::ifstream& file) {
@@ -215,10 +217,12 @@ void APU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_cycleAccumulator), sizeof(m_cycleAccumulator));
     file.read(reinterpret_cast<char*>(&m_cyclesPerSample), sizeof(m_cyclesPerSample));
     file.read(reinterpret_cast<char*>(&m_ym2151RegSelect), sizeof(m_ym2151RegSelect));
-    s32 nAction = ACB_WRITE;
-    BurnYM2151Scan_int(nAction);
-    s32 pnMin = 0;
-    MSM6295Scan(nAction, &pnMin);
+    
+    // Load YM2151 state
+    YM2151LoadContext(file);
+    
+    // Load MSM6295 state
+    MSM6295LoadContext(file);
 }
 
 } // namespace cps1

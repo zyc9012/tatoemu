@@ -77,7 +77,6 @@ void Z80Burn(int cycles);
 void Z80SetIrqLine(int irqline, int state);
 void Z80GetContext (void *dst);
 void Z80SetContext (void *src);
-int Z80Scan(int nAction);
 INT32 z80TotalCycles();
 INT32 z80TstateCounter();
 void Z80StopExecute();

@@ -4134,16 +4134,6 @@ void Z80SetContext (void *src)
 	change_pc(PCD);
 }
 
-int Z80Scan(int nAction)
-{
-	if (m_ula_variant != ULA_VARIANT_NONE) {
-		SCAN_VAR(m_tstate_counter);
-		SCAN_VAR(m_selected_bank);
-	}
-
-	return 0;
-}
-
 void Z80SetIOReadHandler(Z80ReadIoHandler handler)
 {
 	Z80IORead = handler;

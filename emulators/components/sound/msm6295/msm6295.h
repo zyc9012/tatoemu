@@ -1,10 +1,10 @@
 // MSM6295 module header
 
-#include "../../compact.h"
+#ifndef _H_MSM6295_
+#define _H_MSM6295_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "../../compact.h"
+#include <fstream>
 
 #define MAX_MSM6295 (4)
 #define MSM6295_PIN7_HIGH (132)
@@ -21,7 +21,9 @@ void MSM6295ExitAll(void); // exit all
 INT32 MSM6295RenderAll(INT16* pSoundBuf, INT32 nSegmenLength); // render all
 INT32 MSM6295Render(INT32 nChip, INT16* pSoundBuf, INT32 nSegmenLength);
 void MSM6295Write(INT32 nChip, UINT8 nCommand);
-void MSM6295Scan(INT32 nAction, INT32 *pnMin);
+
+void MSM6295SaveContext(std::ofstream& file);
+void MSM6295LoadContext(std::ifstream& file);
 
 // for backwards compatibility. Remove when done configuring all banks
 extern UINT8* MSM6295ROM;
@@ -36,7 +38,4 @@ inline static UINT32 MSM6295Read(const INT32 nChip)
 	return nMSM6295Status[nChip];
 }
 
-#ifdef __cplusplus
-}
 #endif
-

@@ -10,9 +10,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <stddef.h>
 
 #include "../../compact.h"
 #include "ym2151.h"
+
+#ifdef __cplusplus
+#include <fstream>
+#endif
 
 /* struct describing a single operator */
 typedef struct{
@@ -107,7 +112,6 @@ typedef struct
 //#ifdef USE_MAME_TIMERS
 /* ASG 980324 -- added for tracking timers */
 	INT32       UseBurnTimer;
-	void        (*timer_callback)(INT32, INT32, double);
 	INT32		timer_A;                // Timer A / B enable/disable
 	INT32		timer_B;                // ""
 	double		timer_A_time[1024];		/* timer A times for MAME/FM Timers */
@@ -152,14 +156,15 @@ typedef struct
 
 	UINT32		noise_tab[32];			/* 17bit Noise Generator periods */
 
-	void (*irqhandler)(int irq);		/* IRQ function handler */
-	write8_handler porthandler;		/* port write function handler */
 
 	unsigned int clock;					/* chip clock in Hz (passed from 2151intf.c) */
 	unsigned int sampfreq;				/* sampling frequency in Hz (passed from 2151intf.c) */
 
 	int chip_base; // chip base# for timer callback
 
+	void (*irqhandler)(int irq);		/* IRQ function handler */
+	void (*timer_callback)(INT32, INT32, double);
+	write8_handler porthandler;		/* port write function handler */
 } YM2151;
 
 
@@ -1377,124 +1382,6 @@ static void ym2151_postload_refresh(void)
 	}
 }
 
-void BurnYM2151Scan_int(INT32 nAction)
-{
-	int i,j;
-
-	if ((nAction & ACB_DRIVER_DATA) == 0) {
-		return;
-	}
-
-	for (i=0; i<YMNumChips; i++)
-	{
-		/* save all 32 operators of chip #i */
-		for (j=0; j<32; j++)
-		{
-			YM2151Operator *op;
-
-			//sprintf(buf1,"YM2151.op%02i",j);
-			op = &YMPSG[i].oper[(j&7)*4+(j>>3)];
-
-			SCAN_VAR(op->phase);
-			SCAN_VAR(op->freq);
-			SCAN_VAR(op->dt1);
-			SCAN_VAR(op->mul);
-			SCAN_VAR(op->dt1_i);
-			SCAN_VAR(op->dt2);
-			SCAN_VAR(op->mem_value);
-
-			SCAN_VAR(op->fb_shift);
-			SCAN_VAR(op->fb_out_curr);
-			SCAN_VAR(op->fb_out_prev);
-			SCAN_VAR(op->kc);
-			SCAN_VAR(op->kc_i);
-			SCAN_VAR(op->pms);
-			SCAN_VAR(op->ams);
-			SCAN_VAR(op->AMmask);
-
-			SCAN_VAR(op->state);
-			SCAN_VAR(op->eg_sh_ar);
-			SCAN_VAR(op->eg_sel_ar);
-			SCAN_VAR(op->tl);
-			SCAN_VAR(op->volume);
-			SCAN_VAR(op->eg_sh_d1r);
-			SCAN_VAR(op->eg_sel_d1r);
-			SCAN_VAR(op->d1l);
-			SCAN_VAR(op->eg_sh_d2r);
-			SCAN_VAR(op->eg_sel_d2r);
-			SCAN_VAR(op->eg_sh_rr);
-			SCAN_VAR(op->eg_sel_rr);
-
-			SCAN_VAR(op->key);
-			SCAN_VAR(op->ks);
-			SCAN_VAR(op->ar);
-			SCAN_VAR(op->d1r);
-			SCAN_VAR(op->d2r);
-			SCAN_VAR(op->rr);
-
-			SCAN_VAR(op->reserved0);
-			SCAN_VAR(op->reserved1);
-		}
-
-		//sprintf(buf1,"YM2151.registers");
-		SCAN_VAR(YMPSG[i].pan);
-
-		SCAN_VAR(YMPSG[i].eg_cnt);
-		SCAN_VAR(YMPSG[i].eg_timer);
-		SCAN_VAR(YMPSG[i].eg_timer_add);
-		SCAN_VAR(YMPSG[i].eg_timer_overflow);
-
-		SCAN_VAR(YMPSG[i].lfo_phase);
-		SCAN_VAR(YMPSG[i].lfo_timer);
-		SCAN_VAR(YMPSG[i].lfo_timer_add);
-		SCAN_VAR(YMPSG[i].lfo_overflow);
-		SCAN_VAR(YMPSG[i].lfo_counter);
-		SCAN_VAR(YMPSG[i].lfo_counter_add);
-		SCAN_VAR(YMPSG[i].lfo_wsel);
-		SCAN_VAR(YMPSG[i].amd);
-		SCAN_VAR(YMPSG[i].pmd);
-		SCAN_VAR(YMPSG[i].lfa);
-		SCAN_VAR(YMPSG[i].lfp);
-
-		SCAN_VAR(YMPSG[i].test);
-		SCAN_VAR(YMPSG[i].ct);
-
-		SCAN_VAR(YMPSG[i].noise);
-		SCAN_VAR(YMPSG[i].noise_rng);
-		SCAN_VAR(YMPSG[i].noise_p);
-		SCAN_VAR(YMPSG[i].noise_f);
-
-		SCAN_VAR(YMPSG[i].csm_req);
-
-		SCAN_VAR(YMPSG[i].irq_enable);
-		SCAN_VAR(YMPSG[i].status);
-		SCAN_VAR(YMPSG[i].connect);
-
-		SCAN_VAR(YMPSG[i].timer_A); // burn_timer FM-timer_A enable/disable
-		SCAN_VAR(YMPSG[i].timer_B); // burn_timer FM-timer_B enable/disable
-		SCAN_VAR(YMPSG[i].timer_A_index);
-		SCAN_VAR(YMPSG[i].timer_B_index);
-		SCAN_VAR(YMPSG[i].timer_A_index_old);
-		SCAN_VAR(YMPSG[i].timer_B_index_old);
-
-		SCAN_VAR(YMPSG[i].tim_A);
-		SCAN_VAR(YMPSG[i].tim_B);
-		SCAN_VAR(YMPSG[i].tim_A_val);
-		SCAN_VAR(YMPSG[i].tim_B_val);
-	}
-
-	SCAN_VAR(chanout);
-	SCAN_VAR(m2);
-	SCAN_VAR(c1);
-	SCAN_VAR(c2); /* Phase Modulation input for operators 2,3,4 */
-	SCAN_VAR(mem);		/* one sample delay memory */
-
-	if (nAction & ACB_WRITE) {
-		// state_save_register_func_postload(ym2151_postload_refresh);
-		ym2151_postload_refresh();
-	}
-}
-
 void YM2151SetTimerInterleave(double d)
 {
 	YM2151 *chip = &YMPSG[0];
@@ -1502,6 +1389,57 @@ void YM2151SetTimerInterleave(double d)
 	chip->timer_sync = d;
 
 	init_chip_tables(chip);
+}
+
+void YM2151SaveContext(std::ofstream& file)
+{
+	if (!YMPSG) return;
+	
+	// Save number of chips
+	unsigned int numChips = YMNumChips;
+	file.write(reinterpret_cast<const char*>(&numChips), sizeof(numChips));
+	
+	// Calculate size without function pointers
+	size_t sizeNoPointers = offsetof(YM2151, irqhandler);
+	file.write(reinterpret_cast<const char*>(&sizeNoPointers), sizeof(sizeNoPointers));
+	
+	// Save each chip's state (without function pointers)
+	for (unsigned int i = 0; i < YMNumChips; i++)
+	{
+		file.write(reinterpret_cast<const char*>(&YMPSG[i]), sizeNoPointers);
+	}
+}
+
+void YM2151LoadContext(std::ifstream& file)
+{
+	if (!YMPSG) return;
+	
+	// Load number of chips
+	unsigned int numChips;
+	file.read(reinterpret_cast<char*>(&numChips), sizeof(numChips));
+	
+	// Verify we have enough chips allocated
+	if (numChips > YMNumChips || numChips == 0) {
+		return; // Invalid chip count
+	}
+	
+	// Load size
+	size_t sizeNoPointers;
+	file.read(reinterpret_cast<char*>(&sizeNoPointers), sizeof(sizeNoPointers));
+	
+	// Verify size matches expected
+	if (sizeNoPointers != offsetof(YM2151, irqhandler)) {
+		return; // Size mismatch
+	}
+	
+	// Load each chip's state (without function pointers)
+	for (unsigned int i = 0; i < numChips; i++)
+	{
+		file.read(reinterpret_cast<char*>(&YMPSG[i]), sizeNoPointers);
+	}
+	
+	// Restore operator pointers for all chips
+	ym2151_postload_refresh();
 }
 
 

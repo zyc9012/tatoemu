@@ -1,9 +1,5 @@
 /*
- * Compact header combining:
- * - emulators/components/cpu/z80/burnint.h
- * - emulators/components/sound/burnint.h
- * - emulators/components/sound/driver.h
- * - emulators/components/sound/state.h
+ * Compactibility header extracted from FBNeo
  */
 
 #ifndef COMPACT_H
@@ -58,11 +54,6 @@ typedef int bool;
 #define false 0
 #endif
 
-// Math constants
-#ifndef M_PI
-#define M_PI 3.14159265358979323846264338327950288
-#endif
-
 // Endianness - assume little endian (LSB_FIRST) for most modern systems
 #ifndef LSB_FIRST
 #if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
@@ -91,23 +82,6 @@ typedef union {
 
 // STRUCT_SIZE_HELPER macro
 #define STRUCT_SIZE_HELPER(type, member) offsetof(type, member) + sizeof(((type*)0)->member)
-
-// Action flags for save/load states
-#define ACB_NONE    0
-#define ACB_READ    1
-#define ACB_WRITE   2
-#define ACB_RW      (ACB_READ | ACB_WRITE)
-#define ACB_DRIVER_DATA     (1<<6)
-
-// ScanVar function for state saving
-static inline void ScanVar(void* pv, INT32 nSize, char* szName) {
-    (void)pv;
-    (void)nSize;
-    (void)szName;
-}
-
-// SCAN_VAR macro (for save states)
-#define SCAN_VAR(x) ScanVar(&x, sizeof(x), #x)
 
 // Memory allocation (use standard malloc/free)
 #define BurnMalloc(size) malloc(size)

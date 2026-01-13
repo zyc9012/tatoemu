@@ -4,6 +4,8 @@
 #include "../components/cpu/z80/z80.h"
 #include <iostream>
 #include <cstring>
+#include <vector>
+#include <cstddef>
 
 namespace cps {
 
@@ -105,19 +107,41 @@ void SoundCPU::nmi() {
 }
 
 void SoundCPU::saveState(std::ofstream& file) {
-    // Save Z80 state using FBNeo's context save
+    // Save Z80 state
     Z80_Regs regs;
     Z80GetContext(&regs);
     
-    file.write(reinterpret_cast<const char*>(&regs), sizeof(regs));
+    // Calculate size without function pointers
+    size_t sizeNoPointers = offsetof(Z80_Regs, irq_callback);
+    
+    file.write(reinterpret_cast<const char*>(&sizeNoPointers), sizeof(sizeNoPointers));
+    file.write(reinterpret_cast<const char*>(&regs), sizeNoPointers);
     file.write(reinterpret_cast<const char*>(&m_cycles), sizeof(m_cycles));
 }
 
 void SoundCPU::loadState(std::ifstream& file) {
-    // Load Z80 state using FBNeo's context load
-    Z80_Regs regs;
-    file.read(reinterpret_cast<char*>(&regs), sizeof(regs));
-    Z80SetContext(&regs);
+    // Load Z80 state
+    size_t sizeNoPointers;
+    file.read(reinterpret_cast<char*>(&sizeNoPointers), sizeof(sizeNoPointers));
+    
+    if (sizeNoPointers != offsetof(Z80_Regs, irq_callback)) {
+        std::cerr << "Error: Saved Z80 context size mismatch" << std::endl;
+        return;
+    }
+    
+    // Load saved context (without pointers)
+    std::vector<char> savedContext(sizeNoPointers);
+    file.read(savedContext.data(), sizeNoPointers);
+    
+    // Get current context
+    Z80_Regs currentRegs;
+    Z80GetContext(&currentRegs);
+    
+    // Copy saved context to current context, only copy the non-pointer portion
+    memcpy(&currentRegs, savedContext.data(), sizeNoPointers);
+    
+    // Set current context back
+    Z80SetContext(&currentRegs);
     
     file.read(reinterpret_cast<char*>(&m_cycles), sizeof(m_cycles));
 }
