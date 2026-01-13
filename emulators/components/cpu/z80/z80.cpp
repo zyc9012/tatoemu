@@ -1150,8 +1150,6 @@ static inline void RET_COND_SPECTRUM(int cond, UINT8 opcode)
 	change_pc(PCD);												\
 /* according to http://www.msxnet.org/tech/z80-documented.pdf */\
 	IFF1 = IFF2;												\
-    if (Z80.daisy)												\
-		z80daisy_call_reti_device(Z80.daisy);					\
 }
 
 /***************************************************************
@@ -3674,11 +3672,7 @@ static void take_interrupt(void)
 	/* Clear both interrupt flip flops */
 	IFF1 = IFF2 = 0;
 
-	/* Daisy chain mode? If so, call the requesting device */
-	if (Z80.daisy)
-		irq_vector = z80daisy_call_ack_device(Z80.daisy);
-
-	/* else call back the cpu interface to retrieve the vector */
+	/* Call back the cpu interface to retrieve the vector */
 //	else
 //		irq_vector = (*Z80.irq_callback)(0);
 
@@ -3990,11 +3984,6 @@ void z80_set_spectrum_tape_callback(int (*tape_cb)())
 	Z80.spectrum_tape_cb = tape_cb;
 }
 
-void Z80SetDaisy(void *dptr)
-{
-	Z80.daisy = (z80_irq_daisy_chain *)dptr;
-}
-
 void Z80Reset()
 {
 	memset(&Z80, 0, STRUCT_SIZE_HELPER(Z80_Regs, hold_irq)); // don't clear the callback pointers
@@ -4016,9 +4005,6 @@ void Z80Reset()
 	WZ = PCD;
 	Z80Vector = 0xff;
 
-	if (Z80.daisy)
-		z80daisy_reset(Z80.daisy);
-
 	change_pc(PCD);
 
 	memset(&m_opcode_history, 0, sizeof(OPCODE_HISTORY));
@@ -4031,10 +4017,6 @@ void Z80Exit()
 {
 	Z80.spectrum_tape_cb = NULL;
 	Z80.spectrum_mode = 0;
-
-    if (Z80.daisy) {
-        z80daisy_exit();
-    }
 
 	if (SZHVC_add) free(SZHVC_add);
 	SZHVC_add = NULL;
@@ -4098,10 +4080,6 @@ int Z80Execute(int cycles)
 
 	Z80.cycles_left = Z80.ICount = 0;
 
-    if (Z80.daisy && z80daisy_has_ctc) {
-        z80ctc_timer_update(cycles);
-    }
-
 	return cycles;
 }
 
@@ -4136,10 +4114,8 @@ void Z80SetIrqLine(int irqline, int state)
 	}
 	else
 	{
-		/* update the IRQ state via the daisy chain */
+		/* update the IRQ state */
 		Z80.irq_state = state;
-		if (Z80.daisy)
-			Z80.irq_state = z80daisy_update_irq_state(Z80.daisy);
 
 		/* the main execute loop will take the interrupt */
 	}
@@ -4160,10 +4136,6 @@ void Z80SetContext (void *src)
 
 int Z80Scan(int nAction)
 {
-    if (Z80.daisy) {
-        z80daisy_scan(nAction);
-	}
-
 	if (m_ula_variant != ULA_VARIANT_NONE) {
 		SCAN_VAR(m_tstate_counter);
 		SCAN_VAR(m_selected_bank);

@@ -40,9 +40,6 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/cps/sound_cpu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/controller.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80.cpp
-    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80daisy.cpp
-    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80ctc.cpp
-    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80pio.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kcpu.c
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kops.c
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/core.cpp
@@ -117,7 +114,8 @@ function(apply_common_target_settings target_name)
     )
 
     # Add miniz, m68k, Z80, and sound component source files and compile them as C
-    # Note: z80.cpp, z80daisy.cpp, z80ctc.cpp, and z80pio.cpp are C++ code, so they should be compiled as CXX
+    # Note: z80.cpp and z80daisy.cpp are C++ code, so they should be compiled as CXX
+    # Note: z80ctc.cpp and z80pio.cpp have been removed - not used by CPS/NeoGeo emulators
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/utilities/miniz/miniz.c
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kcpu.c

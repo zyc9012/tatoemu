@@ -8,8 +8,6 @@
 #define Z80_ASSERT_LINE		1
 #define Z80_INPUT_LINE_NMI	32
 
-#include "z80daisy.h"
-
 typedef union
 {
 #ifdef LSB_FIRST
@@ -39,7 +37,6 @@ typedef struct
 	UINT32  EA;
 	INT32   hold_irq;
 
-	const struct z80_irq_daisy_chain *daisy;
 	int (*irq_callback)(int irqline);
 
 	int (*spectrum_tape_cb)();
