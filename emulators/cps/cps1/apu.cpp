@@ -22,19 +22,8 @@ static cps::SoundCPU* s_ym2151SoundCpu = nullptr;
 // YM2151 interrupt handler - sets/clears Z80 INT line based on YM2151 interrupt status
 static void ym2151IrqHandler(INT32 nStatus) {
     if (s_ym2151SoundCpu) {
-        // Set INT line state: nStatus != 0 means interrupt active (line low)
-        // Our Z80 implementation handles the interrupt response automatically
         s_ym2151SoundCpu->irq(nStatus != 0);
     }
-}
-
-// YM2151 port write handler - not used in CPS1 (we use memory-mapped I/O)
-// But we provide a no-op handler to satisfy FBNeo's requirements
-static void ym2151PortWriteHandler(UINT8 port, UINT8 data) {
-    // CPS1 uses memory-mapped I/O at 0xF000-0xF001, not port I/O
-    // This handler is not used but must be set to avoid null pointer issues
-    (void)port;
-    (void)data;
 }
 
 APU::APU()
@@ -42,49 +31,28 @@ APU::APU()
     , m_memory(nullptr)
     , m_cartridge(nullptr)
     , m_audioDevice(nullptr)
-    , m_ym2151LeftBuffer(nullptr)
-    , m_ym2151RightBuffer(nullptr)
-    , m_msm6295Buffer(nullptr)
     , m_cycleAccumulator(0)
     , m_cyclesPerSample(0)
     , m_ym2151RegSelect(0) {
-    m_sampleBufferLeft.reserve(1024);
-    m_sampleBufferRight.reserve(1024);
-    
-    // Initialize FBNeo YM2151 (chip 0, chipbase 0, clock 3579540 Hz, rate, no timer callback)
+
+    m_ym2151LeftBuffer.resize(0x100);
+    m_ym2151RightBuffer.resize(0x100);
+    m_msm6295Buffer.resize(0x100 * 2);
+
+    // Initialize YM2151
     YM2151Init(1, 0, 3579540, 44100, nullptr);
     
     // Set YM2151 interrupt handler (will be connected to Z80 when setSoundCPU is called)
-    YM2151SetIrqHandler(YM2151_CHIP, ym2151IrqHandler);
+    YM2151SetIrqHandler(0, ym2151IrqHandler);
     
-    // Set YM2151 port write handler (no-op for CPS1, but required by FBNeo)
-    // YM2151SetPortWriteHandler(YM2151_CHIP, ym2151PortWriteHandler);
-    
-    // Initialize FBNeo MSM6295 (chip 0, samplerate 7576 Hz, don't add signal)
-    MSM6295Init(MSM6295_CHIP, 7576, false);
-    MSM6295SetRoute(MSM6295_CHIP, 1, BURN_SND_ROUTE_BOTH);
-    
-    // Allocate sample buffers
-    m_ym2151LeftBuffer = new INT16[4096];
-    m_ym2151RightBuffer = new INT16[4096];
-    m_msm6295Buffer = new INT16[4096 * 2];  // Stereo
+    // Initialize MSM6295
+    MSM6295Init(0, 7576, false);
+    MSM6295SetRoute(0, 1, BURN_SND_ROUTE_BOTH);
 }
 
 APU::~APU() {
-    if (m_ym2151LeftBuffer) {
-        delete[] m_ym2151LeftBuffer;
-        m_ym2151LeftBuffer = nullptr;
-    }
-    if (m_ym2151RightBuffer) {
-        delete[] m_ym2151RightBuffer;
-        m_ym2151RightBuffer = nullptr;
-    }
-    if (m_msm6295Buffer) {
-        delete[] m_msm6295Buffer;
-        m_msm6295Buffer = nullptr;
-    }
     YM2151Shutdown();
-    MSM6295Exit(MSM6295_CHIP);
+    MSM6295Exit(0);
 }
 
 void APU::setSoundCPU(cps::SoundCPU* soundCpu) {
@@ -104,8 +72,8 @@ void APU::setCartridge(Cartridge* cartridge) {
 
 void APU::reset() {
     // Reset sound chips
-    YM2151ResetChip(YM2151_CHIP);
-    MSM6295Reset(MSM6295_CHIP);
+    YM2151ResetChip(0);
+    MSM6295Reset(0);
     m_ym2151RegSelect = 0;
     
     // Reset sample generation
@@ -130,14 +98,12 @@ void APU::setROMData() {
     if (sampleData && sampleSize > 0) {
         // Set bank
         INT32 endAddr = static_cast<INT32>(sampleSize - 1);
-        MSM6295SetBank(MSM6295_CHIP, const_cast<UINT8*>(sampleData), 0, endAddr);
+        MSM6295SetBank(0, const_cast<UINT8*>(sampleData), 0, endAddr);
     }
 }
 
 void APU::step(u32 cycles, double gameSpeed) {
     (void)gameSpeed;
-    // FBNeo handles timing internally during sample generation
-    // Generate audio samples
     generateSamples(cycles);
 }
 
@@ -145,8 +111,8 @@ void APU::setSampleRate(u32 sampleRate) {
     m_sampleRate = sampleRate;
     nBurnSoundRate = sampleRate;
     
-    YM2151SetSampleRate(YM2151_CHIP, sampleRate);
-    MSM6295SetSamplerate(MSM6295_CHIP, 7576);
+    YM2151SetSampleRate(0, sampleRate);
+    MSM6295SetSamplerate(0, 7576);
     
     // Recalculate cycles per sample
     m_cyclesPerSample = SOUND_CPU_FREQUENCY / m_sampleRate;
@@ -159,12 +125,12 @@ void APU::setVolume(float volume) {
 u8 APU::readPort(u16 port) {
     // YM2151 status register (port 0x01)
     if (port == 0x01) {
-        return static_cast<u8>(YM2151ReadStatus(YM2151_CHIP));
+        return static_cast<u8>(YM2151ReadStatus(0));
     }
     
     // MSM6295 status (port 0x02)
     if (port == 0x02) {
-        return static_cast<u8>(MSM6295Read(MSM6295_CHIP));
+        return static_cast<u8>(MSM6295Read(0));
     }
     
     return 0xFF;
@@ -179,13 +145,13 @@ void APU::writePort(u16 port, u8 value) {
     
     // YM2151 data write (port 0x01)
     if (port == 0x01) {
-        YM2151WriteReg(YM2151_CHIP, m_ym2151RegSelect, value);
+        YM2151WriteReg(0, m_ym2151RegSelect, value);
         return;
     }
     
     // MSM6295 command (port 0x02)
     if (port == 0x02) {
-        MSM6295Write(MSM6295_CHIP, value);
+        MSM6295Write(0, value);
         return;
     }
 }
@@ -203,28 +169,20 @@ void APU::generateSamples(u32 cycles) {
     if (numSamples == 0) {
         return;
     }
-    
-    // Ensure buffers are large enough
-    if (numSamples > 4096) {
-        delete[] m_ym2151LeftBuffer;
-        delete[] m_ym2151RightBuffer;
-        delete[] m_msm6295Buffer;
-        m_ym2151LeftBuffer = new INT16[numSamples];
-        m_ym2151RightBuffer = new INT16[numSamples];
-        m_msm6295Buffer = new INT16[numSamples * 2];  // Stereo
+
+    if (numSamples > m_ym2151LeftBuffer.size()) {
+        m_ym2151LeftBuffer.resize(numSamples);
+        m_ym2151RightBuffer.resize(numSamples);
+        m_msm6295Buffer.resize(numSamples * 2);
     }
     
-    // Prepare buffer pointers for FBNeo YM2151
-    INT16* ym2151Buffers[2] = { m_ym2151LeftBuffer, m_ym2151RightBuffer };
+    INT16* ym2151Buffers[2] = { m_ym2151LeftBuffer.data(), m_ym2151RightBuffer.data() };
     
-    // Generate samples using FBNeo implementations
-    YM2151UpdateOne(YM2151_CHIP, ym2151Buffers, static_cast<int>(numSamples));
-    
-    // Clear MSM6295 buffer
-    memset(m_msm6295Buffer, 0, numSamples * 2 * sizeof(INT16));
-    
+    // Generate YM2151 samples
+    YM2151UpdateOne(0, ym2151Buffers, static_cast<int>(numSamples));
+
     // Generate MSM6295 samples
-    MSM6295Render(MSM6295_CHIP, m_msm6295Buffer, static_cast<INT32>(numSamples));
+    MSM6295Render(0, m_msm6295Buffer.data(), static_cast<INT32>(numSamples));
 
     // Mix and convert to float
     for (u32 i = 0; i < numSamples; i++) {
@@ -245,8 +203,8 @@ void APU::generateSamples(u32 cycles) {
         right *= m_volume;
         
         // Clamp to [-1.0, 1.0]
-        left = std::max(-1.0f, std::min(1.0f, left));
-        right = std::max(-1.0f, std::min(1.0f, right));
+        left = std::clamp(left, -1.0f, 1.0f);
+        right = std::clamp(right, -1.0f, 1.0f);
         
         float samples[2] = {left, right};
         m_audioDevice->writeSamples(samples, sizeof(samples));
@@ -259,7 +217,6 @@ void APU::saveState(std::ofstream& file) {
     file.write(reinterpret_cast<const char*>(&m_cycleAccumulator), sizeof(m_cycleAccumulator));
     file.write(reinterpret_cast<const char*>(&m_cyclesPerSample), sizeof(m_cyclesPerSample));
     file.write(reinterpret_cast<const char*>(&m_ym2151RegSelect), sizeof(m_ym2151RegSelect));
-    // Use FBNeo's state saving
     INT32 nAction = ACB_READ;
     BurnYM2151Scan_int(nAction);
     INT32 pnMin = 0;
@@ -272,7 +229,6 @@ void APU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_cycleAccumulator), sizeof(m_cycleAccumulator));
     file.read(reinterpret_cast<char*>(&m_cyclesPerSample), sizeof(m_cyclesPerSample));
     file.read(reinterpret_cast<char*>(&m_ym2151RegSelect), sizeof(m_ym2151RegSelect));
-    // Use FBNeo's state loading
     INT32 nAction = ACB_WRITE;
     BurnYM2151Scan_int(nAction);
     INT32 pnMin = 0;
