@@ -42,7 +42,7 @@ APU::APU()
     YM2151SetIrqHandler(0, ym2151IrqHandler);
     
     // Initialize MSM6295
-    MSM6295Init(0, 7576, false);
+    MSM6295Init(0, 7576, false, 44100, 0);
     MSM6295SetRoute(0, 1, BURN_SND_ROUTE_BOTH);
 }
 
@@ -105,10 +105,9 @@ void APU::step(u32 cycles, double gameSpeed) {
 
 void APU::setSampleRate(u32 sampleRate) {
     m_sampleRate = sampleRate;
-    nBurnSoundRate = sampleRate;
     
     YM2151SetSampleRate(0, sampleRate);
-    MSM6295SetSamplerate(0, 7576);
+    MSM6295SetSamplerate(0, 7576, static_cast<s32>(sampleRate));
     
     // Recalculate cycles per sample
     m_cyclesPerSample = SOUND_CPU_FREQUENCY / m_sampleRate;

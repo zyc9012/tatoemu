@@ -89,6 +89,10 @@ static INT32 nPreviousSample[MAX_MSM6295], nCurrentSample[MAX_MSM6295];
 
 static bool bAdd;
 
+// Host sound rate and interpolation setting (configurable through MSM6295Init)
+static INT32 nHostSoundRate = 44100;
+static INT32 nInterpolation = 0;
+
 void MSM6295Reset(INT32 nChip)
 {
 	nMSM6295Status[nChip] = 0;
@@ -358,24 +362,35 @@ void MSM6295ExitAll(void)
 	}
 }
 
-void MSM6295SetSamplerate(INT32 nChip, INT32 nSamplerate)
+void MSM6295SetSamplerate(INT32 nChip, INT32 nSamplerate, INT32 nHostSoundRateParam)
 {
+	// Update host sound rate if provided (only on first chip)
+	if (nChip == 0 && nHostSoundRateParam > 0) {
+		nHostSoundRate = nHostSoundRateParam;
+	}
+	
 	MSM6295[nChip].nSampleRate = nSamplerate;
-	if (nBurnSoundRate > 0) {
-		MSM6295[nChip].nSampleSize = (nSamplerate << 12) / nBurnSoundRate;
+	if (nHostSoundRate > 0) {
+		MSM6295[nChip].nSampleSize = (nSamplerate << 12) / nHostSoundRate;
 	} else {
 		MSM6295[nChip].nSampleSize = (nSamplerate << 12) / 11025;
 	}
 }
 
-INT32 MSM6295Init(INT32 nChip, INT32 nSamplerate, bool bAddSignal)
+INT32 MSM6295Init(INT32 nChip, INT32 nSamplerate, bool bAddSignal, INT32 nHostSoundRateParam, INT32 nInterpolationParam)
 {
-	if (nBurnSoundRate > 0) {
+	// Set host sound rate and interpolation (only on first chip init)
+	if (nChip == 0) {
+		nHostSoundRate = nHostSoundRateParam;
+		nInterpolation = nInterpolationParam;
+	}
+	
+	if (nHostSoundRate > 0) {
 		if (pLeftBuffer == NULL) {
-			pLeftBuffer = (INT32*)BurnMalloc(nBurnSoundRate * sizeof(INT32));
+			pLeftBuffer = (INT32*)BurnMalloc(nHostSoundRate * sizeof(INT32));
 		}
 		if (pRightBuffer == NULL) {
-			pRightBuffer = (INT32*)BurnMalloc(nBurnSoundRate * sizeof(INT32));
+			pRightBuffer = (INT32*)BurnMalloc(nHostSoundRate * sizeof(INT32));
 		}
 	}
 
@@ -389,8 +404,8 @@ INT32 MSM6295Init(INT32 nChip, INT32 nSamplerate, bool bAddSignal)
 	MSM6295[nChip].nVolume = INT32(100.0 * 256.0 / 100.0 + 0.5);
 
 	MSM6295[nChip].nSampleRate = nSamplerate;
-	if (nBurnSoundRate > 0) {
-		MSM6295[nChip].nSampleSize = (nSamplerate << 12) / nBurnSoundRate;
+	if (nHostSoundRate > 0) {
+		MSM6295[nChip].nSampleSize = (nSamplerate << 12) / nHostSoundRate;
 	} else {
 		MSM6295[nChip].nSampleSize = (nSamplerate << 12) / 11025;
 	}

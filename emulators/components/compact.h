@@ -87,12 +87,6 @@ typedef union {
 #define BurnMalloc(size) malloc(size)
 #define BurnFree(ptr) free(ptr)
 
-// Sound rate (will be set by wrapper)
-extern INT32 nBurnSoundRate;
-
-// Interpolation setting (default to linear)
-extern INT32 nInterpolation;
-
 // Route definitions
 #define BURN_SND_ROUTE_LEFT    0x01
 #define BURN_SND_ROUTE_RIGHT   0x02

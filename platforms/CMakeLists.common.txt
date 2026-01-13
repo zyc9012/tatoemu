@@ -48,7 +48,6 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/memory.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/sound/ym2151/ym2151.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/sound/msm6295/msm6295.cpp
-    ${CMAKE_SOURCE_DIR}/emulators/components/sound/burnint.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/cartridge.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/db.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/zip_reader.cpp
