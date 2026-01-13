@@ -62,7 +62,7 @@ APU::APU()
     
     // Initialize FBNeo MSM6295 (chip 0, samplerate 7576 Hz, don't add signal)
     MSM6295Init(MSM6295_CHIP, 7576, false);
-    MSM6295SetRoute(MSM6295_CHIP, 0.30, BURN_SND_ROUTE_BOTH);
+    MSM6295SetRoute(MSM6295_CHIP, 1, BURN_SND_ROUTE_BOTH);
     
     // Allocate sample buffers
     m_ym2151LeftBuffer = new INT16[4096];
@@ -237,8 +237,8 @@ void APU::generateSamples(u32 cycles) {
         float msmRight = static_cast<float>(m_msm6295Buffer[i + 1]) / 32768.0f;
         
         // Mix channels
-        float left = ymLeft + msmLeft;
-        float right = ymRight + msmRight;
+        float left = ymLeft * 0.35 + msmLeft * 0.30;
+        float right = ymRight * 0.35 + msmRight * 0.30;
         
         // Apply volume
         left *= m_volume;
