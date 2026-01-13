@@ -2,6 +2,7 @@
 
 #include "../../types.h"
 #include "../apu_base.h"
+#include "../memory.h"
 #include "../cartridge.h"
 #include "../../components/sound/ym2151/ym2151.h"
 #include "../../components/sound/msm6295/msm6295.h"
@@ -11,8 +12,6 @@
 #include <vector>
 
 namespace cps1 {
-
-class Memory;
 
 // Audio Processing Unit for CPS1 (YM2151 + MSM6295)
 class APU : public cps::APUBase {
@@ -24,7 +23,7 @@ public:
     void step(u32 cycles, double gameSpeed) override;
     
     void setSoundCPU(cps::SoundCPU* soundCpu) override;
-    void setMemory(cps::MemoryBase* memory) override;
+    void setMemory(cps::Memory* memory) override;
     void setAudioDevice(::AudioDevice* audioDevice) override { m_audioDevice = audioDevice; }
     void setCartridge(cps::Cartridge* cartridge);
     
@@ -41,7 +40,7 @@ public:
 
 private:
     cps::SoundCPU* m_soundCpu;
-    Memory* m_memory;
+    cps::Memory* m_memory;
     cps::Cartridge* m_cartridge;
     ::AudioDevice* m_audioDevice;
     

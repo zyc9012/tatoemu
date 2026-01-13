@@ -1,13 +1,13 @@
 #include "apu.h"
 #include "../sound_cpu.h"
-#include "memory.h"
+#include "../memory.h"
 #include "../cartridge.h"
 #include "../../types.h"
 #include "../../components/compact.h"
 #include <cstring>
 #include <cmath>
 #include <algorithm>
-#include "consts.h"
+#include "../consts.h"
 
 namespace cps1 {
 
@@ -57,8 +57,8 @@ void APU::setSoundCPU(cps::SoundCPU* soundCpu) {
     s_ym2151SoundCpu = soundCpu;
 }
 
-void APU::setMemory(cps::MemoryBase* memory) {
-    m_memory = static_cast<Memory*>(memory);
+void APU::setMemory(cps::Memory* memory) {
+    m_memory = memory;
 }
 
 void APU::setCartridge(cps::Cartridge* cartridge) {

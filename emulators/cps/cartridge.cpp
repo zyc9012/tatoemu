@@ -1,7 +1,6 @@
 #include "cartridge.h"
 #include "cpu.h"
-#include "cps1/ppu.h"
-#include "cps2/ppu.h"
+#include "ppu.h"
 #include "db.h"
 #include "decrypt.h"
 #include "zip_reader.h"
@@ -33,29 +32,19 @@ Cartridge::Cartridge()
     , m_watchdogOpcode(0) {
 }
 
-void Cartridge::setPPU(PPUBase* ppu) {
+void Cartridge::setPPU(PPU* ppu) {
     m_ppu = ppu;
 }
 
 BoardConfig Cartridge::getBoardConfig() const {
-    if (m_cpsVer != 1 || !m_gameInfo) {
-        // Return default for CPS2 or invalid state
-        return GameDatabase::getBoardConfig(CPSBoard::CPS_B_01);
-    }
     return GameDatabase::getBoardConfig(m_gameInfo->board);
 }
 
 CPSBoard Cartridge::getBoardType() const {
-    if (m_cpsVer != 1 || !m_gameInfo) {
-        return CPSBoard::CPS_B_01;
-    }
     return m_gameInfo->board;
 }
 
 CPSMapper Cartridge::getMapper() const {
-    if (m_cpsVer != 1 || !m_gameInfo) {
-        return CPSMapper::MAPPER_LWCHR;  // Return default mapper
-    }
     return m_gameInfo->mapper;
 }
 
@@ -396,12 +385,6 @@ u16 Cartridge::readROM16(u32 address) {
     return (high << 8) | low;
 }
 
-u32 Cartridge::readROM32(u32 address) {
-    u32 high = readROM16(address);
-    u32 low = readROM16(address + 2);
-    return (high << 16) | low;
-}
-
 u8 Cartridge::readGraphicsROM8(u32 address) const {
     if (address < m_graphicsRomSize) {
         return m_graphicsRom[address];
@@ -409,32 +392,11 @@ u8 Cartridge::readGraphicsROM8(u32 address) const {
     return 0;
 }
 
-u16 Cartridge::readGraphicsROM16(u32 address) const {
-    // Graphics ROMs are typically byte-swapped or have specific endianness
-    // For now, assume big-endian like program ROMs
-    u16 high = readGraphicsROM8(address);
-    u16 low = readGraphicsROM8(address + 1);
-    return (high << 8) | low;
-}
-
-u32 Cartridge::readGraphicsROM32(u32 address) const {
-    u32 high = readGraphicsROM16(address);
-    u32 low = readGraphicsROM16(address + 2);
-    return (high << 16) | low;
-}
-
 u8 Cartridge::readSoundROM8(u16 address) const {
     if (address < m_soundProgramRom.size()) {
         return m_soundProgramRom[address];
     }
     return 0;
-}
-
-u16 Cartridge::readSoundROM16(u16 address) const {
-    // Sound ROMs are typically little-endian (Z80)
-    u16 low = readSoundROM8(address);
-    u16 high = readSoundROM8(address + 1);
-    return (high << 8) | low;
 }
 
 void Cartridge::saveState(std::ofstream& file) {

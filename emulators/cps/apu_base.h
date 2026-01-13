@@ -6,7 +6,7 @@
 namespace cps {
 
 class SoundCPU;
-class MemoryBase;
+class Memory;
 class AudioDevice;
 
 // Base class for Audio Processing Unit (shared interface)
@@ -18,7 +18,7 @@ public:
     virtual void step(u32 cycles, double gameSpeed) = 0;
     
     virtual void setSoundCPU(SoundCPU* soundCpu) = 0;
-    virtual void setMemory(MemoryBase* memory) = 0;
+    virtual void setMemory(Memory* memory) = 0;
     virtual void setAudioDevice(::AudioDevice* audioDevice) = 0;
     
     virtual void setSampleRate(u32 sampleRate) = 0;

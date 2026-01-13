@@ -1,14 +1,16 @@
 #pragma once
 
-#include "../../types.h"
-#include "../ppu_base.h"
-#include "../db.h"
+#include "../types.h"
+#include "db.h"
 #include "consts.h"
 #include <array>
 #include <vector>
 #include <fstream>
 
-namespace cps1 {
+namespace cps {
+
+class CPU;
+class Cartridge;
 
 // Palette size (0xC00 bytes = 3072 bytes, 1536 16-bit entries across 6 pages)
 constexpr u32 PALETTE_RAM_SIZE = 0xC00;
@@ -22,22 +24,23 @@ enum TileType {
     CTT_CARE  = 2,  // Need to clip
 };
 
-// CPS1 PPU (Picture Processing Unit)
+// PPU (Picture Processing Unit)
 // Handles all video rendering including scroll layers, sprites, and palette
-class PPU : public cps::PPUBase {
+// Unified implementation supporting both CPS1 and CPS2
+class PPU {
 public:
     PPU();
-    ~PPU() override = default;
+    ~PPU() = default;
 
-    void reset() override;
-    void step() override;
+    void reset();
+    void step();
     
-    bool isFrameComplete() const override { return m_frameComplete; }
-    void clearFrameComplete() override { m_frameComplete = false; }
+    bool isFrameComplete() const { return m_frameComplete; }
+    void clearFrameComplete() { m_frameComplete = false; }
     
-    void setCPU(cps::CPU* cpu) override { m_cpu = cpu; }
-    void setCartridge(cps::Cartridge* cartridge) override;
-    void setVideoDevice(::VideoDevice* videoDevice) override { m_videoDevice = videoDevice; }
+    void setCPU(CPU* cpu) { m_cpu = cpu; }
+    void setCartridge(Cartridge* cartridge);
+    void setVideoDevice(::VideoDevice* videoDevice) { m_videoDevice = videoDevice; }
     
     // VRAM access (from Memory class)
     u8 readVRAM8(u32 address);
@@ -55,12 +58,12 @@ public:
     void decodeGraphicsROM();
     
     // Save/Load state
-    void saveState(std::ofstream& file) override;
-    void loadState(std::ifstream& file) override;
+    void saveState(std::ofstream& file);
+    void loadState(std::ifstream& file);
 
 private:
-    cps::CPU* m_cpu;
-    cps::Cartridge* m_cartridge;
+    CPU* m_cpu;
+    Cartridge* m_cartridge;
     VideoDevice* m_videoDevice;
     
     // Frame buffer (ARGB8888 format)
@@ -82,8 +85,8 @@ private:
     // CPS registers (0x00-0xFF, mapped from 0x800100-0x8001FF)
     std::array<u8, 256> m_cpsRegs;
     
-    // Board configuration (from cartridge/database)
-    cps::BoardConfig m_boardConfig;
+    // Board configuration (CPS1 only, from cartridge/database)
+    BoardConfig m_boardConfig;
     
     // Scroll offsets (can be adjusted per-game)
     s32 m_layer1XOffs, m_layer1YOffs;
@@ -94,8 +97,8 @@ private:
     // Graphics bank offsets
     u32 m_gfxScroll[4];  // Offsets to scroll tiles
     
-    // Graphics ROM bank mapper
-    const cps::GfxRange* m_gfxMapper;
+    // Graphics ROM bank mapper (CPS1 only, CPS2 uses direct addressing)
+    const GfxRange* m_gfxMapper;
     u32 m_gfxBankSizes[4];
     
     // Frame state
@@ -141,4 +144,4 @@ private:
     void setupGfxMapper();
 };
 
-} // namespace cps1
+} // namespace cps

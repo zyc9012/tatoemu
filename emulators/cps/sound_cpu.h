@@ -14,7 +14,7 @@ extern "C" {
 
 namespace cps {
 
-class MemoryBase;
+class Memory;
 class APUBase;
 
 // Z80 CPU emulator (shared between CPS1 and CPS2)
@@ -27,11 +27,11 @@ public:
     void step(u32 cycles);  // Execute specified number of cycles
     
     u32 getCycles() const { return m_cycles; }
-    void setMemory(MemoryBase* memory) { m_memory = memory; }
+    void setMemory(Memory* memory) { m_memory = memory; }
     void setAPU(APUBase* apu) { m_apu = apu; }
     
     // Accessors for Z80 callbacks
-    MemoryBase* getMemory() const { return m_memory; }
+    Memory* getMemory() const { return m_memory; }
     APUBase* getAPU() const { return m_apu; }
     
     // Interrupt handling
@@ -44,7 +44,7 @@ public:
 
 protected:
     // Protected so Z80 callback functions can access them
-    MemoryBase* m_memory;
+    Memory* m_memory;
     APUBase* m_apu;
     u32 m_cycles;
 };

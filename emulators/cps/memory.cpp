@@ -1,68 +1,32 @@
 #include "memory.h"
-#include "../cartridge.h"
+#include "cartridge.h"
+#include "cpu.h"
+#include "sound_cpu.h"
 #include "ppu.h"
-#include "../cpu.h"
-#include "../sound_cpu.h"
-#include "../ppu_base.h"
-#include "../apu_base.h"
-#include "../controller.h"
+#include "apu_base.h"
+#include "controller.h"
+#include "db.h"
 #include <iostream>
 #include <cstring>
 
 /*
- * CPS1 Memory Map (68000)
- * =======================
+ * Unified Memory Map (CPS1 and CPS2)
+ * ===================================
  * 
- * 0x000000-0x3FFFFF: Program ROM (max 4MB, varies by game)
- *                    Contains the game's 68000 program code
- *                    Read-only, mapped from cartridge
- * 
- * 0x800000-0x8001FF: I/O Ports and CPS Registers (mirrored through 0x807FFF)
- *   0x800000-0x80001F: Input ports (controllers, coins, start buttons)
- *     0x800000: Player 1 inputs (low byte)
- *     0x800001: Player 1 inputs (high byte)
- *     0x800010: Player 2 inputs (low byte)
- *     0x800011: Player 2 inputs (high byte)
- *     0x800012: System inputs (coins, start buttons)
- *     0x800018: DIP switches 1
- *     0x800019: DIP switches 2
- *     0x80001A-0x80001E: Additional DIP switches (game-dependent)
- * 
- *   0x800100-0x8001FF: CPS registers and board ID
- *     0x800100+: CPS control registers (layer control, palette select, etc.)
- *                The exact layout varies by game and board type
- *                Each game reads its "Board ID" from a specific offset here
- *     0x800180+: Protection/multiplication registers (game-dependent)
- * 
+ * Common:
+ * 0x000000-0x3FFFFF: Program ROM (max 4MB, encrypted for CPS2)
+ * 0x800000-0x8001FF: I/O Ports and CPS Registers
  * 0x900000-0x92FFFF: Video RAM (VRAM) - 192KB
- *                    Contains tile data, palette data, scroll registers
- *                    Organized into multiple layers:
- *                    - Scroll 1/2/3 tile maps
- *                    - Palette RAM
- *                    - Sprite/Object RAM
- *                    Exact layout determined by CPS registers
- * 
  * 0xFF0000-0xFFFFFF: Work RAM - 64KB
- *                    General purpose RAM for the game program
- *                    Stack, variables, temporary data, etc.
  * 
- * 
- * CPS1 Memory Map (Z80 Sound CPU)
- * ================================
- * 
- * 0x0000-0x7FFF: Sound ROM
- *                Z80 program code for sound driver
- * 
- * 0x8000-0x9FFF: Sound RAM (2KB, mirrored)
- *                Working memory for Z80
- *                Location 0x8001 is polled for sound commands from 68000
- * 
- * 0xC000-0xC001: YM2151 FM synthesizer registers
- * 0xD000:        ADPCM sample data
- * 0xE000-0xE00F: ADPCM control registers
+ * CPS2-only:
+ * 0x400000-0x40000F: CPS2 Registers (Frg registers)
+ * 0x660000-0x663FFF: Extra RAM (16KB)
+ * 0x664001: Frame toggle register
+ * 0x708000-0x717FFF: Object RAM (64KB)
  */
 
-namespace cps1 {
+namespace cps {
 
 Memory::Memory()
     : m_cpu(nullptr)
@@ -77,7 +41,15 @@ Memory::Memory()
     , m_memProt{0x00, 0x00, 0x00, 0x00}
     , m_boardId{0x00, 0x00, 0x00}
     , m_soundCommand(0)
-    , m_soundFade(0) {
+    , m_soundFade(0)
+    , m_n664001(0) {
+}
+
+u8 Memory::getCPSVersion() const {
+    if (m_cartridge) {
+        return m_cartridge->getCPSVersion();
+    }
+    return 1;  // Default to CPS1
 }
 
 void Memory::reset() {
@@ -85,26 +57,42 @@ void Memory::reset() {
     m_workRam.fill(0);
     m_soundRam.fill(0);
     
-    // Reset protection calc
-    m_protCalc[0] = 0;
-    m_protCalc[1] = 0;
-    
     // Reset Z80 bank
     m_z80Bank = 0;
     
-    // Set board ID and memProt from game database
-    cps::Cartridge* cart = m_cartridge;
-    cps::BoardConfig config = cart->getBoardConfig();
+    u8 cpsVer = getCPSVersion();
     
-    m_boardId[0] = config.boardIdOffset;
-    m_boardId[1] = config.boardIdValue1;
-    m_boardId[2] = config.boardIdValue2;
+    if (cpsVer == 1) {
+        // CPS1-specific reset
+        // Reset protection calc
+        m_protCalc[0] = 0;
+        m_protCalc[1] = 0;
+        
+        // Set board ID and memProt from game database
+        if (m_cartridge) {
+            BoardConfig config = m_cartridge->getBoardConfig();
+            
+            m_boardId[0] = config.boardIdOffset;
+            m_boardId[1] = config.boardIdValue1;
+            m_boardId[2] = config.boardIdValue2;
+            
+            // Set memory protection offsets
+            m_memProt[0] = config.memProt[0];
+            m_memProt[1] = config.memProt[1];
+            m_memProt[2] = config.memProt[2];
+            m_memProt[3] = config.memProt[3];
+        }
+    } else {
+        // CPS2-specific reset
+        m_extraRam.fill(0);
+        m_objRam.fill(0);
+        m_frgRegs.fill(0);
+        m_n664001 = 0;
+    }
     
-    // Set memory protection offsets
-    m_memProt[0] = config.memProt[0];
-    m_memProt[1] = config.memProt[1];
-    m_memProt[2] = config.memProt[2];
-    m_memProt[3] = config.memProt[3];
+    // Reset sound communication
+    m_soundCommand = 0;
+    m_soundFade = 0;
 }
 
 // ============================================================================
@@ -112,12 +100,34 @@ void Memory::reset() {
 // ============================================================================
 
 u8 Memory::read8(u32 address) {
+    u8 cpsVer = getCPSVersion();
+    
     // ROM (0x000000-0x3FFFFF)
     if (address < 0x400000) {
         if (m_cartridge) {
             return m_cartridge->readROM8(address);
         }
         return 0xFF;
+    }
+    
+    // CPS2-specific: CPS2 Registers (0x400000-0x40000F)
+    if (cpsVer == 2 && address >= 0x400000 && address <= 0x40000F) {
+        return m_frgRegs[address & 0x0F];
+    }
+    
+    // CPS2-specific: Extra RAM (0x660000-0x663FFF)
+    if (cpsVer == 2 && address >= 0x660000 && address <= 0x663FFF) {
+        return m_extraRam[address - 0x660000];
+    }
+    
+    // CPS2-specific: 0x664001 register
+    if (cpsVer == 2 && address == 0x664001) {
+        return m_n664001;
+    }
+    
+    // CPS2-specific: Object RAM (0x708000-0x717FFF)
+    if (cpsVer == 2 && address >= 0x708000 && address <= 0x717FFF) {
+        return m_objRam[address - 0x708000];
     }
     
     // I/O Ports and CPS Registers (0x800000-0x807FFF, mirrored)
@@ -140,6 +150,8 @@ u8 Memory::read8(u32 address) {
 }
 
 u16 Memory::read16(u32 address) {
+    u8 cpsVer = getCPSVersion();
+    
     // ROM (0x000000-0x3FFFFF)
     if (address < 0x400000) {
         if (m_cartridge) {
@@ -148,18 +160,43 @@ u16 Memory::read16(u32 address) {
         return 0xFFFF;
     }
     
+    // CPS2-specific: CPS2 Registers (0x400000-0x40000F)
+    if (cpsVer == 2 && address >= 0x400000 && address <= 0x40000F) {
+        u8 reg = address & 0x0F;
+        return (static_cast<u16>(m_frgRegs[reg]) << 8) | m_frgRegs[reg + 1];
+    }
+    
+    // CPS2-specific: Extra RAM (0x660000-0x663FFF)
+    if (cpsVer == 2 && address >= 0x660000 && address <= 0x663FFF) {
+        u32 offset = address - 0x660000;
+        return (static_cast<u16>(m_extraRam[offset]) << 8) | m_extraRam[offset + 1];
+    }
+    
+    // CPS2-specific: 0x664001 register
+    if (cpsVer == 2 && address == 0x664001) {
+        return m_n664001;
+    }
+    
+    // CPS2-specific: Object RAM (0x708000-0x717FFF)
+    if (cpsVer == 2 && address >= 0x708000 && address <= 0x717FFF) {
+        u32 offset = address - 0x708000;
+        return (static_cast<u16>(m_objRam[offset]) << 8) | m_objRam[offset + 1];
+    }
+    
     // I/O Ports and CPS Registers (0x800000-0x807FFF, mirrored)
     if ((address & 0xFF8000) == 0x800000) {
-        // Protection multiplication result
-        if ((address & 0xFF8FFF) == (0x800100 + m_memProt[3])) {
-            // Return multiplication result (high word)
-            u32 result = static_cast<u32>(m_protCalc[0]) * static_cast<u32>(m_protCalc[1]);
-            return static_cast<u16>((result >> 16) & 0xFFFF);
-        }
-        if ((address & 0xFF8FFF) == (0x800100 + m_memProt[2])) {
-            // Return multiplication result (low word)
-            u32 result = static_cast<u32>(m_protCalc[0]) * static_cast<u32>(m_protCalc[1]);
-            return static_cast<u16>(result & 0xFFFF);
+        // CPS1-specific: Protection multiplication result
+        if (cpsVer == 1) {
+            if ((address & 0xFF8FFF) == (0x800100 + m_memProt[3])) {
+                // Return multiplication result (high word)
+                u32 result = static_cast<u32>(m_protCalc[0]) * static_cast<u32>(m_protCalc[1]);
+                return static_cast<u16>((result >> 16) & 0xFFFF);
+            }
+            if ((address & 0xFF8FFF) == (0x800100 + m_memProt[2])) {
+                // Return multiplication result (low word)
+                u32 result = static_cast<u32>(m_protCalc[0]) * static_cast<u32>(m_protCalc[1]);
+                return static_cast<u16>(result & 0xFFFF);
+            }
         }
         
         u8 high = readPort(address & 0x1FF);
@@ -189,8 +226,34 @@ u32 Memory::read32(u32 address) {
 }
 
 void Memory::write8(u32 address, u8 value) {
+    u8 cpsVer = getCPSVersion();
+    
     // ROM is read-only
     if (address < 0x400000) {
+        return;
+    }
+    
+    // CPS2-specific: CPS2 Registers (0x400000-0x40000F)
+    if (cpsVer == 2 && address >= 0x400000 && address <= 0x40000F) {
+        m_frgRegs[address & 0x0F] = value;
+        return;
+    }
+    
+    // CPS2-specific: Extra RAM (0x660000-0x663FFF)
+    if (cpsVer == 2 && address >= 0x660000 && address <= 0x663FFF) {
+        m_extraRam[address - 0x660000] = value;
+        return;
+    }
+    
+    // CPS2-specific: 0x664001 register
+    if (cpsVer == 2 && address == 0x664001) {
+        m_n664001 = value;
+        return;
+    }
+    
+    // CPS2-specific: Object RAM (0x708000-0x717FFF)
+    if (cpsVer == 2 && address >= 0x708000 && address <= 0x717FFF) {
+        m_objRam[address - 0x708000] = value;
         return;
     }
     
@@ -214,12 +277,21 @@ void Memory::write8(u32 address, u8 value) {
 }
 
 void Memory::write16(u32 address, u16 value) {
+    u8 cpsVer = getCPSVersion();
+    
     // ROM is read-only
     if (address < 0x400000) {
         return;
     }
     
-    // I/O Ports and CPS Registers (0x800000-0x807FFF, mirrored)
+    // CPS2 uses write8 for 16-bit writes
+    if (cpsVer == 2) {
+        write8(address, (value >> 8) & 0xFF);
+        write8(address + 1, value & 0xFF);
+        return;
+    }
+    
+    // CPS1-specific: I/O Ports and CPS Registers (0x800000-0x807FFF, mirrored)
     if ((address & 0xFF8000) == 0x800000) {
         // Protection multiplication input
         if ((address & 0xFF8FFF) == (0x800100 + m_memProt[0])) {
@@ -260,46 +332,40 @@ void Memory::write32(u32 address, u32 value) {
 
 u8 Memory::readVRAM8(u32 address) {
     if (m_ppu) {
-        PPU* ppu = static_cast<PPU*>(m_ppu);
-        return ppu->readVRAM8(address);
+        return m_ppu->readVRAM8(address);
     }
     return 0x00;
 }
 
 u16 Memory::readVRAM16(u32 address) {
     if (m_ppu) {
-        PPU* ppu = static_cast<PPU*>(m_ppu);
-        return ppu->readVRAM16(address);
+        return m_ppu->readVRAM16(address);
     }
     return 0x0000;
 }
 
 u32 Memory::readVRAM32(u32 address) {
     if (m_ppu) {
-        PPU* ppu = static_cast<PPU*>(m_ppu);
-        return ppu->readVRAM32(address);
+        return m_ppu->readVRAM32(address);
     }
     return 0x00000000;
 }
 
 void Memory::writeVRAM8(u32 address, u8 value) {
     if (m_ppu) {
-        PPU* ppu = static_cast<PPU*>(m_ppu);
-        ppu->writeVRAM8(address, value);
+        m_ppu->writeVRAM8(address, value);
     }
 }
 
 void Memory::writeVRAM16(u32 address, u16 value) {
     if (m_ppu) {
-        PPU* ppu = static_cast<PPU*>(m_ppu);
-        ppu->writeVRAM16(address, value);
+        m_ppu->writeVRAM16(address, value);
     }
 }
 
 void Memory::writeVRAM32(u32 address, u32 value) {
     if (m_ppu) {
-        PPU* ppu = static_cast<PPU*>(m_ppu);
-        ppu->writeVRAM32(address, value);
+        m_ppu->writeVRAM32(address, value);
     }
 }
 
@@ -425,20 +491,24 @@ u8 Memory::readPort(u16 port) {
 
     }
     
-    // Board ID - CPS1 games read their board identifier here
-    // The board ID tells the game which hardware configuration to use
+    // CPS Registers (0x100-0x1FF)
+    u8 cpsVer = getCPSVersion();
     if (port >= 0x100 && port < 0x200) {
-        // Check if this is the board ID location
-        if (port == (0x100 + m_boardId[0])) {
-            return m_boardId[1];
-        }
-        if (port == (0x100 + m_boardId[0] + 1)) {
-            return m_boardId[2];
+        // CPS1-specific: Board ID
+        if (cpsVer == 1) {
+            // Check if this is the board ID location
+            if (port == (0x100 + m_boardId[0])) {
+                return m_boardId[1];
+            }
+            if (port == (0x100 + m_boardId[0] + 1)) {
+                return m_boardId[2];
+            }
         }
         
         // CPS Registers - forward to PPU
-        PPU* ppu = static_cast<PPU*>(m_ppu);
-        return ppu->readRegister8(port - 0x100);
+        if (m_ppu) {
+            return m_ppu->readRegister8(port - 0x100);
+        }
     }
     
     // Unmapped port - return 0xFF (bus pull-up)
@@ -470,8 +540,9 @@ void Memory::writePort(u16 port, u8 value) {
         u8 regNum = port - 0x100;
         
         // Forward to PPU for layer control and scroll registers
-        PPU* ppu = static_cast<PPU*>(m_ppu);
-        ppu->writeRegister8(regNum, value);
+        if (m_ppu) {
+            m_ppu->writeRegister8(regNum, value);
+        }
         
         return;
     }
@@ -482,80 +553,93 @@ void Memory::writePort(u16 port, u8 value) {
 // ============================================================================
 
 u8 Memory::readZ80(u16 address) {
-    // Sound ROM (0x0000-0x7FFF) - first 32KB, direct mapping
+    u8 cpsVer = getCPSVersion();
+    
+    // Sound ROM (0x0000-0x7FFF) - common
     if (address < 0x8000) {
         if (m_cartridge) {
-            auto* cart = m_cartridge;
-            return cart->readSoundROM8(address);
+            return m_cartridge->readSoundROM8(address);
         }
         return 0xFF;
     }
     
-    // Bank-switchable ROM (0x8000-0xBFFF) - 16KB bank
+    // Bank-switchable ROM (0x8000-0xBFFF) - common
     if (address >= 0x8000 && address < 0xC000) {
         if (m_cartridge) {
-            auto* cart = m_cartridge;
-            // Calculate bank offset: (bank << 14) + 0x8000
             u32 bankOffset = (static_cast<u32>(m_z80Bank) << 14) + 0x8000;
             u32 romAddress = bankOffset + (address - 0x8000);
-            
-            // readSoundROM8 handles bounds checking internally
-            return cart->readSoundROM8(romAddress);
+            return m_cartridge->readSoundROM8(romAddress);
         }
         return 0xFF;
     }
     
-    // ROM fallback for fetches (0xC000-0xCFFF)
-    if (address >= 0xC000 && address < 0xD000) {
-        if (m_cartridge) {
-            auto* cart = m_cartridge;
-            return cart->readSoundROM8(address - 0xC000);
+    if (cpsVer == 1) {
+        // CPS1-specific: ROM fallback for fetches (0xC000-0xCFFF)
+        if (address >= 0xC000 && address < 0xD000) {
+            if (m_cartridge) {
+                return m_cartridge->readSoundROM8(address - 0xC000);
+            }
+            return 0xFF;
         }
-        return 0xFF;
-    }
-    
-    // Z80 RAM (0xD000-0xD7FF) - 2KB
-    if (address >= 0xD000 && address < 0xD800) {
-        return m_soundRam[address - 0xD000];
-    }
-    
-    // ROM fallback for fetches (0xD800-0xEFFF)
-    if (address >= 0xD800 && address < 0xF000) {
-        if (m_cartridge) {
-            auto* cart = m_cartridge;
-            return cart->readSoundROM8((address - 0xD800) & 0x7FFF);
+        
+        // CPS1: Z80 RAM (0xD000-0xD7FF) - 2KB
+        if (address >= 0xD000 && address < 0xD800) {
+            return m_soundRam[address - 0xD000];
         }
-        return 0xFF;
-    }
-    
-    // I/O Area (0xF000-0xFFFF) - memory-mapped I/O
-    if (address >= 0xF000) {
-        switch (address) {
-            case 0xF001:
-                // YM2151 status register
-                if (m_apu) {
-                    return m_apu->readPort(0x01);
-                }
-                return 0xFF;
-                
-            case 0xF002:
-                // MSM6295 status
-                if (m_apu) {
-                    return m_apu->readPort(0x02);
-                }
-                return 0xFF;
-                
-            case 0xF008:
-                // Sound command latch (from 68000)
-                return m_soundCommand;
-                
-            case 0xF00A:
-                // Sound fade value (from 68000)
-                return m_soundFade;
-                
-            default:
-                // Unmapped I/O
-                return 0xFF;
+        
+        // CPS1: ROM fallback for fetches (0xD800-0xEFFF)
+        if (address >= 0xD800 && address < 0xF000) {
+            if (m_cartridge) {
+                return m_cartridge->readSoundROM8((address - 0xD800) & 0x7FFF);
+            }
+            return 0xFF;
+        }
+        
+        // CPS1: I/O Area (0xF000-0xFFFF) - YM2151, MSM6295
+        if (address >= 0xF000) {
+            switch (address) {
+                case 0xF001:
+                    // YM2151 status register
+                    if (m_apu) {
+                        return m_apu->readPort(0x01);
+                    }
+                    return 0xFF;
+                    
+                case 0xF002:
+                    // MSM6295 status
+                    if (m_apu) {
+                        return m_apu->readPort(0x02);
+                    }
+                    return 0xFF;
+                    
+                case 0xF008:
+                    // Sound command latch (from 68000)
+                    return m_soundCommand;
+                    
+                case 0xF00A:
+                    // Sound fade value (from 68000)
+                    return m_soundFade;
+                    
+                default:
+                    return 0xFF;
+            }
+        }
+    } else {
+        // CPS2-specific: Z80 RAM (0xC000-0xCFFF)
+        if (address >= 0xC000 && address < 0xD000) {
+            return m_soundRam[address - 0xC000];
+        }
+        
+        // CPS2: QSound registers (0xF000-0xFFFF)
+        if (address >= 0xF000) {
+            switch (address) {
+                case 0xF008:
+                    return m_soundCommand;
+                case 0xF00A:
+                    return m_soundFade;
+                default:
+                    return 0xFF;
+            }
         }
     }
     
@@ -563,6 +647,8 @@ u8 Memory::readZ80(u16 address) {
 }
 
 void Memory::writeZ80(u16 address, u8 value) {
+    u8 cpsVer = getCPSVersion();
+    
     // Sound ROM is read-only
     if (address < 0x8000) {
         return;
@@ -573,58 +659,81 @@ void Memory::writeZ80(u16 address, u8 value) {
         return;
     }
     
-    // ROM fallback area is read-only
-    if (address >= 0xC000 && address < 0xD000) {
-        return;
-    }
-    
-    // Z80 RAM (0xD000-0xD7FF) - 2KB
-    if (address >= 0xD000 && address < 0xD800) {
-        m_soundRam[address - 0xD000] = value;
-        return;
-    }
-    
-    // ROM fallback area is read-only
-    if (address >= 0xD800 && address < 0xF000) {
-        return;
-    }
-    
-    // I/O Area (0xF000-0xFFFF) - memory-mapped I/O
-    if (address >= 0xF000) {
-        switch (address) {
-            case 0xF000:
-                // YM2151 register select
-                if (m_apu) {
-                    m_apu->writePort(0x00, value);
+    if (cpsVer == 1) {
+        // CPS1-specific: ROM fallback area is read-only
+        if (address >= 0xC000 && address < 0xD000) {
+            return;
+        }
+        
+        // CPS1: Z80 RAM (0xD000-0xD7FF) - 2KB
+        if (address >= 0xD000 && address < 0xD800) {
+            m_soundRam[address - 0xD000] = value;
+            return;
+        }
+        
+        // CPS1: ROM fallback area is read-only
+        if (address >= 0xD800 && address < 0xF000) {
+            return;
+        }
+        
+        // CPS1: I/O Area (0xF000-0xFFFF) - YM2151, MSM6295
+        if (address >= 0xF000) {
+            switch (address) {
+                case 0xF000:
+                    // YM2151 register select
+                    if (m_apu) {
+                        m_apu->writePort(0x00, value);
+                    }
+                    return;
+                    
+                case 0xF001:
+                    // YM2151 data write
+                    if (m_apu) {
+                        m_apu->writePort(0x01, value);
+                    }
+                    return;
+                    
+                case 0xF002:
+                    // MSM6295 command
+                    if (m_apu) {
+                        m_apu->writePort(0x02, value);
+                    }
+                    return;
+                    
+                case 0xF004: {
+                    // ROM bank switching (0-15)
+                    u8 newBank = value & 0x0F;
+                    if (m_z80Bank != newBank) {
+                        m_z80Bank = newBank;
+                    }
+                    return;
                 }
-                return;
                 
-            case 0xF001:
-                // YM2151 data write
-                if (m_apu) {
-                    m_apu->writePort(0x01, value);
-                }
-                return;
-                
-            case 0xF002:
-                // MSM6295 command
-                if (m_apu) {
-                    m_apu->writePort(0x02, value);
-                }
-                return;
-                
-            case 0xF004: {
-                // ROM bank switching (0-15)
-                u8 newBank = value & 0x0F;
-                if (m_z80Bank != newBank) {
-                    m_z80Bank = newBank;
-                }
-                return;
+                default:
+                    return;
             }
-            
-            default:
-                // Unmapped I/O - ignore
-                return;
+        }
+    } else {
+        // CPS2-specific: Z80 RAM (0xC000-0xCFFF)
+        if (address >= 0xC000 && address < 0xD000) {
+            m_soundRam[address - 0xC000] = value;
+            return;
+        }
+        
+        // CPS2: QSound registers (0xF000-0xFFFF)
+        if (address >= 0xF000) {
+            switch (address) {
+                case 0xF004: {
+                    // ROM bank switching (0-15)
+                    u8 newBank = value & 0x0F;
+                    if (m_z80Bank != newBank) {
+                        m_z80Bank = newBank;
+                    }
+                    return;
+                }
+                default:
+                    return;
+            }
         }
     }
 }
@@ -634,35 +743,59 @@ void Memory::writeZ80(u16 address, u8 value) {
 // ============================================================================
 
 void Memory::saveState(std::ofstream& file) {
-    // Save RAM
+    u8 cpsVer = getCPSVersion();
+    
+    // Save RAM (common)
     file.write(reinterpret_cast<const char*>(m_workRam.data()), m_workRam.size());
     file.write(reinterpret_cast<const char*>(m_soundRam.data()), m_soundRam.size());
     
-    // Save protection state
-    file.write(reinterpret_cast<const char*>(&m_protCalc), sizeof(m_protCalc));
-    file.write(reinterpret_cast<const char*>(&m_memProt), sizeof(m_memProt));
-    file.write(reinterpret_cast<const char*>(&m_boardId), sizeof(m_boardId));
+    // Save CPS1-specific state
+    if (cpsVer == 1) {
+        file.write(reinterpret_cast<const char*>(&m_protCalc), sizeof(m_protCalc));
+        file.write(reinterpret_cast<const char*>(&m_memProt), sizeof(m_memProt));
+        file.write(reinterpret_cast<const char*>(&m_boardId), sizeof(m_boardId));
+    }
     
-    // Save Z80 state
+    // Save CPS2-specific state
+    if (cpsVer == 2) {
+        file.write(reinterpret_cast<const char*>(m_extraRam.data()), m_extraRam.size());
+        file.write(reinterpret_cast<const char*>(m_objRam.data()), m_objRam.size());
+        file.write(reinterpret_cast<const char*>(m_frgRegs.data()), m_frgRegs.size());
+        file.write(reinterpret_cast<const char*>(&m_n664001), sizeof(m_n664001));
+    }
+    
+    // Save Z80 state (common)
     file.write(reinterpret_cast<const char*>(&m_z80Bank), sizeof(m_z80Bank));
     file.write(reinterpret_cast<const char*>(&m_soundCommand), sizeof(m_soundCommand));
     file.write(reinterpret_cast<const char*>(&m_soundFade), sizeof(m_soundFade));
 }
 
 void Memory::loadState(std::ifstream& file) {
-    // Load RAM
+    u8 cpsVer = getCPSVersion();
+    
+    // Load RAM (common)
     file.read(reinterpret_cast<char*>(m_workRam.data()), m_workRam.size());
     file.read(reinterpret_cast<char*>(m_soundRam.data()), m_soundRam.size());
     
-    // Load protection state
-    file.read(reinterpret_cast<char*>(&m_protCalc), sizeof(m_protCalc));
-    file.read(reinterpret_cast<char*>(&m_memProt), sizeof(m_memProt));
-    file.read(reinterpret_cast<char*>(&m_boardId), sizeof(m_boardId));
+    // Load CPS1-specific state
+    if (cpsVer == 1) {
+        file.read(reinterpret_cast<char*>(&m_protCalc), sizeof(m_protCalc));
+        file.read(reinterpret_cast<char*>(&m_memProt), sizeof(m_memProt));
+        file.read(reinterpret_cast<char*>(&m_boardId), sizeof(m_boardId));
+    }
     
-    // Load Z80 state
+    // Load CPS2-specific state
+    if (cpsVer == 2) {
+        file.read(reinterpret_cast<char*>(m_extraRam.data()), m_extraRam.size());
+        file.read(reinterpret_cast<char*>(m_objRam.data()), m_objRam.size());
+        file.read(reinterpret_cast<char*>(m_frgRegs.data()), m_frgRegs.size());
+        file.read(reinterpret_cast<char*>(&m_n664001), sizeof(m_n664001));
+    }
+    
+    // Load Z80 state (common)
     file.read(reinterpret_cast<char*>(&m_z80Bank), sizeof(m_z80Bank));
     file.read(reinterpret_cast<char*>(&m_soundCommand), sizeof(m_soundCommand));
     file.read(reinterpret_cast<char*>(&m_soundFade), sizeof(m_soundFade));
 }
 
-} // namespace cps1
+} // namespace cps

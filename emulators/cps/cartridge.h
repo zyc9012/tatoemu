@@ -11,16 +11,9 @@
 namespace cps {
 
 class CPU;
-class PPUBase;
+class PPU;
 
-// Forward declarations
-namespace cps1 {
-    class PPU;
-}
-
-namespace cps2 {
-    class PPU;
-}
+// Forward declarations - PPU is now unified
 
 // Unified CPS ROM/Cartridge loader supporting both CPS1 and CPS2
 class Cartridge {
@@ -36,18 +29,14 @@ public:
     // ROM access (for 68000 CPU - program ROMs)
     u8 readROM8(u32 address);
     u16 readROM16(u32 address);
-    u32 readROM32(u32 address);
     u32 getProgramROMSize() const { return m_programRomSize; }
     
     // Graphics ROM access (for PPU)
     u8 readGraphicsROM8(u32 address) const;
-    u16 readGraphicsROM16(u32 address) const;
-    u32 readGraphicsROM32(u32 address) const;
     u32 getGraphicsROMSize() const { return static_cast<u32>(m_graphicsRom.size()); }
     
     // Sound ROM access (for Z80 sound CPU)
     u8 readSoundROM8(u16 address) const;
-    u16 readSoundROM16(u16 address) const;
     
     // Sound sample data access
     const u8* getSoundSample() const { return m_soundSampleRom.data(); }
@@ -55,7 +44,7 @@ public:
     
     // Component connections
     void setCPU(CPU* cpu) { m_cpu = cpu; }
-    void setPPU(PPUBase* ppu);
+    void setPPU(PPU* ppu);
     
     // CPS version
     u8 getCPSVersion() const { return m_cpsVer; }
@@ -76,7 +65,7 @@ public:
 
 private:
     CPU* m_cpu;
-    PPUBase* m_ppu;
+    PPU* m_ppu;
     
     u8 m_cpsVer = 1;  // CPS version: 1 for CPS1, 2 for CPS2
     

@@ -1,0 +1,117 @@
+#pragma once
+
+#include "../types.h"
+#include "db.h"
+#include <array>
+#include <fstream>
+
+namespace cps {
+
+class CPU;
+class SoundCPU;
+class PPU;
+class APUBase;
+class Cartridge;
+class Controller;
+
+// Unified Memory Map (CPS1 and CPS2):
+// 0x000000-0x3FFFFF: Program ROM (max 4MB, encrypted for CPS2)
+// 0x400000-0x40000F: CPS2 Registers (Frg registers, CPS2 only)
+// 0x660000-0x663FFF: Extra RAM (16KB, CPS2 only)
+// 0x664001: Frame toggle register (CPS2 only)
+// 0x708000-0x717FFF: Object RAM (64KB, CPS2 only)
+// 0x800000-0x8001FF: I/O Ports and CPS Registers
+// 0x900000-0x92FFFF: Video RAM (VRAM) - 192KB
+// 0xFF0000-0xFFFFFF: Work RAM - 64KB
+
+class Memory {
+public:
+    Memory();
+    ~Memory() = default;
+
+    void reset();
+    
+    // 68000 memory access
+    u8 read8(u32 address);
+    u16 read16(u32 address);
+    u32 read32(u32 address);
+    void write8(u32 address, u8 value);
+    void write16(u32 address, u16 value);
+    void write32(u32 address, u32 value);
+    
+    // Z80 memory access
+    u8 readZ80(u16 address);
+    void writeZ80(u16 address, u8 value);
+    
+    // Component connections
+    void setCPU(CPU* cpu) { m_cpu = cpu; }
+    void setSoundCPU(SoundCPU* soundCpu) { m_soundCpu = soundCpu; }
+    void setPPU(PPU* ppu) { m_ppu = ppu; }
+    void setAPU(APUBase* apu) { m_apu = apu; }
+    void setCartridge(Cartridge* cartridge) { m_cartridge = cartridge; }
+    void setController1(Controller* controller) { m_controller1 = controller; }
+    void setController2(Controller* controller) { m_controller2 = controller; }
+    
+    // Save/Load state
+    void saveState(std::ofstream& file);
+    void loadState(std::ifstream& file);
+
+private:
+    // Component pointers
+    CPU* m_cpu;
+    SoundCPU* m_soundCpu;
+    PPU* m_ppu;
+    APUBase* m_apu;
+    Cartridge* m_cartridge;
+    Controller* m_controller1;
+    Controller* m_controller2;
+    
+    // RAM banks (common)
+    std::array<u8, 64 * 1024> m_workRam;      // 0xFF0000-0xFFFFFF (64KB)
+    std::array<u8, 2 * 1024> m_soundRam;      // Z80 RAM (2KB)
+    
+    // CPS2-specific RAM banks
+    std::array<u8, 16 * 1024> m_extraRam;     // 0x660000-0x663FFF (16KB, CPS2 only)
+    std::array<u8, 64 * 1024> m_objRam;       // 0x708000-0x717FFF (64KB, CPS2 only)
+    
+    // CPS2 registers (0x400000-0x40000F, CPS2 only)
+    std::array<u8, 16> m_frgRegs;
+    
+    // Z80 ROM banking
+    u8 m_z80Bank;                              // Current ROM bank (0-15)
+    
+    // Input port reading
+    u8 readPort(u16 port);
+    void writePort(u16 port, u8 value);
+    
+    // Helper methods (now use virtual PPU methods)
+    u8 readVRAM8(u32 address);
+    u16 readVRAM16(u32 address);
+    u32 readVRAM32(u32 address);
+    void writeVRAM8(u32 address, u8 value);
+    void writeVRAM16(u32 address, u16 value);
+    void writeVRAM32(u32 address, u32 value);
+    
+    // CPS1-specific: Protection calculation
+    u16 m_protCalc[2];
+    
+    // CPS1-specific: Memory protection offsets
+    // [0] = write operand 1, [1] = write operand 2
+    // [2] = read low word, [3] = read high word
+    u8 m_memProt[4];
+    
+    // CPS1-specific: Board ID (each CPS1 game has a specific board identifier)
+    u8 m_boardId[3];  // {offset, ID byte 1, ID byte 2}
+    
+    // Sound communication (from 68000 to Z80)
+    u8 m_soundCommand;  // Sound command latch
+    u8 m_soundFade;     // Sound fade value
+    
+    // CPS2-specific: Frame toggle register (0x664001)
+    u8 m_n664001;
+    
+    // Helper to get CPS version from cartridge
+    u8 getCPSVersion() const;
+};
+
+} // namespace cps

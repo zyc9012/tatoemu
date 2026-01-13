@@ -1,18 +1,19 @@
 #include "ppu.h"
-#include "../cartridge.h"
-#include "../cpu.h"
+#include "cartridge.h"
+#include "cpu.h"
+#include "consts.h"
 #include <cstring>
 #include <iostream>
 #include <algorithm>
 
 /*
- * CPS1 PPU Implementation
- * =======================
+ * PPU Implementation (Unified for CPS1 and CPS2)
+ * ===============================================
  * 
- * The CPS1 PPU handles rendering of:
+ * The PPU handles rendering of:
  * - 3 scroll layers (background)
  * - 1 sprite layer (objects)
- * - Star field (on some games)
+ * - Star field (on some CPS1 games)
  * 
  * Tile Sizes:
  * - Scroll 1: 8x8 tiles (text layer)
@@ -20,13 +21,20 @@
  * - Scroll 3: 32x32 tiles (large background)
  * - Sprites: 16x16 tiles (variable size via linking)
  * 
- * Graphics Format:
+ * Graphics Format (CPS1 and CPS2):
  * - 4bpp (16 colors per tile)
- * - Stored in planar format in ROM
+ * - Stored in planar format in ROM (same format for both systems)
  * - Needs decoding for efficient rendering
  * 
+ * Differences:
+ * - CPS1: Uses graphics bank mappers (GfxRange, CPSMapper)
+ * - CPS2: Direct graphics ROM addressing (no mappers)
+ * - CPS1: Uses board configuration (BoardConfig)
+ * - CPS2: No board configuration
+ * 
  * Palette:
- * - 16-bit entries: xxxxBBBB GGGGRRRR with brightness in high bits
+ * - CPS1: 16-bit entries: xxxxBBBB GGGGRRRR with brightness in high bits
+ * - CPS2: Enhanced 24-bit color support (but still uses 16-bit VRAM format)
  * - 6 pages of 512 colors each (0xC00 entries total)
  * - Brightness factor applied to all RGB channels
  * 
@@ -36,7 +44,7 @@
  * - FBNeo cps.cpp for graphics ROM decoding
  */
 
-namespace cps1 {
+namespace cps {
 
 // ============================================================================
 // Separation table for graphics decoding
@@ -101,7 +109,7 @@ PPU::PPU()
     m_gfxBankSizes[3] = 0;
 }
 
-void PPU::setCartridge(cps::Cartridge* cartridge) {
+void PPU::setCartridge(Cartridge* cartridge) {
     m_cartridge = cartridge;
 }
 
@@ -122,8 +130,12 @@ void PPU::reset() {
     m_globalXOffs = 0; m_globalYOffs = 0;
     
     if (m_cartridge) {
-        m_boardConfig = m_cartridge->getBoardConfig();
-        setupGfxMapper();
+        // CPS1-specific: Board configuration and graphics mapper
+        u8 cpsVer = m_cartridge->getCPSVersion();
+        if (cpsVer == 1) {
+            m_boardConfig = m_cartridge->getBoardConfig();
+            setupGfxMapper();
+        }
         decodeGraphicsROM();
     }
 }
@@ -131,20 +143,21 @@ void PPU::reset() {
 void PPU::setupGfxMapper() {
     if (!m_cartridge) return;
     
-    cps::CPSMapper mapper = m_cartridge->getMapper();
+    CPSMapper mapper = m_cartridge->getMapper();
     
     // Get mapper table and bank sizes from database
-    m_gfxMapper = cps::GameDatabase::getGfxMapperTable(mapper);
+    m_gfxMapper = GameDatabase::getGfxMapperTable(mapper);
     if (!m_gfxMapper) {
         throw std::runtime_error("Unsupported mapper");
     }
     
-    cps::GameDatabase::getGfxBankSizes(mapper, m_gfxBankSizes);
+    GameDatabase::getGfxBankSizes(mapper, m_gfxBankSizes);
 }
 
 // ============================================================================
 // Graphics ROM Decoding
-// Converts CPS1 4bpp planar format to linear nibbles for fast rendering
+// Converts CPS1/CPS2 4bpp planar format to linear nibbles for fast rendering
+// Both CPS1 and CPS2 use the same graphics ROM format
 // ============================================================================
 
 void PPU::decodeGraphicsROM() {
@@ -157,13 +170,14 @@ void PPU::decodeGraphicsROM() {
     }
     
     /*
-     * CPS1 Graphics ROM Decoding
+     * CPS1/CPS2 Graphics ROM Decoding
      * ==========================================================
      * 
-     * CPS1 graphics ROMs are organized as groups of 4 chips (512KB each):
+     * Both CPS1 and CPS2 use the same graphics ROM format:
+     * Graphics ROMs are organized as groups of 4 chips (512KB each):
      * - ROM 0: Left half of tiles, bits 0-1
-     * - ROM 1: Right half of tiles, bits 0-1
-     * - ROM 2: Left half of tiles, bits 2-3
+     * - ROM 1: Left half of tiles, bits 2-3
+     * - ROM 2: Right half of tiles, bits 0-1
      * - ROM 3: Right half of tiles, bits 2-3
      * 
      * Each ROM provides 2 bits per pixel. Reading 2 bytes from a ROM
@@ -175,7 +189,7 @@ void PPU::decodeGraphicsROM() {
      * 
      * For each group of 4 ROM chips (2MB total):
      * - Process 0x80000 pairs of bytes from each ROM
-     * - Combine ROM0+ROM2 for left pixels, ROM1+ROM3 for right pixels
+     * - Combine ROM0+ROM1 for left pixels, ROM2+ROM3 for right pixels
      */
     
     // Output size: same as input size (1:1 ratio)
@@ -341,20 +355,26 @@ u8* PPU::findGfxRam(u32 address, u32 len) {
 // ============================================================================
 
 s32 PPU::gfxRomBankMapper(u32 type, s32 code) const {
+    // CPS2: Direct addressing, no mapper needed
+    if (!m_cartridge || m_cartridge->getCPSVersion() != 1) {
+        return code;
+    }
+    
+    // CPS1: Use graphics bank mapper
     if (!m_gfxMapper) return code;
     
     s32 shift = 0;
     switch (type) {
-        case cps::GFXTYPE_SPRITES: shift = 1; break;
-        case cps::GFXTYPE_SCROLL1: shift = 0; break;
-        case cps::GFXTYPE_SCROLL2: shift = 1; break;
-        case cps::GFXTYPE_SCROLL3: shift = 3; break;
+        case GFXTYPE_SPRITES: shift = 1; break;
+        case GFXTYPE_SCROLL1: shift = 0; break;
+        case GFXTYPE_SCROLL2: shift = 1; break;
+        case GFXTYPE_SCROLL3: shift = 3; break;
         default: shift = 0; break;
     }
     
     s32 shiftedCode = code << shift;
     
-    const cps::GfxRange* range = m_gfxMapper;
+    const GfxRange* range = m_gfxMapper;
     while (range->type) {
         // Match against shifted code range
         if ((range->type & type) &&
@@ -393,7 +413,7 @@ const u8* PPU::getGfxRom(u32 address) const {
 
 u32 PPU::convertPaletteEntry(u16 entry) {
     /*
-     * CPS1 palette format (16-bit):
+     * CPS1/CPS2 palette format (16-bit):
      * Bits 15-12: Brightness (0-15)
      * Bits 11-8:  Blue (0-15)
      * Bits 7-4:   Green (0-15)
@@ -435,7 +455,7 @@ void PPU::updatePalette() {
     }
     
     // Convert each 16-bit palette entry
-    // CPS1 has 6 pages of 512 colors = 3072 entries (0xC00)
+    // Both CPS1 and CPS2 have 6 pages of 512 colors = 3072 entries (0xC00)
     // Each page is 0x400 bytes (512 entries * 2 bytes each)
     for (u32 page = 0; page < 6; page++) {
         // Always update all pages (palette control reg may not be set correctly)
@@ -446,7 +466,7 @@ void PPU::updatePalette() {
                 u16 entry = (static_cast<u16>(m_vram[srcOffset]) << 8) | 
                             m_vram[srcOffset + 1];
                 
-                // CPS1 palette uses XOR 15 for color indexing
+                // Both CPS1 and CPS2 palette use XOR 15 for color indexing
                 u32 dstIndex = (page * 0x200) + (i ^ 15);
                 if (dstIndex < m_palette.size()) {
                     m_palette[dstIndex] = convertPaletteEntry(entry);
@@ -463,18 +483,19 @@ void PPU::updatePalette() {
 // ============================================================================
 
 void PPU::step() {
-    // CPS1 renders a full frame at VBlank
-    // The 68000 runs at 10MHz and the frame rate is ~59.63Hz
-    // CPU cycles per frame ~= 10000000 / 59.63 = 167706
+    // CPS1/CPS2 render a full frame at VBlank
+    // Frame rate is ~59.63Hz for both systems
+    // CPS1: 68000 runs at 10MHz, CPS2: 68000 runs at 16MHz
+    // CPU cycles per frame ~= CPU_FREQUENCY / 59.63
     
     // Increment cycle counter
     m_cycles++;
     
-    // CPS1 typically triggers VBlank interrupt at scanline 224
-    // Each scanline takes approximately 167706 / 262 ≈ 640 cycles
+    // Both systems typically trigger VBlank interrupt at scanline 224
+    // Each scanline takes approximately CPU_CYCLES_PER_FRAME / 262 cycles
     // Total active lines: 224, VBlank: 38 lines (262 total)
     
-    constexpr u32 CYCLES_PER_SCANLINE = 640;
+    constexpr u32 CYCLES_PER_SCANLINE = 640;  // Approximate, works for both
     constexpr u32 VISIBLE_SCANLINES = 224;
     constexpr u32 TOTAL_SCANLINES = 262;
     constexpr u32 CYCLES_PER_FRAME = CYCLES_PER_SCANLINE * TOTAL_SCANLINES;
@@ -526,7 +547,7 @@ void PPU::renderFrame() {
 }
 
 void PPU::clearScreen() {
-    // CPS1 clears to palette entry 0xBFF ^ 15
+    // Both CPS1 and CPS2 clear to palette entry 0xBFF ^ 15
     u32 bgColor = m_palette[0xBFF ^ 15];
     m_frameBuffer.fill(bgColor);
 }
@@ -536,25 +557,51 @@ void PPU::clearScreen() {
 // ============================================================================
 
 void PPU::renderLayers() {
-    // Read layer control register
-    u8 lcReg = m_boardConfig.layerControlReg;
-    u16 layerCtrl = (static_cast<u16>(m_cpsRegs[lcReg]) << 8) | m_cpsRegs[lcReg + 1];
+    if (!m_cartridge) return;
     
-    // Determine which layers are enabled
-    bool layer1Enable = (layerCtrl & m_boardConfig.layerEnable[0]) != 0;
-    bool layer2Enable = (layerCtrl & m_boardConfig.layerEnable[1]) != 0;
-    bool layer3Enable = (layerCtrl & m_boardConfig.layerEnable[2]) != 0;
-    
-    // Extract layer priority order (from layer control register)
-    // Bits 13-12: Top layer
-    // Bits 11-10: Second layer
-    // Bits 9-8: Third layer
-    // Bits 7-6: Bottom layer
+    u8 cpsVer = m_cartridge->getCPSVersion();
+    u16 layerCtrl;
+    bool layer1Enable, layer2Enable, layer3Enable;
     s32 draw[4];
-    draw[0] = (layerCtrl >> 12) & 3;  // Top layer
-    draw[1] = (layerCtrl >> 10) & 3;
-    draw[2] = (layerCtrl >> 8) & 3;
-    draw[3] = (layerCtrl >> 6) & 3;   // Bottom layer
+    
+    if (cpsVer == 1) {
+        // CPS1: Use board configuration
+        u8 lcReg = m_boardConfig.layerControlReg;
+        layerCtrl = (static_cast<u16>(m_cpsRegs[lcReg]) << 8) | m_cpsRegs[lcReg + 1];
+        
+        // Determine which layers are enabled using board-specific enable bits
+        layer1Enable = (layerCtrl & m_boardConfig.layerEnable[0]) != 0;
+        layer2Enable = (layerCtrl & m_boardConfig.layerEnable[1]) != 0;
+        layer3Enable = (layerCtrl & m_boardConfig.layerEnable[2]) != 0;
+        
+        // Extract layer priority order (from layer control register)
+        // Bits 13-12: Top layer
+        // Bits 11-10: Second layer
+        // Bits 9-8: Third layer
+        // Bits 7-6: Bottom layer
+        draw[0] = (layerCtrl >> 12) & 3;  // Top layer
+        draw[1] = (layerCtrl >> 10) & 3;
+        draw[2] = (layerCtrl >> 8) & 3;
+        draw[3] = (layerCtrl >> 6) & 3;   // Bottom layer
+    } else {
+        // CPS2: Use fixed register 0x92 for layer enable
+        // Register 0x92 bits (per FBNeo):
+        // Bit 0: Scroll Layer 0 (Scroll 1) enable
+        // Bit 1: Scroll Layer 1 (Scroll 2) enable
+        // Bit 2: Scroll Layer 2 (Scroll 3) enable
+        // Bit 3: Sprite Layer enable (we always enable sprites)
+        u8 layerEnableReg = m_cpsRegs[0x92];
+        layer1Enable = (layerEnableReg & 0x01) != 0;  // Bit 0: Scroll 1
+        layer2Enable = (layerEnableReg & 0x02) != 0;  // Bit 1: Scroll 2
+        layer3Enable = (layerEnableReg & 0x04) != 0;  // Bit 2: Scroll 3
+        
+        // CPS2: Layer priority is in register 0x66-0x67 (same as CPS1)
+        layerCtrl = (static_cast<u16>(m_cpsRegs[0x66]) << 8) | m_cpsRegs[0x67];
+        draw[0] = (layerCtrl >> 12) & 3;  // Top layer
+        draw[1] = (layerCtrl >> 10) & 3;
+        draw[2] = (layerCtrl >> 8) & 3;
+        draw[3] = (layerCtrl >> 6) & 3;   // Bottom layer
+    }
     
     // Build enable mask
     u32 drawMask = 1;  // Sprites always on
@@ -673,7 +720,7 @@ void PPU::renderScroll1(const u8* base, s32 scrollX, s32 scrollY) {
             u16 attrib = (static_cast<u16>(base[p + 2]) << 8) | base[p + 3];
             
             // Map tile through graphics bank mapper
-            s32 t = gfxRomBankMapper(cps::GFXTYPE_SCROLL1, tileNum);
+            s32 t = gfxRomBankMapper(GFXTYPE_SCROLL1, tileNum);
             if (t == -1) continue;
             
             // Calculate tile ROM address (8x8 = 64 bytes per tile in decoded format)
@@ -765,7 +812,7 @@ void PPU::renderScroll2(const u8* base, s32 scrollX, s32 scrollY) {
             u16 attrib = (static_cast<u16>(base[p + 2]) << 8) | base[p + 3];
             
             // Map tile through graphics bank mapper
-            s32 t = gfxRomBankMapper(cps::GFXTYPE_SCROLL2, tileNum);
+            s32 t = gfxRomBankMapper(GFXTYPE_SCROLL2, tileNum);
             if (t == -1) continue;
             
             // Calculate tile ROM address (16x16 = 128 bytes per tile, 4bpp)
@@ -820,7 +867,7 @@ void PPU::renderScroll3(const u8* base, s32 scrollX, s32 scrollY) {
             u16 attrib = (static_cast<u16>(base[p + 2]) << 8) | base[p + 3];
             
             // Map tile through graphics bank mapper
-            s32 t = gfxRomBankMapper(cps::GFXTYPE_SCROLL3, tileNum);
+            s32 t = gfxRomBankMapper(GFXTYPE_SCROLL3, tileNum);
             if (t == -1) continue;
             
             // Calculate tile ROM address (32x32 = 512 bytes per tile, 4bpp)
@@ -898,7 +945,7 @@ void PPU::renderSprites() {
         s32 by = ((attrib >> 12) & 15) + 1;  // Height in tiles
         
         // Map tile through graphics bank mapper
-        s32 n = gfxRomBankMapper(cps::GFXTYPE_SPRITES, tileNum);
+        s32 n = gfxRomBankMapper(GFXTYPE_SPRITES, tileNum);
         if (n == -1) continue;
         
         // Add high bits from Y data
@@ -1210,4 +1257,4 @@ void PPU::loadState(std::ifstream& file) {
     m_paletteNeedsUpdate = true;
 }
 
-} // namespace cps1
+} // namespace cps

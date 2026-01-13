@@ -1,8 +1,7 @@
 #include "emulator.h"
 #include "gb/core.h"
 #include "nes/core.h"
-#include "cps/cps1/core.h"
-#include "cps/cps2/core.h"
+#include "cps/core.h"
 #include "cps/db.h"
 #include <SDL3/SDL.h>
 #include <iostream>
@@ -153,15 +152,8 @@ bool Emulator::initialize() {
             return false;
         }
         
-        // Determine core type based on CPS version
-        if (gameInfo->cpsVer == 1) {
-            m_core = std::make_unique<cps1::Core>();
-        } else if (gameInfo->cpsVer == 2) {
-            m_core = std::make_unique<cps2::Core>();
-        } else {
-            std::cerr << "Invalid CPS version in database: " << static_cast<int>(gameInfo->cpsVer) << std::endl;
-            return false;
-        }
+        // Create unified core (works for both CPS1 and CPS2)
+        m_core = std::make_unique<cps::Core>();
     } else {
         std::cerr << "Unsupported ROM file extension: " << ext << std::endl;
         return false;

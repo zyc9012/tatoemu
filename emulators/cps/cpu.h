@@ -5,7 +5,7 @@
 
 namespace cps {
 
-class MemoryBase;
+class Memory;
 
 // Motorola 68000 CPU emulator (shared between CPS1 and CPS2)
 // 
@@ -19,7 +19,7 @@ public:
     void step();
     
     u32 getCycles() const { return m_cycles; }
-    void setMemory(MemoryBase* memory) { m_memory = memory; }
+    void setMemory(Memory* memory) { m_memory = memory; }
     
     // Interrupt handling
     void irq(u8 level);  // IRQ with priority level (1-7)
@@ -30,7 +30,7 @@ public:
     void loadState(std::ifstream& file);
 
 private:
-    MemoryBase* m_memory;
+    Memory* m_memory;
     u32 m_cycles;
 };
 

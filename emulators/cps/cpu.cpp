@@ -1,5 +1,5 @@
 #include "cpu.h"
-#include "memory_base.h"
+#include "memory.h"
 #include "../../components/cpu/m68k/m68k.h"
 #include <iostream>
 #include <cstring>
@@ -10,7 +10,7 @@
 namespace cps {
 
 // Global pointer to memory interface for Musashi callbacks
-static MemoryBase* g_memory = nullptr;
+static Memory* g_memory = nullptr;
 
 // Musashi memory access callbacks
 extern "C" unsigned int m68k_read_memory_8(unsigned int address) {

@@ -1,5 +1,5 @@
 #include "sound_cpu.h"
-#include "memory_base.h"
+#include "memory.h"
 #include "apu_base.h"
 #include "../components/cpu/z80/z80.h"
 #include <iostream>
@@ -16,7 +16,7 @@ static SoundCPU* g_soundCpuContext = nullptr;
 extern "C" {
     u8 z80_read_prog(u32 address) {
         if (g_soundCpuContext) {
-            MemoryBase* mem = g_soundCpuContext->getMemory();
+            Memory* mem = g_soundCpuContext->getMemory();
             if (mem) {
                 return mem->readZ80(static_cast<u16>(address));
             }
@@ -26,7 +26,7 @@ extern "C" {
 
     void z80_write_prog(u32 address, u8 value) {
         if (g_soundCpuContext) {
-            MemoryBase* mem = g_soundCpuContext->getMemory();
+            Memory* mem = g_soundCpuContext->getMemory();
             if (mem) {
                 mem->writeZ80(static_cast<u16>(address), value);
             }

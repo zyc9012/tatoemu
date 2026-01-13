@@ -5,7 +5,7 @@
 
 namespace cps {
 
-class MemoryBase;
+class Memory;
 
 // CPS controller buttons (6-button layout - shared between CPS1 and CPS2)
 enum ControllerButton : u8 {
@@ -35,7 +35,7 @@ public:
     u8 read() const;  // Read direction + punch buttons (ports 0x000/0x001, 0x010/0x011)
     u8 readKicks() const;  // Read kick buttons (port 0x012 for 6-button games)
     u8 readCoinStart() const;  // Read coin/start buttons (port 0x018)
-    void setMemory(MemoryBase* memory) { m_memory = memory; }
+    void setMemory(Memory* memory) { m_memory = memory; }
     
     // Save/Load state
     void saveState(std::ofstream& file);
@@ -43,7 +43,7 @@ public:
 
 private:
     u16 m_buttons;  // Button states (bitmask)
-    MemoryBase* m_memory;
+    Memory* m_memory;
 };
 
 } // namespace cps

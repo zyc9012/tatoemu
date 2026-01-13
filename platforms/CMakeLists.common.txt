@@ -43,10 +43,10 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kcpu.c
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kops.c
-    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/core.cpp
-    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/ppu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/core.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/ppu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/apu.cpp
-    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/memory.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/memory.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/sound/ym2151/ym2151.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/sound/msm6295/msm6295.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/cartridge.cpp
@@ -54,9 +54,6 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/cps/db_cps1.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/db_cps2.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/decrypt.cpp
-    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/core.cpp
-    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/ppu.cpp
-    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/memory.cpp
     ${CMAKE_SOURCE_DIR}/emulators/emulator.cpp
     ${CMAKE_SOURCE_DIR}/utilities/miniz/miniz.c
 )
@@ -86,21 +83,14 @@ set(COMMON_HEADERS
     ${CMAKE_SOURCE_DIR}/emulators/cps/controller.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/config.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/consts.h
-    ${CMAKE_SOURCE_DIR}/emulators/cps/memory_base.h
     ${CMAKE_SOURCE_DIR}/utilities/zip_reader.h
-    ${CMAKE_SOURCE_DIR}/emulators/cps/ppu_base.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/apu_base.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/cartridge.h
-    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/core.h
-    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/ppu.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/core.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/ppu.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/apu.h
-    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/memory.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/memory.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/db.h
-    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/consts.h
-    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/core.h
-    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/ppu.h
-    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/memory.h
-    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/consts.h
     ${CMAKE_SOURCE_DIR}/emulators/emulator.h
     ${CMAKE_SOURCE_DIR}/emulators/core.h
     ${CMAKE_SOURCE_DIR}/emulators/types.h
