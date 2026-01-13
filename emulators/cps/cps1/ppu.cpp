@@ -157,7 +157,7 @@ void PPU::decodeGraphicsROM() {
     }
     
     /*
-     * CPS1 Graphics ROM Decoding (matching FBNeo's CpsLoadTiles)
+     * CPS1 Graphics ROM Decoding
      * ==========================================================
      * 
      * CPS1 graphics ROMs are organized as groups of 4 chips (512KB each):
@@ -169,7 +169,7 @@ void PPU::decodeGraphicsROM() {
      * Each ROM provides 2 bits per pixel. Reading 2 bytes from a ROM
      * gives 2 bits for 8 pixels.
      * 
-     * FBNeo's output format has 8-byte stride:
+     * Output format has 8-byte stride:
      * - Bytes 0-3: Left half pixels (32-bit word, 8 nibbles)
      * - Bytes 4-7: Right half pixels (32-bit word, 8 nibbles)
      * 
@@ -194,7 +194,6 @@ void PPU::decodeGraphicsROM() {
     m_gfxMask -= 1;
     
     // Process graphics in 2MB banks (4 ROMs of 512KB each)
-    // Match FBNeo's CpsLoadTiles exactly:
     // - Left half: ROM 0 (bits 0-1, shift 0) OR ROM 1 (bits 0-1, shift 2)
     // - Right half: ROM 2 (bits 0-1, shift 0) OR ROM 3 (bits 0-1, shift 2)
     u32 romChipSize = 0x80000;  // 512KB per ROM chip
@@ -344,7 +343,6 @@ u8* PPU::findGfxRam(u32 address, u32 len) {
 s32 PPU::gfxRomBankMapper(u32 type, s32 code) const {
     if (!m_gfxMapper) return code;
     
-    // FBNeo shifts the code first based on type
     s32 shift = 0;
     switch (type) {
         case GFXTYPE_SPRITES: shift = 1; break;
@@ -400,12 +398,6 @@ u32 PPU::convertPaletteEntry(u16 entry) {
      * Bits 11-8:  Blue (0-15)
      * Bits 7-4:   Green (0-15)
      * Bits 3-0:   Red (0-15)
-     * 
-     * Brightness formula from FBNeo:
-     * bright = 0x0f + ((entry >> 12) << 1)
-     * r = ((entry >> 8) & 0x0f) * 0x11 * bright / 0x2d
-     * g = ((entry >> 4) & 0x0f) * 0x11 * bright / 0x2d
-     * b = ((entry >> 0) & 0x0f) * 0x11 * bright / 0x2d
      */
     
     s32 bright = 0x0F + ((entry >> 12) << 1);
@@ -454,7 +446,7 @@ void PPU::updatePalette() {
                 u16 entry = (static_cast<u16>(m_vram[srcOffset]) << 8) | 
                             m_vram[srcOffset + 1];
                 
-                // CPS1 palette uses XOR 15 for color indexing (from FBNeo)
+                // CPS1 palette uses XOR 15 for color indexing
                 u32 dstIndex = (page * 0x200) + (i ^ 15);
                 if (dstIndex < m_palette.size()) {
                     m_palette[dstIndex] = convertPaletteEntry(entry);
@@ -534,7 +526,7 @@ void PPU::renderFrame() {
 }
 
 void PPU::clearScreen() {
-    // CPS1 clears to palette entry 0xBFF ^ 15 (from FBNeo)
+    // CPS1 clears to palette entry 0xBFF ^ 15
     u32 bgColor = m_palette[0xBFF ^ 15];
     m_frameBuffer.fill(bgColor);
 }
@@ -685,7 +677,7 @@ void PPU::renderScroll1(const u8* base, s32 scrollX, s32 scrollY) {
             if (t == -1) continue;
             
             // Calculate tile ROM address (8x8 = 64 bytes per tile in decoded format)
-            // 8 rows × 8 bytes/row (FBNeo format with left/right interleaving)
+            // 8 rows × 8 bytes/row
             u32 tileAddr = t << 6;
             tileAddr += m_gfxScroll[1];
             
@@ -731,7 +723,7 @@ void PPU::renderScroll2(const u8* base, s32 scrollX, s32 scrollY) {
 
         // Get row scroll start offset from register 0x20
         rowScrollStart = (static_cast<u16>(m_cpsRegs[0x20]) << 8) | m_cpsRegs[0x21];
-        rowScrollStart += 16; // Add 16 like in FBNeo
+        rowScrollStart += 16;
     }
 
     s32 iy = (scrollY >> 4) + 1;
@@ -984,7 +976,7 @@ void PPU::drawTile8x8(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool cl
     const u8* tileData = m_decodedGfx.data() + tileAddr;
     const u32* pal = m_palette.data() + (palette << 4);
     
-    // FBNeo format: 8-byte stride per row (4 bytes left + 4 bytes right)
+    // Format: 8-byte stride per row (4 bytes left + 4 bytes right)
     // For 8x8 tiles, only the left half is used
     s32 tileAdd = 8;  // 8 bytes per row in decoded format
     
@@ -1001,7 +993,6 @@ void PPU::drawTile8x8(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool cl
         
         // Get 8 pixels from decoded graphics (left half only)
         // Format: pixel 0 in bits 28-31, pixel 1 in bits 24-27, etc.
-        // (matching FBNeo's ctv_do.h format)
         u32 pix = *reinterpret_cast<const u32*>(tileData);
         
         if (flip & 1) {

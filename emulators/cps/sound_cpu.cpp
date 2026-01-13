@@ -12,7 +12,7 @@ namespace cps {
 // Static context pointer for callbacks
 static SoundCPU* g_soundCpuContext = nullptr;
 
-// Z80 callback functions for FBNeo Z80
+// Z80 callback functions for Z80
 extern "C" {
     u8 z80_read_prog(u32 address) {
         if (g_soundCpuContext) {
@@ -57,7 +57,7 @@ SoundCPU::SoundCPU()
     : m_memory(nullptr)
     , m_apu(nullptr)
     , m_cycles(0) {
-    // Initialize FBNeo Z80
+    // Initialize Z80
     static bool z80_initialized = false;
     if (!z80_initialized) {
         Z80Init();
@@ -67,7 +67,7 @@ SoundCPU::SoundCPU()
     // Set context for callbacks
     g_soundCpuContext = this;
     
-    // Set up FBNeo Z80 handlers
+    // Set up Z80 handlers
     Z80SetProgramReadHandler(z80_read_prog);
     Z80SetProgramWriteHandler(z80_write_prog);
     Z80SetIOReadHandler(z80_read_io);

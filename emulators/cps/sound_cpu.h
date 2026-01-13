@@ -18,7 +18,6 @@ class MemoryBase;
 class APUBase;
 
 // Z80 CPU emulator (shared between CPS1 and CPS2)
-// Uses FBNeo's Z80 implementation
 class SoundCPU {
 public:
     SoundCPU();
