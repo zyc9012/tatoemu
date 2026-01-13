@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <cstring>
 
-namespace cps1 {
+namespace util {
 
 ZipReader::ZipReader()
     : m_initialized(false) {
@@ -116,4 +116,4 @@ bool ZipReader::extractAll(std::map<std::string, std::vector<u8>>& files) {
     return !files.empty();
 }
 
-} // namespace cps1
+} // namespace util

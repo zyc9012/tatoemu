@@ -61,7 +61,7 @@ bool Cartridge::load(const fs::path& filename) {
     m_title = m_gameInfo->name;
     
     // Open and extract ZIP file
-    ZipReader zip;
+    util::ZipReader zip;
     if (!zip.open(filename)) {
         std::cerr << "Failed to open ZIP file: " << filename << std::endl;
         return false;

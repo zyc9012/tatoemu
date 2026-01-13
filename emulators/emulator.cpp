@@ -2,10 +2,14 @@
 #include "gb/core.h"
 #include "nes/core.h"
 #include "cps/cps1/core.h"
+#include "cps/cps1/db.h"
+#include "cps/cps2/core.h"
+#include "cps/cps2/db.h"
 #include <SDL3/SDL.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 SDLVideoDevice::SDLVideoDevice(SDL_Renderer* renderer, SDL_Texture* texture, u16 screenWidth, u16 screenHeight)
     : m_renderer(renderer)
@@ -138,8 +142,26 @@ bool Emulator::initialize() {
     } else if (ext == ".nes") {
         m_core = std::make_unique<nes::Core>();
     } else if (ext == ".zip") {
-        // CPS1 ROMs use .zip format (MAME format)
-        m_core = std::make_unique<cps1::Core>();
+        // CPS1/CPS2 ROMs use .zip format (MAME format)
+        // Check game databases to determine which core to use
+        std::string romSetName = m_romFilename.stem().string();
+        std::transform(romSetName.begin(), romSetName.end(), romSetName.begin(), ::tolower);
+        
+        // Check CPS2 database first
+        const cps2::GameInfo* cps2Game = cps2::GameDatabase::findGame(romSetName);
+        if (cps2Game) {
+            m_core = std::make_unique<cps2::Core>();
+        } else {
+            // Check CPS1 database
+            const cps1::GameInfo* cps1Game = cps1::GameDatabase::findGame(romSetName);
+            if (cps1Game) {
+                m_core = std::make_unique<cps1::Core>();
+            } else {
+                std::cerr << "Unknown CPS game: " << romSetName << std::endl;
+                std::cerr << "Game not found in CPS1 or CPS2 database" << std::endl;
+                return false;
+            }
+        }
     } else {
         std::cerr << "Unsupported ROM file extension: " << ext << std::endl;
         return false;

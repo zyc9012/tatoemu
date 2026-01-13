@@ -36,6 +36,7 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper163.cpp
     ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper164.cpp
     ${CMAKE_SOURCE_DIR}/emulators/nes/mappers/mapper178.cpp
+    ${CMAKE_SOURCE_DIR}/utilities/zip_reader.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/cpu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/sound_cpu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/controller.cpp
@@ -50,7 +51,12 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/components/sound/msm6295/msm6295.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/cartridge.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/db.cpp
-    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/zip_reader.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/core.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/ppu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/memory.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/cartridge.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/db.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/decrypt.cpp
     ${CMAKE_SOURCE_DIR}/emulators/emulator.cpp
     ${CMAKE_SOURCE_DIR}/utilities/miniz/miniz.c
 )
@@ -81,6 +87,7 @@ set(COMMON_HEADERS
     ${CMAKE_SOURCE_DIR}/emulators/cps/config.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/consts.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/memory_base.h
+    ${CMAKE_SOURCE_DIR}/utilities/zip_reader.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/ppu_base.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/apu_base.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/cartridge_base.h
@@ -90,8 +97,13 @@ set(COMMON_HEADERS
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/memory.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/cartridge.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/db.h
-    ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/zip_reader.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/consts.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/core.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/ppu.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/memory.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/cartridge.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/db.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/cps2/consts.h
     ${CMAKE_SOURCE_DIR}/emulators/emulator.h
     ${CMAKE_SOURCE_DIR}/emulators/core.h
     ${CMAKE_SOURCE_DIR}/emulators/types.h

@@ -1,15 +1,16 @@
 #pragma once
 
-#include "../../types.h"
-#include "../../../utilities/miniz/miniz.h"
+#include "../emulators/types.h"
+#include "miniz/miniz.h"
 #include <filesystem>
 #include <vector>
 #include <string>
 #include <map>
 
-namespace cps1 {
+namespace util {
 
 // ZIP file reader using miniz library for extracting ROM files
+// Universal utility for all emulators
 class ZipReader {
 public:
     ZipReader();
@@ -33,4 +34,4 @@ private:
     std::vector<u8> m_zipData;  // Keep ZIP data in memory for miniz
 };
 
-} // namespace cps1
+} // namespace util
