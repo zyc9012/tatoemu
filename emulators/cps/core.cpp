@@ -18,7 +18,7 @@ bool Core::initialize(::VideoDevice* videoDevice, ::AudioDevice* audioDevice) {
     m_cpu = std::make_unique<CPU>();
     m_soundCpu = std::make_unique<SoundCPU>();
     m_ppu = std::make_unique<PPU>();
-    m_apu = std::make_unique<::cps1::APU>();  // Use CPS1 APU for both
+    m_apu = std::make_unique<APU>();
     m_memory = std::make_unique<Memory>();
     m_controller1 = std::make_unique<Controller>();
     m_controller2 = std::make_unique<Controller>();

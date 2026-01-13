@@ -15,7 +15,7 @@ extern "C" {
 namespace cps {
 
 class Memory;
-class APUBase;
+class APU;
 
 // Z80 CPU emulator (shared between CPS1 and CPS2)
 class SoundCPU {
@@ -28,11 +28,11 @@ public:
     
     u32 getCycles() const { return m_cycles; }
     void setMemory(Memory* memory) { m_memory = memory; }
-    void setAPU(APUBase* apu) { m_apu = apu; }
+    void setAPU(APU* apu) { m_apu = apu; }
     
     // Accessors for Z80 callbacks
     Memory* getMemory() const { return m_memory; }
-    APUBase* getAPU() const { return m_apu; }
+    APU* getAPU() const { return m_apu; }
     
     // Interrupt handling
     void irq(bool state = true);
@@ -45,7 +45,7 @@ public:
 protected:
     // Protected so Z80 callback functions can access them
     Memory* m_memory;
-    APUBase* m_apu;
+    APU* m_apu;
     u32 m_cycles;
 };
 

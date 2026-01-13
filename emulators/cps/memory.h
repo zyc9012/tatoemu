@@ -10,7 +10,7 @@ namespace cps {
 class CPU;
 class SoundCPU;
 class PPU;
-class APUBase;
+class APU;
 class Cartridge;
 class Controller;
 
@@ -47,7 +47,7 @@ public:
     void setCPU(CPU* cpu) { m_cpu = cpu; }
     void setSoundCPU(SoundCPU* soundCpu) { m_soundCpu = soundCpu; }
     void setPPU(PPU* ppu) { m_ppu = ppu; }
-    void setAPU(APUBase* apu) { m_apu = apu; }
+    void setAPU(APU* apu) { m_apu = apu; }
     void setCartridge(Cartridge* cartridge) { m_cartridge = cartridge; }
     void setController1(Controller* controller) { m_controller1 = controller; }
     void setController2(Controller* controller) { m_controller2 = controller; }
@@ -61,7 +61,7 @@ private:
     CPU* m_cpu;
     SoundCPU* m_soundCpu;
     PPU* m_ppu;
-    APUBase* m_apu;
+    APU* m_apu;
     Cartridge* m_cartridge;
     Controller* m_controller1;
     Controller* m_controller2;

@@ -5,7 +5,7 @@
 #include "cpu.h"
 #include "sound_cpu.h"
 #include "ppu.h"
-#include "cps1/apu.h"
+#include "apu.h"
 #include "memory.h"
 #include "cartridge.h"
 #include "controller.h"
@@ -51,7 +51,7 @@ private:
     std::unique_ptr<CPU> m_cpu;
     std::unique_ptr<SoundCPU> m_soundCpu;
     std::unique_ptr<PPU> m_ppu;
-    std::unique_ptr<::cps1::APU> m_apu;  // CPS1 APU used for both (CPS2 sound not implemented)
+    std::unique_ptr<APU> m_apu;
     std::unique_ptr<Memory> m_memory;
     std::unique_ptr<Cartridge> m_cartridge;
     std::unique_ptr<Controller> m_controller1;

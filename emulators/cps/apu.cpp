@@ -1,15 +1,15 @@
 #include "apu.h"
-#include "../sound_cpu.h"
-#include "../memory.h"
-#include "../cartridge.h"
-#include "../../types.h"
-#include "../../components/compact.h"
+#include "sound_cpu.h"
+#include "memory.h"
+#include "cartridge.h"
+#include "../types.h"
+#include "../components/compact.h"
 #include <cstring>
 #include <cmath>
 #include <algorithm>
-#include "../consts.h"
+#include "consts.h"
 
-namespace cps1 {
+namespace cps {
 
 // CPS1 Z80 I/O Port Map:
 // 0x00-0x01: YM2151 (address/data)
@@ -17,7 +17,7 @@ namespace cps1 {
 
 // Static pointer to SoundCPU for interrupt handler callback
 // This is set when setSoundCPU() is called
-static cps::SoundCPU* s_ym2151SoundCpu = nullptr;
+static SoundCPU* s_ym2151SoundCpu = nullptr;
 
 // YM2151 interrupt handler - sets/clears Z80 INT line based on YM2151 interrupt status
 static void ym2151IrqHandler(s32 nStatus) {
@@ -51,38 +51,54 @@ APU::~APU() {
     MSM6295Exit(0);
 }
 
-void APU::setSoundCPU(cps::SoundCPU* soundCpu) {
+void APU::setSoundCPU(SoundCPU* soundCpu) {
     m_soundCpu = soundCpu;
     // Update the static pointer in the IRQ handler so it can trigger Z80 interrupts
     s_ym2151SoundCpu = soundCpu;
 }
 
-void APU::setMemory(cps::Memory* memory) {
+void APU::setMemory(Memory* memory) {
     m_memory = memory;
 }
 
-void APU::setCartridge(cps::Cartridge* cartridge) {
+void APU::setCartridge(Cartridge* cartridge) {
     m_cartridge = cartridge;
     setROMData();
 }
 
+u8 APU::getCPSVersion() const {
+    if (m_cartridge) {
+        return m_cartridge->getCPSVersion();
+    }
+    return 1;  // Default to CPS1 if cartridge is not set
+}
+
 void APU::reset() {
+    if (getCPSVersion() != 1) {
+        return;
+    }
+
     // Reset sound chips
     YM2151ResetChip(0);
     MSM6295Reset(0);
+    
     m_ym2151RegSelect = 0;
     
     // Reset sample generation
     m_cycleAccumulator = 0;
     
     // Calculate cycles per sample (Z80 runs at 4 MHz)
-    m_cyclesPerSample = SOUND_CPU_FREQUENCY / m_sampleRate;
+    m_cyclesPerSample = cps1::SOUND_CPU_FREQUENCY / m_sampleRate;
     
-    // Set ROM data for MSM6295
+    // Set ROM data
     setROMData();
 }
 
 void APU::setROMData() {
+    if (getCPSVersion() != 1) {
+        return;
+    }
+
     if (!m_cartridge) {
         return;
     }
@@ -104,13 +120,17 @@ void APU::step(u32 cycles, double gameSpeed) {
 }
 
 void APU::setSampleRate(u32 sampleRate) {
+    if (getCPSVersion() != 1) {
+        return;
+    }
+
     m_sampleRate = sampleRate;
     
     YM2151SetSampleRate(0, sampleRate);
     MSM6295SetSamplerate(0, 7576, static_cast<s32>(sampleRate));
     
     // Recalculate cycles per sample
-    m_cyclesPerSample = SOUND_CPU_FREQUENCY / m_sampleRate;
+    m_cyclesPerSample = cps1::SOUND_CPU_FREQUENCY / m_sampleRate;
 }
 
 void APU::setVolume(float volume) {
@@ -118,12 +138,15 @@ void APU::setVolume(float volume) {
 }
 
 u8 APU::readPort(u16 port) {
-    // YM2151 status register (port 0x01)
+    if (getCPSVersion() != 1) {
+        return 0xFF;
+    }
+
+    // YM2151 status register (port 0x01) - common to both CPS1 and CPS2
     if (port == 0x01) {
         return static_cast<u8>(YM2151ReadStatus(0));
     }
     
-    // MSM6295 status (port 0x02)
     if (port == 0x02) {
         return static_cast<u8>(MSM6295Read(0));
     }
@@ -132,19 +155,22 @@ u8 APU::readPort(u16 port) {
 }
 
 void APU::writePort(u16 port, u8 value) {
-    // YM2151 register select (port 0x00)
+    if (getCPSVersion() != 1) {
+        return;
+    }
+
+    // YM2151 register select (port 0x00) - common to both CPS1 and CPS2
     if (port == 0x00) {
         m_ym2151RegSelect = value;
         return;
     }
     
-    // YM2151 data write (port 0x01)
+    // YM2151 data write (port 0x01) - common to both CPS1 and CPS2
     if (port == 0x01) {
         YM2151WriteReg(0, m_ym2151RegSelect, value);
         return;
     }
     
-    // MSM6295 command (port 0x02)
     if (port == 0x02) {
         MSM6295Write(0, value);
         return;
@@ -152,6 +178,10 @@ void APU::writePort(u16 port, u8 value) {
 }
 
 void APU::generateSamples(u32 cycles, double gameSpeed) {
+    if (getCPSVersion() != 1) {
+        return;
+    }
+
     if (!m_audioDevice) {
         return;
     }
@@ -197,6 +227,10 @@ void APU::generateSamples(u32 cycles, double gameSpeed) {
 }
 
 void APU::saveState(std::ofstream& file) {
+    if (getCPSVersion() != 1) {
+        return;
+    }
+
     file.write(reinterpret_cast<const char*>(&m_sampleRate), sizeof(m_sampleRate));
     file.write(reinterpret_cast<const char*>(&m_volume), sizeof(m_volume));
     file.write(reinterpret_cast<const char*>(&m_cycleAccumulator), sizeof(m_cycleAccumulator));
@@ -205,12 +239,16 @@ void APU::saveState(std::ofstream& file) {
     
     // Save YM2151 state
     YM2151SaveContext(file);
-    
+
     // Save MSM6295 state
     MSM6295SaveContext(file);
 }
 
 void APU::loadState(std::ifstream& file) {
+    if (getCPSVersion() != 1) {
+        return;
+    }
+
     file.read(reinterpret_cast<char*>(&m_sampleRate), sizeof(m_sampleRate));
     file.read(reinterpret_cast<char*>(&m_volume), sizeof(m_volume));
     file.read(reinterpret_cast<char*>(&m_cycleAccumulator), sizeof(m_cycleAccumulator));
@@ -224,4 +262,4 @@ void APU::loadState(std::ifstream& file) {
     MSM6295LoadContext(file);
 }
 
-} // namespace cps1
+} // namespace cps

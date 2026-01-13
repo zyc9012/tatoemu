@@ -3,7 +3,7 @@
 #include "cpu.h"
 #include "sound_cpu.h"
 #include "ppu.h"
-#include "apu_base.h"
+#include "apu.h"
 #include "controller.h"
 #include "db.h"
 #include <iostream>
