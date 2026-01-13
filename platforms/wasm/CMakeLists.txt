@@ -44,12 +44,17 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/cps/controller.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80daisy.cpp
-    ${CMAKE_SOURCE_DIR}/emulators/cps/m68k/m68kcpu.c
-    ${CMAKE_SOURCE_DIR}/emulators/cps/m68k/m68kops.c
+    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80ctc.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80pio.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kcpu.c
+    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kops.c
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/core.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/ppu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/apu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/memory.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/components/sound/ym2151/ym2151.c
+    ${CMAKE_SOURCE_DIR}/emulators/components/sound/msm6295/msm6295.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/components/sound/burnint.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/cartridge.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/db.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/cps1/zip_reader.cpp
@@ -106,8 +111,11 @@ add_executable(tatoemu ${SOURCES} ${HEADERS})
 # Include directories
 target_include_directories(tatoemu PRIVATE 
     ${CMAKE_SOURCE_DIR}/emulators
-    ${CMAKE_SOURCE_DIR}/emulators/cps/m68k
+    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80
+    ${CMAKE_SOURCE_DIR}/emulators/components/sound
+    ${CMAKE_SOURCE_DIR}/emulators/components/sound/ym2151
+    ${CMAKE_SOURCE_DIR}/emulators/components/sound/msm6295
     ${CMAKE_SOURCE_DIR}/utilities
 )
 
@@ -120,8 +128,9 @@ set_source_files_properties(${CMAKE_SOURCE_DIR}/utilities/miniz/miniz.c PROPERTI
 # Add m68k and Z80 source files and compile them as C
 # Note: z80.cpp, z80daisy.cpp, z80ctc.cpp, and z80pio.cpp are C++ code
 set_source_files_properties(
-    ${CMAKE_SOURCE_DIR}/emulators/cps/m68k/m68kcpu.c
-    ${CMAKE_SOURCE_DIR}/emulators/cps/m68k/m68kops.c
+    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kcpu.c
+    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kops.c
+    ${CMAKE_SOURCE_DIR}/emulators/components/sound/ym2151/ym2151.c
     PROPERTIES LANGUAGE C
 )
 

@@ -1,6 +1,6 @@
 #include "cpu.h"
 #include "memory_base.h"
-#include "m68k/m68k.h"
+#include "../../components/cpu/m68k/m68k.h"
 #include <iostream>
 #include <cstring>
 #include <iomanip>
