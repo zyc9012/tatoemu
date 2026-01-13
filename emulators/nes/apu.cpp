@@ -502,8 +502,6 @@ APU::APU()
     , m_totalCycles(0)
     , m_lastFrameCycle(0)
     , m_oddCycle(false)
-    , m_sampleRate(44100)
-    , m_volume(1.0f)
     , m_sampleCounter(0)
     , m_cyclesPerSample(0)
     , m_highPass1(0)
@@ -511,7 +509,6 @@ APU::APU()
     , m_lowPass(0) {
     buildMixerTables();
     m_sampleBuffer.reserve(SAMPLE_BUFFER_SIZE);
-    setSampleRate(44100);
 }
 
 void APU::setMemory(Memory* memory) {

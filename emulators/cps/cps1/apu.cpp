@@ -42,8 +42,6 @@ APU::APU()
     , m_memory(nullptr)
     , m_cartridge(nullptr)
     , m_audioDevice(nullptr)
-    , m_sampleRate(44100)
-    , m_volume(1.0f)
     , m_ym2151LeftBuffer(nullptr)
     , m_ym2151RightBuffer(nullptr)
     , m_msm6295Buffer(nullptr)
@@ -53,11 +51,8 @@ APU::APU()
     m_sampleBufferLeft.reserve(1024);
     m_sampleBufferRight.reserve(1024);
     
-    // Set global sound rate
-    nBurnSoundRate = m_sampleRate;
-    
     // Initialize FBNeo YM2151 (chip 0, chipbase 0, clock 3579540 Hz, rate, no timer callback)
-    YM2151Init(1, 0, 3579540, m_sampleRate, nullptr);
+    YM2151Init(1, 0, 3579540, 44100, nullptr);
     
     // Set YM2151 interrupt handler (will be connected to Z80 when setSoundCPU is called)
     YM2151SetIrqHandler(YM2151_CHIP, ym2151IrqHandler);
@@ -149,7 +144,8 @@ void APU::step(u32 cycles, double gameSpeed) {
 void APU::setSampleRate(u32 sampleRate) {
     m_sampleRate = sampleRate;
     nBurnSoundRate = sampleRate;
-    // FBNeo chips will use the global nBurnSoundRate
+    
+    YM2151SetSampleRate(YM2151_CHIP, sampleRate);
     MSM6295SetSamplerate(MSM6295_CHIP, 7576);
     
     // Recalculate cycles per sample

@@ -88,6 +88,9 @@ void YM2151SetIrqHandler(int n, void (*handler)(int irq));
 /* set port write handler on YM2151 chip number 'n'*/
 void YM2151SetPortWriteHandler(int n, write8_handler handler);
 
+/* set sample rate for YM2151 chip number 'n'*/
+void YM2151SetSampleRate(int n, int rate);
+
 /* FBAlpha-style savestate function for ym2151.c internal registers & operators */
 void BurnYM2151Scan_int(INT32 nAction);
 

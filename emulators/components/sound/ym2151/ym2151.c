@@ -1566,16 +1566,10 @@ int YM2151Init(int num, int chipbase, int clock, int rate, void (*timer_cb)(INT3
 		/*rate = clock/64;*/
 		YMPSG[i].chip_base = chipbase;
 		//bprintf(0, _T("ympsg[%d].chip_base = %d\n"), i, chipbase);
-		YMPSG[i].sampfreq = rate ? rate : 44100;	/* avoid division by 0 in init_chip_tables() */
 		YMPSG[i].timer_sync = 0;
 		YMPSG[i].irqhandler = NULL;					/* interrupt handler  */
 		YMPSG[i].porthandler = NULL;				/* port write handler */
-		init_chip_tables( &YMPSG[i] );
-
-		YMPSG[i].lfo_timer_add = (1<<LFO_SH) * (clock/64.0) / YMPSG[i].sampfreq;
-
-		YMPSG[i].eg_timer_add  = (1<<EG_SH)  * (clock/64.0) / YMPSG[i].sampfreq;
-		YMPSG[i].eg_timer_overflow = ( 3 ) * (1<<EG_SH);
+		YM2151SetSampleRate(i, rate);
 		/*logerror("YM2151[init] eg_timer_add=%8x eg_timer_overflow=%8x\n", YMPSG[i].eg_timer_add, YMPSG[i].eg_timer_overflow);*/
 
 //#ifdef USE_MAME_TIMERS
@@ -1597,7 +1591,30 @@ int YM2151Init(int num, int chipbase, int clock, int rate, void (*timer_cb)(INT3
 	return 0;
 }
 
+/*
+*	Set sample rate for YM2151 chip number 'num'.
+*
+*	'num' is the number of virtual YM2151
+*	'rate' is the new sampling rate in Hz
+*/
+void YM2151SetSampleRate(int num, int rate)
+{
+	if (!YMPSG || num < 0 || num >= YMNumChips)
+		return;
 
+	if (rate <= 0)
+		rate = 44100;	/* avoid division by 0 */
+
+	YMPSG[num].sampfreq = rate;
+	
+	/* Recalculate chip tables that depend on sample rate */
+	init_chip_tables(&YMPSG[num]);
+	
+	/* Recalculate timer values */
+	YMPSG[num].lfo_timer_add = (1<<LFO_SH) * (YMPSG[num].clock/64.0) / YMPSG[num].sampfreq;
+	YMPSG[num].eg_timer_add  = (1<<EG_SH)  * (YMPSG[num].clock/64.0) / YMPSG[num].sampfreq;
+	YMPSG[num].eg_timer_overflow = ( 3 ) * (1<<EG_SH);
+}
 
 void YM2151Shutdown()
 {
