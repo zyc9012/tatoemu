@@ -1,0 +1,146 @@
+/*
+ * Compact header combining:
+ * - emulators/components/cpu/z80/burnint.h
+ * - emulators/components/sound/burnint.h
+ * - emulators/components/sound/driver.h
+ * - emulators/components/sound/state.h
+ */
+
+#ifndef COMPACT_H
+#define COMPACT_H
+
+// Standard includes
+#include <stdint.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <assert.h>
+#include <math.h>
+
+#if !defined (_WIN32)
+ #define __cdecl
+ #define __fastcall
+#endif
+
+#ifndef INLINE
+ #define INLINE static inline
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Type definitions matching FBNeo
+typedef uint8_t     UINT8;
+typedef int8_t      INT8;
+typedef uint16_t    UINT16;
+typedef int16_t     INT16;
+typedef uint32_t    UINT32;
+typedef int32_t     INT32;
+typedef uint64_t    UINT64;
+typedef int64_t     INT64;
+
+// Boolean definitions
+#ifndef FALSE
+#define FALSE 0
+#endif
+#ifndef TRUE
+#define TRUE 1
+#endif
+
+// C++ bool support for C code
+#ifdef __cplusplus
+// C++ has bool, true, false built-in
+#else
+typedef int bool;
+#define true 1
+#define false 0
+#endif
+
+// Math constants
+#ifndef M_PI
+#define M_PI 3.14159265358979323846264338327950288
+#endif
+
+// Endianness - assume little endian (LSB_FIRST) for most modern systems
+#ifndef LSB_FIRST
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#define LSB_FIRST 1
+#elif defined(_WIN32) || defined(__x86_64__) || defined(__i386__)
+#define LSB_FIRST 1
+#else
+#define LSB_FIRST 0
+#endif
+#endif
+
+// PAIR type for endianness handling
+#ifdef LSB_FIRST
+typedef union {
+    struct { UINT8 l,h,h2,h3; } b;
+    struct { UINT16 l,h; } w;
+    UINT32 d;
+} PAIR;
+#else
+typedef union {
+    struct { UINT8 h3,h2,h,l; } b;
+    struct { UINT16 h,l; } w;
+    UINT32 d;
+} PAIR;
+#endif
+
+// STRUCT_SIZE_HELPER macro
+#define STRUCT_SIZE_HELPER(type, member) offsetof(type, member) + sizeof(((type*)0)->member)
+
+// Action flags for save/load states
+#define ACB_NONE    0
+#define ACB_READ    1
+#define ACB_WRITE   2
+#define ACB_RW      (ACB_READ | ACB_WRITE)
+#define ACB_DRIVER_DATA     (1<<6)
+
+// ScanVar function for state saving
+static inline void ScanVar(void* pv, INT32 nSize, char* szName) {
+    (void)pv;
+    (void)nSize;
+    (void)szName;
+}
+
+// SCAN_VAR macro (for save states)
+#define SCAN_VAR(x) ScanVar(&x, sizeof(x), #x)
+
+// Memory allocation (use standard malloc/free)
+#define BurnMalloc(size) malloc(size)
+#define BurnFree(ptr) free(ptr)
+
+// Sound rate (will be set by wrapper)
+extern INT32 nBurnSoundRate;
+
+// Interpolation setting (default to linear)
+extern INT32 nInterpolation;
+
+// Route definitions
+#define BURN_SND_ROUTE_LEFT    0x01
+#define BURN_SND_ROUTE_RIGHT   0x02
+#define BURN_SND_ROUTE_BOTH    (BURN_SND_ROUTE_LEFT | BURN_SND_ROUTE_RIGHT)
+
+// Clip function
+#define BURN_SND_CLIP(x) \
+    ((x) > 32767 ? 32767 : ((x) < -32768 ? -32768 : (x)))
+
+// write8_handler type (port, data)
+typedef void (*write8_handler)(UINT8 port, UINT8 data);
+
+// Stub out logerror (can be implemented if needed)
+#define logerror(...) ((void)0)
+
+// Dummy macros/functions that FBNeo Z80 might need but we don't use
+#define bprintf(...) ((void)0)
+#define PRINT_ERROR 0
+#define _T(x) x
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* COMPACT_H */

@@ -32,7 +32,7 @@
 #ifndef _H_YM2151_
 #define _H_YM2151_
 
-#include "../driver.h"
+#include "../../compact.h"
 
 #ifdef __cplusplus
 extern "C" {

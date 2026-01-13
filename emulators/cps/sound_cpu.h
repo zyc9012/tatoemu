@@ -1,15 +1,15 @@
 #pragma once
 
 #include "../types.h"
-#include "../components/cpu/z80/burnint.h"
+#include "../components/compact.h"
 #include <fstream>
 
 // Forward declarations for Z80 callbacks
 extern "C" {
-    UINT8 z80_read_prog(UINT32 address);
-    void z80_write_prog(UINT32 address, UINT8 value);
-    UINT8 z80_read_io(UINT32 port);
-    void z80_write_io(UINT32 port, UINT8 value);
+    u8 z80_read_prog(u32 address);
+    void z80_write_prog(u32 address, u8 value);
+    u8 z80_read_io(u32 port);
+    void z80_write_io(u32 port, u8 value);
 }
 
 namespace cps {

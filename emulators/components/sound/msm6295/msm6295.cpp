@@ -17,8 +17,7 @@
 #define CUBIC_ENABLED   0
 
 #include <math.h>
-#include "../burnint.h"
-#include "../state.h"
+#include "../../compact.h"
 #include "msm6295.h"
 #include <stddef.h>
 
@@ -320,8 +319,6 @@ void MSM6295Write(INT32 nChip, UINT8 nCommand)
 
 void MSM6295Exit(INT32 nChip)
 {
-	if (!DebugSnd_MSM6295Initted) return;
-
 	if (pLeftBuffer) BurnFree(pLeftBuffer);
 	if (pRightBuffer) BurnFree(pRightBuffer);
 	pLeftBuffer = NULL;
@@ -330,8 +327,6 @@ void MSM6295Exit(INT32 nChip)
 	for (INT32 nChannel = 0; nChannel < 4; nChannel++) {
 		BurnFree(MSM6295ChannelData[nChip][nChannel]);
 	}
-	
-	if (nChip == nLastMSM6295Chip) DebugSnd_MSM6295Initted = 0;
 }
 
 void MSM6295ExitAll(void)
@@ -354,8 +349,6 @@ void MSM6295SetSamplerate(INT32 nChip, INT32 nSamplerate)
 
 INT32 MSM6295Init(INT32 nChip, INT32 nSamplerate, bool bAddSignal)
 {
-	DebugSnd_MSM6295Initted = 1;
-	
 	if (nBurnSoundRate > 0) {
 		if (pLeftBuffer == NULL) {
 			pLeftBuffer = (INT32*)BurnMalloc(nBurnSoundRate * sizeof(INT32));

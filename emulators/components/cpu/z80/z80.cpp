@@ -93,7 +93,7 @@
  *      http://www.msxnet.org/tech/z80-documented.pdf
  *****************************************************************************/
 
-#include "burnint.h"
+#include "../compact.h"
 #include "z80.h"
 #include <stddef.h>
 

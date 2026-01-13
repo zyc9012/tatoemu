@@ -4,7 +4,7 @@
 #include "../apu_base.h"
 #include "../../components/sound/ym2151/ym2151.h"
 #include "../../components/sound/msm6295/msm6295.h"
-#include "../../components/sound/burnint.h"
+#include "../../components/compact.h"
 #include <fstream>
 #include <memory>
 #include <vector>
@@ -49,9 +49,9 @@ private:
     float m_volume;
     
     // Sample buffers
-    INT16 m_ym2151LeftSample = 0;
-    INT16 m_ym2151RightSample = 0;
-    INT16 m_msm6295Samples[2] = { 0, 0 };
+    s16 m_ym2151LeftSample = 0;
+    s16 m_ym2151RightSample = 0;
+    s16 m_msm6295Samples[2] = { 0, 0 };
     
     // Sample generation
     double m_cycleAccumulator;   // Accumulator for cycle timing

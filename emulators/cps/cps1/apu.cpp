@@ -3,7 +3,7 @@
 #include "memory.h"
 #include "cartridge.h"
 #include "../../types.h"
-#include "../../components/sound/state.h"
+#include "../../components/compact.h"
 #include <cstring>
 #include <cmath>
 #include <algorithm>
@@ -20,7 +20,7 @@ namespace cps1 {
 static cps::SoundCPU* s_ym2151SoundCpu = nullptr;
 
 // YM2151 interrupt handler - sets/clears Z80 INT line based on YM2151 interrupt status
-static void ym2151IrqHandler(INT32 nStatus) {
+static void ym2151IrqHandler(s32 nStatus) {
     if (s_ym2151SoundCpu) {
         s_ym2151SoundCpu->irq(nStatus != 0);
     }
@@ -93,8 +93,8 @@ void APU::setROMData() {
     
     if (sampleData && sampleSize > 0) {
         // Set bank
-        INT32 endAddr = static_cast<INT32>(sampleSize - 1);
-        MSM6295SetBank(0, const_cast<UINT8*>(sampleData), 0, endAddr);
+        s32 endAddr = static_cast<s32>(sampleSize - 1);
+        MSM6295SetBank(0, const_cast<u8*>(sampleData), 0, endAddr);
     }
 }
 
@@ -164,7 +164,7 @@ void APU::generateSamples(u32 cycles, double gameSpeed) {
     }
     m_cycleAccumulator -= m_cyclesPerSample * gameSpeed;
 
-    INT16* ym2151Buffers[2] = { &m_ym2151LeftSample, &m_ym2151RightSample };
+    s16* ym2151Buffers[2] = { &m_ym2151LeftSample, &m_ym2151RightSample };
     
     // Generate YM2151 samples
     YM2151UpdateOne(0, ym2151Buffers, 1);
@@ -203,9 +203,9 @@ void APU::saveState(std::ofstream& file) {
     file.write(reinterpret_cast<const char*>(&m_cycleAccumulator), sizeof(m_cycleAccumulator));
     file.write(reinterpret_cast<const char*>(&m_cyclesPerSample), sizeof(m_cyclesPerSample));
     file.write(reinterpret_cast<const char*>(&m_ym2151RegSelect), sizeof(m_ym2151RegSelect));
-    INT32 nAction = ACB_READ;
+    s32 nAction = ACB_READ;
     BurnYM2151Scan_int(nAction);
-    INT32 pnMin = 0;
+    s32 pnMin = 0;
     MSM6295Scan(nAction, &pnMin);
 }
 
@@ -215,9 +215,9 @@ void APU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_cycleAccumulator), sizeof(m_cycleAccumulator));
     file.read(reinterpret_cast<char*>(&m_cyclesPerSample), sizeof(m_cyclesPerSample));
     file.read(reinterpret_cast<char*>(&m_ym2151RegSelect), sizeof(m_ym2151RegSelect));
-    INT32 nAction = ACB_WRITE;
+    s32 nAction = ACB_WRITE;
     BurnYM2151Scan_int(nAction);
-    INT32 pnMin = 0;
+    s32 pnMin = 0;
     MSM6295Scan(nAction, &pnMin);
 }
 

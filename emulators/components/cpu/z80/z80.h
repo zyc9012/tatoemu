@@ -1,7 +1,7 @@
 #ifndef _Z80_H_
 #define _Z80_H_
 
-#include "burnint.h"
+#include "../compact.h"
 
 #define	CPUINFO_PTR_CPU_SPECIFIC	0x18000
 #define Z80_CLEAR_LINE		0

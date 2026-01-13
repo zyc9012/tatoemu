@@ -1,6 +1,6 @@
 // MSM6295 module header
 
-#include "../driver.h"
+#include "../../compact.h"
 
 #ifdef __cplusplus
 extern "C" {

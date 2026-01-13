@@ -12,7 +12,7 @@ static SoundCPU* g_soundCpuContext = nullptr;
 
 // Z80 callback functions for FBNeo Z80
 extern "C" {
-    UINT8 z80_read_prog(UINT32 address) {
+    u8 z80_read_prog(u32 address) {
         if (g_soundCpuContext) {
             MemoryBase* mem = g_soundCpuContext->getMemory();
             if (mem) {
@@ -22,7 +22,7 @@ extern "C" {
         return 0xFF;
     }
 
-    void z80_write_prog(UINT32 address, UINT8 value) {
+    void z80_write_prog(u32 address, u8 value) {
         if (g_soundCpuContext) {
             MemoryBase* mem = g_soundCpuContext->getMemory();
             if (mem) {
@@ -31,7 +31,7 @@ extern "C" {
         }
     }
 
-    UINT8 z80_read_io(UINT32 port) {
+    u8 z80_read_io(u32 port) {
         if (g_soundCpuContext) {
             APUBase* apu = g_soundCpuContext->getAPU();
             if (apu) {
@@ -41,7 +41,7 @@ extern "C" {
         return 0xFF;
     }
 
-    void z80_write_io(UINT32 port, UINT8 value) {
+    void z80_write_io(u32 port, u8 value) {
         if (g_soundCpuContext) {
             APUBase* apu = g_soundCpuContext->getAPU();
             if (apu) {
@@ -91,7 +91,7 @@ void SoundCPU::reset() {
 
 void SoundCPU::step(u32 cycles) {
     if (cycles > 0) {
-        INT32 executed = Z80Execute(static_cast<INT32>(cycles));
+        s32 executed = Z80Execute(static_cast<s32>(cycles));
         m_cycles += static_cast<u32>(executed);
     }
 }

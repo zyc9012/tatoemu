@@ -11,37 +11,8 @@
 #include <string.h>
 #include <math.h>
 
-#include "../driver.h"
-#include "../state.h"
+#include "../../compact.h"
 #include "ym2151.h"
-
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-	// MSVC doesn't like this - this module only supports debug tracking with GCC only
-	#include <tchar.h>
-	extern UINT8 DebugSnd_AY8910Initted;
-	extern INT32 (__cdecl *bprintf) (INT32 nStatus, TCHAR* szFormat, ...);
-	#define PRINT_ERROR		(3)
-#endif
-#endif
-
-/* undef this to not use MAME timer system */
-// #define USE_MAME_TIMERS
-
-/*#define FM_EMU*/
-#ifdef FM_EMU
-	#define INLINE static __inline__
-	#ifdef USE_MAME_TIMERS
-		#undef USE_MAME_TIMERS
-	#endif
-#endif
-#ifdef USE_MAME_TIMERS
-	/*#define LOG_CYM_FILE*/
-	#ifdef LOG_CYM_FILE
-		FILE * cymfile = NULL;
-	#endif
-#endif
-
 
 /* struct describing a single operator */
 typedef struct{
