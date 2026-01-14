@@ -55,6 +55,10 @@ public:
     // Save/Load state
     void saveState(std::ofstream& file);
     void loadState(std::ifstream& file);
+    
+    // CPS2 raster IRQ accessors
+    u16 getRasterIRQ50() const { return m_rasterIRQ50; }
+    u16 getRasterIRQ52() const { return m_rasterIRQ52; }
 
 private:
     // Component pointers
@@ -109,6 +113,10 @@ private:
     
     // CPS2-specific: Frame toggle register (0x664001)
     u8 m_n664001;
+    
+    // CPS2-specific: Raster interrupt registers (ports 0x50-0x53)
+    u16 m_rasterIRQ50;  // Scanline for IRQ line 50 (port 0x050-0x051)
+    u16 m_rasterIRQ52;  // Scanline for IRQ line 52 (port 0x052-0x053)
     
     // Helper to get CPS version from cartridge
     u8 getCPSVersion() const;

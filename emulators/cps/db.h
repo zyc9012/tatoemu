@@ -112,7 +112,7 @@ struct BoardConfig {
     u8 layerControlReg;    // Layer control register offset
     u8 paletteControlReg;  // Palette control register offset
     u8 maskAddr[4];        // Priority mask addresses
-    u16 layerEnable[3];    // Layer enable bits (for layers 1-3)
+    u16 layerEnable[6];    // Layer enable bits (layers 1-3 scroll, 4-5 star field)
     u8 memProt[4];         // Memory protection offsets for multiplication registers
 };
 

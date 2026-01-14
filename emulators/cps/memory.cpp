@@ -42,7 +42,9 @@ Memory::Memory()
     , m_boardId{0x00, 0x00, 0x00}
     , m_soundCommand(0)
     , m_soundFade(0)
-    , m_n664001(0) {
+    , m_n664001(0)
+    , m_rasterIRQ50(0)
+    , m_rasterIRQ52(0) {
 }
 
 u8 Memory::getCPSVersion() const {
@@ -88,6 +90,8 @@ void Memory::reset() {
         m_objRam.fill(0);
         m_frgRegs.fill(0);
         m_n664001 = 0;
+        m_rasterIRQ50 = 0;
+        m_rasterIRQ52 = 0;
     }
     
     // Reset sound communication
@@ -245,9 +249,15 @@ void Memory::write8(u32 address, u8 value) {
         return;
     }
     
-    // CPS2-specific: 0x664001 register
+    // CPS2-specific: 0x664001 register (frame toggle)
     if (cpsVer == 2 && address == 0x664001) {
         m_n664001 = value;
+        // Toggle object bank when frame register is written
+        // This swaps which buffer the CPU writes to and GPU reads from
+        if (m_ppu) {
+            u32 currentBank = m_ppu->getObjectBank();
+            m_ppu->setObjectBank(currentBank ^ 1);
+        }
         return;
     }
     
@@ -374,7 +384,62 @@ void Memory::writeVRAM32(u32 address, u32 value) {
 // ============================================================================
 
 u8 Memory::readPort(u16 port) {
+    u8 cpsVer = getCPSVersion();
     u8 value = 0xFF;
+    
+    // CPS2-specific ports
+    if (cpsVer == 2) {
+        // Port 0x020: Extra input port (CPS2 only)
+        if (port == 0x020) {
+            std::cout << "[CPS2] Read port 0x020 (Extra input port) - UNIMPLEMENTED, returning 0xFF" << std::endl;
+            // For now, return 0xFF (no inputs)
+            // TODO: Add support for extra input ports if needed
+            return 0xFF;
+        }
+        
+        // Port 0x021: EEPROM read (bit 0), other bits from input (CPS2 only)
+        if (port == 0x021) {
+            std::cout << "[CPS2] Read port 0x021 (EEPROM read) - UNIMPLEMENTED, returning 0xFE" << std::endl;
+            value = 0xFE;  // Bit 0 cleared (will be set by EEPROM)
+            // TODO: Implement EEPROM read
+            // value |= EEPROMRead();
+            return value;
+        }
+        
+        // Port 0x030: Volume control high byte (CPS2 only)
+        if (port == 0x030) {
+            std::cout << "[CPS2] Read port 0x030 (Volume control high) - UNIMPLEMENTED, returning 0xD0" << std::endl;
+            // TODO: Implement volume control
+            // For now, return default value
+            return 0xD0;
+        }
+        
+        // Port 0x031: Volume control low byte (CPS2 only)
+        if (port == 0x031) {
+            std::cout << "[CPS2] Read port 0x031 (Volume control low) - UNIMPLEMENTED, returning 0x00" << std::endl;
+            // TODO: Implement volume control
+            // For now, return default value
+            return 0x00;
+        }
+        
+        // Ports 0x050-0x051: Raster line counter for IRQ line 50 (CPS2 only)
+        if ((port & 0x0FE) == 0x050) {
+            if ((port & 1) == 0) {
+                return (m_rasterIRQ50 >> 8) & 0xFF;  // High byte
+            } else {
+                return m_rasterIRQ50 & 0xFF;          // Low byte
+            }
+        }
+        
+        // Ports 0x052-0x053: Raster line counter for IRQ line 52 (CPS2 only)
+        if ((port & 0x0FE) == 0x052) {
+            if ((port & 1) == 0) {
+                return (m_rasterIRQ52 >> 8) & 0xFF;  // High byte
+            } else {
+                return m_rasterIRQ52 & 0xFF;          // Low byte
+            }
+        }
+    }
     
     // Input ports (0x000-0x01F)
     // Based on Street Fighter II's input definitions
@@ -492,7 +557,6 @@ u8 Memory::readPort(u16 port) {
     }
     
     // CPS Registers (0x100-0x1FF)
-    u8 cpsVer = getCPSVersion();
     if (port >= 0x100 && port < 0x200) {
         // CPS1-specific: Board ID
         if (cpsVer == 1) {
@@ -516,6 +580,62 @@ u8 Memory::readPort(u16 port) {
 }
 
 void Memory::writePort(u16 port, u8 value) {
+    u8 cpsVer = getCPSVersion();
+    
+    // CPS2-specific ports
+    if (cpsVer == 2) {
+        // Port 0x040: EEPROM write control (CPS2 only)
+        // Bit 5 (0x20): CS (Chip Select)
+        // Bit 6 (0x40): CLK (Clock)
+        // Bit 4 (0x10): DATA (Data)
+        if (port == 0x040) {
+            std::cout << "[CPS2] Write port 0x040 (EEPROM write) - UNIMPLEMENTED, value=0x" 
+                      << std::hex << static_cast<u32>(value) << std::dec 
+                      << " (CS=" << ((value & 0x20) ? "1" : "0") 
+                      << ", CLK=" << ((value & 0x40) ? "1" : "0")
+                      << ", DATA=" << ((value & 0x10) ? "1" : "0") << ")" << std::endl;
+            // TODO: Implement EEPROM write
+            // EEPROMWrite(value & 0x20, value & 0x40, value & 0x10);
+            return;
+        }
+        
+        // Port 0x0E1: Object bank select (CPS2 only)
+        // Bit 0: Object bank (0 or 1)
+        // This selects which sprite buffer (0x708000 or 0x710000) to use for sprite rendering
+        // The object bank is also stored in FRG register 0x0E for PPU access
+        if ((port & 0x1FF) == 0x0E1) {
+            std::cout << "[CPS2] Write port 0x0E1 (Object bank select) - value=0x" 
+                      << std::hex << static_cast<u32>(value) << std::dec 
+                      << " (bank=" << (value & 1) << ")" << std::endl;
+            m_frgRegs[0x0E] = value & 1;
+            return;
+        }
+        
+        // Ports 0x050-0x051: Raster line register for IRQ line 50 (CPS2 only)
+        if ((port & 0x0FE) == 0x050) {
+            if ((port & 1) == 0) {
+                // High byte
+                m_rasterIRQ50 = (m_rasterIRQ50 & 0x00FF) | (static_cast<u16>(value) << 8);
+            } else {
+                // Low byte
+                m_rasterIRQ50 = (m_rasterIRQ50 & 0xFF00) | value;
+            }
+            return;
+        }
+        
+        // Ports 0x052-0x053: Raster line register for IRQ line 52 (CPS2 only)
+        if ((port & 0x0FE) == 0x052) {
+            if ((port & 1) == 0) {
+                // High byte
+                m_rasterIRQ52 = (m_rasterIRQ52 & 0x00FF) | (static_cast<u16>(value) << 8);
+            } else {
+                // Low byte
+                m_rasterIRQ52 = (m_rasterIRQ52 & 0xFF00) | value;
+            }
+            return;
+        }
+    }
+    
     // Sound command (0x181)
     // This is how the 68000 sends commands to the Z80 sound CPU
     // The Z80 reads this from 0xF008

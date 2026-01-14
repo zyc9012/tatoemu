@@ -11,6 +11,7 @@ namespace cps {
 
 class CPU;
 class Cartridge;
+class Memory;
 
 // Palette size (0xC00 bytes = 3072 bytes, 1536 16-bit entries across 6 pages)
 constexpr u32 PALETTE_RAM_SIZE = 0xC00;
@@ -40,6 +41,7 @@ public:
     
     void setCPU(CPU* cpu) { m_cpu = cpu; }
     void setCartridge(Cartridge* cartridge);
+    void setMemory(Memory* memory) { m_memory = memory; }
     void setVideoDevice(::VideoDevice* videoDevice) { m_videoDevice = videoDevice; }
     
     // VRAM access (from Memory class)
@@ -54,6 +56,16 @@ public:
     u8 readRegister8(u8 reg);
     void writeRegister8(u8 reg, u8 value);
     
+    // CPS2 object bank control
+    void setObjectBank(u32 bank) { m_objectBank = bank; }
+    u32 getObjectBank() const { return m_objectBank; }
+    
+    // CPS2 Raster interrupt control
+    void setRasterLine(u32 zone, s32 scanline);
+    void copyRegistersToZone(u32 zone);
+    void copyFrgRegistersToZone(u32 zone);
+    s32 getRasterLineCount() const;
+    
     // Graphics ROM decoding (called after cartridge is loaded)
     void decodeGraphicsROM();
     
@@ -64,6 +76,7 @@ public:
 private:
     CPU* m_cpu;
     Cartridge* m_cartridge;
+    Memory* m_memory;
     VideoDevice* m_videoDevice;
     
     // Frame buffer (ARGB8888 format)
@@ -109,6 +122,33 @@ private:
     // Palette dirty flag
     bool m_paletteNeedsUpdate;
     
+    // CPS2 Z-buffer for sprite priority (16-bit per pixel)
+    std::vector<u16> m_zBuffer;
+    s32 m_maxZValue;
+    s32 m_maxZMask;
+    s32 m_zOffset;
+    u16 m_currentZValue;
+    
+    // CPS2 Raster interrupt support
+    static constexpr int MAX_RASTER = 32;
+    std::array<s32, MAX_RASTER + 2> m_rasterLines;  // Scanline boundaries
+    std::array<std::array<u8, 256>, MAX_RASTER> m_rasterRegs;  // Register set per raster zone
+    std::array<std::array<u8, 16>, MAX_RASTER> m_rasterFrg;    // CpsSaveFrg per zone
+    
+    // CPS1 Star field data (4KB per layer, 2 layers)
+    std::array<u8, 0x2000> m_starField;
+    
+    // CPS1 tile masking (BgHi mode)
+    std::array<u32, 4> m_maskAddr;
+    u16 m_currentMask;
+    bool m_bgHiMode;
+    
+    // CPS2 sprite enable mask (8 bits for 8 priority levels)
+    u8 m_spriteEnableMask;
+    
+    // CPS2 object bank selection
+    u32 m_objectBank;
+    
     // Helper functions
     void renderFrame();
     void clearScreen();
@@ -117,20 +157,38 @@ private:
     void updatePalette();
     u32 convertPaletteEntry(u16 entry);
     
-    // Layer rendering
+    // Layer rendering - dispatches to CPS1 or CPS2 versions
     void renderLayers();
-    void renderScroll1(const u8* base, s32 scrollX, s32 scrollY);
+    
+    // CPS1-specific rendering
+    void renderLayersCPS1();
+    void renderScroll1CPS1(const u8* base, s32 scrollX, s32 scrollY);
+    void renderScroll3CPS1(const u8* base, s32 scrollX, s32 scrollY);
+    void renderSpritesCPS1();
+    
+    // CPS2-specific rendering
+    void renderLayersCPS2();
+    void renderScroll1CPS2(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine);
+    void renderScroll3CPS2(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine);
+    void renderSpritesCPS2();
+    void renderSpritesCPS2ByPriority(s32 levelFrom, s32 levelTo);
+    void initCPS2ZBuffer();
+    
+    // Common (Scroll 2 is same for both CPS1 and CPS2)
     void renderScroll2(const u8* base, s32 scrollX, s32 scrollY);
-    void renderScroll3(const u8* base, s32 scrollX, s32 scrollY);
-    void renderSprites();
+    
+    // CPS1 star field
+    void renderStarField(s32 layer);
     
     // Tile rendering (internal)
-    void drawTile8x8(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck);
+    void drawTile8x8(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, u16 mask = 0);
     void drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck);
-    void drawTile32x32(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck);
+    void drawTile16x16WithZ(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck);
+    void drawTile32x32(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, u16 mask = 0);
     
     // Pixel plotting
     inline void plotPixel(s32 x, s32 y, u32 color);
+    inline void plotPixelWithZ(s32 x, s32 y, u32 color);
     inline bool isPixelVisible(s32 x, s32 y);
     
     // Graphics ROM access
@@ -139,6 +197,12 @@ private:
     
     // VRAM helpers
     u8* findGfxRam(u32 address, u32 len);
+    
+    // CPS2 Memory access helpers
+    u8 readObjRAM8(u32 offset);
+    u16 readObjRAM16(u32 offset);
+    u8 readFrgReg8(u8 reg);
+    u16 readFrgReg16(u8 reg);
     
     // Setup graphics mapper from board type
     void setupGfxMapper();
