@@ -42,6 +42,7 @@ Memory::Memory()
     , m_boardId{0x00, 0x00, 0x00}
     , m_soundCommand(0)
     , m_soundFade(0)
+    , m_qscCmd{0, 0}
     , m_n664001(0)
     , m_rasterIRQ50(0)
     , m_rasterIRQ52(0) {
@@ -92,6 +93,8 @@ void Memory::reset() {
         m_n664001 = 0;
         m_rasterIRQ50 = 0;
         m_rasterIRQ52 = 0;
+        m_qscCmd[0] = 0;
+        m_qscCmd[1] = 0;
     }
     
     // Reset sound communication
@@ -127,6 +130,19 @@ u8 Memory::read8(u32 address) {
     // CPS2-specific: 0x664001 register
     if (cpsVer == 2 && address == 0x664001) {
         return m_n664001;
+    }
+    
+    // CPS2-specific: QSound shared RAM (0x618000-0x619FFF)
+    // Only odd addresses are valid (even addresses return 0xFF)
+    if (cpsVer == 2 && address >= 0x618000 && address <= 0x619FFF) {
+        // Even addresses return 0xFF
+        if ((address & 1) == 0) {
+            return 0xFF;
+        }
+        
+        // Mask address to 0x1FFF and divide by 2 to get index
+        u32 index = (address & 0x1FFF) >> 1;
+        return m_soundRam[index];
     }
     
     // CPS2-specific: Object RAM (0x708000-0x717FFF)
@@ -258,6 +274,20 @@ void Memory::write8(u32 address, u8 value) {
             u32 currentBank = m_ppu->getObjectBank();
             m_ppu->setObjectBank(currentBank ^ 1);
         }
+        return;
+    }
+    
+    // CPS2-specific: QSound shared RAM (0x618000-0x619FFF)
+    // Only odd addresses are valid (even addresses are ignored)
+    if (cpsVer == 2 && address >= 0x618000 && address <= 0x619FFF) {
+        // Even addresses are ignored
+        if ((address & 1) == 0) {
+            return;
+        }
+        
+        // Mask address to 0x1FFF and divide by 2 to get index
+        u32 index = (address & 0x1FFF) >> 1;
+        m_soundRam[index] = value;
         return;
     }
     
@@ -750,15 +780,34 @@ u8 Memory::readZ80(u16 address) {
             return m_soundRam[address - 0xC000];
         }
         
-        // CPS2: QSound registers (0xF000-0xFFFF)
-        if (address >= 0xF000) {
-            switch (address) {
-                case 0xF008:
+        // CPS2: QSound registers (0xD000-0xEFFF)
+        // Note: For opcode fetches, this area maps to ROM (handled separately)
+        if (address >= 0xD000 && address < 0xF000) {
+            // QSound status register (0xD007)
+            if (address == 0xD007) {
+                printf("readZ80: (QSound status) address=%04X\n", address);
+                // TODO: Call QscRead() when QSound chip is implemented
+                // For now, return 0 (not ready) or implement basic status
+                return 0;
+            }
+            // Other addresses in this range: for data reads, return 0xFF
+            // For opcode fetches, this should map to ROM (handled by fetch logic)
+            return 0xFF;
+        }
+        
+        // CPS2: Z80 RAM (0xF000-0xFFFF)
+        if (address >= 0xF000 && address <= 0xFFFF) {
+            if (cpsVer == 1) {
+                // Special registers in RAM area
+                if (address == 0xF008) {
                     return m_soundCommand;
-                case 0xF00A:
+                }
+                if (address == 0xF00A) {
                     return m_soundFade;
-                default:
-                    return 0xFF;
+                }
+            } else {
+                // Regular RAM access (offset 0x1000-0x1FFF in m_soundRam)
+                return m_soundRam[0x1000 + (address - 0xF000)];
             }
         }
     }
@@ -840,20 +889,42 @@ void Memory::writeZ80(u16 address, u8 value) {
             return;
         }
         
-        // CPS2: QSound registers (0xF000-0xFFFF)
-        if (address >= 0xF000) {
-            switch (address) {
-                case 0xF004: {
-                    // ROM bank switching (0-15)
-                    u8 newBank = value & 0x0F;
-                    if (m_z80Bank != newBank) {
-                        m_z80Bank = newBank;
-                    }
-                    return;
-                }
-                default:
-                    return;
+        // CPS2: QSound registers (0xD000-0xEFFF)
+        if (address >= 0xD000 && address < 0xF000) {
+            if (address == 0xD000) {
+                // QSound command byte 0
+                m_qscCmd[0] = value;
+                return;
             }
+            if (address == 0xD001) {
+                // QSound command byte 1
+                m_qscCmd[1] = value;
+                return;
+            }
+            if (address == 0xD002) {
+                // QSound command write
+                // Command is: (m_qscCmd[0] << 8) | m_qscCmd[1], with value as the third byte
+                // TODO: Call QscWrite(value, (m_qscCmd[0] << 8) | m_qscCmd[1]) when QSound chip is implemented
+                // For now, just store the command
+                return;
+            }
+            if (address == 0xD003) {
+                // ROM bank switching (0-15)
+                u8 newBank = value & 0x0F;
+                if (m_z80Bank != newBank) {
+                    m_z80Bank = newBank;
+                }
+                return;
+            }
+            // Other addresses in this range are write-only registers or unused
+            return;
+        }
+        
+        // CPS2: Z80 RAM (0xF000-0xFFFF)
+        if (address >= 0xF000 && address <= 0xFFFF) {
+            // Regular RAM access (offset 0x1000-0x1FFF in m_soundRam)
+            m_soundRam[0x1000 + (address - 0xF000)] = value;
+            return;
         }
     }
 }
@@ -882,6 +953,7 @@ void Memory::saveState(std::ofstream& file) {
         file.write(reinterpret_cast<const char*>(m_objRam.data()), m_objRam.size());
         file.write(reinterpret_cast<const char*>(m_frgRegs.data()), m_frgRegs.size());
         file.write(reinterpret_cast<const char*>(&m_n664001), sizeof(m_n664001));
+        file.write(reinterpret_cast<const char*>(m_qscCmd), sizeof(m_qscCmd));
     }
     
     // Save Z80 state (common)
@@ -910,6 +982,7 @@ void Memory::loadState(std::ifstream& file) {
         file.read(reinterpret_cast<char*>(m_objRam.data()), m_objRam.size());
         file.read(reinterpret_cast<char*>(m_frgRegs.data()), m_frgRegs.size());
         file.read(reinterpret_cast<char*>(&m_n664001), sizeof(m_n664001));
+        file.read(reinterpret_cast<char*>(m_qscCmd), sizeof(m_qscCmd));
     }
     
     // Load Z80 state (common)

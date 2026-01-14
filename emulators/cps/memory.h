@@ -19,6 +19,7 @@ class Controller;
 // 0x400000-0x40000F: CPS2 Registers (Frg registers, CPS2 only)
 // 0x660000-0x663FFF: Extra RAM (16KB, CPS2 only)
 // 0x664001: Frame toggle register (CPS2 only)
+// 0x618000-0x619FFF: QSound shared RAM (4KB, CPS2 only)
 // 0x708000-0x717FFF: Object RAM (64KB, CPS2 only)
 // 0x800000-0x8001FF: I/O Ports and CPS Registers
 // 0x900000-0x92FFFF: Video RAM (VRAM) - 192KB
@@ -72,7 +73,7 @@ private:
     
     // RAM banks (common)
     std::array<u8, 64 * 1024> m_workRam;      // 0xFF0000-0xFFFFFF (64KB)
-    std::array<u8, 2 * 1024> m_soundRam;      // Z80 RAM (2KB)
+    std::array<u8, 8 * 1024> m_soundRam;      // Z80/QSound RAM (8KB) - CPS1: 0xD000-0xD7FF (2KB), CPS2: 0xC000-0xCFFF (4KB) and 0xF000-0xFFFF (4KB)
     
     // CPS2-specific RAM banks
     std::array<u8, 16 * 1024> m_extraRam;     // 0x660000-0x663FFF (16KB, CPS2 only)
@@ -110,6 +111,9 @@ private:
     // Sound communication (from 68000 to Z80)
     u8 m_soundCommand;  // Sound command latch
     u8 m_soundFade;     // Sound fade value
+    
+    // CPS2 QSound registers
+    u8 m_qscCmd[2];     // QSound command bytes [0] and [1] (written to 0xD000 and 0xD001)
     
     // CPS2-specific: Frame toggle register (0x664001)
     u8 m_n664001;
