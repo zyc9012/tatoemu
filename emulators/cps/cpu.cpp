@@ -15,21 +15,21 @@ static Memory* g_memory = nullptr;
 // Musashi memory access callbacks
 extern "C" unsigned int m68k_read_memory_8(unsigned int address) {
     if (g_memory) {
-        return g_memory->read8(address);
+        return g_memory->read8Data(address);
     }
     return 0;
 }
 
 extern "C" unsigned int m68k_read_memory_16(unsigned int address) {
     if (g_memory) {
-        return g_memory->read16(address);
+        return g_memory->read16Data(address);
     }
     return 0;
 }
 
 extern "C" unsigned int m68k_read_memory_32(unsigned int address) {
     if (g_memory) {
-        return g_memory->read32(address);
+        return g_memory->read32Data(address);
     }
     return 0;
 }

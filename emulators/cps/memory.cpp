@@ -109,7 +109,7 @@ void Memory::reset() {
 u8 Memory::read8(u32 address) {
     u8 cpsVer = getCPSVersion();
     
-    // ROM (0x000000-0x3FFFFF)
+    // ROM (0x000000-0x3FFFFF) - use decrypted ROM for instruction fetches
     if (address < 0x400000) {
         if (m_cartridge) {
             return m_cartridge->readROM8(address);
@@ -172,7 +172,7 @@ u8 Memory::read8(u32 address) {
 u16 Memory::read16(u32 address) {
     u8 cpsVer = getCPSVersion();
     
-    // ROM (0x000000-0x3FFFFF)
+    // ROM (0x000000-0x3FFFFF) - use decrypted ROM for instruction fetches
     if (address < 0x400000) {
         if (m_cartridge) {
             return m_cartridge->readROM16(address);
@@ -242,6 +242,41 @@ u16 Memory::read16(u32 address) {
 u32 Memory::read32(u32 address) {
     u32 high = read16(address);
     u32 low = read16(address + 2);
+    return (high << 16) | low;
+}
+
+// Data reads - use encrypted ROM for CPS2 (for exception vectors)
+u8 Memory::read8Data(u32 address) {
+    // ROM (0x000000-0x3FFFFF) - use encrypted ROM for data reads in CPS2
+    if (address < 0x400000) {
+        if (m_cartridge) {
+            return m_cartridge->readEncryptedROM8(address);
+        }
+        return 0xFF;
+    }
+    
+    // For non-ROM addresses, use regular read
+    return read8(address);
+}
+
+u16 Memory::read16Data(u32 address) {
+    u8 cpsVer = getCPSVersion();
+    
+    // ROM (0x000000-0x3FFFFF) - use encrypted ROM for data reads in CPS2
+    if (address < 0x400000) {
+        if (m_cartridge) {
+            return m_cartridge->readEncryptedROM16(address);
+        }
+        return 0xFFFF;
+    }
+    
+    // For non-ROM addresses, use regular read
+    return read16(address);
+}
+
+u32 Memory::read32Data(u32 address) {
+    u32 high = read16Data(address);
+    u32 low = read16Data(address + 2);
     return (high << 16) | low;
 }
 

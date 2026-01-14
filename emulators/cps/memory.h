@@ -36,6 +36,9 @@ public:
     u8 read8(u32 address);
     u16 read16(u32 address);
     u32 read32(u32 address);
+    u8 read8Data(u32 address);
+    u16 read16Data(u32 address);
+    u32 read32Data(u32 address);
     void write8(u32 address, u8 value);
     void write16(u32 address, u16 value);
     void write32(u32 address, u32 value);

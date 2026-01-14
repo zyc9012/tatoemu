@@ -365,6 +365,11 @@ void Cartridge::byteswapProgramROM() {
     for (size_t i = 0; i < m_programRom.size() - 1; i += 2) {
         std::swap(m_programRom[i], m_programRom[i + 1]);
     }
+    if (!m_programRomEncrypted.empty()) {
+        for (size_t i = 0; i < m_programRomEncrypted.size() - 1; i += 2) {
+            std::swap(m_programRomEncrypted[i], m_programRomEncrypted[i + 1]);
+        }
+    }
 }
 
 void Cartridge::reset() {
@@ -382,6 +387,22 @@ u16 Cartridge::readROM16(u32 address) {
     // CPS ROMs are big-endian
     u16 high = readROM8(address);
     u16 low = readROM8(address + 1);
+    return (high << 8) | low;
+}
+
+u8 Cartridge::readEncryptedROM8(u32 address) {
+    // For CPS2, read from encrypted ROM (for data reads like exception vectors)
+    // For CPS1, encrypted ROM doesn't exist, so use decrypted ROM
+    if (m_cpsVer == 2 && address < m_programRomEncrypted.size()) {
+        return m_programRomEncrypted[address];
+    }
+    return readROM8(address);
+}
+
+u16 Cartridge::readEncryptedROM16(u32 address) {
+    // CPS ROMs are big-endian
+    u16 high = readEncryptedROM8(address);
+    u16 low = readEncryptedROM8(address + 1);
     return (high << 8) | low;
 }
 

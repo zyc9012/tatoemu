@@ -31,6 +31,10 @@ public:
     u16 readROM16(u32 address);
     u32 getProgramROMSize() const { return m_programRomSize; }
     
+    // Encrypted ROM access (for data reads in CPS2 - exception vectors should use this)
+    u8 readEncryptedROM8(u32 address);
+    u16 readEncryptedROM16(u32 address);
+    
     // Graphics ROM access (for PPU)
     u8 readGraphicsROM8(u32 address) const;
     u32 getGraphicsROMSize() const { return static_cast<u32>(m_graphicsRom.size()); }
