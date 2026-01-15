@@ -18,26 +18,6 @@
 // Converts a byte to spread-out bits: ABCDEFGH -> A00B00C00D00E00F00G00H00
 // ============================================================================
 
-// Precalculated separation table
-static u32 SepTable[256];
-static bool SepTableInitialized = false;
-
-static inline u32 Separate(u32 b) {
-    u32 a = b;                                      // 00000000 00000000 00000000 ABCDEFGH
-    a = ((a & 0x000000F0) << 12) | (a & 0x0000000F); // 00000000 0000ABCD 00000000 0000EFGH
-    a = ((a & 0x000C000C) <<  6) | (a & 0x00030003); // 00000AB0 00000CD0 00000EF0 00000GH0
-    a = ((a & 0x02020202) <<  3) | (a & 0x01010101); // 000A000B 000C000D 000E000F 000G000H
-    return a;
-}
-
-static void InitSepTable() {
-    if (SepTableInitialized) return;
-    for (int i = 0; i < 256; i++) {
-        SepTable[i] = Separate(255 - i);  // Inverted for CPS palette indexing
-    }
-    SepTableInitialized = true;
-}
-
 namespace cps {
 
 Cartridge::Cartridge()
@@ -55,6 +35,22 @@ Cartridge::Cartridge()
     , m_decryptStart(0)
     , m_decryptEnd(0)
     , m_watchdogOpcode(0) {
+    initSepTable();
+}
+
+void Cartridge::initSepTable() {
+    // Lambda to separate bits: ABCDEFGH -> A00B00C00D00E00F00G00H00
+    auto separate = [](u32 b) -> u32 {
+        u32 a = b;                                       // 00000000 00000000 00000000 ABCDEFGH
+        a = ((a & 0x000000F0) << 12) | (a & 0x0000000F); // 00000000 0000ABCD 00000000 0000EFGH
+        a = ((a & 0x000C000C) <<  6) | (a & 0x00030003); // 00000AB0 00000CD0 00000EF0 00000GH0
+        a = ((a & 0x02020202) <<  3) | (a & 0x01010101); // 000A000B 000C000D 000E000F 000G000H
+        return a;
+    };
+    
+    for (int i = 0; i < 256; i++) {
+        m_sepTable[i] = separate(255 - i);  // Inverted for CPS palette indexing
+    }
 }
 
 void Cartridge::setPPU(PPU* ppu) {
@@ -497,8 +493,6 @@ void Cartridge::loadState(std::ifstream& file) {
 }
 
 void Cartridge::decodeGraphicsROM(const std::vector<u32>& graphicsRomSizes) {
-    InitSepTable();
-    
     if (m_graphicsRom.empty()) {
         std::cerr << "Cartridge: No graphics ROM data to decode" << std::endl;
         return;
@@ -506,276 +500,218 @@ void Cartridge::decodeGraphicsROM(const std::vector<u32>& graphicsRomSizes) {
 
     std::cout << "Decoding graphics ROM..." << std::endl;
     
+    if (m_cpsVer == 1) {
+        decodeGraphicsROMCPS1(graphicsRomSizes);
+    } else {
+        decodeGraphicsROMCPS2(graphicsRomSizes);
+    }
+}
+
+void Cartridge::decodeGraphicsROMCPS1(const std::vector<u32>& graphicsRomSizes) {
     u32 srcSize = static_cast<u32>(m_graphicsRom.size());
     
-    // Output size: same as input size (1:1 ratio)
-    // 4 ROM chips of 512KB each = 2MB input → 2MB output per bank
-    // The 8-byte stride stores left (offset 0) and right (offset 4) halves
+    // Output size: same as input (1:1 ratio)
     u32 dstSize = srcSize;
+    m_decodedGraphicsRom.resize(dstSize, 0);
+    
+    // Helper lambda: Process a single ROM in byte mode (for small ROMs < 512KB)
+    auto processByteModeRom = [this, srcSize](u32 romOffset, u32 romSize, u32 outputBase, u32 bitShift, u32 halfOffset) {
+        for (u32 i = 0; i < romSize && (romOffset + i) < srcSize; i++) {
+            u32 outputOffset = outputBase + (i * 8) + halfOffset;
+            u8 byteValue = m_graphicsRom[romOffset + i];
+            u32 pixelData = m_sepTable[byteValue];
+            pixelData <<= bitShift;
+            if (outputOffset < m_decodedGraphicsRom.size()) {
+                *reinterpret_cast<u32*>(m_decodedGraphicsRom.data() + outputOffset) |= pixelData;
+            }
+        }
+    };
+    
+    // Helper lambda: Process a byte pair from a ROM in word mode (for standard ROMs >= 512KB)
+    auto processWordModeBytePair = [this, srcSize](u32 romOffset, u32 byteIndex, u32 outputOffset, u32 bitShift) {
+        if (romOffset + byteIndex + 1 < srcSize) {
+            u8 byte0 = m_graphicsRom[romOffset + byteIndex];
+            u8 byte1 = m_graphicsRom[romOffset + byteIndex + 1];
+            u32 pixelData = m_sepTable[byte0] | (m_sepTable[byte1] << 1);
+            pixelData <<= bitShift;
+            if (outputOffset < m_decodedGraphicsRom.size()) {
+                *reinterpret_cast<u32*>(m_decodedGraphicsRom.data() + outputOffset) |= pixelData;
+            }
+        }
+    };
+    
+    // Process graphics ROMs in groups, checking size of first ROM in each group
+    u32 offset = 0;
+    u32 romIndex = 0;
+    
+    while (offset < srcSize && romIndex < graphicsRomSizes.size()) {
+        u32 outputBase = offset;
+        u32 firstRomSize = graphicsRomSizes[romIndex];
+        
+        // Check size of first ROM in this group to determine decoding method
+        if (firstRomSize < 0x80000) {
+            // Small ROMs (< 512KB): Each ROM provides 1 bit per pixel, requiring 8 ROMs instead of 4
+            if (romIndex + 7 < graphicsRomSizes.size()) {
+                // Left half: ROM 0-3 (shifts 0, 1, 2, 3)
+                for (u32 shift = 0; shift < 4; shift++) {
+                    u32 romSize = graphicsRomSizes[romIndex];
+                    processByteModeRom(offset, romSize, outputBase, shift, 0);
+                    offset += romSize;
+                    romIndex++;
+                }
+                
+                // Right half: ROM 4-7 (shifts 0, 1, 2, 3)
+                for (u32 shift = 0; shift < 4; shift++) {
+                    u32 romSize = graphicsRomSizes[romIndex];
+                    processByteModeRom(offset, romSize, outputBase, shift, 4);
+                    offset += romSize;
+                    romIndex++;
+                }
+            } else {
+                // Not enough ROMs for byte mode, break
+                break;
+            }
+        } else {
+            // Standard ROMs (>= 512KB): Process 4 ROMs for word mode
+            if (romIndex + 3 < graphicsRomSizes.size()) {
+                u32 rom0Size = graphicsRomSizes[romIndex];
+                u32 rom1Size = graphicsRomSizes[romIndex + 1];
+                u32 rom2Size = graphicsRomSizes[romIndex + 2];
+                u32 rom3Size = graphicsRomSizes[romIndex + 3];
+                
+                // Use the minimum size to ensure we don't overrun
+                u32 romChipSize = std::min({rom0Size, rom1Size, rom2Size, rom3Size});
+                
+                u32 rom0Offset = offset;
+                u32 rom1Offset = offset + rom0Size;
+                u32 rom2Offset = offset + rom0Size + rom1Size;
+                u32 rom3Offset = offset + rom0Size + rom1Size + rom2Size;
+                
+                // Process each byte pair
+                for (u32 i = 0; i < romChipSize && (rom0Offset + i + 1) < srcSize; i += 2) {
+                    u32 outputOffset = outputBase + (i / 2) * 8;  // 8-byte stride
+                    
+                    // Left half (offset 0): Process ROM 0 then OR ROM 1
+                    processWordModeBytePair(rom0Offset, i, outputOffset, 0);
+                    processWordModeBytePair(rom1Offset, i, outputOffset, 2);
+                    
+                    // Right half (offset 4): Process ROM 2 then OR ROM 3
+                    processWordModeBytePair(rom2Offset, i, outputOffset + 4, 0);
+                    processWordModeBytePair(rom3Offset, i, outputOffset + 4, 2);
+                }
+                
+                // Advance offset and romIndex for the 4 ROMs processed
+                offset += rom0Size + rom1Size + rom2Size + rom3Size;
+                romIndex += 4;
+            } else {
+                // Not enough ROMs for word mode, break
+                break;
+            }
+        }
+    }
+}
+
+void Cartridge::decodeGraphicsROMCPS2(const std::vector<u32>& graphicsRomSizes) {
+    // Output size calculation:
+    // For standard 0x80000 ROMs: 1 section → 0x200000 bytes = 4x input
+    u32 dstSize = 0;
+    for (u32 i = 0; i < graphicsRomSizes.size(); i += 4) {
+        u32 maxRomSize = 0;
+        for (u32 j = 0; j < 4 && (i + j) < graphicsRomSizes.size(); j++) {
+            if (graphicsRomSizes[i + j] > maxRomSize) {
+                maxRomSize = graphicsRomSizes[i + j];
+            }
+        }
+        // Each section (0x80000) produces 0x200000 bytes
+        u32 numSections = maxRomSize >> 19;
+        if (numSections == 0 && maxRomSize > 0) numSections = 1;
+        dstSize += numSections * 0x200000;
+    }
     
     m_decodedGraphicsRom.resize(dstSize, 0);
     
-    if (m_cpsVer == 1) {
-        // Process graphics ROMs in groups, checking size of first ROM in each group
-        u32 offset = 0;
-        u32 romIndex = 0;
+    // Process graphics in groups of 4 ROMs
+    if (graphicsRomSizes.size() < 4) {
+        std::cerr << "Error: CPS2 requires at least 4 graphics ROMs" << std::endl;
+        return;
+    }
+    
+    // Process a single CPS2 ROM section
+    auto processCps2Section100000 = [this](u8* tileOutput, const u8* romSource, u32 bitShift) {
+        u8* tileEnd = tileOutput + 0x100000;
         
-        while (offset < srcSize && romIndex < graphicsRomSizes.size()) {
-            u32 outBase = offset;
-            u32 firstRomSize = graphicsRomSizes[romIndex];
+        do {
+            u32 pixelData = m_sepTable[romSource[0]] | (m_sepTable[romSource[1]] << 1);
+            pixelData <<= bitShift;
+            *reinterpret_cast<u32*>(tileOutput) |= pixelData;
             
-            // Check size of first ROM in this group to determine decoding method
-            if (firstRomSize < 0x80000) {
-                // Small ROMs (< 512KB)
-                // Each ROM provides 1 bit per pixel, requiring 8 ROMs instead of 4
-                
-                // Process 8 ROMs for byte mode
-                if (romIndex + 7 < graphicsRomSizes.size()) {
-                    // Left half: ROM 0-3 (shifts 0, 1, 2, 3)
-                    for (u32 shift = 0; shift < 4; shift++) {
-                        u32 romOffset = offset;
-                        u32 romSize = graphicsRomSizes[romIndex];
-                        for (u32 i = 0; i < romSize && (romOffset + i) < srcSize; i++) {
-                            u32 outOffset = outBase + (i * 8);
-                            u8 b = m_graphicsRom[romOffset + i];
-                            u32 pix = SepTable[b];
-                            pix <<= shift;
-                            if (outOffset < m_decodedGraphicsRom.size()) {
-                                *reinterpret_cast<u32*>(m_decodedGraphicsRom.data() + outOffset) |= pix;
-                            }
-                        }
-                        offset += romSize;
-                        romIndex++;
-                    }
-                    
-                    // Right half: ROM 4-7 (shifts 0, 1, 2, 3)
-                    for (u32 shift = 0; shift < 4; shift++) {
-                        u32 romOffset = offset;
-                        u32 romSize = graphicsRomSizes[romIndex];
-                        for (u32 i = 0; i < romSize && (romOffset + i) < srcSize; i++) {
-                            u32 outOffset = outBase + (i * 8) + 4;
-                            u8 b = m_graphicsRom[romOffset + i];
-                            u32 pix = SepTable[b];
-                            pix <<= shift;
-                            if (outOffset < m_decodedGraphicsRom.size()) {
-                                *reinterpret_cast<u32*>(m_decodedGraphicsRom.data() + outOffset) |= pix;
-                            }
-                        }
-                        offset += romSize;
-                        romIndex++;
-                    }
-                } else {
-                    // Not enough ROMs for byte mode, fall back to standard processing
-                    // This shouldn't happen in practice, but handle gracefully
-                    break;
-                }
-            } else {
-                // Standard ROMs (>= 512KB)
-                // Process 4 ROMs for word mode
-                if (romIndex + 3 < graphicsRomSizes.size()) {
-                    u32 rom0Size = graphicsRomSizes[romIndex];
-                    u32 rom1Size = graphicsRomSizes[romIndex + 1];
-                    u32 rom2Size = graphicsRomSizes[romIndex + 2];
-                    u32 rom3Size = graphicsRomSizes[romIndex + 3];
-                    
-                    // Use the minimum size to ensure we don't overrun
-                    u32 romChipSize = std::min({rom0Size, rom1Size, rom2Size, rom3Size});
-                    
-                    u32 rom0 = offset;
-                    u32 rom1 = offset + rom0Size;
-                    u32 rom2 = offset + rom0Size + rom1Size;
-                    u32 rom3 = offset + rom0Size + rom1Size + rom2Size;
-                    
-                    // Process each byte pair
-                    for (u32 i = 0; i < romChipSize && (rom0 + i + 1) < srcSize; i += 2) {
-                        u32 outOffset = outBase + (i / 2) * 8;  // 8-byte stride
-                        
-                        // Left half (offset 0): Process ROM 0 then OR ROM 1
-                        if (rom0 + i + 1 < srcSize) {
-                            u8 b0 = m_graphicsRom[rom0 + i];
-                            u8 b1 = m_graphicsRom[rom0 + i + 1];
-                            u32 pix = SepTable[b0] | (SepTable[b1] << 1);
-                            // Shift 0 (already done)
-                            if (outOffset < m_decodedGraphicsRom.size()) {
-                                *reinterpret_cast<u32*>(m_decodedGraphicsRom.data() + outOffset) |= pix;
-                            }
-                        }
-                        
-                        if (rom1 + i + 1 < srcSize) {
-                            u8 b0 = m_graphicsRom[rom1 + i];
-                            u8 b1 = m_graphicsRom[rom1 + i + 1];
-                            u32 pix = SepTable[b0] | (SepTable[b1] << 1);
-                            pix <<= 2;  // Shift 2 for bits 2-3
-                            if (outOffset < m_decodedGraphicsRom.size()) {
-                                *reinterpret_cast<u32*>(m_decodedGraphicsRom.data() + outOffset) |= pix;
-                            }
-                        }
-                        
-                        // Right half (offset 4): Process ROM 2 then OR ROM 3
-                        if (rom2 + i + 1 < srcSize) {
-                            u8 b0 = m_graphicsRom[rom2 + i];
-                            u8 b1 = m_graphicsRom[rom2 + i + 1];
-                            u32 pix = SepTable[b0] | (SepTable[b1] << 1);
-                            // Shift 0
-                            if (outOffset + 4 < m_decodedGraphicsRom.size()) {
-                                *reinterpret_cast<u32*>(m_decodedGraphicsRom.data() + outOffset + 4) |= pix;
-                            }
-                        }
-                        
-                        if (rom3 + i + 1 < srcSize) {
-                            u8 b0 = m_graphicsRom[rom3 + i];
-                            u8 b1 = m_graphicsRom[rom3 + i + 1];
-                            u32 pix = SepTable[b0] | (SepTable[b1] << 1);
-                            pix <<= 2;  // Shift 2 for bits 2-3
-                            if (outOffset + 4 < m_decodedGraphicsRom.size()) {
-                                *reinterpret_cast<u32*>(m_decodedGraphicsRom.data() + outOffset + 4) |= pix;
-                            }
-                        }
-                    }
-                    
-                    // Advance offset and romIndex for the 4 ROMs processed
-                    offset += rom0Size + rom1Size + rom2Size + rom3Size;
-                    romIndex += 4;
-                } else {
-                    // Not enough ROMs for word mode, break
-                    break;
-                }
-            }
-        }
-    } else {
-        // CPS2 decoding
-        // Process graphics in groups of 4 ROMs, but with different interleaving
-        u32 romChipSize = 0x80000;  // 512KB per ROM chip
-        u32 numBanks = srcSize / (romChipSize * 4);
-        if (numBanks == 0) numBanks = 1;
+            tileOutput += 8;
+            romSource += 4;
+        } while (tileOutput < tileEnd);
+    };
+    
+    // Process a single CPS2 ROM
+    auto processCps2Rom = [processCps2Section100000](u8* tileOutput, const u8* romData, u32 romLength, u32 bitShift) {
+        u8* currentTileOutput = tileOutput;
+        const u8* currentRomData = romData;
         
-        for (u32 bank = 0; bank < numBanks; bank++) {
-            u32 bankBase = bank * romChipSize * 4;
-            u32 outBase = bank * romChipSize * 4;
+        // Process in sections: for each 0x80000 section of ROM, create two 0x100000 sections of output
+        u32 numSections = romLength >> 19;
+        for (u32 sectionIndex = 0; sectionIndex < numSections; sectionIndex++) {
+            // First 0x100000 section: read from current ROM position
+            processCps2Section100000(currentTileOutput, currentRomData, bitShift);
+            currentTileOutput += 0x100000;
             
-            // ROM offsets within this bank
-            u32 rom0 = bankBase + 0 * romChipSize;  // Left half, bits 0-1
-            u32 rom1 = bankBase + 1 * romChipSize;  // Left half, bits 2-3
-            u32 rom2 = bankBase + 2 * romChipSize;  // Right half, bits 0-1
-            u32 rom3 = bankBase + 3 * romChipSize;  // Right half, bits 2-3
+            // Second 0x100000 section: read from current ROM position + 2 bytes
+            processCps2Section100000(currentTileOutput, currentRomData + 2, bitShift);
+            currentTileOutput += 0x100000;
             
-            // CPS2: Process in sections
-            // For each ROM, process in 0x100000 sections
-            // Each section: read ps[0], ps[1], then ps += 4
-            
-            // Left half: ROM 0 (shift 0) and ROM 1 (shift 2)
-            u8* pt = m_decodedGraphicsRom.data() + outBase;
-            u8* pr0 = m_graphicsRom.data() + rom0;
-            u8* pr1 = m_graphicsRom.data() + rom1;
-            
-            // Process each 0x80000 ROM in sections
-            for (u32 b = 0; b < (romChipSize >> 19); b++) {
-                // First 0x100000 section
-                u8* ptSection = pt + (b * 0x200000);
-                u8* pr0Section = pr0 + (b * 0x80000);
-                u8* pr1Section = pr1 + (b * 0x80000);
-                
-                for (u32 i = 0; i < 0x100000 && (pr0Section + i + 1) < (m_graphicsRom.data() + srcSize); i += 4) {
-                    u32 outOffset = (ptSection - m_decodedGraphicsRom.data()) + (i / 4) * 8;
-                    
-                    // ROM 0: bits 0-1, shift 0
-                    if (pr0Section + i + 1 < (m_graphicsRom.data() + srcSize)) {
-                        u32 pix = SepTable[pr0Section[i]] | (SepTable[pr0Section[i + 1]] << 1);
-                        if (outOffset < m_decodedGraphicsRom.size()) {
-                            *reinterpret_cast<u32*>(m_decodedGraphicsRom.data() + outOffset) |= pix;
-                        }
-                    }
-                    
-                    // ROM 1: bits 2-3, shift 2
-                    if (pr1Section + i + 1 < (m_graphicsRom.data() + srcSize)) {
-                        u32 pix = SepTable[pr1Section[i]] | (SepTable[pr1Section[i + 1]] << 1);
-                        pix <<= 2;
-                        if (outOffset < m_decodedGraphicsRom.size()) {
-                            *reinterpret_cast<u32*>(m_decodedGraphicsRom.data() + outOffset) |= pix;
-                        }
-                    }
-                }
-                
-                // Second 0x100000 section (from pr + 2)
-                ptSection = pt + (b * 0x200000) + 0x100000;
-                for (u32 i = 0; i < 0x100000 && (pr0Section + i + 3) < (m_graphicsRom.data() + srcSize); i += 4) {
-                    u32 outOffset = (ptSection - m_decodedGraphicsRom.data()) + (i / 4) * 8;
-                    
-                    // ROM 0: bits 0-1, shift 0 (from pr + 2)
-                    if (pr0Section + i + 3 < (m_graphicsRom.data() + srcSize)) {
-                        u32 pix = SepTable[pr0Section[i + 2]] | (SepTable[pr0Section[i + 3]] << 1);
-                        if (outOffset < m_decodedGraphicsRom.size()) {
-                            *reinterpret_cast<u32*>(m_decodedGraphicsRom.data() + outOffset) |= pix;
-                        }
-                    }
-                    
-                    // ROM 1: bits 2-3, shift 2 (from pr + 2)
-                    if (pr1Section + i + 3 < (m_graphicsRom.data() + srcSize)) {
-                        u32 pix = SepTable[pr1Section[i + 2]] | (SepTable[pr1Section[i + 3]] << 1);
-                        pix <<= 2;
-                        if (outOffset < m_decodedGraphicsRom.size()) {
-                            *reinterpret_cast<u32*>(m_decodedGraphicsRom.data() + outOffset) |= pix;
-                        }
-                    }
-                }
-            }
-            
-            // Right half: ROM 2 (shift 0) and ROM 3 (shift 2)
-            u8* ptRight = m_decodedGraphicsRom.data() + outBase + 4;
-            u8* pr2 = m_graphicsRom.data() + rom2;
-            u8* pr3 = m_graphicsRom.data() + rom3;
-            
-            for (u32 b = 0; b < (romChipSize >> 19); b++) {
-                // First 0x100000 section
-                u8* ptSection = ptRight + (b * 0x200000);
-                u8* pr2Section = pr2 + (b * 0x80000);
-                u8* pr3Section = pr3 + (b * 0x80000);
-                
-                for (u32 i = 0; i < 0x100000 && (pr2Section + i + 1) < (m_graphicsRom.data() + srcSize); i += 4) {
-                    u32 outOffset = (ptSection - m_decodedGraphicsRom.data()) + (i / 4) * 8;
-                    
-                    // ROM 2: bits 0-1, shift 0
-                    if (pr2Section + i + 1 < (m_graphicsRom.data() + srcSize)) {
-                        u32 pix = SepTable[pr2Section[i]] | (SepTable[pr2Section[i + 1]] << 1);
-                        if (outOffset < m_decodedGraphicsRom.size()) {
-                            *reinterpret_cast<u32*>(m_decodedGraphicsRom.data() + outOffset) |= pix;
-                        }
-                    }
-                    
-                    // ROM 3: bits 2-3, shift 2
-                    if (pr3Section + i + 1 < (m_graphicsRom.data() + srcSize)) {
-                        u32 pix = SepTable[pr3Section[i]] | (SepTable[pr3Section[i + 1]] << 1);
-                        pix <<= 2;
-                        if (outOffset < m_decodedGraphicsRom.size()) {
-                            *reinterpret_cast<u32*>(m_decodedGraphicsRom.data() + outOffset) |= pix;
-                        }
-                    }
-                }
-                
-                // Second 0x100000 section (from pr + 2)
-                ptSection = ptRight + (b * 0x200000) + 0x100000;
-                for (u32 i = 0; i < 0x100000 && (pr2Section + i + 3) < (m_graphicsRom.data() + srcSize); i += 4) {
-                    u32 outOffset = (ptSection - m_decodedGraphicsRom.data()) + (i / 4) * 8;
-                    
-                    // ROM 2: bits 0-1, shift 0 (from pr + 2)
-                    if (pr2Section + i + 3 < (m_graphicsRom.data() + srcSize)) {
-                        u32 pix = SepTable[pr2Section[i + 2]] | (SepTable[pr2Section[i + 3]] << 1);
-                        if (outOffset < m_decodedGraphicsRom.size()) {
-                            *reinterpret_cast<u32*>(m_decodedGraphicsRom.data() + outOffset) |= pix;
-                        }
-                    }
-                    
-                    // ROM 3: bits 2-3, shift 2 (from pr + 2)
-                    if (pr3Section + i + 3 < (m_graphicsRom.data() + srcSize)) {
-                        u32 pix = SepTable[pr3Section[i + 2]] | (SepTable[pr3Section[i + 3]] << 1);
-                        pix <<= 2;
-                        if (outOffset < m_decodedGraphicsRom.size()) {
-                            *reinterpret_cast<u32*>(m_decodedGraphicsRom.data() + outOffset) |= pix;
-                        }
-                    }
-                }
-            }
+            // Advance to next 512KB section of ROM
+            currentRomData += 0x80000;
         }
+    };
+    
+    // Process each group of 4 ROMs
+    u32 romIndex = 0;
+    u32 outOffset = 0;
+    
+    while (romIndex + 3 < graphicsRomSizes.size()) {
+        u32 rom0Size = graphicsRomSizes[romIndex];
+        u32 rom1Size = graphicsRomSizes[romIndex + 1];
+        u32 rom2Size = graphicsRomSizes[romIndex + 2];
+        u32 rom3Size = graphicsRomSizes[romIndex + 3];
+        
+        // Calculate ROM offsets in m_graphicsRom
+        u32 rom0Offset = 0;
+        for (u32 i = 0; i < romIndex; i++) {
+            rom0Offset += graphicsRomSizes[i];
+        }
+        u32 rom1Offset = rom0Offset + rom0Size;
+        u32 rom2Offset = rom1Offset + rom1Size;
+        u32 rom3Offset = rom2Offset + rom2Size;
+        
+        // Process ROM 0: left half, shift 0
+        processCps2Rom(m_decodedGraphicsRom.data() + outOffset, 
+                      m_graphicsRom.data() + rom0Offset, rom0Size, 0);
+        
+        // Process ROM 1: left half, shift 2
+        processCps2Rom(m_decodedGraphicsRom.data() + outOffset, 
+                      m_graphicsRom.data() + rom1Offset, rom1Size, 2);
+        
+        // Process ROM 2: right half, shift 0
+        processCps2Rom(m_decodedGraphicsRom.data() + outOffset + 4, 
+                      m_graphicsRom.data() + rom2Offset, rom2Size, 0);
+        
+        // Process ROM 3: right half, shift 2
+        processCps2Rom(m_decodedGraphicsRom.data() + outOffset + 4, 
+                      m_graphicsRom.data() + rom3Offset, rom3Size, 2);
+        
+        // Advance output offset: each 0x80000 ROM produces 0x200000 bytes of output
+        u32 maxRomSize = std::max({rom0Size, rom1Size, rom2Size, rom3Size});
+        u32 numSections = maxRomSize >> 19;
+        if (numSections == 0 && maxRomSize > 0) numSections = 1;
+        outOffset += numSections * 0x200000;
+        romIndex += 4;
     }
 }
 

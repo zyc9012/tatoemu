@@ -101,10 +101,17 @@ private:
     u32 m_decryptEnd;     // End address for decryption
     u32 m_watchdogOpcode; // Watchdog opcode (from encryption key file)
     
+    // Separation table for graphics decoding
+    // Converts a byte to spread-out bits: ABCDEFGH -> A00B00C00D00E00F00G00H00
+    u32 m_sepTable[256];
+    
+    void initSepTable();
     bool loadROMsFromDatabase(const std::map<std::string, std::vector<u8>>& romFiles);
     void decryptProgramROM();
     void byteswapProgramROM();
     void decodeGraphicsROM(const std::vector<u32>& graphicsRomSizes = {});
+    void decodeGraphicsROMCPS1(const std::vector<u32>& graphicsRomSizes);
+    void decodeGraphicsROMCPS2(const std::vector<u32>& graphicsRomSizes);
 };
 
 } // namespace cps
