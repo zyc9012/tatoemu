@@ -20,8 +20,7 @@ bool Core::initialize(::VideoDevice* videoDevice, ::AudioDevice* audioDevice) {
     m_ppu = std::make_unique<PPU>();
     m_apu = std::make_unique<APU>();
     m_memory = std::make_unique<Memory>();
-    m_controller1 = std::make_unique<Controller>();
-    m_controller2 = std::make_unique<Controller>();
+    m_controller = std::make_unique<Controller>();
 
     // Wire up components
     m_cpu->setMemory(m_memory.get());
@@ -43,8 +42,7 @@ bool Core::initialize(::VideoDevice* videoDevice, ::AudioDevice* audioDevice) {
     m_memory->setPPU(m_ppu.get());
     m_memory->setAPU(m_apu.get());
     m_memory->setCartridge(m_cartridge.get());
-    m_memory->setController1(m_controller1.get());
-    m_memory->setController2(m_controller2.get());
+    m_memory->setController(m_controller.get());
     
     m_cartridge->setCPU(m_cpu.get());
     m_cartridge->setPPU(m_ppu.get());
@@ -76,8 +74,9 @@ bool Core::loadROM(const fs::path& filename) {
     m_ppu->reset();
     m_apu->reset();
     m_memory->reset();
-    m_controller1->reset();
-    m_controller2->reset();
+    // Set CPS version on controller to configure button mappings
+    m_controller->setCPSVersion(m_cpsVersion);
+    m_controller->reset();
     m_cartridge->reset();
     
     m_cpuCyclesThisFrame = 0;
@@ -91,76 +90,76 @@ bool Core::handleInput(SDL_Event& event) {
         case SDL_EVENT_KEY_DOWN:
             switch (event.key.key) {
                 case Config::Key::BUTTON_P1_UP:
-                    m_controller1->pressButton(BUTTON_UP);
+                    m_controller->pressButton(1, BUTTON_UP);
                     return true;
                 case Config::Key::BUTTON_P1_DOWN:
-                    m_controller1->pressButton(BUTTON_DOWN);
+                    m_controller->pressButton(1, BUTTON_DOWN);
                     return true;
                 case Config::Key::BUTTON_P1_LEFT:
-                    m_controller1->pressButton(BUTTON_LEFT);
+                    m_controller->pressButton(1, BUTTON_LEFT);
                     return true;
                 case Config::Key::BUTTON_P1_RIGHT:
-                    m_controller1->pressButton(BUTTON_RIGHT);
+                    m_controller->pressButton(1, BUTTON_RIGHT);
                     return true;
                 case Config::Key::BUTTON_P1_PUNCH1:
-                    m_controller1->pressButton(BUTTON_PUNCH1);
+                    m_controller->pressButton(1, BUTTON_PUNCH1);
                     return true;
                 case Config::Key::BUTTON_P1_PUNCH2:
-                    m_controller1->pressButton(BUTTON_PUNCH2);
+                    m_controller->pressButton(1, BUTTON_PUNCH2);
                     return true;
                 case Config::Key::BUTTON_P1_PUNCH3:
-                    m_controller1->pressButton(BUTTON_PUNCH3);
+                    m_controller->pressButton(1, BUTTON_PUNCH3);
                     return true;
                 case Config::Key::BUTTON_P1_KICK1:
-                    m_controller1->pressButton(BUTTON_KICK1);
+                    m_controller->pressButton(1, BUTTON_KICK1);
                     return true;
                 case Config::Key::BUTTON_P1_KICK2:
-                    m_controller1->pressButton(BUTTON_KICK2);
+                    m_controller->pressButton(1, BUTTON_KICK2);
                     return true;
                 case Config::Key::BUTTON_P1_KICK3:
-                    m_controller1->pressButton(BUTTON_KICK3);
+                    m_controller->pressButton(1, BUTTON_KICK3);
                     return true;
                 case Config::Key::BUTTON_P2_UP:
-                    m_controller2->pressButton(BUTTON_UP);
+                    m_controller->pressButton(2, BUTTON_UP);
                     return true;
                 case Config::Key::BUTTON_P2_DOWN:
-                    m_controller2->pressButton(BUTTON_DOWN);
+                    m_controller->pressButton(2, BUTTON_DOWN);
                     return true;
                 case Config::Key::BUTTON_P2_LEFT:
-                    m_controller2->pressButton(BUTTON_LEFT);
+                    m_controller->pressButton(2, BUTTON_LEFT);
                     return true;
                 case Config::Key::BUTTON_P2_RIGHT:
-                    m_controller2->pressButton(BUTTON_RIGHT);
+                    m_controller->pressButton(2, BUTTON_RIGHT);
                     return true;
                 case Config::Key::BUTTON_P2_PUNCH1:
-                    m_controller2->pressButton(BUTTON_PUNCH1);
+                    m_controller->pressButton(2, BUTTON_PUNCH1);
                     return true;
                 case Config::Key::BUTTON_P2_PUNCH2:
-                    m_controller2->pressButton(BUTTON_PUNCH2);
+                    m_controller->pressButton(2, BUTTON_PUNCH2);
                     return true;
                 case Config::Key::BUTTON_P2_PUNCH3:
-                    m_controller2->pressButton(BUTTON_PUNCH3);
+                    m_controller->pressButton(2, BUTTON_PUNCH3);
                     return true;
                 case Config::Key::BUTTON_P2_KICK1:
-                    m_controller2->pressButton(BUTTON_KICK1);
+                    m_controller->pressButton(2, BUTTON_KICK1);
                     return true;
                 case Config::Key::BUTTON_P2_KICK2:
-                    m_controller2->pressButton(BUTTON_KICK2);
+                    m_controller->pressButton(2, BUTTON_KICK2);
                     return true;
                 case Config::Key::BUTTON_P2_KICK3:
-                    m_controller2->pressButton(BUTTON_KICK3);
+                    m_controller->pressButton(2, BUTTON_KICK3);
                     return true;
                 case Config::Key::COIN_P1:
-                    m_controller1->pressButton(BUTTON_COIN);
+                    m_controller->pressButton(1, BUTTON_COIN);
                     return true;
                 case Config::Key::COIN_P2:
-                    m_controller2->pressButton(BUTTON_COIN);
+                    m_controller->pressButton(2, BUTTON_COIN);
                     return true;
                 case Config::Key::START_P1:
-                    m_controller1->pressButton(BUTTON_START);
+                    m_controller->pressButton(1, BUTTON_START);
                     return true;
                 case Config::Key::START_P2:
-                    m_controller2->pressButton(BUTTON_START);
+                    m_controller->pressButton(2, BUTTON_START);
                     return true;
                 default:
                     return false;
@@ -169,76 +168,76 @@ bool Core::handleInput(SDL_Event& event) {
         case SDL_EVENT_KEY_UP:
             switch (event.key.key) {
                 case Config::Key::COIN_P1:
-                    m_controller1->releaseButton(BUTTON_COIN);
+                    m_controller->releaseButton(1, BUTTON_COIN);
                     return true;
                 case Config::Key::COIN_P2:
-                    m_controller2->releaseButton(BUTTON_COIN);
+                    m_controller->releaseButton(2, BUTTON_COIN);
                     return true;
                 case Config::Key::BUTTON_P1_UP:
-                    m_controller1->releaseButton(BUTTON_UP);
+                    m_controller->releaseButton(1, BUTTON_UP);
                     return true;
                 case Config::Key::BUTTON_P1_DOWN:
-                    m_controller1->releaseButton(BUTTON_DOWN);
+                    m_controller->releaseButton(1, BUTTON_DOWN);
                     return true;
                 case Config::Key::BUTTON_P1_LEFT:
-                    m_controller1->releaseButton(BUTTON_LEFT);
+                    m_controller->releaseButton(1, BUTTON_LEFT);
                     return true;
                 case Config::Key::BUTTON_P1_RIGHT:
-                    m_controller1->releaseButton(BUTTON_RIGHT);
+                    m_controller->releaseButton(1, BUTTON_RIGHT);
                     return true;
                 case Config::Key::BUTTON_P1_PUNCH1:
-                    m_controller1->releaseButton(BUTTON_PUNCH1);
+                    m_controller->releaseButton(1, BUTTON_PUNCH1);
                     return true;
                 case Config::Key::BUTTON_P1_PUNCH2:
-                    m_controller1->releaseButton(BUTTON_PUNCH2);
+                    m_controller->releaseButton(1, BUTTON_PUNCH2);
                     return true;
                 case Config::Key::BUTTON_P1_PUNCH3:
-                    m_controller1->releaseButton(BUTTON_PUNCH3);
+                    m_controller->releaseButton(1, BUTTON_PUNCH3);
                     return true;
                 case Config::Key::BUTTON_P1_KICK1:
-                    m_controller1->releaseButton(BUTTON_KICK1);
+                    m_controller->releaseButton(1, BUTTON_KICK1);
                     return true;
                 case Config::Key::BUTTON_P1_KICK2:
-                    m_controller1->releaseButton(BUTTON_KICK2);
+                    m_controller->releaseButton(1, BUTTON_KICK2);
                     return true;
                 case Config::Key::BUTTON_P1_KICK3:
-                    m_controller1->releaseButton(BUTTON_KICK3);
+                    m_controller->releaseButton(1, BUTTON_KICK3);
                     return true;
                 case Config::Key::BUTTON_P2_UP:
-                    m_controller2->releaseButton(BUTTON_UP);
+                    m_controller->releaseButton(2, BUTTON_UP);
                     return true;
                 case Config::Key::BUTTON_P2_DOWN:
-                    m_controller2->releaseButton(BUTTON_DOWN);
+                    m_controller->releaseButton(2, BUTTON_DOWN);
                     return true;
                 case Config::Key::BUTTON_P2_LEFT:
-                    m_controller2->releaseButton(BUTTON_LEFT);
+                    m_controller->releaseButton(2, BUTTON_LEFT);
                     return true;
                 case Config::Key::BUTTON_P2_RIGHT:
-                    m_controller2->releaseButton(BUTTON_RIGHT);
+                    m_controller->releaseButton(2, BUTTON_RIGHT);
                     return true;
                 case Config::Key::BUTTON_P2_PUNCH1:
-                    m_controller2->releaseButton(BUTTON_PUNCH1);
+                    m_controller->releaseButton(2, BUTTON_PUNCH1);
                     return true;
                 case Config::Key::BUTTON_P2_PUNCH2:
-                    m_controller2->releaseButton(BUTTON_PUNCH2);
+                    m_controller->releaseButton(2, BUTTON_PUNCH2);
                     return true;
                 case Config::Key::BUTTON_P2_PUNCH3:
-                    m_controller2->releaseButton(BUTTON_PUNCH3);
+                    m_controller->releaseButton(2, BUTTON_PUNCH3);
                     return true;
                 case Config::Key::BUTTON_P2_KICK1:
-                    m_controller2->releaseButton(BUTTON_KICK1);
+                    m_controller->releaseButton(2, BUTTON_KICK1);
                     return true;
                 case Config::Key::BUTTON_P2_KICK2:
-                    m_controller2->releaseButton(BUTTON_KICK2);
+                    m_controller->releaseButton(2, BUTTON_KICK2);
                     return true;
                 case Config::Key::BUTTON_P2_KICK3:
-                    m_controller2->releaseButton(BUTTON_KICK3);
+                    m_controller->releaseButton(2, BUTTON_KICK3);
                     return true;
                 case Config::Key::START_P1:
-                    m_controller1->releaseButton(BUTTON_START);
+                    m_controller->releaseButton(1, BUTTON_START);
                     return true;
                 case Config::Key::START_P2:
-                    m_controller2->releaseButton(BUTTON_START);
+                    m_controller->releaseButton(2, BUTTON_START);
                     return true;
                 default:
                     return false;
@@ -303,8 +302,7 @@ bool Core::saveState(const fs::path& filename) {
     m_apu->saveState(file);
     m_memory->saveState(file);
     m_cartridge->saveState(file);
-    m_controller1->saveState(file);
-    m_controller2->saveState(file);
+    m_controller->saveState(file);
     
     // Save core state
     file.write(reinterpret_cast<const char*>(&m_cpuCyclesThisFrame), sizeof(m_cpuCyclesThisFrame));
@@ -339,8 +337,7 @@ bool Core::loadState(const fs::path& filename) {
     m_apu->loadState(file);
     m_memory->loadState(file);
     m_cartridge->loadState(file);
-    m_controller1->loadState(file);
-    m_controller2->loadState(file);
+    m_controller->loadState(file);
     
     // Load core state
     file.read(reinterpret_cast<char*>(&m_cpuCyclesThisFrame), sizeof(m_cpuCyclesThisFrame));

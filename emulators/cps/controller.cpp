@@ -1,89 +1,154 @@
 #include "controller.h"
-#include "memory.h"
+#include <cstring>
 
 namespace cps {
 
-Controller::Controller()
-    : m_buttons(0)
-    , m_memory(nullptr) {
+Controller::Controller() {
+    reset();
 }
 
 void Controller::reset() {
-    m_buttons = 0;
+    // Initialize all port registers to 0xFF (active low, so 0xFF = no inputs)
+    m_portRegisters.fill(0xFF);
 }
 
-void Controller::pressButton(ControllerButton button) {
-    m_buttons |= (1 << button);
+void Controller::setCPSVersion(u8 cpsVersion) {
+    m_buttonMappings.clear();
+    
+    if (cpsVersion == 2) {
+        initCPS2Mappings();
+    } else {
+        initCPS1Mappings();
+    }
 }
 
-void Controller::releaseButton(ControllerButton button) {
-    m_buttons &= ~(1 << button);
+void Controller::initCPS1Mappings() {
+    // CPS1 Input Mapping (based on Street Fighter II)
+    // Port 0x000: P2 directions + punches
+    // Port 0x001: P1 directions + punches
+    // Port 0x177: P1 kicks (bits 0-2) and P2 kicks (bits 4-5)
+    // Port 0x018: Coins/Starts
+    
+    // Player 1 directions + punches -> port 0x001
+    m_buttonMappings[(1 << 8) | BUTTON_RIGHT] = {0x001, 0};
+    m_buttonMappings[(1 << 8) | BUTTON_LEFT] = {0x001, 1};
+    m_buttonMappings[(1 << 8) | BUTTON_DOWN] = {0x001, 2};
+    m_buttonMappings[(1 << 8) | BUTTON_UP] = {0x001, 3};
+    m_buttonMappings[(1 << 8) | BUTTON_PUNCH1] = {0x001, 4};
+    m_buttonMappings[(1 << 8) | BUTTON_PUNCH2] = {0x001, 5};
+    m_buttonMappings[(1 << 8) | BUTTON_PUNCH3] = {0x001, 6};
+    
+    // Player 1 kicks -> port 0x177 (bits 0-2)
+    m_buttonMappings[(1 << 8) | BUTTON_KICK1] = {0x177, 0};
+    m_buttonMappings[(1 << 8) | BUTTON_KICK2] = {0x177, 1};
+    m_buttonMappings[(1 << 8) | BUTTON_KICK3] = {0x177, 2};
+    
+    // Player 2 directions + punches -> port 0x000
+    m_buttonMappings[(2 << 8) | BUTTON_RIGHT] = {0x000, 0};
+    m_buttonMappings[(2 << 8) | BUTTON_LEFT] = {0x000, 1};
+    m_buttonMappings[(2 << 8) | BUTTON_DOWN] = {0x000, 2};
+    m_buttonMappings[(2 << 8) | BUTTON_UP] = {0x000, 3};
+    m_buttonMappings[(2 << 8) | BUTTON_PUNCH1] = {0x000, 4};
+    m_buttonMappings[(2 << 8) | BUTTON_PUNCH2] = {0x000, 5};
+    m_buttonMappings[(2 << 8) | BUTTON_PUNCH3] = {0x000, 6};
+    
+    // Player 2 kicks -> port 0x177 (bits 4-6)
+    m_buttonMappings[(2 << 8) | BUTTON_KICK1] = {0x177, 4};
+    m_buttonMappings[(2 << 8) | BUTTON_KICK2] = {0x177, 5};
+    m_buttonMappings[(2 << 8) | BUTTON_KICK3] = {0x177, 6};
+    
+    // Coins/Starts -> port 0x018
+    m_buttonMappings[(1 << 8) | BUTTON_COIN] = {0x018, 0};
+    m_buttonMappings[(2 << 8) | BUTTON_COIN] = {0x018, 1};
+    m_buttonMappings[(1 << 8) | BUTTON_START] = {0x018, 4};
+    m_buttonMappings[(2 << 8) | BUTTON_START] = {0x018, 5};
 }
 
-u8 Controller::read() const {
-    // Return button states as a byte
-    // CPS1 bit mapping for ports 0x000/0x001 and 0x010/0x011 (active low, hardware inverts):
-    // Bit 0: Right
-    // Bit 1: Left
-    // Bit 2: Down
-    // Bit 3: Up
-    // Bit 4: Fire 1 (Punch 1)
-    // Bit 5: Fire 2 (Punch 2)
-    // Bit 6: Fire 3 (Punch 3)
-    // Bit 7: unused
+void Controller::initCPS2Mappings() {
+    // CPS2 Input Mapping (based on fighting games)
+    // Port 0x000: P2 directions + punches
+    // Port 0x001: P1 directions + punches
+    // Port 0x011: P1 kicks (bits 0-2) and P2 kicks (bits 4-5)
+    // Port 0x020: P1 Start (bit 0), P2 Start (bit 1), P1 Coin (bit 4), P2 Coin (bit 5), P2 Strong Kick (bit 6)
+    // Port 0x021: EEPROM (bit 0), Diagnostic (bit 1), Service (bit 2)
     
-    u8 result = 0;
+    // Player 1 directions + punches -> port 0x001
+    m_buttonMappings[(1 << 8) | BUTTON_RIGHT] = {0x001, 0};
+    m_buttonMappings[(1 << 8) | BUTTON_LEFT] = {0x001, 1};
+    m_buttonMappings[(1 << 8) | BUTTON_DOWN] = {0x001, 2};
+    m_buttonMappings[(1 << 8) | BUTTON_UP] = {0x001, 3};
+    m_buttonMappings[(1 << 8) | BUTTON_PUNCH1] = {0x001, 4};
+    m_buttonMappings[(1 << 8) | BUTTON_PUNCH2] = {0x001, 5};
+    m_buttonMappings[(1 << 8) | BUTTON_PUNCH3] = {0x001, 6};
     
-    // Remap from our enum to CPS bit positions
-    if (m_buttons & (1 << BUTTON_RIGHT))  result |= (1 << 0);
-    if (m_buttons & (1 << BUTTON_LEFT))   result |= (1 << 1);
-    if (m_buttons & (1 << BUTTON_DOWN))   result |= (1 << 2);
-    if (m_buttons & (1 << BUTTON_UP))     result |= (1 << 3);
-    if (m_buttons & (1 << BUTTON_PUNCH1))  result |= (1 << 4);
-    if (m_buttons & (1 << BUTTON_PUNCH2))  result |= (1 << 5);
-    if (m_buttons & (1 << BUTTON_PUNCH3))  result |= (1 << 6);
+    // Player 1 kicks -> port 0x011 (bits 0-2)
+    m_buttonMappings[(1 << 8) | BUTTON_KICK1] = {0x011, 0};
+    m_buttonMappings[(1 << 8) | BUTTON_KICK2] = {0x011, 1};
+    m_buttonMappings[(1 << 8) | BUTTON_KICK3] = {0x011, 2};
     
-    return result;
+    // Player 2 directions + punches -> port 0x000
+    m_buttonMappings[(2 << 8) | BUTTON_RIGHT] = {0x000, 0};
+    m_buttonMappings[(2 << 8) | BUTTON_LEFT] = {0x000, 1};
+    m_buttonMappings[(2 << 8) | BUTTON_DOWN] = {0x000, 2};
+    m_buttonMappings[(2 << 8) | BUTTON_UP] = {0x000, 3};
+    m_buttonMappings[(2 << 8) | BUTTON_PUNCH1] = {0x000, 4};
+    m_buttonMappings[(2 << 8) | BUTTON_PUNCH2] = {0x000, 5};
+    m_buttonMappings[(2 << 8) | BUTTON_PUNCH3] = {0x000, 6};
+    
+    // Player 2 kicks -> port 0x011 (bits 4-5) and port 0x020 (bit 6 for strong kick)
+    m_buttonMappings[(2 << 8) | BUTTON_KICK1] = {0x011, 4};
+    m_buttonMappings[(2 << 8) | BUTTON_KICK2] = {0x011, 5};
+    m_buttonMappings[(2 << 8) | BUTTON_KICK3] = {0x020, 6};
+    
+    // Coins/Starts -> port 0x020
+    m_buttonMappings[(1 << 8) | BUTTON_START] = {0x020, 0};
+    m_buttonMappings[(2 << 8) | BUTTON_START] = {0x020, 1};
+    m_buttonMappings[(1 << 8) | BUTTON_COIN] = {0x020, 4};
+    m_buttonMappings[(2 << 8) | BUTTON_COIN] = {0x020, 5};
 }
 
-u8 Controller::readKicks() const {
-    // Return kick button states for port 0x012 (6-button games like Street Fighter II)
-    // Bit 0: Kick 1
-    // Bit 1: Kick 2
-    // Bit 2: Kick 3
-    // Bit 4: P2 Kick 1
-    // Bit 5: P2 Kick 2
-    // Bit 6: P2 Kick 3
-    
-    u8 result = 0;
-    if (m_buttons & (1 << BUTTON_KICK1))  result |= (1 << 0);
-    if (m_buttons & (1 << BUTTON_KICK2))  result |= (1 << 1);
-    if (m_buttons & (1 << BUTTON_KICK3))  result |= (1 << 2);
-    return result;
+void Controller::pressButton(u8 player, ControllerButton button) {
+    u16 key = (player << 8) | button;
+    auto it = m_buttonMappings.find(key);
+    if (it != m_buttonMappings.end()) {
+        setPortBit(it->second.port, it->second.bit, true);
+    }
 }
 
-u8 Controller::readCoinStart() const {
-    // Return coin/start button states for port 0x018
-    // Bit 0: Coin
-    // Bit 1: (P2 Coin - handled separately)
-    // Bit 2: Service
-    // Bit 4: Start
-    // Bit 5: (P2 Start - handled separately)
-    // Bit 6: Diagnostic
+void Controller::releaseButton(u8 player, ControllerButton button) {
+    u16 key = (player << 8) | button;
+    auto it = m_buttonMappings.find(key);
+    if (it != m_buttonMappings.end()) {
+        setPortBit(it->second.port, it->second.bit, false);
+    }
+}
+
+void Controller::setPortBit(u16 port, u8 bit, bool pressed) {
+    if (port >= m_portRegisters.size()) {
+        return;
+    }
     
-    u8 result = 0;
-    if (m_buttons & (1 << BUTTON_COIN))  result |= (1 << 0);
-    if (m_buttons & (1 << BUTTON_START)) result |= (1 << 4);
-    return result;
+    // Active low: pressed = clear bit, released = set bit
+    if (pressed) {
+        m_portRegisters[port] &= ~(1 << bit);
+    } else {
+        m_portRegisters[port] |= (1 << bit);
+    }
+}
+
+u8 Controller::readPort(u16 port) const {
+    if (port >= m_portRegisters.size()) {
+        return 0xFF;
+    }
+    return m_portRegisters[port];
 }
 
 void Controller::saveState(std::ofstream& file) {
-    (void)file;
-    // Don't save button states
+    file.write(reinterpret_cast<const char*>(m_portRegisters.data()), m_portRegisters.size());
 }
 
 void Controller::loadState(std::ifstream& file) {
-    (void)file;
+    file.read(reinterpret_cast<char*>(m_portRegisters.data()), m_portRegisters.size());
 }
 
 } // namespace cps

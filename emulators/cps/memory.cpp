@@ -47,8 +47,7 @@ Memory::Memory()
     , m_ppu(nullptr)
     , m_apu(nullptr)
     , m_cartridge(nullptr)
-    , m_controller1(nullptr)
-    , m_controller2(nullptr)
+    , m_controller(nullptr)
     , m_z80Bank(0)
     , m_protCalc{0, 0}
     , m_memProt{0x00, 0x00, 0x00, 0x00}
@@ -391,29 +390,11 @@ u8 Memory::readPort(u16 port) {
     
     // CPS2-specific ports
     if (cpsVer == 2) {
-        // Port 0x020: Coins/Starts and P2 Strong Kick
-        // Bit 0: P1 Start
-        // Bit 1: P2 Start
-        // Bit 4: P1 Coin
-        // Bit 5: P2 Coin
-        // Bit 6: P2 Strong Kick
         if (port == 0x020) {
-            value = 0x00;
-            if (m_controller1) {
-                u8 p1 = m_controller1->readCoinStart();
-                if (p1 & 0x01) value |= 0x10;  // Set bit 4 for P1 coin (controller bit 0 -> port bit 4)
-                if (p1 & 0x10) value |= 0x01;  // Set bit 0 for P1 start (controller bit 4 -> port bit 0)
+            if (m_controller) {
+                return m_controller->readPort(port);
             }
-            if (m_controller2) {
-                u8 p2 = m_controller2->readCoinStart();
-                if (p2 & 0x01) value |= 0x20;  // Set bit 5 for P2 coin (controller bit 0 -> port bit 5)
-                if (p2 & 0x10) value |= 0x02;  // Set bit 1 for P2 start (controller bit 4 -> port bit 1)
-                // P2 Strong Kick (bit 6)
-                if (m_controller2->readKicks() & (1 << 2)) {  // Kick 3 = Strong Kick
-                    value |= 0x40;  // Set bit 6 for P2 strong kick
-                }
-            }
-            return ~value;
+            return 0xFF;
         }
         
         // Port 0x021: EEPROM read (bit 0), Diagnostic (bit 1), Service (bit 2)
@@ -456,99 +437,22 @@ u8 Memory::readPort(u16 port) {
         }
     }
     
-    // Input ports (0x000-0x01F)
-    // Based on Street Fighter II's input definitions
-    // NOTE: These are typical input settings that work for most CPS1 games, but are not
-    // guaranteed to work correctly for all games. Some games may use different port
-    // addresses or bit layouts for their inputs.
+    // Input ports
+    // The controller handles all button-to-port mappings based on CPS version
     switch (port) {
         case 0x000:
-            // Player 2 inputs (active low) - port 0x000
-            if (m_controller2) {
-                value = ~m_controller2->read();
-            }
-            return value;
-            
         case 0x001:
-            // Player 1 inputs (active low) - port 0x001
-            if (m_controller1) {
-                value = ~m_controller1->read();
-            }
-            return value;
-            
         case 0x010:
-            // Player 2 inputs (active low) - port 0x010 (some games)
-            if (m_controller2) {
-                value = ~m_controller2->read();
-            }
-            return value;
-            
         case 0x011:
-            // CPS1: Player 1 inputs (active low) - port 0x011 (some games)
-            // CPS2: Kick buttons - P1 kicks (bits 0-2) and P2 kicks (bits 4-5)
-            if (cpsVer == 2) {
-                // CPS2: Kick buttons
-                // Bit 0: P1 Kick 1
-                // Bit 1: P1 Kick 2
-                // Bit 2: P1 Kick 3
-                // Bit 4: P2 Kick 1
-                // Bit 5: P2 Kick 2
-                // Note: P2 Kick 3 (Strong Kick) is on port 0x020 bit 6
-                value = 0x00;
-                if (m_controller1) {
-                    u8 p1Kicks = m_controller1->readKicks();
-                    value |= (p1Kicks & 0x07);  // Set bits 0-2 for P1 kicks
-                }
-                if (m_controller2) {
-                    u8 p2Kicks = m_controller2->readKicks();
-                    value |= ((p2Kicks & 0x03) << 4);  // Set bits 4-5 for P2 kicks (only kick 1 and 2)
-                }
-            } else {
-                // CPS1: Player 1 inputs (active low)
-                if (m_controller1) {
-                    value = m_controller1->read();
-                }
-            }
-            return ~value;
-            
         case 0x012:
-        case 0x177:
-            // Bit 0: P1 Kick 1
-            // Bit 1: P1 Kick 2
-            // Bit 2: P1 Kick 3
-            // Bit 4: P2 Kick 1
-            // Bit 5: P2 Kick 2
-            // Bit 6: P2 Kick 3
-            value = 0xFF;
-            if (m_controller1) {
-                value &= ~(m_controller1->readKicks() & 0x07);  // Clear bits 0-2 for P1 kicks
-            }
-            if (m_controller2) {
-                value &= ~((m_controller2->readKicks() & 0x07) << 4);  // Clear bits 4-6 for P2 kicks
-            }
-            return value;
-            
         case 0x018:
-            // Coin/Start inputs (active low)
-            // Bit 0: P1 Coin
-            // Bit 1: P2 Coin
-            // Bit 2: Service button
-            // Bit 4: P1 Start
-            // Bit 5: P2 Start
-            // Bit 6: Diagnostic
-            value = 0xFF;
-            if (m_controller1) {
-                u8 p1 = m_controller1->readCoinStart();
-                if (p1 & 0x01) value &= ~0x01;  // Clear bit 0 for P1 coin
-                if (p1 & 0x10) value &= ~0x10;  // Clear bit 4 for P1 start
+        case 0x177:
+            if (m_controller) {
+                return m_controller->readPort(port);
             }
-            if (m_controller2) {
-                u8 p2 = m_controller2->readCoinStart();
-                if (p2 & 0x01) value &= ~0x02;  // Clear bit 1 for P2 coin
-                if (p2 & 0x10) value &= ~0x20;  // Clear bit 5 for P2 start
-            }
-            return value;
-            
+            return 0xFF;
+
+        // DIP Switch ports (not controller inputs)
         case 0x01A:
             // DIP Switch A: Coinage settings
             // Bit 0-2 (mask 0x07): Coin A

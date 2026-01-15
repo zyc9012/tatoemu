@@ -54,8 +54,7 @@ private:
     std::unique_ptr<APU> m_apu;
     std::unique_ptr<Memory> m_memory;
     std::unique_ptr<Cartridge> m_cartridge;
-    std::unique_ptr<Controller> m_controller1;
-    std::unique_ptr<Controller> m_controller2;
+    std::unique_ptr<Controller> m_controller;
     
     // Timing
     u32 m_cpuCyclesThisFrame;

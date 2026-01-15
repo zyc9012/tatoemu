@@ -2,10 +2,10 @@
 
 #include "../types.h"
 #include <fstream>
+#include <array>
+#include <unordered_map>
 
 namespace cps {
-
-class Memory;
 
 // CPS controller buttons (6-button layout - shared between CPS1 and CPS2)
 enum ControllerButton : u8 {
@@ -23,27 +23,49 @@ enum ControllerButton : u8 {
     BUTTON_COIN = 11
 };
 
+// Button mapping: maps (player, button) -> (port, bit)
+struct ButtonMapping {
+    u16 port;
+    u8 bit;
+};
+
 class Controller {
 public:
     Controller();
     ~Controller() = default;
 
     void reset();
-    void pressButton(ControllerButton button);
-    void releaseButton(ControllerButton button);
     
-    u8 read() const;  // Read direction + punch buttons (ports 0x000/0x001, 0x010/0x011)
-    u8 readKicks() const;  // Read kick buttons (port 0x012 for 6-button games)
-    u8 readCoinStart() const;  // Read coin/start buttons (port 0x018)
-    void setMemory(Memory* memory) { m_memory = memory; }
+    // Set CPS version to configure button mappings
+    void setCPSVersion(u8 cpsVersion);
+    
+    // Button input handlers
+    void pressButton(u8 player, ControllerButton button);
+    void releaseButton(u8 player, ControllerButton button);
+    
+    // Read port register value (active low, so returns inverted value)
+    u8 readPort(u16 port) const;
     
     // Save/Load state
     void saveState(std::ofstream& file);
     void loadState(std::ifstream& file);
 
 private:
-    u16 m_buttons;  // Button states (bitmask)
-    Memory* m_memory;
+    // Port registers (indexed by port address)
+    // All ports default to 0xFF (active low, so 0xFF = no inputs pressed)
+    std::array<u8, 0x200> m_portRegisters;
+    
+    // Button mapping configuration: (player << 8 | button) -> (port, bit)
+    std::unordered_map<u16, ButtonMapping> m_buttonMappings;
+    
+    // Initialize button mappings for CPS1
+    void initCPS1Mappings();
+    
+    // Initialize button mappings for CPS2
+    void initCPS2Mappings();
+    
+    // Helper to set/clear a bit in a port register
+    void setPortBit(u16 port, u8 bit, bool pressed);
 };
 
 } // namespace cps
