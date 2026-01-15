@@ -344,33 +344,6 @@ static const ROMEntry game_ssf2t_roms[] = {
     { "ssf2t.key",     0x000014, 0x524d608e, ROMType::ENCRYPTION_KEY, 0 },
 };
 
-// Super Street Fighter II Turbo (Brazil)
-static const ROMEntry game_ssf2tb_roms[] = {
-    { "ssfe.03tc",     0x080000, 0x496a8409, ROMType::PROGRAM, 0 },
-    { "ssfe.04tc",     0x080000, 0x4b45c18b, ROMType::PROGRAM, 0 },
-    { "ssfe.05t",      0x080000, 0x6a9c6444, ROMType::PROGRAM, 0 },
-    { "ssfe.06tb",     0x080000, 0xe4944fc3, ROMType::PROGRAM, 0 },
-    { "ssfe.07t",      0x080000, 0x2c9f4782, ROMType::PROGRAM, 0 },
-    { "ssf.13m",       0x200000, 0xcf94d275, ROMType::GRAPHICS, 0 },
-    { "ssf.15m",       0x200000, 0x5eb703af, ROMType::GRAPHICS, 0 },
-    { "ssf.17m",       0x200000, 0xffa60e0f, ROMType::GRAPHICS, 0 },
-    { "ssf.19m",       0x200000, 0x34e825c5, ROMType::GRAPHICS, 0 },
-    { "ssf.14m",       0x100000, 0xb7cc32e7, ROMType::GRAPHICS, 0 },
-    { "ssf.16m",       0x100000, 0x8376ad18, ROMType::GRAPHICS, 0 },
-    { "ssf.18m",       0x100000, 0xf5b1b336, ROMType::GRAPHICS, 0 },
-    { "ssf.20m",       0x100000, 0x459d5c6b, ROMType::GRAPHICS, 0 },
-    { "ssf.01",        0x020000, 0xeb247e8c, ROMType::SOUND_PROGRAM, 0 },
-    { "ssf.q01",       0x080000, 0xa6f9da5c, ROMType::SOUND_SAMPLE, 0 },
-    { "ssf.q02",       0x080000, 0x8c66ae26, ROMType::SOUND_SAMPLE, 0 },
-    { "ssf.q03",       0x080000, 0x695cc2ca, ROMType::SOUND_SAMPLE, 0 },
-    { "ssf.q04",       0x080000, 0x9d9ebe32, ROMType::SOUND_SAMPLE, 0 },
-    { "ssf.q05",       0x080000, 0x4770e7b7, ROMType::SOUND_SAMPLE, 0 },
-    { "ssf.q06",       0x080000, 0x4e79c951, ROMType::SOUND_SAMPLE, 0 },
-    { "ssf.q07",       0x080000, 0xcdd14313, ROMType::SOUND_SAMPLE, 0 },
-    { "ssf.q08",       0x080000, 0x6f5a088c, ROMType::SOUND_SAMPLE, 0 },
-    { "ssf2tb.key",    0x000014, 0x1ecc92b2, ROMType::ENCRYPTION_KEY, 0 },
-};
-
 // Vampire Savior: The Lord of Vampire
 static const ROMEntry game_vsav_roms[] = {
     { "vm3e.03d",      0x080000, 0xf5962a8c, ROMType::PROGRAM, 0 },
@@ -607,15 +580,6 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "ssf2t",
         game_ssf2t_roms,
         sizeof(game_ssf2t_roms) / sizeof(ROMEntry),
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
-    },
-    {
-        2,
-        "Super Street Fighter II Turbo (Brazil)",
-        "ssf2tb",
-        game_ssf2tb_roms,
-        sizeof(game_ssf2tb_roms) / sizeof(ROMEntry),
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
