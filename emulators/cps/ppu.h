@@ -153,12 +153,10 @@ private:
     
     // CPS1-specific rendering
     void renderLayersCPS1();
-    void renderScroll3CPS1(const u8* base, s32 scrollX, s32 scrollY);
     void renderSpritesCPS1();
 
     // CPS2-specific rendering
     void renderLayersCPS2();
-    void renderScroll3CPS2(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine);
     void renderSpritesCPS2();
     void renderSpritesCPS2ByPriority(s32 levelFrom, s32 levelTo);
     void initCPS2ZBuffer();
@@ -166,6 +164,7 @@ private:
     // Common (Scroll 2 is same for both CPS1 and CPS2)
     void renderScroll1(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine);
     void renderScroll2(const u8* base, s32 scrollX, s32 scrollY);
+    void renderScroll3(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine);
     
     // CPS1 star field
     void renderStarField(s32 layer);
