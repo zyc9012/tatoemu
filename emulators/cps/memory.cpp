@@ -268,15 +268,9 @@ void Memory::write8(u32 address, u8 value) {
         return;
     }
     
-    // CPS2-specific: 0x664001 register (frame toggle)
+    // CPS2-specific: 0x664001 register (frame toggle/counter)
     if (cpsVer == 2 && address == 0x664001) {
         m_n664001 = value;
-        // Toggle object bank when frame register is written
-        // This swaps which buffer the CPU writes to and GPU reads from
-        if (m_ppu) {
-            u32 currentBank = m_ppu->getObjectBank();
-            m_ppu->setObjectBank(currentBank ^ 1);
-        }
         return;
     }
     
@@ -599,6 +593,10 @@ void Memory::writePort(u16 port, u8 value) {
         // The object bank is also stored in FRG register 0x0E for PPU access
         if ((port & 0x1FF) == 0x0E1) {
             m_frgRegs[0x0E] = value & 1;
+            // Sync PPU's object bank
+            if (m_ppu) {
+                m_ppu->setObjectBank(value & 1);
+            }
             return;
         }
         
