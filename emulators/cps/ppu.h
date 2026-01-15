@@ -99,7 +99,6 @@ private:
     s32 m_layer1XOffs, m_layer1YOffs;
     s32 m_layer2XOffs, m_layer2YOffs;
     s32 m_layer3XOffs, m_layer3YOffs;
-    s32 m_globalXOffs, m_globalYOffs;
     
     // Graphics bank offsets
     u32 m_gfxScroll[4];  // Offsets to scroll tiles

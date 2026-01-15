@@ -27,7 +27,6 @@ PPU::PPU()
     , m_layer1XOffs(0), m_layer1YOffs(0)
     , m_layer2XOffs(0), m_layer2YOffs(0)
     , m_layer3XOffs(0), m_layer3YOffs(0)
-    , m_globalXOffs(0), m_globalYOffs(0)
     , m_gfxMapper(nullptr)
     , m_frameComplete(false)
     , m_scanline(0)
@@ -88,7 +87,6 @@ void PPU::reset() {
     m_layer1XOffs = 0; m_layer1YOffs = 0;
     m_layer2XOffs = 0; m_layer2YOffs = 0;
     m_layer3XOffs = 0; m_layer3YOffs = 0;
-    m_globalXOffs = 0; m_globalYOffs = 0;
     
     // Reset CPS2 Z-buffer state
     m_maxZValue = 1;
@@ -591,14 +589,14 @@ void PPU::renderLayersCPS1() {
     s32 scr3Y = static_cast<s16>((static_cast<u16>(m_cpsRegs[0x16]) << 8) | m_cpsRegs[0x17]);
     
     // Apply scroll offsets
-    scr1X += 0x40 - m_globalXOffs + m_layer1XOffs;
-    scr1Y += 0x10 - m_globalYOffs + m_layer1YOffs;
+    scr1X += 0x40 + m_layer1XOffs;
+    scr1Y += 0x10 + m_layer1YOffs;
     
-    scr2X += 0x40 - m_globalXOffs + m_layer2XOffs;
-    scr2Y += 0x10 - m_globalYOffs + m_layer2YOffs;
+    scr2X += 0x40 + m_layer2XOffs;
+    scr2Y += 0x10 + m_layer2YOffs;
     
-    scr3X += 0x40 - m_globalXOffs + m_layer3XOffs;
-    scr3Y += 0x10 - m_globalYOffs + m_layer3YOffs;
+    scr3X += 0x40 + m_layer3XOffs;
+    scr3Y += 0x10 + m_layer3YOffs;
     
     // Find VRAM pointers
     u8* scr1Base = findGfxRam(scr1Off, 0x4000);
@@ -770,14 +768,14 @@ void PPU::renderLayersCPS2() {
                     s32 scr3Y = static_cast<s16>((static_cast<u16>(regs[0x16]) << 8) | regs[0x17]);
                     
                     // Apply scroll offsets
-                    scr1X += 0x40 - m_globalXOffs + m_layer1XOffs;
-                    scr1Y += 0x10 - m_globalYOffs + m_layer1YOffs;
+                    scr1X += 0x40 + m_layer1XOffs;
+                    scr1Y += 0x10 + m_layer1YOffs;
                     
-                    scr2X += 0x40 - m_globalXOffs + m_layer2XOffs;
-                    scr2Y += 0x10 - m_globalYOffs + m_layer2YOffs;
+                    scr2X += 0x40 + m_layer2XOffs;
+                    scr2Y += 0x10 + m_layer2YOffs;
                     
-                    scr3X += 0x40 - m_globalXOffs + m_layer3XOffs;
-                    scr3Y += 0x10 - m_globalYOffs + m_layer3YOffs;
+                    scr3X += 0x40 + m_layer3XOffs;
+                    scr3Y += 0x10 + m_layer3YOffs;
                     
                     // Render the appropriate layer
                     switch (layerNum) {
@@ -1197,8 +1195,6 @@ void PPU::renderSpritesCPS1() {
         // Apply CPS1 sprite offsets
         x -= 0x40;
         y -= 0x10;
-        x += m_globalXOffs;
-        y += m_globalYOffs;
         
         // Get palette (bits 0-4)
         u32 palette = attrib & 0x1F;
@@ -1282,8 +1278,8 @@ void PPU::renderSpritesCPS2ByPriority(s32 levelFrom, s32 levelTo) {
     }
     
     // Get sprite offsets from CPS2 Frg registers (use saved Frg for zone 0)
-    s16 sprXOffset = -(s8)m_rasterFrg[0][0x09] + m_globalXOffs;
-    s16 sprYOffset = -(s8)m_rasterFrg[0][0x0B] + m_globalYOffs;
+    s16 sprXOffset = -(s8)m_rasterFrg[0][0x09];
+    s16 sprYOffset = -(s8)m_rasterFrg[0][0x0B];
     
     // Iterate through sprites
     // Sprites are processed in order (not reversed like CPS1)
@@ -1694,8 +1690,6 @@ void PPU::saveState(std::ofstream& file) {
     file.write(reinterpret_cast<const char*>(&m_layer2YOffs), sizeof(m_layer2YOffs));
     file.write(reinterpret_cast<const char*>(&m_layer3XOffs), sizeof(m_layer3XOffs));
     file.write(reinterpret_cast<const char*>(&m_layer3YOffs), sizeof(m_layer3YOffs));
-    file.write(reinterpret_cast<const char*>(&m_globalXOffs), sizeof(m_globalXOffs));
-    file.write(reinterpret_cast<const char*>(&m_globalYOffs), sizeof(m_globalYOffs));
     
     // Save graphics scroll offsets
     file.write(reinterpret_cast<const char*>(m_gfxScroll), sizeof(m_gfxScroll));
@@ -1721,8 +1715,6 @@ void PPU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_layer2YOffs), sizeof(m_layer2YOffs));
     file.read(reinterpret_cast<char*>(&m_layer3XOffs), sizeof(m_layer3XOffs));
     file.read(reinterpret_cast<char*>(&m_layer3YOffs), sizeof(m_layer3YOffs));
-    file.read(reinterpret_cast<char*>(&m_globalXOffs), sizeof(m_globalXOffs));
-    file.read(reinterpret_cast<char*>(&m_globalYOffs), sizeof(m_globalYOffs));
     
     // Load graphics scroll offsets
     file.read(reinterpret_cast<char*>(m_gfxScroll), sizeof(m_gfxScroll));
