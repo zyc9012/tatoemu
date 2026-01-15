@@ -49,6 +49,7 @@ Memory::Memory()
     , m_cartridge(nullptr)
     , m_controller(nullptr)
     , m_z80Bank(0)
+    , m_objectBank(0)
     , m_protCalc{0, 0}
     , m_memProt{0x00, 0x00, 0x00, 0x00}
     , m_boardId{0x00, 0x00, 0x00}
@@ -103,6 +104,7 @@ void Memory::reset() {
     }
 
     // CPS2-specific reset
+    m_objectBank = 0;
     m_extraRam.fill(0);
     m_objRam.fill(0);
     m_frgRegs.fill(0);
@@ -160,9 +162,15 @@ u8 Memory::read8(u32 address) {
         return m_soundRam[index];
     }
     
-    // CPS2-specific: Object RAM (0x708000-0x717FFF)
-    if (cpsVer == 2 && address >= 0x708000 && address <= 0x717FFF) {
-        return m_objRam[address - 0x708000];
+    // CPS2-specific: Object RAM (0x708000-0x70FFFF with bank switching)
+    if (cpsVer == 2 && address >= 0x708000 && address <= 0x70FFFF) {
+        // Bank switching: addresses 0x708000-0x70FFFF map to 32KB banks
+        u32 bankOffset = m_objectBank ? 0x8000 : 0x0000;
+        u32 localAddr = (address - 0x708000) + bankOffset;
+        if (localAddr < m_objRam.size()) {
+            return m_objRam[localAddr];
+        }
+        return 0;
     }
     
     // I/O Ports and CPS Registers (0x800000-0x807FFF, mirrored)
@@ -287,9 +295,14 @@ void Memory::write8(u32 address, u8 value) {
         return;
     }
     
-    // CPS2-specific: Object RAM (0x708000-0x717FFF)
-    if (cpsVer == 2 && address >= 0x708000 && address <= 0x717FFF) {
-        m_objRam[address - 0x708000] = value;
+    // CPS2-specific: Object RAM (0x708000-0x70FFFF with bank switching)
+    if (cpsVer == 2 && address >= 0x708000 && address <= 0x70FFFF) {
+        // Bank switching: addresses 0x708000-0x70FFFF map to 32KB banks
+        u32 bankOffset = m_objectBank ? 0x8000 : 0x0000;
+        u32 localAddr = (address - 0x708000) + bankOffset;
+        if (localAddr < m_objRam.size()) {
+            m_objRam[localAddr] = value;
+        }
         return;
     }
     
@@ -532,14 +545,9 @@ void Memory::writePort(u16 port, u8 value) {
         
         // Port 0x0E1: Object bank select (CPS2 only)
         // Bit 0: Object bank (0 or 1)
-        // This selects which sprite buffer (0x708000 or 0x710000) to use for sprite rendering
-        // The object bank is also stored in FRG register 0x0E for PPU access
+        // This remaps which 32KB bank of object RAM is visible at 0x708000-0x70FFFF
         if ((port & 0x1FF) == 0x0E1) {
-            m_frgRegs[0x0E] = value & 1;
-            // Sync PPU's object bank
-            if (m_ppu) {
-                m_ppu->setObjectBank(value & 1);
-            }
+            m_objectBank = value & 1;
             return;
         }
         

@@ -57,10 +57,6 @@ public:
     u8 readRegister8(u8 reg);
     void writeRegister8(u8 reg, u8 value);
     
-    // CPS2 object bank control
-    void setObjectBank(u32 bank) { m_objectBank = bank; }
-    u32 getObjectBank() const { return m_objectBank; }
-    
     // CPS2 Raster interrupt control
     void setRasterLine(u32 zone, s32 scanline);
     void copyRegistersToZone(u32 zone);
@@ -143,9 +139,6 @@ private:
     
     // CPS2 sprite enable mask (8 bits for 8 priority levels)
     u8 m_spriteEnableMask;
-    
-    // CPS2 object bank selection
-    u32 m_objectBank;
     
     // Helper functions
     void renderFrame();

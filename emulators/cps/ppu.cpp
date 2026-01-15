@@ -185,7 +185,6 @@ PPU::PPU()
     , m_currentMask(0)
     , m_bgHiMode(false)
     , m_spriteEnableMask(0xFF)
-    , m_objectBank(0)
 {
     m_frameBuffer.fill(0);
     m_vram.fill(0);
@@ -246,7 +245,6 @@ void PPU::reset() {
     m_currentMask = 0;
     m_bgHiMode = false;
     m_spriteEnableMask = 0xFF;
-    m_objectBank = 0;
     
     // Reset raster zones (default: single zone covering whole screen)
     m_rasterLines[0] = 0;        // Zone 0 starts at scanline 0
@@ -480,10 +478,6 @@ u32 PPU::convertPaletteEntry(u16 entry) {
 }
 
 void PPU::updatePalette() {
-    if (!m_cartridge) return;
-    
-    u8 cpsVer = m_cartridge->getCPSVersion();
-    
     // Get palette base address from CPS registers (register 0x0A as 16-bit)
     // The 68000 writes this as big-endian, so reg[0x0A] is high byte, reg[0x0B] is low byte
     u32 palAddr = (static_cast<u32>(m_cpsRegs[0x0A]) << 8) | m_cpsRegs[0x0B];
@@ -1514,19 +1508,14 @@ void PPU::renderSpritesCPS2() {
 void PPU::renderSpritesCPS2ByPriority(s32 levelFrom, s32 levelTo) {
     if (m_decodedGfx.empty()) return;
     
-    // CPS2: Get sprite table from double-buffered object RAM
-    // CpsRam708 + ((nCpsObjectBank ^ 1) << 15)
-    // Each buffer is 0x8000 (32KB) in size
-    u32 objOffset = ((m_objectBank ^ 1) << 15);  // Select inactive buffer for reading
-    
     // CPS2 supports up to 1024 sprites (8 bytes each = 8KB max)
     s32 maxSprites = 1024;
     
     // Find where the sprite list ends
     s32 spriteEnd = maxSprites;
     for (s32 i = 0; i < maxSprites; i++) {
-        u32 sprAddr = objOffset + (i * 8);
-        if (sprAddr + 7 >= 0x10000) break;  // Beyond 64KB object RAM
+        u32 sprAddr = i * 8;
+        if (sprAddr + 7 >= 0x8000) break;  // Beyond 32KB visible object RAM
         
         // Read sprite words (big-endian format) for end detection
         u16 yData = readObjRAM16(sprAddr + 2);
@@ -1548,7 +1537,7 @@ void PPU::renderSpritesCPS2ByPriority(s32 levelFrom, s32 levelTo) {
     m_currentZValue = static_cast<u16>(m_maxZValue);
     
     for (s32 i = 0; i < spriteEnd; i++) {
-        u32 sprAddr = objOffset + (i * 8);
+        u32 sprAddr = i * 8;
         
         // Read sprite data from object RAM (big-endian format)
         u16 xData = readObjRAM16(sprAddr + 0);
@@ -2106,14 +2095,14 @@ void PPU::loadState(std::ifstream& file) {
 
 u8 PPU::readObjRAM8(u32 offset) {
     if (!m_memory) return 0;
-    // Object RAM is at 0x708000-0x717FFF (64KB)
-    if (offset >= 0x10000) return 0;  // 64KB max
+    // Object RAM is at 0x708000-0x70FFFF (32KB visible at a time due to banking)
+    if (offset >= 0x8000) return 0;  // 32KB max visible
     return m_memory->read8(0x708000 + offset);
 }
 
 u16 PPU::readObjRAM16(u32 offset) {
     if (!m_memory) return 0;
-    if (offset >= 0x10000) return 0;
+    if (offset >= 0x8000) return 0;
     return m_memory->read16(0x708000 + offset);
 }
 

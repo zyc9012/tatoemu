@@ -86,6 +86,9 @@ private:
     
     // Z80 ROM banking
     u8 m_z80Bank;                              // Current ROM bank (0-15)
+
+    // CPS2 object RAM banking
+    u8 m_objectBank;                           // Current object RAM bank (0-1)
     
     // Input port reading
     u8 readPort(u16 port);
