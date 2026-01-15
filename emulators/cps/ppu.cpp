@@ -444,6 +444,7 @@ void PPU::initCPS2ZBuffer() {
         // Clear Z-buffer to prevent overflow
         std::fill(m_zBuffer.begin(), m_zBuffer.end(), 0);
         m_zOffset = 0;
+        m_maxZMask = 0;
     }
     
     m_maxZValue = m_zOffset + 1;
@@ -842,7 +843,7 @@ void PPU::renderLayersCPS2() {
         
         // Use board configuration for layer control register
         u8 lcReg = m_boardConfig.layerControlReg;
-        u16 layerCtrl = (static_cast<u16>(m_cpsRegs[lcReg]) << 8) | m_cpsRegs[lcReg + 1];
+        u16 layerCtrl = (static_cast<u16>(regs[lcReg]) << 8) | regs[lcReg + 1];
         
         // Determine which layers are enabled using board-specific enable bits
         bool layer1Enable = (layerCtrl & m_boardConfig.layerEnable[0]) != 0;
@@ -1538,10 +1539,9 @@ void PPU::renderSpritesCPS2ByPriority(s32 levelFrom, s32 levelTo) {
         }
     }
     
-    // Get sprite offsets from CPS2 Frg registers
-    // CpsSaveFrg[0][0x9] = X offset, CpsSaveFrg[0][0xB] = Y offset
-    s16 sprXOffset = -(s8)readFrgReg8(0x09) + m_globalXOffs;
-    s16 sprYOffset = -(s8)readFrgReg8(0x0B) + m_globalYOffs;
+    // Get sprite offsets from CPS2 Frg registers (use saved Frg for zone 0)
+    s16 sprXOffset = -(s8)m_rasterFrg[0][0x09] + m_globalXOffs;
+    s16 sprYOffset = -(s8)m_rasterFrg[0][0x0B] + m_globalYOffs;
     
     // Iterate through sprites
     // Sprites are processed in order (not reversed like CPS1)
