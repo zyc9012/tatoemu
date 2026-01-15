@@ -26,6 +26,19 @@
  * 0x708000-0x717FFF: Object RAM (64KB)
  */
 
+ static const EEPROMInterface cps2EEPROMInterface =
+ {
+    6,      /* address bits */
+    16,     /* data bits */
+    "0110", /* read command */
+    "0101", /* write command */
+    "0111", /* erase command */
+    0,
+    0,
+    0,
+    0
+};
+
 namespace cps {
 
 Memory::Memory()
@@ -64,6 +77,12 @@ void Memory::reset() {
     m_z80Bank = 0;
     
     u8 cpsVer = getCPSVersion();
+    
+    // Initialize EEPROM
+    if (cpsVer == 2) {
+        m_eeprom.init(&cps2EEPROMInterface);
+        m_eeprom.reset();
+    }
     
     // Reset protection calc
     m_protCalc[0] = 0;
@@ -385,12 +404,10 @@ u8 Memory::readPort(u16 port) {
             return 0xFF;
         }
         
-        // Port 0x021: EEPROM read (bit 0), other bits from input (CPS2 only)
+        // Port 0x021: EEPROM read (bit 0), other bits from input
         if (port == 0x021) {
-            std::cout << "[CPS2] Read port 0x021 (EEPROM read) - UNIMPLEMENTED, returning 0xFE" << std::endl;
             value = 0xFE;  // Bit 0 cleared (will be set by EEPROM)
-            // TODO: Implement EEPROM read
-            // value |= EEPROMRead();
+            value |= m_eeprom.read();
             return value;
         }
         
@@ -398,14 +415,14 @@ u8 Memory::readPort(u16 port) {
         if (port == 0x030) {
             // TODO: Implement volume control
             // For now, return default value
-            return 0xD0;
+            return 0xE0;
         }
         
         // Port 0x031: Volume control low byte (CPS2 only)
         if (port == 0x031) {
             // TODO: Implement volume control
             // For now, return default value
-            return 0x00;
+            return 0x21;
         }
         
         // Ports 0x050-0x051: Raster line counter for IRQ line 50 (CPS2 only)
@@ -570,18 +587,9 @@ void Memory::writePort(u16 port, u8 value) {
     
     // CPS2-specific ports
     if (cpsVer == 2) {
-        // Port 0x040: EEPROM write control (CPS2 only)
-        // Bit 5 (0x20): CS (Chip Select)
-        // Bit 6 (0x40): CLK (Clock)
-        // Bit 4 (0x10): DATA (Data)
+        // Port 0x040: EEPROM write control
         if (port == 0x040) {
-            std::cout << "[CPS2] Write port 0x040 (EEPROM write) - UNIMPLEMENTED, value=0x" 
-                      << std::hex << static_cast<u32>(value) << std::dec 
-                      << " (CS=" << ((value & 0x20) ? "1" : "0") 
-                      << ", CLK=" << ((value & 0x40) ? "1" : "0")
-                      << ", DATA=" << ((value & 0x10) ? "1" : "0") << ")" << std::endl;
-            // TODO: Implement EEPROM write
-            // EEPROMWrite(value & 0x20, value & 0x40, value & 0x10);
+            m_eeprom.write(value & 0x20, value & 0x40, value & 0x10);
             return;
         }
         
@@ -913,6 +921,9 @@ void Memory::saveState(std::ofstream& file) {
     file.write(reinterpret_cast<const char*>(&m_z80Bank), sizeof(m_z80Bank));
     file.write(reinterpret_cast<const char*>(&m_soundCommand), sizeof(m_soundCommand));
     file.write(reinterpret_cast<const char*>(&m_soundFade), sizeof(m_soundFade));
+
+    // Save EEPROM state
+    m_eeprom.saveState(file);
 }
 
 void Memory::loadState(std::ifstream& file) {
@@ -942,6 +953,9 @@ void Memory::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_z80Bank), sizeof(m_z80Bank));
     file.read(reinterpret_cast<char*>(&m_soundCommand), sizeof(m_soundCommand));
     file.read(reinterpret_cast<char*>(&m_soundFade), sizeof(m_soundFade));
+
+    // Load EEPROM state
+    m_eeprom.loadState(file);
 }
 
 } // namespace cps

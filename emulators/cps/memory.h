@@ -2,6 +2,7 @@
 
 #include "../types.h"
 #include "db.h"
+#include "../components/eeprom/eeprom.h"
 #include <array>
 #include <fstream>
 
@@ -124,6 +125,9 @@ private:
     // CPS2-specific: Raster interrupt registers (ports 0x50-0x53)
     u16 m_rasterIRQ50;  // Scanline for IRQ line 50 (port 0x050-0x051)
     u16 m_rasterIRQ52;  // Scanline for IRQ line 52 (port 0x052-0x053)
+    
+    // EEPROM
+    EEPROM m_eeprom;
     
     // Helper to get CPS version from cartridge
     u8 getCPSVersion() const;
