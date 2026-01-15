@@ -9,151 +9,6 @@
 
 /*
  * PPU Implementation (CPS1 and CPS2)
- * ===================================
- * 
- * RENDERING ARCHITECTURE
- * ----------------------
- * The PPU handles rendering of:
- * - 3 scroll layers (background tiles)
- * - 1 sprite layer (objects)
- * - Star field (CPS1 only, some games)
- * 
- * Tile Sizes:
- * - Scroll 1: 8x8 tiles (text layer)
- * - Scroll 2: 16x16 tiles (main background, supports row scroll)
- * - Scroll 3: 32x32 tiles (large background elements)
- * - Sprites: 16x16 tiles (variable size via linking)
- * 
- * Graphics Format (Same for CPS1 and CPS2):
- * - 4bpp (16 colors per tile)
- * - Stored in planar format in ROM (4 ROM chips per bank)
- * - Needs decoding for efficient rendering
- * 
- * 
- * KEY DIFFERENCES BETWEEN CPS1 AND CPS2
- * ======================================
- * 
- * 1. LAYER PRIORITY SYSTEM
- * -------------------------
- * CPS1 (Cps1Layers):
- * - Simple priority system
- * - Layer order determined by layer control register bits [13:6]
- * - Sprites drawn as a single layer between scroll layers
- * - Optional "BgHi" masking for scroll layers over sprites
- * - Star field support (2 layers)
- * 
- * CPS2 (Cps2Layers):
- * - Complex raster-based priority system
- * - Supports multiple raster interrupt zones (MAX_RASTER)
- * - Each zone can have different layer priorities
- * - 8-level sprite priority system (priorities 0-7)
- * - Sprites interleaved with scroll layers based on priority
- * - Uses Z-buffer to track sprite priority
- * - Layer-sprite priority register at 0x400004 (CpsSaveFrg[4-5])
- * - No star field support
- * 
- * 
- * 2. SCROLL LAYER RENDERING
- * --------------------------
- * CPS1 (Cps1Scr1Draw, Cps1Scr3Draw):
- * - Renders entire screen at once
- * - Simple clipping for border tiles
- * - Optional tile masking (CpstPmsk) for BgHi mode
- * - Uses graphics bank mapper for tile addressing
- * 
- * CPS2 (Cps2Scr1Draw, Cps2Scr3Draw):
- * - Supports partial scanline rendering (nStartline to nEndline)
- * - Optimized for raster effects
- * - No BgHi masking
- * - Direct graphics ROM addressing (no mapper in practice, though code path exists)
- * - Scroll 3 has game-specific tile offset hacks:
- *   - Xmcota: tile >= 0x5800 -> subtract 0x4000
- *   - Ssf2t: tile < 0x5600 -> add 0x4000
- * - Uses CpstOneDoX[2] instead of CpstOneDoX[nBgHi]
- * 
- * 
- * 3. SPRITE RENDERING
- * -------------------
- * CPS1 (Cps1ObjDraw):
- * - 256 sprites maximum
- * - Simple reverse-order rendering (unless CpsDrawSpritesInReverse set)
- * - Sprite list at address from register 0x00 (CpsReg)
- * - Single-pass rendering
- * - Sprite offsets: -0x40 X, -0x10 Y (plus global offsets)
- * - Optional sprite blending (if .bld file present)
- * - Uses CpstOneObjDoX[0] for all sprites
- * 
- * CPS2 (Cps2ObjDraw):
- * - 1024 sprites maximum
- * - Z-buffer based priority system with 8 levels (0-7)
- * - Sprite priority from bits [15:13] of word 0
- * - Sprites rendered in multiple passes by priority level
- * - Sprite list double-buffered at CpsRam708 + ((nCpsObjectBank ^ 1) << 15)
- * - Sprite offsets from CpsSaveFrg[0][0x9] and CpsSaveFrg[0][0xB]
- * - Z-buffer tracks which sprites have been drawn (ZBuf, ZValue)
- * - Masking for sprites that need to draw behind other sprites
- * - Uses CpstOneObjDoX[0] (normal) or CpstOneObjDoX[1] (with masking)
- * - Optional sprite blending (if .bld file present)
- * - Marvel vs Capcom offset hack: if attrib & 0x80, add CpsSaveFrg[0][0x9]
- * 
- * 
- * 4. PALETTE HANDLING
- * -------------------
- * Both use same 16-bit format: [brightness:4][blue:4][green:4][red:4]
- * 
- * CPS1 (CpsPalUpdate):
- * - Always updates all 6 palette pages
- * - Palette control register may not be reliable
- * - Palette index XOR 15 for color lookup
- * 
- * CPS2 (CpsPalUpdate):
- * - Palette control register at nCpsPalCtrlReg (usually 0x0A)
- * - Only updates pages with their bit set in control register
- * - Bit 0 = page 0, bit 1 = page 1, etc.
- * - Palette index XOR 15 for color lookup
- * 
- * 
- * 5. SCREEN CLEARING
- * ------------------
- * CPS1 (CpsClearScreen):
- * - Clears to palette entry 0xBFF ^ 15
- * - Can optionally clear to black if fFakeDip & 1
- * 
- * CPS2 (CpsClearScreen):
- * - Always clears to black (memset to 0)
- * 
- * 
- * 6. RASTER EFFECTS
- * -----------------
- * CPS1:
- * - No raster interrupt support
- * - Single set of scroll registers for entire frame
- * 
- * CPS2:
- * - Supports raster interrupts (MAX_RASTER zones)
- * - Each zone has its own register set (CpsSaveReg[nSlice])
- * - Can change scroll positions, layer priorities mid-frame
- * - nRasterline[] array defines scanline boundaries
- * - nStartline/nEndline passed to drawing functions
- * 
- * 
- * IMPLEMENTATION NOTES
- * ====================
- * - Our implementation is currently CPS1-focused
- * - CPS2-specific features need to be added:
- *   - Z-buffer for sprite priority
- *   - Raster interrupt support
- *   - Partial scanline rendering
- *   - Different sprite data source
- *   - Different clear screen behavior
- * 
- * 
- * References:
- * -----------
- * - FBNeo cps_draw.cpp (DrawFnInit, Cps1Layers, Cps2Layers, CpsClearScreen)
- * - FBNeo cps_scr.cpp (Cps1Scr1Draw, Cps2Scr1Draw, Cps1Scr3Draw, Cps2Scr3Draw)
- * - FBNeo cps_obj.cpp (Cps1ObjDraw, Cps2ObjDraw, CpsObjDrawInit)
- * - FBNeo cps_pal.cpp (CpsPalUpdate palette control register)
  */
 
 namespace cps {
@@ -793,27 +648,7 @@ void PPU::renderLayersCPS1() {
 }
 
 void PPU::renderLayersCPS2() {
-    /*
-     * CPS2 Raster-Based Priority Rendering System
-     * ============================================
-     * 
-     * Supports multiple raster zones, each with its own:
-     * - Layer priority configuration
-     * - Scroll coordinates
-     * - Layer enable bits
-     * - Layer-sprite priority register
-     * 
-     * Rendering process:
-     * 1. For each raster zone (nSlice):
-     *    - Read layer priorities and enable bits
-     *    - Read layer-sprite priorities from Frg[4-5]
-     *    - Calculate scanline range (nRasterline[nSlice] to nRasterline[nSlice+1])
-     * 
-     * 2. For each sprite priority level (0-7):
-     *    - For each raster zone:
-     *      - Render layers at this priority level
-     *      - Interleave sprites between layers based on priority
-     */
+    // CPS2 raster-based priority rendering
     
     // Initialize Z-buffer for CPS2 sprite rendering
     initCPS2ZBuffer();
@@ -1985,111 +1820,6 @@ void PPU::loadState(std::ifstream& file) {
 }
 
 // ============================================================================
-// IMPLEMENTATION STATUS AND TODO
-// ============================================================================
-
-/*
- * IMPLEMENTED FEATURES:
- * ====================
- * 
- * 1. Documentation:
- *    ✓ Comprehensive header documentation explaining CPS1 vs CPS2 differences
- *    ✓ Documented all major rendering differences from FBNeo reference
- *    ✓ Clear function separation between CPS1 and CPS2
- * 
- * 2. Screen Clearing:
- *    ✓ CPS1: Clears to palette entry 0xBFF ^ 15 (background color)
- *    ✓ CPS2: Clears to black (memset to 0)
- * 
- * 3. Palette Handling:
- *    ✓ CPS1: Always updates all 6 palette pages
- *    ✓ CPS2: Only updates pages enabled in palette control register
- *    ✓ Both use same 16-bit format with brightness
- * 
- * 4. Layer Priority System:
- *    ✓ CPS1: renderLayersCPS1() - simple priority from layer control register
- *    ✓ CPS2: renderLayersCPS2() - priority-based rendering with sprite levels
- * 
- * 5. Scroll Layer Rendering:
- *    ✓ CPS1: renderScroll1CPS1() and renderScroll3CPS1() - full screen
- *    ✓ CPS2: renderScroll1CPS2() and renderScroll3CPS2() - scanline-based
- *    ✓ Scroll 2 is common (row scroll works on both)
- *    ✓ Tile masking support (BgHi mode for CPS1)
- * 
- * 6. Sprite Rendering:
- *    ✓ CPS1: renderSpritesCPS1() - 256 sprites, reverse order, blending support
- *    ✓ CPS2: renderSpritesCPS2() - 1024 sprites, 8-level priority system
- *    ✓ Z-buffer implementation for CPS2 sprite depth sorting
- *    ✓ Sprite blending framework (blend table loading infrastructure)
- * 
- * 7. CPS2 Z-Buffer System:
- *    ✓ Z-buffer allocation (SCREEN_WIDTH * SCREEN_HEIGHT * 2 bytes)
- *    ✓ initCPS2ZBuffer() to manage Z-buffer initialization
- *    ✓ Track nMaxZValue, nMaxZMask, nZOffset
- *    ✓ Clear Z-buffer when overflow detected (>= 0xFC00)
- *    ✓ Render sprites by priority level (0-7) with renderSpritesCPS2ByPriority()
- *    ✓ plotPixelWithZ() for Z-buffer depth testing
- *    ✓ drawTile16x16WithZ() for sprites with Z-buffer support
- * 
- * 8. Star Field (CPS1):
- *    ✓ renderStarField() implementation
- *    ✓ Support for 2 star field layers (CpsLayEn[4] and [5])
- *    ✓ Star position calculation based on control registers
- *    ✓ Frame-based star animation
- *    ✓ Integration into CPS1 layer rendering
- * 
- * 9. Tile Masking:
- *     ✓ BgHi masking infrastructure for CPS1
- *     ✓ drawTile8x8() supports mask parameter
- *     ✓ drawTile32x32() supports mask parameter
- *     ✓ m_currentMask, m_bgHiMode, m_maskAddr state tracking
- * 
- * 
- * REMAINING TODO (Advanced Features):
- * ===================================
- * 
- * 1. Raster Interrupt System (CPS2):
- *    - Implement full MAX_RASTER zone support (currently single zone)
- *    - Support multiple register sets per scanline (m_rasterRegs[])
- *    - Track scanline boundaries dynamically (m_rasterLines[])
- *    - Allow mid-frame scroll position and priority changes
- *    - Integrate with CPS2 layer rendering
- * 
- * 2. CPS2 Sprite Advanced Features:
- *    - Access double-buffered sprite RAM (CpsRam708 + offset)
- *    - Get sprite offsets from CpsSaveFrg[0][0x9] and [0xB]
- *    - Implement layer-sprite priority register (CpsSaveFrg[4-5])
- *    - Add Marvel vs Capcom offset hack (attrib & 0x80)
- * 
- * 3. Game-Specific Hacks (SKIPPED FOR NOW):
- *    - Scroll 3 tile offset for Xmcota (tile >= 0x5800 -> subtract 0x4000)
- *    - Scroll 3 tile offset for Ssf2t (tile < 0x5600 -> add 0x4000)
- *    - Cps2Turbo tile addressing adjustment
- *    - SFA2 high score screen hack
- * 
- * 
- * 5. CPS1 BgHi Masking (Full Implementation):
- *    - Read mask values from MaskAddr[] registers
- *    - Apply masking based on tile attributes
- *    - Support drawing scroll layers over sprites with masking
- *    - Integrate into layer rendering order
- * 
- * 6. Additional Features:
- *    - CpsDrawSpritesInReverse flag support
- *    - Sprite list detection improvements (Cps1DetectEndSpriteList8000)
- *    - Bootleg sprite RAM support (various bootlegs)
- *    - Custom callbacks (Cps1ObjGetCallback, Cps1ObjDrawCallback)
- * 
- * 
- * REFERENCE FILES:
- * ================
- * - ref/FBNeo/src/burn/drv/capcom/cps_draw.cpp  - Layer priority and rendering
- * - ref/FBNeo/src/burn/drv/capcom/cps_scr.cpp   - Scroll layer rendering
- * - ref/FBNeo/src/burn/drv/capcom/cps_obj.cpp   - Sprite rendering and Z-buffer
- * - ref/FBNeo/src/burn/drv/capcom/cps_pal.cpp   - Palette conversion
- */
-
-// ============================================================================
 // CPS2 Memory Access Helpers
 // ============================================================================
 
@@ -2124,35 +1854,12 @@ u16 PPU::readFrgReg16(u8 reg) {
 // ============================================================================
 
 void PPU::setRasterLine(u32 zone, s32 scanline) {
-    /*
-     * Set the scanline boundary for a raster zone.
-     * 
-     * CPS2 can have multiple raster interrupt zones (up to MAX_RASTER).
-     * Each zone renders with its own register set from m_rasterLines[zone]
-     * to m_rasterLines[zone+1].
-     * 
-     * Zone 0 always starts at scanline 0.
-     * Setting scanline 0 for zone N>0 disables that zone and all higher zones.
-     * 
-     * Example:
-     *   m_rasterLines[0] = 0     (zone 0 starts)
-     *   m_rasterLines[1] = 112   (zone 1 starts, zone 0 ends)
-     *   m_rasterLines[2] = 0     (no more zones)
-     */
+    // Set the scanline boundary for a raster zone.
     if (zone >= MAX_RASTER + 2) return;
     m_rasterLines[zone] = scanline;
 }
 
 void PPU::copyRegistersToZone(u32 zone) {
-    /*
-     * Copy current CPS registers to a raster zone's register set.
-     * 
-     * This is typically called when a raster interrupt fires,
-     * to save the current register state for rendering that zone.
-     * 
-     * The CPU can then modify registers, and the next raster interrupt
-     * will save those new values for the next zone.
-     */
     if (zone >= MAX_RASTER) return;
     
     // Copy all 256 CPS registers to this zone's register set
@@ -2160,12 +1867,6 @@ void PPU::copyRegistersToZone(u32 zone) {
 }
 
 void PPU::copyFrgRegistersToZone(u32 zone) {
-    /*
-     * Copy current Frg registers to a raster zone's Frg set.
-     * 
-     * Frg registers (at 0x400000-0x40000F) control layer-sprite priorities
-     * and sprite offsets. These can change per raster zone for effects.
-     */
     if (zone >= MAX_RASTER) return;
     if (!m_memory) return;
     
@@ -2176,12 +1877,7 @@ void PPU::copyFrgRegistersToZone(u32 zone) {
 }
 
 s32 PPU::getRasterLineCount() const {
-    /*
-     * Count how many active raster zones exist.
-     * 
-     * Zones are active until we find a scanline value of 0,
-     * or we reach MAX_RASTER zones.
-     */
+    // Count how many active raster zones exist.
     for (s32 i = 1; i < MAX_RASTER + 2; i++) {
         if (m_rasterLines[i] == 0) {
             return i;

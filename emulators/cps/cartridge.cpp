@@ -13,11 +13,6 @@
 #include <map>
 #include <cstring>
 
-// ============================================================================
-// Separation table for graphics decoding
-// Converts a byte to spread-out bits: ABCDEFGH -> A00B00C00D00E00F00G00H00
-// ============================================================================
-
 namespace cps {
 
 Cartridge::Cartridge()
