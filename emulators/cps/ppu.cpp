@@ -628,7 +628,7 @@ void PPU::renderLayersCPS1() {
                 
             case 1:  // Scroll 1 (8x8 tiles)
                 if ((drawMask & 2) && scr1Base) {
-                    renderScroll1CPS1(scr1Base, scr1X, scr1Y);
+                    renderScroll1(scr1Base, scr1X, scr1Y, 0, SCREEN_HEIGHT);
                 }
                 break;
                 
@@ -785,7 +785,7 @@ void PPU::renderLayersCPS2() {
                             if (drawMask[nSlice] & 2) {
                                 u8* scr1Base = findGfxRam(scr1Off, 0x4000);
                                 if (scr1Base) {
-                                    renderScroll1CPS2(scr1Base, scr1X, scr1Y, startLine, endLine);
+                                    renderScroll1(scr1Base, scr1X, scr1Y, startLine, endLine);
                                 }
                             }
                             break;
@@ -823,10 +823,10 @@ void PPU::renderLayersCPS2() {
 }
 
 // ============================================================================
-// Scroll 1 (8x8 tiles) - CPS1 Version
+// Scroll 1 (8x8 tiles)
 // ============================================================================
 
-void PPU::renderScroll1CPS1(const u8* base, s32 scrollX, s32 scrollY) {
+void PPU::renderScroll1(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine) {
     if (!base || m_decodedGfx.empty()) return;
     
     s32 ix = (scrollX >> 3) + 1;
@@ -836,8 +836,28 @@ void PPU::renderScroll1CPS1(const u8* base, s32 scrollX, s32 scrollY) {
     
     s32 nXTile = SCREEN_WIDTH >> 3;   // 48 tiles
     s32 nYTile = SCREEN_HEIGHT >> 3;  // 28 tiles
-    
-    for (s32 y = -1; y < nYTile; y++) {
+
+    u8 cpsVer = m_cartridge->getCPSVersion();
+
+    // Determine Y range: CPS1 always full screen, CPS2 uses partial scanline rendering
+    s32 yStart, yEnd;
+    if (cpsVer == 1) {
+        // CPS1: full screen rendering
+        yStart = -1;
+        yEnd = (SCREEN_HEIGHT >> 3);  // 28 tiles
+    } else {
+        // CPS2: partial scanline rendering
+        s32 nFirstY = (startLine + sy) >> 3;
+        s32 nLastY = (endLine + sy) >> 3;
+        yStart = nFirstY - 1;
+        yEnd = nLastY;
+    }
+
+    for (s32 y = yStart; y < yEnd; y++) {
+        // Check if this row intersects with our scanline range (CPS2 only)
+        bool clipY = (cpsVer == 2) &&
+                    (((y << 3) < startLine) || (((y << 3) + 8) >= endLine));
+
         for (s32 x = -1; x < nXTile; x++) {
             s32 fx = ix + x;
             s32 fy = iy + y;
@@ -871,7 +891,7 @@ void PPU::renderScroll1CPS1(const u8* base, s32 scrollX, s32 scrollY) {
             s32 py = sy + (y << 3);
             
             // Determine if clipping is needed
-            bool clipCheck = (x < 0 || x >= nXTile - 1 || y < 0 || y >= nYTile - 1);
+            bool clipCheck = (x < 0 || x >= nXTile - 1 || y < 0 || y >= nYTile - 1 || clipY);
             
             drawTile8x8(px, py, tileAddr, palette, flip, clipCheck, 0);
         }
@@ -969,67 +989,6 @@ void PPU::renderScroll2(const u8* base, s32 scrollX, s32 scrollY) {
     }
 }
 
-// ============================================================================
-// Scroll 1 (8x8 tiles) - CPS2 Version
-// ============================================================================
-
-void PPU::renderScroll1CPS2(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine) {
-    if (!base || m_decodedGfx.empty()) return;
-    
-    // CPS2 supports partial scanline rendering for raster effects
-    
-    s32 ix = (scrollX >> 3) + 1;
-    s32 iy = (scrollY >> 3) + 1;
-    s32 sx = 8 - (scrollX & 7);
-    s32 sy = 8 - (scrollY & 7);
-    
-    // Calculate which tiles we need to render based on scanline range
-    s32 nFirstY = (startLine + sy) >> 3;
-    s32 nLastY = (endLine + sy) >> 3;
-    
-    s32 nXTile = SCREEN_WIDTH >> 3;   // 48 tiles
-    
-    for (s32 y = nFirstY - 1; y < nLastY; y++) {
-        // Check if this row intersects with our scanline range
-        bool clipY = ((y << 3) < startLine) || (((y << 3) + 8) >= endLine);
-        
-        for (s32 x = -1; x < nXTile; x++) {
-            s32 fx = ix + x;
-            s32 fy = iy + y;
-            
-            // Calculate tile map address
-            u32 p = ((fy & 0x20) << 8) | ((fx & 0x3F) << 7) | ((fy & 0x1F) << 2);
-            p &= 0x3FFF;
-            
-            // Read tile data
-            u16 tileNum = (static_cast<u16>(base[p]) << 8) | base[p + 1];
-            u16 attrib = (static_cast<u16>(base[p + 2]) << 8) | base[p + 3];
-            
-            // CPS2: Direct addressing, no mapper typically (though code path exists)
-            s32 t = gfxRomBankMapper(GFXTYPE_SCROLL1, tileNum);
-            if (t == -1) continue;
-            
-            // Calculate tile ROM address
-            u32 tileAddr = t << 6;
-            tileAddr += m_gfxScroll[1];
-            
-            // Get palette
-            u32 palette = 0x20 | (attrib & 0x1F);
-            
-            // Get flip flags
-            u32 flip = (attrib >> 5) & 3;
-            
-            // Calculate screen position
-            s32 px = sx + (x << 3);
-            s32 py = sy + (y << 3);
-            
-            // Determine if clipping is needed
-            bool clipCheck = (x < 0 || x >= nXTile - 1 || clipY);
-            
-            drawTile8x8(px, py, tileAddr, palette, flip, clipCheck, 0);
-        }
-    }
-}
 
 // ============================================================================
 // Scroll 3 (32x32 tiles) - CPS1 Version
