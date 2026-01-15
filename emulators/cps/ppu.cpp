@@ -284,14 +284,18 @@ void PPU::reset() {
     
     if (m_cartridge) {
         u8 cpsVer = m_cartridge->getCPSVersion();
+        m_boardConfig = m_cartridge->getBoardConfig();
         
         if (cpsVer == 1) {
-            // CPS1-specific: Board configuration and graphics mapper
-            m_boardConfig = m_cartridge->getBoardConfig();
             setupGfxMapper();
+            m_gfxScroll[1] = 0;
+            m_gfxScroll[2] = 0;
+            m_gfxScroll[3] = 0;
         } else {
-            // CPS2-specific: Initialize Z-buffer
             m_zBuffer.resize(SCREEN_WIDTH * SCREEN_HEIGHT, 0);
+            m_gfxScroll[1] = 0x800000;
+            m_gfxScroll[2] = 0x800000;
+            m_gfxScroll[3] = 0x800000;
         }
         
         decodeGraphicsROM();
@@ -636,7 +640,7 @@ void PPU::updatePalette() {
     }
     
     // Get palette control register (which pages to update)
-    u8 palCtrlReg = cpsVer == 1 ? m_boardConfig.paletteControlReg : 0x70;
+    u8 palCtrlReg = m_boardConfig.paletteControlReg;
     u8 palCtrl = m_cpsRegs[palCtrlReg ^ 1];
     
     // Convert each 16-bit palette entry
@@ -974,19 +978,20 @@ void PPU::renderLayersCPS2() {
         const u8* regs = m_rasterRegs[numZones].data();
         const u8* frg = m_rasterFrg[numZones].data();
         
-        // Layer priority from register 0x66-0x67
-        u16 layerCtrl = (static_cast<u16>(regs[0x66]) << 8) | regs[0x67];
+        // Use board configuration for layer control register
+        u8 lcReg = m_boardConfig.layerControlReg;
+        u16 layerCtrl = (static_cast<u16>(m_cpsRegs[lcReg]) << 8) | m_cpsRegs[lcReg + 1];
+        
+        // Determine which layers are enabled using board-specific enable bits
+        bool layer1Enable = (layerCtrl & m_boardConfig.layerEnable[0]) != 0;
+        bool layer2Enable = (layerCtrl & m_boardConfig.layerEnable[1]) != 0;
+        bool layer3Enable = (layerCtrl & m_boardConfig.layerEnable[2]) != 0;
         
         // Determine layer order (3=top, 0=bottom)
         draw[numZones][3] = (layerCtrl >> 12) & 3;  // Top layer
         draw[numZones][2] = (layerCtrl >> 10) & 3;
         draw[numZones][1] = (layerCtrl >> 8) & 3;
         draw[numZones][0] = (layerCtrl >> 6) & 3;   // Bottom layer
-        
-        // Determine which layers are enabled
-        bool layer1Enable = (layerCtrl & 0x02) != 0;
-        bool layer2Enable = (layerCtrl & 0x04) != 0;
-        bool layer3Enable = (layerCtrl & 0x08) != 0;
         
         // Build enable mask
         drawMask[numZones] = 1;  // Sprites always on

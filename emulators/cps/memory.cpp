@@ -65,37 +65,34 @@ void Memory::reset() {
     
     u8 cpsVer = getCPSVersion();
     
-    if (cpsVer == 1) {
-        // CPS1-specific reset
-        // Reset protection calc
-        m_protCalc[0] = 0;
-        m_protCalc[1] = 0;
+    // Reset protection calc
+    m_protCalc[0] = 0;
+    m_protCalc[1] = 0;
+    
+    // Set board ID and memProt from game database
+    if (m_cartridge) {
+        BoardConfig config = m_cartridge->getBoardConfig();
         
-        // Set board ID and memProt from game database
-        if (m_cartridge) {
-            BoardConfig config = m_cartridge->getBoardConfig();
-            
-            m_boardId[0] = config.boardIdOffset;
-            m_boardId[1] = config.boardIdValue1;
-            m_boardId[2] = config.boardIdValue2;
-            
-            // Set memory protection offsets
-            m_memProt[0] = config.memProt[0];
-            m_memProt[1] = config.memProt[1];
-            m_memProt[2] = config.memProt[2];
-            m_memProt[3] = config.memProt[3];
-        }
-    } else {
-        // CPS2-specific reset
-        m_extraRam.fill(0);
-        m_objRam.fill(0);
-        m_frgRegs.fill(0);
-        m_n664001 = 0;
-        m_rasterIRQ50 = 0;
-        m_rasterIRQ52 = 0;
-        m_qscCmd[0] = 0;
-        m_qscCmd[1] = 0;
+        m_boardId[0] = config.boardIdOffset;
+        m_boardId[1] = config.boardIdValue1;
+        m_boardId[2] = config.boardIdValue2;
+        
+        // Set memory protection offsets
+        m_memProt[0] = config.memProt[0];
+        m_memProt[1] = config.memProt[1];
+        m_memProt[2] = config.memProt[2];
+        m_memProt[3] = config.memProt[3];
     }
+
+    // CPS2-specific reset
+    m_extraRam.fill(0);
+    m_objRam.fill(0);
+    m_frgRegs.fill(0);
+    m_n664001 = 0;
+    m_rasterIRQ50 = 0;
+    m_rasterIRQ52 = 0;
+    m_qscCmd[0] = 0;
+    m_qscCmd[1] = 0;
     
     // Reset sound communication
     m_soundCommand = 0;
@@ -170,73 +167,27 @@ u8 Memory::read8(u32 address) {
 }
 
 u16 Memory::read16(u32 address) {
-    u8 cpsVer = getCPSVersion();
-    
-    // ROM (0x000000-0x3FFFFF) - use decrypted ROM for instruction fetches
-    if (address < 0x400000) {
-        if (m_cartridge) {
-            return m_cartridge->readROM16(address);
-        }
-        return 0xFFFF;
-    }
-    
-    // CPS2-specific: CPS2 Registers (0x400000-0x40000F)
-    if (cpsVer == 2 && address >= 0x400000 && address <= 0x40000F) {
-        u8 reg = address & 0x0F;
-        return (static_cast<u16>(m_frgRegs[reg]) << 8) | m_frgRegs[reg + 1];
-    }
-    
-    // CPS2-specific: Extra RAM (0x660000-0x663FFF)
-    if (cpsVer == 2 && address >= 0x660000 && address <= 0x663FFF) {
-        u32 offset = address - 0x660000;
-        return (static_cast<u16>(m_extraRam[offset]) << 8) | m_extraRam[offset + 1];
-    }
-    
-    // CPS2-specific: 0x664001 register
-    if (cpsVer == 2 && address == 0x664001) {
-        return m_n664001;
-    }
-    
-    // CPS2-specific: Object RAM (0x708000-0x717FFF)
-    if (cpsVer == 2 && address >= 0x708000 && address <= 0x717FFF) {
-        u32 offset = address - 0x708000;
-        return (static_cast<u16>(m_objRam[offset]) << 8) | m_objRam[offset + 1];
-    }
-    
     // I/O Ports and CPS Registers (0x800000-0x807FFF, mirrored)
     if ((address & 0xFF8000) == 0x800000) {
-        // CPS1-specific: Protection multiplication result
-        if (cpsVer == 1) {
-            if ((address & 0xFF8FFF) == (0x800100 + m_memProt[3])) {
-                // Return multiplication result (high word)
-                u32 result = static_cast<u32>(m_protCalc[0]) * static_cast<u32>(m_protCalc[1]);
-                return static_cast<u16>((result >> 16) & 0xFFFF);
-            }
-            if ((address & 0xFF8FFF) == (0x800100 + m_memProt[2])) {
-                // Return multiplication result (low word)
-                u32 result = static_cast<u32>(m_protCalc[0]) * static_cast<u32>(m_protCalc[1]);
-                return static_cast<u16>(result & 0xFFFF);
-            }
+        if ((address & 0xFF8FFF) == (0x800100 + m_memProt[3])) {
+            // Return multiplication result (high word)
+            u32 result = static_cast<u32>(m_protCalc[0]) * static_cast<u32>(m_protCalc[1]);
+            return static_cast<u16>((result >> 16) & 0xFFFF);
+        }
+        if ((address & 0xFF8FFF) == (0x800100 + m_memProt[2])) {
+            // Return multiplication result (low word)
+            u32 result = static_cast<u32>(m_protCalc[0]) * static_cast<u32>(m_protCalc[1]);
+            return static_cast<u16>(result & 0xFFFF);
         }
         
         u8 high = readPort(address & 0x1FF);
         u8 low = readPort((address & 0x1FF) + 1);
         return (static_cast<u16>(high) << 8) | low;
     }
-    
-    // VRAM (0x900000-0x92FFFF)
-    if (address >= 0x900000 && address <= 0x92FFFF) {
-        return readVRAM16(address - 0x900000);
-    }
-    
-    // Work RAM (0xFF0000-0xFFFFFF)
-    if (address >= 0xFF0000 && address <= 0xFFFFFF) {
-        u32 offset = address & 0xFFFF;
-        return (static_cast<u16>(m_workRam[offset]) << 8) | m_workRam[offset + 1];
-    }
-    
-    // Unmapped region
-    return 0x0000;
+
+    u32 high = read8(address);
+    u32 low = read8(address + 1);
+    return (high << 8) | low;
 }
 
 u32 Memory::read32(u32 address) {
@@ -260,8 +211,6 @@ u8 Memory::read8Data(u32 address) {
 }
 
 u16 Memory::read16Data(u32 address) {
-    u8 cpsVer = getCPSVersion();
-    
     // ROM (0x000000-0x3FFFFF) - use encrypted ROM for data reads in CPS2
     if (address < 0x400000) {
         if (m_cartridge) {
@@ -352,21 +301,7 @@ void Memory::write8(u32 address, u8 value) {
 }
 
 void Memory::write16(u32 address, u16 value) {
-    u8 cpsVer = getCPSVersion();
-    
-    // ROM is read-only
-    if (address < 0x400000) {
-        return;
-    }
-    
-    // CPS2 uses write8 for 16-bit writes
-    if (cpsVer == 2) {
-        write8(address, (value >> 8) & 0xFF);
-        write8(address + 1, value & 0xFF);
-        return;
-    }
-    
-    // CPS1-specific: I/O Ports and CPS Registers (0x800000-0x807FFF, mirrored)
+    // I/O Ports and CPS Registers (0x800000-0x807FFF, mirrored)
     if ((address & 0xFF8000) == 0x800000) {
         // Protection multiplication input
         if ((address & 0xFF8FFF) == (0x800100 + m_memProt[0])) {
@@ -380,20 +315,9 @@ void Memory::write16(u32 address, u16 value) {
         writePort((address & 0x1FF) + 1, value & 0xFF);
         return;
     }
-    
-    // VRAM (0x900000-0x92FFFF)
-    if (address >= 0x900000 && address <= 0x92FFFF) {
-        writeVRAM16(address - 0x900000, value);
-        return;
-    }
-    
-    // Work RAM (0xFF0000-0xFFFFFF)
-    if (address >= 0xFF0000 && address <= 0xFFFFFF) {
-        u32 offset = address & 0xFFFF;
-        m_workRam[offset] = (value >> 8) & 0xFF;
-        m_workRam[offset + 1] = value & 0xFF;
-        return;
-    }
+
+    write8(address, (value >> 8) & 0xFF);
+    write8(address + 1, value & 0xFF);
 }
 
 void Memory::write32(u32 address, u32 value) {

@@ -71,7 +71,6 @@ enum class CPSBoard {
     CPS_B_21_QS3 = 23,
     CPS_B_21_QS4 = 24,
     CPS_B_21_QS5 = 25,
-    CPS_B_UNUSED = 255,
 };
 
 // Graphics bank range entry (for ROM bank mapping, CPS1 only)
@@ -103,7 +102,7 @@ enum class CPSMapper {
     MAPPER_PS63B = 31,
     MAPPER_RCM63B = 36,
     MAPPER_CP1B1F = 45,
-    MAPPER_UNUSED = 255,
+    MAPPER_NONE = 255,
 };
 
 // Board configuration (CPS1 only)
