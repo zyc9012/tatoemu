@@ -39,6 +39,10 @@ public:
     u8 readGraphicsROM8(u32 address) const;
     u32 getGraphicsROMSize() const { return static_cast<u32>(m_graphicsRom.size()); }
     
+    // Decoded graphics ROM access (for PPU)
+    const u8* getDecodedGraphicsROM() const { return m_decodedGraphicsRom.data(); }
+    u32 getDecodedGraphicsROMSize() const { return static_cast<u32>(m_decodedGraphicsRom.size()); }
+    
     // Sound ROM access (for Z80 sound CPU)
     u8 readSoundROM8(u16 address) const;
     
@@ -81,6 +85,7 @@ private:
     std::vector<u8> m_programRom;      // 68000 program ROMs
     std::vector<u8> m_programRomEncrypted;  // Encrypted ROMs (CPS2 only, before decryption)
     std::vector<u8> m_graphicsRom;     // Graphics/tile ROMs
+    std::vector<u8> m_decodedGraphicsRom;  // Decoded graphics ROM
     std::vector<u8> m_soundProgramRom; // Z80 sound program ROM
     std::vector<u8> m_soundSampleRom;  // ADPCM sample ROMs (CPS1) or QSound samples (CPS2)
     
@@ -99,6 +104,7 @@ private:
     bool loadROMsFromDatabase(const std::map<std::string, std::vector<u8>>& romFiles);
     void decryptProgramROM();
     void byteswapProgramROM();
+    void decodeGraphicsROM(const std::vector<u32>& graphicsRomSizes = {});
 };
 
 } // namespace cps

@@ -43,6 +43,7 @@ public:
     void setCartridge(Cartridge* cartridge);
     void setMemory(Memory* memory) { m_memory = memory; }
     void setVideoDevice(::VideoDevice* videoDevice) { m_videoDevice = videoDevice; }
+    void setDecodedGraphics(const std::vector<u8>& decodedGfx);
     
     // VRAM access (from Memory class)
     u8 readVRAM8(u32 address);
@@ -66,9 +67,6 @@ public:
     void copyFrgRegistersToZone(u32 zone);
     s32 getRasterLineCount() const;
     
-    // Graphics ROM decoding (called after cartridge is loaded)
-    void decodeGraphicsROM();
-    
     // Save/Load state
     void saveState(std::ofstream& file);
     void loadState(std::ifstream& file);
@@ -87,7 +85,7 @@ private:
     std::array<u8, VRAM_SIZE> m_vram;
     
     // Decoded graphics ROM (4bpp tiles unpacked for fast rendering)
-    // Each byte represents one pixel (0-15)
+    // Set by Cartridge after decoding
     std::vector<u8> m_decodedGfx;
     u32 m_gfxLen;
     u32 m_gfxMask;

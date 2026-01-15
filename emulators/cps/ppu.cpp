@@ -159,31 +159,6 @@
 namespace cps {
 
 // ============================================================================
-// Separation table for graphics decoding
-// Converts a byte to spread-out bits: ABCDEFGH -> A00B00C00D00E00F00G00H00
-// ============================================================================
-
-// Precalculated separation table
-static u32 SepTable[256];
-static bool SepTableInitialized = false;
-
-static inline u32 Separate(u32 b) {
-    u32 a = b;                                      // 00000000 00000000 00000000 ABCDEFGH
-    a = ((a & 0x000000F0) << 12) | (a & 0x0000000F); // 00000000 0000ABCD 00000000 0000EFGH
-    a = ((a & 0x000C000C) <<  6) | (a & 0x00030003); // 00000AB0 00000CD0 00000EF0 00000GH0
-    a = ((a & 0x02020202) <<  3) | (a & 0x01010101); // 000A000B 000C000D 000E000F 000G000H
-    return a;
-}
-
-static void InitSepTable() {
-    if (SepTableInitialized) return;
-    for (int i = 0; i < 256; i++) {
-        SepTable[i] = Separate(255 - i);  // Inverted for CPS1 palette indexing
-    }
-    SepTableInitialized = true;
-}
-
-// ============================================================================
 // Constructor / Initialization
 // ============================================================================
 
@@ -212,8 +187,6 @@ PPU::PPU()
     , m_spriteEnableMask(0xFF)
     , m_objectBank(0)
 {
-    InitSepTable();
-    
     m_frameBuffer.fill(0);
     m_vram.fill(0);
     m_palette.fill(0);
@@ -297,8 +270,6 @@ void PPU::reset() {
             m_gfxScroll[2] = 0x800000;
             m_gfxScroll[3] = 0x800000;
         }
-        
-        decodeGraphicsROM();
     }
 }
 
@@ -314,127 +285,6 @@ void PPU::setupGfxMapper() {
     }
     
     GameDatabase::getGfxBankSizes(mapper, m_gfxBankSizes);
-}
-
-// ============================================================================
-// Graphics ROM Decoding
-// Converts CPS1/CPS2 4bpp planar format to linear nibbles for fast rendering
-// Both CPS1 and CPS2 use the same graphics ROM format
-// ============================================================================
-
-void PPU::decodeGraphicsROM() {
-    if (!m_cartridge) return;
-    
-    u32 srcSize = m_cartridge->getGraphicsROMSize();
-    if (srcSize == 0) {
-        std::cerr << "PPU: No graphics ROM data to decode" << std::endl;
-        return;
-    }
-    
-    /*
-     * CPS1/CPS2 Graphics ROM Decoding
-     * ==========================================================
-     * 
-     * Both CPS1 and CPS2 use the same graphics ROM format:
-     * Graphics ROMs are organized as groups of 4 chips (512KB each):
-     * - ROM 0: Left half of tiles, bits 0-1
-     * - ROM 1: Left half of tiles, bits 2-3
-     * - ROM 2: Right half of tiles, bits 0-1
-     * - ROM 3: Right half of tiles, bits 2-3
-     * 
-     * Each ROM provides 2 bits per pixel. Reading 2 bytes from a ROM
-     * gives 2 bits for 8 pixels.
-     * 
-     * Output format has 8-byte stride:
-     * - Bytes 0-3: Left half pixels (32-bit word, 8 nibbles)
-     * - Bytes 4-7: Right half pixels (32-bit word, 8 nibbles)
-     * 
-     * For each group of 4 ROM chips (2MB total):
-     * - Process 0x80000 pairs of bytes from each ROM
-     * - Combine ROM0+ROM1 for left pixels, ROM2+ROM3 for right pixels
-     */
-    
-    // Output size: same as input size (1:1 ratio)
-    // 4 ROM chips of 512KB each = 2MB input → 2MB output per bank
-    // The 8-byte stride stores left (offset 0) and right (offset 4) halves
-    u32 dstSize = srcSize;
-    
-    m_decodedGfx.resize(dstSize, 0);
-    m_gfxLen = dstSize;
-    
-    // Calculate mask for graphics address
-    m_gfxMask = 1;
-    while (m_gfxMask < m_gfxLen) {
-        m_gfxMask <<= 1;
-    }
-    m_gfxMask -= 1;
-    
-    // Process graphics in 2MB banks (4 ROMs of 512KB each)
-    // - Left half: ROM 0 (bits 0-1, shift 0) OR ROM 1 (bits 0-1, shift 2)
-    // - Right half: ROM 2 (bits 0-1, shift 0) OR ROM 3 (bits 0-1, shift 2)
-    u32 romChipSize = 0x80000;  // 512KB per ROM chip
-    u32 numBanks = srcSize / (romChipSize * 4);
-    if (numBanks == 0) numBanks = 1;  // At least one partial bank
-    
-    for (u32 bank = 0; bank < numBanks; bank++) {
-        u32 bankBase = bank * romChipSize * 4;
-        u32 outBase = bank * romChipSize * 4;  // Output is same size as input
-        
-        // ROM offsets within this bank
-        u32 rom0 = bankBase + 0 * romChipSize;  // Left half, bits 0-1
-        u32 rom1 = bankBase + 1 * romChipSize;  // Left half, bits 2-3
-        u32 rom2 = bankBase + 2 * romChipSize;  // Right half, bits 0-1
-        u32 rom3 = bankBase + 3 * romChipSize;  // Right half, bits 2-3
-        
-        // Process each byte pair (matching CpsLoadOne with nWord=1)
-        // Each iteration processes 2 bytes from ROM → 8 pixels worth of 2 bits
-        for (u32 i = 0; i < romChipSize && (rom0 + i + 1) < srcSize; i += 2) {
-            u32 outOffset = outBase + (i / 2) * 8;  // 8-byte stride
-            
-            // Left half (offset 0): Process ROM 0 then OR ROM 1
-            if (rom0 + i + 1 < srcSize) {
-                u8 b0 = m_cartridge->readGraphicsROM8(rom0 + i);
-                u8 b1 = m_cartridge->readGraphicsROM8(rom0 + i + 1);
-                // CpsLoadOne: first byte → bit 0, second byte → bit 1
-                u32 pix = SepTable[b0] | (SepTable[b1] << 1);
-                // Shift 0 (already done)
-                if (outOffset < m_decodedGfx.size()) {
-                    *reinterpret_cast<u32*>(m_decodedGfx.data() + outOffset) |= pix;
-                }
-            }
-            
-            if (rom1 + i + 1 < srcSize) {
-                u8 b0 = m_cartridge->readGraphicsROM8(rom1 + i);
-                u8 b1 = m_cartridge->readGraphicsROM8(rom1 + i + 1);
-                u32 pix = SepTable[b0] | (SepTable[b1] << 1);
-                pix <<= 2;  // Shift 2 for bits 2-3
-                if (outOffset < m_decodedGfx.size()) {
-                    *reinterpret_cast<u32*>(m_decodedGfx.data() + outOffset) |= pix;
-                }
-            }
-            
-            // Right half (offset 4): Process ROM 2 then OR ROM 3
-            if (rom2 + i + 1 < srcSize) {
-                u8 b0 = m_cartridge->readGraphicsROM8(rom2 + i);
-                u8 b1 = m_cartridge->readGraphicsROM8(rom2 + i + 1);
-                u32 pix = SepTable[b0] | (SepTable[b1] << 1);
-                // Shift 0
-                if (outOffset + 4 < m_decodedGfx.size()) {
-                    *reinterpret_cast<u32*>(m_decodedGfx.data() + outOffset + 4) |= pix;
-                }
-            }
-            
-            if (rom3 + i + 1 < srcSize) {
-                u8 b0 = m_cartridge->readGraphicsROM8(rom3 + i);
-                u8 b1 = m_cartridge->readGraphicsROM8(rom3 + i + 1);
-                u32 pix = SepTable[b0] | (SepTable[b1] << 1);
-                pix <<= 2;  // Shift 2 for bits 2-3
-                if (outOffset + 4 < m_decodedGfx.size()) {
-                    *reinterpret_cast<u32*>(m_decodedGfx.data() + outOffset + 4) |= pix;
-                }
-            }
-        }
-    }
 }
 
 // ============================================================================
@@ -562,8 +412,20 @@ s32 PPU::gfxRomBankMapper(u32 type, s32 code) const {
     return -1;
 }
 
+void PPU::setDecodedGraphics(const std::vector<u8>& decodedGfx) {
+    m_decodedGfx = decodedGfx;
+    m_gfxLen = static_cast<u32>(m_decodedGfx.size());
+    
+    // Calculate mask for graphics address
+    m_gfxMask = 1;
+    while (m_gfxMask < m_gfxLen) {
+        m_gfxMask <<= 1;
+    }
+    m_gfxMask -= 1;
+}
+
 const u8* PPU::getGfxRom(u32 address) const {
-    if (address < m_gfxLen) {
+    if (address < m_gfxLen && !m_decodedGfx.empty()) {
         return m_decodedGfx.data() + address;
     }
     return nullptr;
