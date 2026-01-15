@@ -391,14 +391,32 @@ u8 Memory::readPort(u16 port) {
     
     // CPS2-specific ports
     if (cpsVer == 2) {
-        // Port 0x020: Extra input port (CPS2 only)
+        // Port 0x020: Coins/Starts and P2 Strong Kick
+        // Bit 0: P1 Start
+        // Bit 1: P2 Start
+        // Bit 4: P1 Coin
+        // Bit 5: P2 Coin
+        // Bit 6: P2 Strong Kick
         if (port == 0x020) {
-            // For now, return 0xFF (no inputs)
-            // TODO: Add support for extra input ports if needed
-            return 0xFF;
+            value = 0x00;
+            if (m_controller1) {
+                u8 p1 = m_controller1->readCoinStart();
+                if (p1 & 0x01) value |= 0x10;  // Set bit 4 for P1 coin (controller bit 0 -> port bit 4)
+                if (p1 & 0x10) value |= 0x01;  // Set bit 0 for P1 start (controller bit 4 -> port bit 0)
+            }
+            if (m_controller2) {
+                u8 p2 = m_controller2->readCoinStart();
+                if (p2 & 0x01) value |= 0x20;  // Set bit 5 for P2 coin (controller bit 0 -> port bit 5)
+                if (p2 & 0x10) value |= 0x02;  // Set bit 1 for P2 start (controller bit 4 -> port bit 1)
+                // P2 Strong Kick (bit 6)
+                if (m_controller2->readKicks() & (1 << 2)) {  // Kick 3 = Strong Kick
+                    value |= 0x40;  // Set bit 6 for P2 strong kick
+                }
+            }
+            return ~value;
         }
         
-        // Port 0x021: EEPROM read (bit 0), other bits from input
+        // Port 0x021: EEPROM read (bit 0), Diagnostic (bit 1), Service (bit 2)
         if (port == 0x021) {
             value = 0xFE;  // Bit 0 cleared (will be set by EEPROM)
             value |= m_eeprom.read();
@@ -466,11 +484,32 @@ u8 Memory::readPort(u16 port) {
             return value;
             
         case 0x011:
-            // Player 1 inputs (active low) - port 0x011 (some games)
-            if (m_controller1) {
-                value = ~m_controller1->read();
+            // CPS1: Player 1 inputs (active low) - port 0x011 (some games)
+            // CPS2: Kick buttons - P1 kicks (bits 0-2) and P2 kicks (bits 4-5)
+            if (cpsVer == 2) {
+                // CPS2: Kick buttons
+                // Bit 0: P1 Kick 1
+                // Bit 1: P1 Kick 2
+                // Bit 2: P1 Kick 3
+                // Bit 4: P2 Kick 1
+                // Bit 5: P2 Kick 2
+                // Note: P2 Kick 3 (Strong Kick) is on port 0x020 bit 6
+                value = 0x00;
+                if (m_controller1) {
+                    u8 p1Kicks = m_controller1->readKicks();
+                    value |= (p1Kicks & 0x07);  // Set bits 0-2 for P1 kicks
+                }
+                if (m_controller2) {
+                    u8 p2Kicks = m_controller2->readKicks();
+                    value |= ((p2Kicks & 0x03) << 4);  // Set bits 4-5 for P2 kicks (only kick 1 and 2)
+                }
+            } else {
+                // CPS1: Player 1 inputs (active low)
+                if (m_controller1) {
+                    value = m_controller1->read();
+                }
             }
-            return value;
+            return ~value;
             
         case 0x012:
         case 0x177:
