@@ -456,7 +456,6 @@ u8 Memory::readPort(u16 port) {
     if (cpsVer == 2) {
         // Port 0x020: Extra input port (CPS2 only)
         if (port == 0x020) {
-            std::cout << "[CPS2] Read port 0x020 (Extra input port) - UNIMPLEMENTED, returning 0xFF" << std::endl;
             // For now, return 0xFF (no inputs)
             // TODO: Add support for extra input ports if needed
             return 0xFF;
@@ -473,7 +472,6 @@ u8 Memory::readPort(u16 port) {
         
         // Port 0x030: Volume control high byte (CPS2 only)
         if (port == 0x030) {
-            std::cout << "[CPS2] Read port 0x030 (Volume control high) - UNIMPLEMENTED, returning 0xD0" << std::endl;
             // TODO: Implement volume control
             // For now, return default value
             return 0xD0;
@@ -481,7 +479,6 @@ u8 Memory::readPort(u16 port) {
         
         // Port 0x031: Volume control low byte (CPS2 only)
         if (port == 0x031) {
-            std::cout << "[CPS2] Read port 0x031 (Volume control low) - UNIMPLEMENTED, returning 0x00" << std::endl;
             // TODO: Implement volume control
             // For now, return default value
             return 0x00;
@@ -636,7 +633,7 @@ u8 Memory::readPort(u16 port) {
         
         // CPS Registers - forward to PPU
         if (m_ppu) {
-            return m_ppu->readRegister8(port - 0x100);
+            return m_ppu->readRegister8(port & 0xFF);
         }
     }
     
@@ -669,9 +666,6 @@ void Memory::writePort(u16 port, u8 value) {
         // This selects which sprite buffer (0x708000 or 0x710000) to use for sprite rendering
         // The object bank is also stored in FRG register 0x0E for PPU access
         if ((port & 0x1FF) == 0x0E1) {
-            std::cout << "[CPS2] Write port 0x0E1 (Object bank select) - value=0x" 
-                      << std::hex << static_cast<u32>(value) << std::dec 
-                      << " (bank=" << (value & 1) << ")" << std::endl;
             m_frgRegs[0x0E] = value & 1;
             return;
         }
@@ -722,7 +716,7 @@ void Memory::writePort(u16 port, u8 value) {
     // CPS Registers (0x100-0x1FF)
     // These control video layer scrolling, priorities, palette selection, etc.
     if (port >= 0x100 && port < 0x200) {
-        u8 regNum = port - 0x100;
+        u8 regNum = port & 0xFF;
         
         // Forward to PPU for layer control and scroll registers
         if (m_ppu) {

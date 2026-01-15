@@ -636,21 +636,17 @@ void PPU::updatePalette() {
     }
     
     // Get palette control register (which pages to update)
-    // CPS2 uses this, CPS1 may not set it reliably
-    u8 palCtrl = 0xFF;  // Default: update all pages
-    if (cpsVer == 2) {
-        // CPS2: Read palette control register (usually at nCpsPalCtrlReg)
-        // Each bit enables a palette page (bit 0 = page 0, etc.)
-        palCtrl = m_cpsRegs[0x0A];  // TODO: Use proper control register location
-    }
+    // For now, always update all pages for both CPS1 and CPS2
+    // TODO: CPS2 palette control register location is game-specific (nCpsPalCtrlReg)
+    // and needs to be configured per game. For now, always update all pages.
+    u8 palCtrl = 0xFF;  // Update all pages
     
     // Convert each 16-bit palette entry
     // Both CPS1 and CPS2 have 6 pages of 512 colors = 3072 entries (0xC00)
     // Each page is 0x400 bytes (512 entries * 2 bytes each)
     for (u32 page = 0; page < 6; page++) {
-        // CPS1: Always update all pages (palette control reg may not be reliable)
-        // CPS2: Only update pages with their bit set in control register
-        if (cpsVer == 1 || (palCtrl & (1 << page))) {
+        // Always update all pages (palette control reg location is game-specific)
+        if (palCtrl & (1 << page)) {
             for (u32 i = 0; i < 0x200; i++) {
                 u32 srcOffset = palOffset + (page * 0x400) + (i * 2);
                 if (srcOffset + 1 < VRAM_SIZE) {
@@ -980,12 +976,6 @@ void PPU::renderLayersCPS2() {
         const u8* regs = m_rasterRegs[numZones].data();
         const u8* frg = m_rasterFrg[numZones].data();
         
-        // Layer enable from register 0x92
-        u8 layerEnableReg = regs[0x92];
-        bool layer1Enable = (layerEnableReg & 0x01) != 0;
-        bool layer2Enable = (layerEnableReg & 0x02) != 0;
-        bool layer3Enable = (layerEnableReg & 0x04) != 0;
-        
         // Layer priority from register 0x66-0x67
         u16 layerCtrl = (static_cast<u16>(regs[0x66]) << 8) | regs[0x67];
         
@@ -994,6 +984,11 @@ void PPU::renderLayersCPS2() {
         draw[numZones][2] = (layerCtrl >> 10) & 3;
         draw[numZones][1] = (layerCtrl >> 8) & 3;
         draw[numZones][0] = (layerCtrl >> 6) & 3;   // Bottom layer
+        
+        // Determine which layers are enabled
+        bool layer1Enable = (layerCtrl & 0x02) != 0;
+        bool layer2Enable = (layerCtrl & 0x04) != 0;
+        bool layer3Enable = (layerCtrl & 0x08) != 0;
         
         // Build enable mask
         drawMask[numZones] = 1;  // Sprites always on

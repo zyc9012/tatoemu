@@ -130,7 +130,7 @@ private:
     u16 m_currentZValue;
     
     // CPS2 Raster interrupt support
-    static constexpr int MAX_RASTER = 32;
+    static constexpr int MAX_RASTER = 10;
     std::array<s32, MAX_RASTER + 2> m_rasterLines;  // Scanline boundaries
     std::array<std::array<u8, 256>, MAX_RASTER> m_rasterRegs;  // Register set per raster zone
     std::array<std::array<u8, 16>, MAX_RASTER> m_rasterFrg;    // CpsSaveFrg per zone
