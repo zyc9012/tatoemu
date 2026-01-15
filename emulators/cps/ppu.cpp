@@ -636,10 +636,8 @@ void PPU::updatePalette() {
     }
     
     // Get palette control register (which pages to update)
-    // For now, always update all pages for both CPS1 and CPS2
-    // TODO: CPS2 palette control register location is game-specific (nCpsPalCtrlReg)
-    // and needs to be configured per game. For now, always update all pages.
-    u8 palCtrl = 0xFF;  // Update all pages
+    u8 palCtrlReg = cpsVer == 1 ? m_boardConfig.paletteControlReg : 0x70;
+    u8 palCtrl = m_cpsRegs[palCtrlReg ^ 1];
     
     // Convert each 16-bit palette entry
     // Both CPS1 and CPS2 have 6 pages of 512 colors = 3072 entries (0xC00)
