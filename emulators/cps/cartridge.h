@@ -109,6 +109,7 @@ private:
     bool loadROMsFromDatabase(const std::map<std::string, std::vector<u8>>& romFiles);
     void decryptProgramROM();
     void byteswapProgramROM();
+    void byteswapSoundSampleROM();
     void decodeGraphicsROM(const std::vector<u32>& graphicsRomSizes = {});
     void decodeGraphicsROMCPS1(const std::vector<u32>& graphicsRomSizes);
     void decodeGraphicsROMCPS2(const std::vector<u32>& graphicsRomSizes);

@@ -334,6 +334,11 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     // Byteswap program ROM (both CPS1 and CPS2 use big-endian for 68000)
     byteswapProgramROM();
     
+    // Byteswap sound sample ROM for CPS2
+    if (m_cpsVer == 2) {
+        byteswapSoundSampleROM();
+    }
+    
     // Decode graphics ROM (CPS1 and CPS2 use different decoding methods)
     decodeGraphicsROM(graphicsRomSizes);
     if (m_ppu) {
@@ -396,6 +401,14 @@ void Cartridge::byteswapProgramROM() {
         for (size_t i = 0; i < m_programRomEncrypted.size() - 1; i += 2) {
             std::swap(m_programRomEncrypted[i], m_programRomEncrypted[i + 1]);
         }
+    }
+}
+
+void Cartridge::byteswapSoundSampleROM() {
+    // CPS2 QSound sample ROMs need byteswapping
+    // Swap bytes for each 16-bit word
+    for (size_t i = 0; i < m_soundSampleRom.size() - 1; i += 2) {
+        std::swap(m_soundSampleRom[i], m_soundSampleRom[i + 1]);
     }
 }
 
