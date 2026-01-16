@@ -11,7 +11,6 @@ static const INT32 nQscClockDivider = 2496;
 
 static INT32 nQscRate = 0;
 
-static INT32 nPos;
 static INT32 nDelta;
 
 static double QsndGain[2];
@@ -794,14 +793,8 @@ void QscSetSampleROM(UINT8* rom, INT32 size)
 	sample_rom_size = size;
 }
 
-INT32 QscUpdate(INT32 nEnd)
+INT32 QscUpdate(INT32 nLen)
 {
-	if (nEnd > 100000) { // arbitrary limit
-		nEnd = 100000;
-	}
-
-	INT32 nLen = nEnd - nPos;
-
 	if (nLen <= 0) {
 		return 0;
 	}
@@ -815,8 +808,6 @@ INT32 QscUpdate(INT32 nEnd)
 			nDelta -= 0x1000;
 		}
 	}
-
-	nPos = nEnd;
 	return 0;
 }
 
@@ -838,7 +829,6 @@ void QscSaveContext(std::ofstream& file)
 	file.write(reinterpret_cast<const char*>(&QsndGain), sizeof(QsndGain));
 	file.write(reinterpret_cast<const char*>(&QsndOutputDir), sizeof(QsndOutputDir));
 	file.write(reinterpret_cast<const char*>(&interpolate_buffer), sizeof(interpolate_buffer));
-	file.write(reinterpret_cast<const char*>(&nPos), sizeof(nPos));
 	file.write(reinterpret_cast<const char*>(&nDelta), sizeof(nDelta));
 }
 
@@ -848,6 +838,5 @@ void QscLoadContext(std::ifstream& file)
 	file.read(reinterpret_cast<char*>(&QsndGain), sizeof(QsndGain));
 	file.read(reinterpret_cast<char*>(&QsndOutputDir), sizeof(QsndOutputDir));
 	file.read(reinterpret_cast<char*>(&interpolate_buffer), sizeof(interpolate_buffer));
-	file.read(reinterpret_cast<char*>(&nPos), sizeof(nPos));
 	file.read(reinterpret_cast<char*>(&nDelta), sizeof(nDelta));
 }

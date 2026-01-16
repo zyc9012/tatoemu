@@ -32,7 +32,7 @@ void QscWrite(INT32 a, INT32 d);
 UINT8 QscRead();
 
 // Update QSound samples
-INT32 QscUpdate(INT32 nEnd);
+INT32 QscUpdate(INT32 nLen);
 
 // Set sample ROM data
 void QscSetSampleROM(UINT8* rom, INT32 size);
