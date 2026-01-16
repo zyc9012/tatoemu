@@ -431,21 +431,23 @@ u8 Memory::readPort(u16 port) {
             return 0x21;
         }
         
-        // Ports 0x050-0x051: Raster line counter for IRQ line 50 (CPS2 only)
-        if ((port & 0x0FE) == 0x050) {
-            if ((port & 1) == 0) {
-                return (m_rasterIRQ50 >> 8) & 0xFF;  // High byte
-            } else {
-                return m_rasterIRQ50 & 0xFF;          // Low byte
+        if (port >= 0x0100 && port < 0x0200) {
+            // Ports 0x050-0x051: Raster line counter for IRQ line 50 (CPS2 only)
+            if ((port & 0x0FE) == 0x050) {
+                if ((port & 1) == 0) {
+                    return (m_rasterIRQ50 >> 8) & 0xFF;  // High byte
+                } else {
+                    return m_rasterIRQ50 & 0xFF;          // Low byte
+                }
             }
-        }
-        
-        // Ports 0x052-0x053: Raster line counter for IRQ line 52 (CPS2 only)
-        if ((port & 0x0FE) == 0x052) {
-            if ((port & 1) == 0) {
-                return (m_rasterIRQ52 >> 8) & 0xFF;  // High byte
-            } else {
-                return m_rasterIRQ52 & 0xFF;          // Low byte
+            
+            // Ports 0x052-0x053: Raster line counter for IRQ line 52 (CPS2 only)
+            if ((port & 0x0FE) == 0x052) {
+                if ((port & 1) == 0) {
+                    return (m_rasterIRQ52 >> 8) & 0xFF;  // High byte
+                } else {
+                    return m_rasterIRQ52 & 0xFF;          // Low byte
+                }
             }
         }
     }
@@ -551,47 +553,47 @@ void Memory::writePort(u16 port, u8 value) {
             return;
         }
         
-        // Ports 0x050-0x051: Raster line register for IRQ line 50 (CPS2 only)
-        if ((port & 0x0FE) == 0x050) {
-            if ((port & 1) == 0) {
-                // High byte
-                m_rasterIRQ50 = (m_rasterIRQ50 & 0x00FF) | (static_cast<u16>(value) << 8);
-            } else {
-                // Low byte
-                m_rasterIRQ50 = (m_rasterIRQ50 & 0xFF00) | value;
+        if (port >= 0x0100 && port < 0x0200) {
+            // Ports 0x050-0x051: Raster line register for IRQ line 50 (CPS2 only)
+            if ((port & 0x0FE) == 0x050) {
+                if ((port & 1) == 0) {
+                    // High byte
+                    m_rasterIRQ50 = (m_rasterIRQ50 & 0x00FF) | (static_cast<u16>(value) << 8);
+                } else {
+                    // Low byte
+                    m_rasterIRQ50 = (m_rasterIRQ50 & 0xFF00) | value;
+                }
             }
+            
+            // Ports 0x052-0x053: Raster line register for IRQ line 52 (CPS2 only)
+            if ((port & 0x0FE) == 0x052) {
+                if ((port & 1) == 0) {
+                    // High byte
+                    m_rasterIRQ52 = (m_rasterIRQ52 & 0x00FF) | (static_cast<u16>(value) << 8);
+                } else {
+                    // Low byte
+                    m_rasterIRQ52 = (m_rasterIRQ52 & 0xFF00) | value;
+                }
+            }
+        }
+    } else {
+        // Sound command (0x181)
+        // This is how the 68000 sends commands to the Z80 sound CPU
+        // The Z80 reads this from 0xF008
+        if (port == 0x181) {
+            // Store sound command (Z80 reads from 0xF008)
+            m_soundCommand = value;
             return;
         }
         
-        // Ports 0x052-0x053: Raster line register for IRQ line 52 (CPS2 only)
-        if ((port & 0x0FE) == 0x052) {
-            if ((port & 1) == 0) {
-                // High byte
-                m_rasterIRQ52 = (m_rasterIRQ52 & 0x00FF) | (static_cast<u16>(value) << 8);
-            } else {
-                // Low byte
-                m_rasterIRQ52 = (m_rasterIRQ52 & 0xFF00) | value;
-            }
+        // Sound fade (0x189)
+        // Used by some games to fade music in/out
+        // The Z80 reads this from 0xF00A
+        if (port == 0x189) {
+            // Store fade value (Z80 reads from 0xF00A)
+            m_soundFade = value;
             return;
         }
-    }
-    
-    // Sound command (0x181)
-    // This is how the 68000 sends commands to the Z80 sound CPU
-    // The Z80 reads this from 0xF008
-    if (port == 0x181) {
-        // Store sound command (Z80 reads from 0xF008)
-        m_soundCommand = value;
-        return;
-    }
-    
-    // Sound fade (0x189)
-    // Used by some games to fade music in/out
-    // The Z80 reads this from 0xF00A
-    if (port == 0x189) {
-        // Store fade value (Z80 reads from 0xF00A)
-        m_soundFade = value;
-        return;
     }
     
     // CPS Registers (0x100-0x1FF)
