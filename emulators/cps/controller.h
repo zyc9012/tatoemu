@@ -21,7 +21,8 @@ enum ControllerButton : u8 {
     BUTTON_KICK3 = 9,
     BUTTON_START = 10,
     BUTTON_COIN = 11,
-    BUTTON_DIAG = 12
+    BUTTON_DIAG = 12,
+    BUTTON_SERVICE = 13,
 };
 
 // Button mapping: maps (player, button) -> (port, bit)
