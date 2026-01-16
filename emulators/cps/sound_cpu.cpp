@@ -1,6 +1,7 @@
 #include "sound_cpu.h"
 #include "memory.h"
 #include "apu.h"
+#include "consts.h"
 #include "../components/cpu/z80/z80.h"
 #include <iostream>
 #include <cstring>
@@ -56,7 +57,10 @@ extern "C" {
 SoundCPU::SoundCPU()
     : m_memory(nullptr)
     , m_apu(nullptr)
-    , m_cycles(0) {
+    , m_cycles(0)
+    , m_cpsVersion(1)
+    , m_timerAccumulator(0)
+    , m_timerPeriod(0) {
     // Initialize Z80
     static bool z80_initialized = false;
     if (!z80_initialized) {
@@ -89,10 +93,37 @@ SoundCPU::~SoundCPU() {
 void SoundCPU::reset() {
     Z80Reset();
     m_cycles = 0;
+    m_timerAccumulator = 0;
+    
+    // Calculate timer period for CPS2 (252 Hz interrupt rate)
+    if (m_cpsVersion == 2) {
+        // Timer fires at 252 Hz = 1/252.0 seconds
+        // At 8 MHz: 8000000 / 252 ≈ 31746 cycles
+        m_timerPeriod = cps2::SOUND_CPU_FREQUENCY / 252;
+    } else {
+        m_timerPeriod = 0;  // CPS1 uses YM2151 interrupts, not timer
+    }
+}
+
+void SoundCPU::setCPSVersion(u8 version) {
+    m_cpsVersion = version;
 }
 
 void SoundCPU::step(u32 cycles) {
     if (cycles > 0) {
+        // For CPS2, check timer-based interrupt
+        if (m_cpsVersion == 2 && m_timerPeriod > 0) {
+            m_timerAccumulator += cycles;
+            
+            // Check if timer has expired (multiple times if needed)
+            while (m_timerAccumulator >= m_timerPeriod) {
+                m_timerAccumulator -= m_timerPeriod;
+                // Trigger Z80 IRQ (timer interrupt at 252 Hz)
+                ActiveZ80SetIRQHold();
+                Z80SetIrqLine(0xFF, Z80_ASSERT_LINE);
+            }
+        }
+        
         s32 executed = Z80Execute(static_cast<s32>(cycles));
         m_cycles += static_cast<u32>(executed);
     }
@@ -117,6 +148,9 @@ void SoundCPU::saveState(std::ofstream& file) {
     file.write(reinterpret_cast<const char*>(&sizeNoPointers), sizeof(sizeNoPointers));
     file.write(reinterpret_cast<const char*>(&regs), sizeNoPointers);
     file.write(reinterpret_cast<const char*>(&m_cycles), sizeof(m_cycles));
+    file.write(reinterpret_cast<const char*>(&m_cpsVersion), sizeof(m_cpsVersion));
+    file.write(reinterpret_cast<const char*>(&m_timerAccumulator), sizeof(m_timerAccumulator));
+    file.write(reinterpret_cast<const char*>(&m_timerPeriod), sizeof(m_timerPeriod));
 }
 
 void SoundCPU::loadState(std::ifstream& file) {
@@ -144,6 +178,9 @@ void SoundCPU::loadState(std::ifstream& file) {
     Z80SetContext(&currentRegs);
     
     file.read(reinterpret_cast<char*>(&m_cycles), sizeof(m_cycles));
+    file.read(reinterpret_cast<char*>(&m_cpsVersion), sizeof(m_cpsVersion));
+    file.read(reinterpret_cast<char*>(&m_timerAccumulator), sizeof(m_timerAccumulator));
+    file.read(reinterpret_cast<char*>(&m_timerPeriod), sizeof(m_timerPeriod));
 }
 
 } // namespace cps

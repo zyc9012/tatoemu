@@ -54,6 +54,7 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kops.c
     ${CMAKE_SOURCE_DIR}/emulators/components/sound/ym2151/ym2151.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/sound/msm6295/msm6295.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/components/sound/qsound/qsound.cpp
     ${CMAKE_SOURCE_DIR}/emulators/emulator.cpp
     ${CMAKE_SOURCE_DIR}/utilities/zip_reader.cpp
     ${CMAKE_SOURCE_DIR}/utilities/miniz/miniz.c
@@ -108,6 +109,7 @@ function(apply_common_target_settings target_name)
         ${CMAKE_SOURCE_DIR}/emulators/components/sound
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/ym2151
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/msm6295
+        ${CMAKE_SOURCE_DIR}/emulators/components/sound/qsound
         ${CMAKE_SOURCE_DIR}/emulators/components/eeprom
         ${CMAKE_SOURCE_DIR}/utilities
     )

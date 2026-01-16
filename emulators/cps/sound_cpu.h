@@ -41,12 +41,20 @@ public:
     // Save/Load state
     void saveState(std::ofstream& file);
     void loadState(std::ifstream& file);
+    
+    // Set CPS version for timer configuration
+    void setCPSVersion(u8 version);
 
 protected:
     // Protected so Z80 callback functions can access them
     Memory* m_memory;
     APU* m_apu;
     u32 m_cycles;
+    
+    // CPS2 timer-based interrupt (252 Hz)
+    u8 m_cpsVersion;
+    u32 m_timerAccumulator;  // Accumulated cycles since last timer interrupt
+    u32 m_timerPeriod;       // Cycles per timer interrupt (for 252 Hz at current frequency)
 };
 
 } // namespace cps

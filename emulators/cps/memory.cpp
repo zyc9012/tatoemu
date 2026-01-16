@@ -695,10 +695,7 @@ u8 Memory::readZ80(u16 address) {
         if (address >= 0xD000 && address < 0xF000) {
             // QSound status register (0xD007)
             if (address == 0xD007) {
-                printf("readZ80: (QSound status) address=%04X\n", address);
-                // TODO: Call QscRead() when QSound chip is implemented
-                // For now, return 0 (not ready) or implement basic status
-                return 0;
+                return m_apu->readQSound();
             }
             // Other addresses in this range: for data reads, return 0xFF
             // For opcode fetches, this should map to ROM (handled by fetch logic)
@@ -813,9 +810,7 @@ void Memory::writeZ80(u16 address, u8 value) {
             }
             if (address == 0xD002) {
                 // QSound command write
-                // Command is: (m_qscCmd[0] << 8) | m_qscCmd[1], with value as the third byte
-                // TODO: Call QscWrite(value, (m_qscCmd[0] << 8) | m_qscCmd[1]) when QSound chip is implemented
-                // For now, just store the command
+                m_apu->writeQSound(value, (static_cast<u16>(m_qscCmd[0]) << 8) | m_qscCmd[1]);
                 return;
             }
             if (address == 0xD003) {

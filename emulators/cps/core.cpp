@@ -68,14 +68,16 @@ bool Core::loadROM(const fs::path& filename) {
         }
     }
 
+    // Set CPS version on components that need it
+    m_soundCpu->setCPSVersion(m_cpsVersion);
+    m_controller->setCPSVersion(m_cpsVersion);
+    
     // Reset all components
     m_cpu->reset();
     m_soundCpu->reset();
     m_ppu->reset();
     m_apu->reset();
     m_memory->reset();
-    // Set CPS version on controller to configure button mappings
-    m_controller->setCPSVersion(m_cpsVersion);
     m_controller->reset();
     m_cartridge->reset();
     
