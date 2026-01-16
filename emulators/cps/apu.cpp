@@ -113,8 +113,9 @@ void APU::setROMData() {
 }
 
 void APU::step(u32 cycles, double gameSpeed) {
-    (void)gameSpeed;
-    generateSamples(cycles, gameSpeed);
+    if (cycles > 0) {
+        generateSamples(cycles, gameSpeed);
+    }
 }
 
 void APU::setSampleRate(u32 sampleRate) {

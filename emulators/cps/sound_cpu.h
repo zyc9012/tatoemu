@@ -24,7 +24,7 @@ public:
     ~SoundCPU();
 
     void reset();
-    void step(u32 cycles);  // Execute specified number of cycles
+    u32 step(u32 cycles);  // Execute specified number of cycles, returns actual cycles executed
     
     u32 getCycles() const { return m_cycles; }
     void setMemory(Memory* memory) { m_memory = memory; }

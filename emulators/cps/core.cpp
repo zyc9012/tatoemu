@@ -264,6 +264,9 @@ void Core::update() {
     // Run until we complete a frame
     // The PPU will set frameComplete when VBlank starts
     
+    // Track accumulated excess/deficit for Z80 synchronization
+    s32 soundCpuSyncOffset = 0;
+    
     while (!m_ppu->isFrameComplete()) {
         // Track cycles before instruction
         u32 cyclesBefore = m_cpu->getCycles();
@@ -276,8 +279,16 @@ void Core::update() {
         
         // Run sound CPU proportionally
         float soundCyclesRatio = m_cartridge->getCPSVersion() == 1 ? ::cps1::SOUND_CYCLES_RATIO : ::cps2::SOUND_CYCLES_RATIO;
-        u32 soundCpuCycles = static_cast<u32>(cpuCycles * soundCyclesRatio);
-        m_soundCpu->step(soundCpuCycles);
+        s32 soundCpuCycles = static_cast<u32>(cpuCycles * soundCyclesRatio) - soundCpuSyncOffset;
+        
+        // Execute Z80 and get actual cycles executed
+        u32 soundCpuCyclesActual = m_soundCpu->step(static_cast<u32>(soundCpuCycles));
+        soundCpuSyncOffset = static_cast<s32>(soundCpuCyclesActual) - static_cast<s32>(soundCpuCycles);
+
+        // Run APU using actual cycles executed
+        m_apu->step(soundCpuCyclesActual, m_gameSpeed);
+
+        m_soundCpuCyclesThisFrame += soundCpuCyclesActual;
         
         // Run PPU (graphics chip runs in parallel)
         // PPU typically runs at similar speed to main CPU
@@ -286,11 +297,7 @@ void Core::update() {
             m_ppu->step();
         }
         
-        // Run APU
-        m_apu->step(soundCpuCycles, m_gameSpeed);
-        
         m_cpuCyclesThisFrame += cpuCycles;
-        m_soundCpuCyclesThisFrame += soundCpuCycles;
     }
     
     m_ppu->clearFrameComplete();

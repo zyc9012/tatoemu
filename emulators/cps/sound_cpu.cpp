@@ -109,10 +109,11 @@ void SoundCPU::setCPSVersion(u8 version) {
     m_cpsVersion = version;
 }
 
-void SoundCPU::step(u32 cycles) {
+u32 SoundCPU::step(u32 cycles) {
     if (cycles > 0) {
         s32 executed = Z80Execute(static_cast<s32>(cycles));
-        m_cycles += static_cast<u32>(executed);
+        u32 actualCycles = static_cast<u32>(executed);
+        m_cycles += actualCycles;
 
         // For CPS2, check timer-based interrupt
         if (m_cpsVersion == 2 && m_timerPeriod > 0) {
@@ -127,7 +128,9 @@ void SoundCPU::step(u32 cycles) {
             }
         }
         
+        return actualCycles;
     }
+    return 0;
 }
 
 void SoundCPU::irq(bool state) {

@@ -152,7 +152,7 @@ void CPU::step() {
     // typically result in one instruction per call. Occasionally we may execute
     // multiple very short instructions (e.g., two 4-cycle instructions), but this
     // is acceptable and maintains cycle accuracy for the emulator.
-    int cyclesUsed = m68k_execute(10);
+    int cyclesUsed = m68k_execute(50);
     m_cycles += cyclesUsed;
 }
 
