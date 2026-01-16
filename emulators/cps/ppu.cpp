@@ -109,6 +109,13 @@ void PPU::reset() {
     if (m_cartridge) {
         u8 cpsVer = m_cartridge->getCPSVersion();
         m_boardConfig = m_cartridge->getBoardConfig();
+
+        const GameInfo* gameInfo = m_cartridge->getGameInfo();
+        if (gameInfo) {
+            m_is_xmcota = (strcmp(gameInfo->romSetName, "xmcota") == 0);
+            m_is_ssf2 = (strncmp(gameInfo->romSetName, "ssf2", 4) == 0); // Name starts with "ssf2"
+            m_is_ssf2t = (strcmp(gameInfo->romSetName, "ssf2t") == 0);
+        }
         
         if (cpsVer == 1) {
             setupGfxMapper();
@@ -120,6 +127,9 @@ void PPU::reset() {
             m_gfxScroll[1] = 0x800000;
             m_gfxScroll[2] = 0x800000;
             m_gfxScroll[3] = 0x800000;
+            if (m_is_ssf2) {
+                m_gfxScroll[3] = 0;
+            }
         }
     }
 }
@@ -1038,9 +1048,8 @@ void PPU::renderScroll3(const u8* base, s32 scrollX, s32 scrollY, s32 startLine,
             u16 attrib = (static_cast<u16>(base[p + 2]) << 8) | base[p + 3];
             
             // CPS2 special tile offset hacks for some games
-            // TODO: Detect game and apply appropriate hack
-            // if (xmcota && tileNum >= 0x5800) tileNum -= 0x4000;
-            // if (ssf2t && tileNum < 0x5600) tileNum += 0x4000;
+            if (m_is_xmcota && tileNum >= 0x5800) tileNum -= 0x4000;
+            if (m_is_ssf2t && tileNum < 0x5600) tileNum += 0x4000;
 
             // Map tile through graphics bank mapper
             s32 t = gfxRomBankMapper(GFXTYPE_SCROLL3, tileNum);
