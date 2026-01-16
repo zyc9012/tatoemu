@@ -16,6 +16,9 @@
 // Initialize QSound emulator
 INT32 QscInit(INT32 nRate);
 
+// Set sample rate
+void QscSetSampleRate(INT32 nRate);
+
 // Reset QSound emulator
 void QscReset();
 

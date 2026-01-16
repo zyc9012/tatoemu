@@ -126,7 +126,8 @@ void APU::setSampleRate(u32 sampleRate) {
         MSM6295SetSamplerate(0, 7576, static_cast<s32>(sampleRate));
         m_cyclesPerSample = cps1::SOUND_CPU_FREQUENCY / m_sampleRate;
     } else {
-        // CPS2: QSound - sample rate is fixed internally, but we can update our timing
+        // CPS2: QSound
+        QscSetSampleRate(sampleRate);
         m_cyclesPerSample = cps2::SOUND_CPU_FREQUENCY / m_sampleRate;
     }
 }

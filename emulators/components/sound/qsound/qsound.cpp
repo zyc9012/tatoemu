@@ -764,6 +764,11 @@ INT32 QscInit(INT32 nRate)
 	return 0;
 }
 
+void QscSetSampleRate(INT32 nRate)
+{
+	nQscRate = nRate;
+}
+
 void QscSetRoute(INT32 nIndex, double nVolume, INT32 nRouteDir)
 {
 	QsndGain[nIndex] = nVolume;
