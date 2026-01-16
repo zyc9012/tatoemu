@@ -105,6 +105,8 @@ void Controller::initCPS2Mappings() {
     m_buttonMappings[(2 << 8) | BUTTON_START] = {0x020, 1};
     m_buttonMappings[(1 << 8) | BUTTON_COIN] = {0x020, 4};
     m_buttonMappings[(2 << 8) | BUTTON_COIN] = {0x020, 5};
+
+    m_buttonMappings[(0 << 8) | BUTTON_DIAG] = {0x021, 1};
 }
 
 void Controller::pressButton(u8 player, ControllerButton button) {

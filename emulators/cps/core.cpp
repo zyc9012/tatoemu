@@ -163,6 +163,9 @@ bool Core::handleInput(SDL_Event& event) {
                 case Config::Key::START_P2:
                     m_controller->pressButton(2, BUTTON_START);
                     return true;
+                case Config::Key::DIAG:
+                    m_controller->pressButton(0, BUTTON_DIAG);
+                    return true;
                 default:
                     return false;
             }
@@ -240,6 +243,9 @@ bool Core::handleInput(SDL_Event& event) {
                     return true;
                 case Config::Key::START_P2:
                     m_controller->releaseButton(2, BUTTON_START);
+                    return true;
+                case Config::Key::DIAG:
+                    m_controller->releaseButton(0, BUTTON_DIAG);
                     return true;
                 default:
                     return false;

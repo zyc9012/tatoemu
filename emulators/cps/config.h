@@ -34,6 +34,8 @@ namespace Key {
     constexpr SDL_Keycode COIN_P2 = SDLK_6;
     constexpr SDL_Keycode START_P1 = SDLK_1;
     constexpr SDL_Keycode START_P2 = SDLK_2;
+
+    constexpr SDL_Keycode DIAG = SDLK_F2;
 }
 } // namespace Config
 
