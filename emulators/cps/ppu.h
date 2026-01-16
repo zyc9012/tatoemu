@@ -15,6 +15,8 @@ class Memory;
 
 // Palette size (0xC00 bytes = 3072 bytes, 1536 16-bit entries across 6 pages)
 constexpr u32 PALETTE_RAM_SIZE = 0xC00;
+constexpr u32 VISIBLE_SCANLINES = 224;
+constexpr u32 TOTAL_SCANLINES = 262;
 
 // Tile type constants
 enum TileType {

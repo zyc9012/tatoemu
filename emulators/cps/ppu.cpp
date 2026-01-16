@@ -402,17 +402,10 @@ void PPU::step() {
     // Increment cycle counter
     m_cycles++;
     
-    // Both systems typically trigger VBlank interrupt at scanline 224
-    // Each scanline takes approximately CPU_CYCLES_PER_FRAME / 262 cycles
-    // Total active lines: 224, VBlank: 38 lines (262 total)
-    
-    constexpr u32 CYCLES_PER_SCANLINE = 640;  // Approximate, works for both
-    constexpr u32 VISIBLE_SCANLINES = 224;
-    constexpr u32 TOTAL_SCANLINES = 262;
-    constexpr u32 CYCLES_PER_FRAME = CYCLES_PER_SCANLINE * TOTAL_SCANLINES;
-    
     // Calculate current scanline
-    u32 newScanline = m_cycles / CYCLES_PER_SCANLINE;
+    u32 cyclesPerFrame = m_cartridge->getCPSVersion() == 1 ? ::cps1::CPU_CYCLES_PER_FRAME : ::cps2::CPU_CYCLES_PER_FRAME;
+    u32 cyclesPerScanline = cyclesPerFrame / TOTAL_SCANLINES;
+    u32 newScanline = m_cycles / cyclesPerScanline;
     
     // Check if we've moved to a new scanline
     if (newScanline != m_scanline) {
@@ -480,7 +473,7 @@ void PPU::step() {
     }
     
     // Check if frame is complete
-    if (m_cycles >= CYCLES_PER_FRAME) {
+    if (m_cycles >= cyclesPerFrame) {
         m_cycles = 0;
         m_scanline = 0;
         m_frameComplete = true;
