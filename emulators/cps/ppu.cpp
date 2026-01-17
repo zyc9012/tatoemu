@@ -113,8 +113,9 @@ void PPU::reset() {
         const GameInfo* gameInfo = m_cartridge->getGameInfo();
         if (gameInfo) {
             m_is_xmcota = (strcmp(gameInfo->romSetName, "xmcota") == 0);
-            m_is_ssf2 = (strncmp(gameInfo->romSetName, "ssf2", 4) == 0); // Name starts with "ssf2"
-            m_is_ssf2t = (strcmp(gameInfo->romSetName, "ssf2t") == 0);
+            bool is_hsf2 = (strcmp(gameInfo->romSetName, "hsf2") == 0);
+            m_is_ssf2 = (strncmp(gameInfo->romSetName, "ssf2", 4) == 0) || is_hsf2;
+            m_is_ssf2t = (strcmp(gameInfo->romSetName, "ssf2t") == 0) || is_hsf2;
         }
         
         if (cpsVer == 1) {
