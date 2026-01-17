@@ -19,7 +19,7 @@ extern "C" {
         if (g_soundCpuContext) {
             Memory* mem = g_soundCpuContext->getMemory();
             if (mem) {
-                return mem->readZ80(static_cast<u16>(address));
+                return mem->readZ80(address);
             }
         }
         return 0xFF;
@@ -29,7 +29,7 @@ extern "C" {
         if (g_soundCpuContext) {
             Memory* mem = g_soundCpuContext->getMemory();
             if (mem) {
-                mem->writeZ80(static_cast<u16>(address), value);
+                mem->writeZ80(address, value);
             }
         }
     }
@@ -38,7 +38,7 @@ extern "C" {
         if (g_soundCpuContext) {
             APU* apu = g_soundCpuContext->getAPU();
             if (apu) {
-                return apu->readPort(static_cast<u16>(port));
+                return apu->readPort(port);
             }
         }
         return 0xFF;
@@ -48,9 +48,29 @@ extern "C" {
         if (g_soundCpuContext) {
             APU* apu = g_soundCpuContext->getAPU();
             if (apu) {
-                apu->writePort(static_cast<u16>(port), value);
+                apu->writePort(port, value);
             }
         }
+    }
+
+    u8 z80_read_op(u32 address) {
+        if (g_soundCpuContext) {
+            Memory* mem = g_soundCpuContext->getMemory();
+            if (mem) {
+                return mem->readZ80Opcode(address);
+            }
+        }
+        return 0xFF;
+    }
+
+    u8 z80_read_op_arg(u32 address) {
+        if (g_soundCpuContext) {
+            Memory* mem = g_soundCpuContext->getMemory();
+            if (mem) {
+                return mem->readZ80Opcode(address);
+            }
+        }
+        return 0xFF;
     }
 }
 
@@ -77,8 +97,10 @@ SoundCPU::SoundCPU()
     Z80SetIOReadHandler(z80_read_io);
     Z80SetIOWriteHandler(z80_write_io);
     // Set opcode read handlers (required for ROP() and ARG())
-    Z80SetCPUOpReadHandler(z80_read_prog);
-    Z80SetCPUOpArgReadHandler(z80_read_prog);
+    // These are separate from program reads to allow for special handling
+    // of opcode fetches vs argument fetches if needed
+    Z80SetCPUOpReadHandler(z80_read_op);
+    Z80SetCPUOpArgReadHandler(z80_read_op_arg);
     
     // Reset the CPU
     reset();

@@ -614,7 +614,7 @@ void Memory::writePort(u16 port, u8 value) {
 // Z80 Memory Access
 // ============================================================================
 
-u8 Memory::readZ80(u16 address) {
+u8 Memory::readZ80(u32 address) {
     u8 cpsVer = getCPSVersion();
     
     // Sound ROM (0x0000-0x7FFF) - common
@@ -724,7 +724,25 @@ u8 Memory::readZ80(u16 address) {
     return 0xFF;
 }
 
-void Memory::writeZ80(u16 address, u8 value) {
+u8 Memory::readZ80Opcode(u32 address) {
+    u8 cpsVer = getCPSVersion();
+    
+    // For CPS2, opcode fetches from 0xD000-0xEFFF map directly to ROM
+    // (while data reads from this range use QSound handlers)
+    if (cpsVer == 2 && address >= 0xD000 && address < 0xF000) {
+        if (m_cartridge) {
+            // Map 0xD000-0xEFFF directly to ROM
+            return m_cartridge->readSoundROM8(address);
+        }
+        return 0xFF;
+    }
+    
+    // For all other addresses, use regular readZ80
+    // (which handles ROM, RAM, and I/O correctly)
+    return readZ80(address);
+}
+
+void Memory::writeZ80(u32 address, u8 value) {
     u8 cpsVer = getCPSVersion();
     
     // Sound ROM is read-only

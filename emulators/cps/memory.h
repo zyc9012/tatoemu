@@ -45,8 +45,9 @@ public:
     void write32(u32 address, u32 value);
     
     // Z80 memory access
-    u8 readZ80(u16 address);
-    void writeZ80(u16 address, u8 value);
+    u8 readZ80(u32 address);
+    void writeZ80(u32 address, u8 value);
+    u8 readZ80Opcode(u32 address);
     
     // Component connections
     void setCPU(CPU* cpu) { m_cpu = cpu; }
