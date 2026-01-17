@@ -849,8 +849,8 @@ void PPU::renderScroll1(const u8* base, s32 scrollX, s32 scrollY, s32 startLine,
         yEnd = nYTile;
     } else {
         // CPS2: partial scanline rendering
-        s32 nFirstY = (startLine + sy) >> 3;
-        s32 nLastY = (endLine + sy) >> 3;
+        s32 nFirstY = (startLine + (scrollY & 7)) >> 3;
+        s32 nLastY = (endLine + (scrollY & 7)) >> 3;
         yStart = nFirstY - 1;
         yEnd = nLastY;
     }
@@ -1017,8 +1017,8 @@ void PPU::renderScroll3(const u8* base, s32 scrollX, s32 scrollY, s32 startLine,
         yEnd = nYTile;
     } else {
         // CPS2: partial scanline rendering
-        s32 nFirstY = (startLine + sy) >> 5;
-        s32 nLastY = (endLine + sy) >> 5;
+        s32 nFirstY = (startLine + (scrollY & 31)) >> 5;
+        s32 nLastY = (endLine + (scrollY & 31)) >> 5;
         yStart = nFirstY - 1;
         yEnd = nLastY;
     }
