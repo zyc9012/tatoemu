@@ -340,9 +340,9 @@ bool Core::loadState(const fs::path& filename) {
         return false;
     }
     
-    // Read and verify header (support both old and new formats)
-    char header[8] = {0};
-    file.read(header, 7);
+    // Read and verify header
+    char header[7] = {0};
+    file.read(header, 6);
     
     file.seekg(0);
     file.read(header, 6);
