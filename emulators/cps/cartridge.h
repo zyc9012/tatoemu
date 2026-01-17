@@ -44,7 +44,7 @@ public:
     u32 getDecodedGraphicsROMSize() const { return static_cast<u32>(m_decodedGraphicsRom.size()); }
     
     // Sound ROM access (for Z80 sound CPU)
-    u8 readSoundROM8(u16 address) const;
+    u8 readSoundROM8(u32 address) const;
     
     // Sound sample data access
     const u8* getSoundSample() const { return m_soundSampleRom.data(); }

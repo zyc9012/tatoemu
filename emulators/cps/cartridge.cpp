@@ -453,7 +453,7 @@ u8 Cartridge::readGraphicsROM8(u32 address) const {
     return 0;
 }
 
-u8 Cartridge::readSoundROM8(u16 address) const {
+u8 Cartridge::readSoundROM8(u32 address) const {
     if (address < m_soundProgramRom.size()) {
         return m_soundProgramRom[address];
     }
