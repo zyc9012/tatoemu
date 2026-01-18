@@ -7,9 +7,7 @@
 namespace cps {
 
 Core::Core()
-    : m_cpuCyclesThisFrame(0)
-    , m_soundCpuCyclesThisFrame(0)
-    , m_cpsVersion(1) {
+    : m_cpsVersion(1) {
 }
 
 bool Core::initialize(::VideoDevice* videoDevice, ::AudioDevice* audioDevice) {
@@ -80,9 +78,6 @@ bool Core::loadROM(const fs::path& filename) {
     m_memory->reset();
     m_controller->reset();
     m_cartridge->reset();
-    
-    m_cpuCyclesThisFrame = 0;
-    m_soundCpuCyclesThisFrame = 0;
 
     return true;
 }
@@ -287,8 +282,6 @@ void Core::update() {
 
         // Run APU using actual cycles executed
         m_apu->step(soundCpuCyclesActual, m_gameSpeed);
-
-        m_soundCpuCyclesThisFrame += soundCpuCyclesActual;
         
         // Run PPU (graphics chip runs in parallel)
         // PPU typically runs at similar speed to main CPU
@@ -296,13 +289,9 @@ void Core::update() {
         for (u32 i = 0; i < ppuCycles; i++) {
             m_ppu->step();
         }
-        
-        m_cpuCyclesThisFrame += cpuCycles;
     }
     
     m_ppu->clearFrameComplete();
-    m_cpuCyclesThisFrame = 0;
-    m_soundCpuCyclesThisFrame = 0;
 }
 
 bool Core::saveState(const fs::path& filename) {
@@ -324,10 +313,6 @@ bool Core::saveState(const fs::path& filename) {
     m_memory->saveState(file);
     m_cartridge->saveState(file);
     m_controller->saveState(file);
-    
-    // Save core state
-    file.write(reinterpret_cast<const char*>(&m_cpuCyclesThisFrame), sizeof(m_cpuCyclesThisFrame));
-    file.write(reinterpret_cast<const char*>(&m_soundCpuCyclesThisFrame), sizeof(m_soundCpuCyclesThisFrame));
     
     file.close();
     return true;
@@ -359,10 +344,6 @@ bool Core::loadState(const fs::path& filename) {
     m_memory->loadState(file);
     m_cartridge->loadState(file);
     m_controller->loadState(file);
-    
-    // Load core state
-    file.read(reinterpret_cast<char*>(&m_cpuCyclesThisFrame), sizeof(m_cpuCyclesThisFrame));
-    file.read(reinterpret_cast<char*>(&m_soundCpuCyclesThisFrame), sizeof(m_soundCpuCyclesThisFrame));
     
     file.close();
     return true;

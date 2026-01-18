@@ -51,10 +51,6 @@ private:
     std::unique_ptr<Controller> m_controller1;
     std::unique_ptr<Controller> m_controller2;
     
-    // Timing
-    u32 m_cpuCyclesThisFrame;
-    u32 m_ppuCyclesThisFrame;
-    
     // Frame timing
     double m_gameSpeed = 1.0;
 };

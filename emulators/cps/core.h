@@ -56,10 +56,6 @@ private:
     std::unique_ptr<Cartridge> m_cartridge;
     std::unique_ptr<Controller> m_controller;
     
-    // Timing
-    u32 m_cpuCyclesThisFrame;
-    u32 m_soundCpuCyclesThisFrame;
-    
     // Frame timing
     double m_gameSpeed = 1.0;
     

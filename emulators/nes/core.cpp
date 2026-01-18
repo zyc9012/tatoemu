@@ -6,9 +6,7 @@
 
 namespace nes {
 
-Core::Core()
-    : m_cpuCyclesThisFrame(0)
-    , m_ppuCyclesThisFrame(0) {
+Core::Core() {
 }
 
 bool Core::initialize(VideoDevice* videoDevice, AudioDevice* audioDevice) {
@@ -59,9 +57,6 @@ bool Core::loadROM(const fs::path& filename) {
     m_controller1->reset();
     m_controller2->reset();
     m_cartridge->reset();
-    
-    m_cpuCyclesThisFrame = 0;
-    m_ppuCyclesThisFrame = 0;
 
     return true;
 }
@@ -167,12 +162,9 @@ void Core::update() {
             m_cpu->irq();
             m_cartridge->irqClear();
         }
-        
-        m_cpuCyclesThisFrame += cpuCycles;
     }
     
     m_ppu->clearFrameComplete();
-    m_cpuCyclesThisFrame = 0;
 }
 
 bool Core::saveState(const fs::path& filename) {
@@ -196,10 +188,6 @@ bool Core::saveState(const fs::path& filename) {
     m_cartridge->saveState(file);
     m_controller1->saveState(file);
     m_controller2->saveState(file);
-    
-    // Save core state
-    file.write(reinterpret_cast<const char*>(&m_cpuCyclesThisFrame), sizeof(m_cpuCyclesThisFrame));
-    file.write(reinterpret_cast<const char*>(&m_ppuCyclesThisFrame), sizeof(m_ppuCyclesThisFrame));
     
     file.close();
     return true;
@@ -235,10 +223,6 @@ bool Core::loadState(const fs::path& filename) {
     m_cartridge->loadState(file);
     m_controller1->loadState(file);
     m_controller2->loadState(file);
-    
-    // Load core state
-    file.read(reinterpret_cast<char*>(&m_cpuCyclesThisFrame), sizeof(m_cpuCyclesThisFrame));
-    file.read(reinterpret_cast<char*>(&m_ppuCyclesThisFrame), sizeof(m_ppuCyclesThisFrame));
     
     file.close();
     return true;
