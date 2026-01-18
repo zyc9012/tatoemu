@@ -1,114 +1,76 @@
 #include "cpu.h"
 #include "memory.h"
-#include "../../components/cpu/m68k/m68k.h"
 #include <iostream>
-#include <cstring>
-#include <iomanip>
-#include <cstdio>
 #include <vector>
+#include "../../components/cpu/m68k/m68k.h"
+#include "../../components/cpu/m68k/m68kcb.h"
 
 namespace cps {
 
-// Global pointer to memory interface for Musashi callbacks
+// Wrapper functions to convert Memory* methods to C callbacks
 static Memory* g_memory = nullptr;
 
-// Musashi memory access callbacks
-extern "C" unsigned int m68k_read_memory_8(unsigned int address) {
+static unsigned int read8_callback(unsigned int address) {
+    if (g_memory) {
+        return g_memory->read8(address);
+    }
+    return 0;
+}
+
+static unsigned int read16_callback(unsigned int address) {
+    if (g_memory) {
+        return g_memory->read16(address);
+    }
+    return 0;
+}
+
+static unsigned int read32_callback(unsigned int address) {
+    if (g_memory) {
+        return g_memory->read32(address);
+    }
+    return 0;
+}
+
+static unsigned int read8Data_callback(unsigned int address) {
     if (g_memory) {
         return g_memory->read8Data(address);
     }
     return 0;
 }
 
-extern "C" unsigned int m68k_read_memory_16(unsigned int address) {
+static unsigned int read16Data_callback(unsigned int address) {
     if (g_memory) {
         return g_memory->read16Data(address);
     }
     return 0;
 }
 
-extern "C" unsigned int m68k_read_memory_32(unsigned int address) {
+static unsigned int read32Data_callback(unsigned int address) {
     if (g_memory) {
         return g_memory->read32Data(address);
     }
     return 0;
 }
 
-extern "C" unsigned int m68k_read_immediate_16(unsigned int address) {
-    if (g_memory) {
-        return g_memory->read16(address);
-    }
-    return 0;
-}
-
-extern "C" unsigned int m68k_read_immediate_32(unsigned int address) {
-    if (g_memory) {
-        return g_memory->read32(address);
-    }
-    return 0;
-}
-
-extern "C" unsigned int m68k_read_pcrelative_8(unsigned int address) {
-    if (g_memory) {
-        return g_memory->read8(address);
-    }
-    return 0;
-}
-
-extern "C" unsigned int m68k_read_pcrelative_16(unsigned int address) {
-    if (g_memory) {
-        return g_memory->read16(address);
-    }
-    return 0;
-}
-
-extern "C" unsigned int m68k_read_pcrelative_32(unsigned int address) {
-    if (g_memory) {
-        return g_memory->read32(address);
-    }
-    return 0;
-}
-
-extern "C" unsigned int m68k_read_disassembler_8(unsigned int address) {
-    if (g_memory) {
-        return g_memory->read8(address);
-    }
-    return 0;
-}
-
-extern "C" unsigned int m68k_read_disassembler_16(unsigned int address) {
-    if (g_memory) {
-        return g_memory->read16(address);
-    }
-    return 0;
-}
-
-extern "C" unsigned int m68k_read_disassembler_32(unsigned int address) {
-    if (g_memory) {
-        return g_memory->read32(address);
-    }
-    return 0;
-}
-
-extern "C" void m68k_write_memory_8(unsigned int address, unsigned int value) {
+static void write8_callback(unsigned int address, unsigned int value) {
     if (g_memory) {
         g_memory->write8(address, static_cast<u8>(value));
     }
 }
 
-extern "C" void m68k_write_memory_16(unsigned int address, unsigned int value) {
+static void write16_callback(unsigned int address, unsigned int value) {
     if (g_memory) {
         g_memory->write16(address, static_cast<u16>(value));
     }
 }
 
-extern "C" void m68k_write_memory_32(unsigned int address, unsigned int value) {
+static void write32_callback(unsigned int address, unsigned int value) {
     if (g_memory) {
         g_memory->write32(address, static_cast<u32>(value));
     }
 }
 
-extern "C" void m68k_write_memory_32_pd(unsigned int address, unsigned int value) {
+static void write32_pd_callback(unsigned int address, unsigned int value) {
     // Predecrement mode - write high word first, then low word
     if (g_memory) {
         g_memory->write16(address + 2, static_cast<u16>((value >> 16) & 0xFFFF));
@@ -135,6 +97,25 @@ CPU::~CPU() {
 void CPU::reset() {
     // Set global memory pointer for callbacks
     g_memory = m_memory;
+    
+    // Set up callbacks - 1:1 match with Musashi interface
+    m68k_memory_callbacks callbacks = {};
+    callbacks.read_memory_8 = read8Data_callback;
+    callbacks.read_memory_16 = read16Data_callback;
+    callbacks.read_memory_32 = read32Data_callback;
+    callbacks.read_immediate_16 = read16_callback;
+    callbacks.read_immediate_32 = read32_callback;
+    callbacks.read_pcrelative_8 = read8_callback;
+    callbacks.read_pcrelative_16 = read16_callback;
+    callbacks.read_pcrelative_32 = read32_callback;
+    callbacks.read_disassembler_8 = read8_callback;
+    callbacks.read_disassembler_16 = read16_callback;
+    callbacks.read_disassembler_32 = read32_callback;
+    callbacks.write_memory_8 = write8_callback;
+    callbacks.write_memory_16 = write16_callback;
+    callbacks.write_memory_32 = write32_callback;
+    callbacks.write_memory_32_pd = write32_pd_callback;
+    m68k_set_memory_callbacks(&callbacks);
     
     // Reset the Musashi emulator
     m68k_pulse_reset();

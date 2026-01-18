@@ -52,6 +52,7 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kcpu.c
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kops.c
+    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kcb.c
     ${CMAKE_SOURCE_DIR}/emulators/components/sound/ym2151/ym2151.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/sound/msm6295/msm6295.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/sound/qsound/qsound.cpp
@@ -121,6 +122,7 @@ function(apply_common_target_settings target_name)
         ${CMAKE_SOURCE_DIR}/utilities/miniz/miniz.c
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kcpu.c
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kops.c
+        ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kcb.c
         PROPERTIES LANGUAGE C
     )
     
