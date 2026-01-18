@@ -4,16 +4,6 @@
 #include "../components/compact.h"
 #include <fstream>
 
-// Forward declarations for Z80 callbacks
-extern "C" {
-    u8 z80_read_prog(u32 address);
-    void z80_write_prog(u32 address, u8 value);
-    u8 z80_read_io(u32 port);
-    void z80_write_io(u32 port, u8 value);
-    u8 z80_read_op(u32 address);
-    u8 z80_read_op_arg(u32 address);
-}
-
 namespace cps {
 
 class Memory;

@@ -13,65 +13,63 @@ namespace cps {
 // Static context pointer for callbacks
 static SoundCPU* g_soundCpuContext = nullptr;
 
-// Z80 callback functions for Z80
-extern "C" {
-    u8 z80_read_prog(u32 address) {
-        if (g_soundCpuContext) {
-            Memory* mem = g_soundCpuContext->getMemory();
-            if (mem) {
-                return mem->readZ80(address);
-            }
+// Z80 callback functions (static to avoid symbol conflicts with other emulators)
+static u8 z80_read_prog(u32 address) {
+    if (g_soundCpuContext) {
+        Memory* mem = g_soundCpuContext->getMemory();
+        if (mem) {
+            return mem->readZ80(address);
         }
-        return 0xFF;
     }
+    return 0xFF;
+}
 
-    void z80_write_prog(u32 address, u8 value) {
-        if (g_soundCpuContext) {
-            Memory* mem = g_soundCpuContext->getMemory();
-            if (mem) {
-                mem->writeZ80(address, value);
-            }
+static void z80_write_prog(u32 address, u8 value) {
+    if (g_soundCpuContext) {
+        Memory* mem = g_soundCpuContext->getMemory();
+        if (mem) {
+            mem->writeZ80(address, value);
         }
     }
+}
 
-    u8 z80_read_io(u32 port) {
-        if (g_soundCpuContext) {
-            APU* apu = g_soundCpuContext->getAPU();
-            if (apu) {
-                return apu->readPort(port);
-            }
+static u8 z80_read_io(u32 port) {
+    if (g_soundCpuContext) {
+        APU* apu = g_soundCpuContext->getAPU();
+        if (apu) {
+            return apu->readPort(port);
         }
-        return 0xFF;
     }
+    return 0xFF;
+}
 
-    void z80_write_io(u32 port, u8 value) {
-        if (g_soundCpuContext) {
-            APU* apu = g_soundCpuContext->getAPU();
-            if (apu) {
-                apu->writePort(port, value);
-            }
+static void z80_write_io(u32 port, u8 value) {
+    if (g_soundCpuContext) {
+        APU* apu = g_soundCpuContext->getAPU();
+        if (apu) {
+            apu->writePort(port, value);
         }
     }
+}
 
-    u8 z80_read_op(u32 address) {
-        if (g_soundCpuContext) {
-            Memory* mem = g_soundCpuContext->getMemory();
-            if (mem) {
-                return mem->readZ80Opcode(address);
-            }
+static u8 z80_read_op(u32 address) {
+    if (g_soundCpuContext) {
+        Memory* mem = g_soundCpuContext->getMemory();
+        if (mem) {
+            return mem->readZ80Opcode(address);
         }
-        return 0xFF;
     }
+    return 0xFF;
+}
 
-    u8 z80_read_op_arg(u32 address) {
-        if (g_soundCpuContext) {
-            Memory* mem = g_soundCpuContext->getMemory();
-            if (mem) {
-                return mem->readZ80Opcode(address);
-            }
+static u8 z80_read_op_arg(u32 address) {
+    if (g_soundCpuContext) {
+        Memory* mem = g_soundCpuContext->getMemory();
+        if (mem) {
+            return mem->readZ80Opcode(address);
         }
-        return 0xFF;
     }
+    return 0xFF;
 }
 
 SoundCPU::SoundCPU()
@@ -96,9 +94,6 @@ SoundCPU::SoundCPU()
     Z80SetProgramWriteHandler(z80_write_prog);
     Z80SetIOReadHandler(z80_read_io);
     Z80SetIOWriteHandler(z80_write_io);
-    // Set opcode read handlers (required for ROP() and ARG())
-    // These are separate from program reads to allow for special handling
-    // of opcode fetches vs argument fetches if needed
     Z80SetCPUOpReadHandler(z80_read_op);
     Z80SetCPUOpArgReadHandler(z80_read_op_arg);
     
