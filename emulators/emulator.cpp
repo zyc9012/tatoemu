@@ -3,6 +3,8 @@
 #include "nes/core.h"
 #include "cps/core.h"
 #include "cps/db.h"
+#include "neogeo/core.h"
+#include "neogeo/db.h"
 #include <SDL3/SDL.h>
 #include <iostream>
 #include <fstream>
@@ -140,20 +142,26 @@ bool Emulator::initialize() {
     } else if (ext == ".nes") {
         m_core = std::make_unique<nes::Core>();
     } else if (ext == ".zip") {
-        // CPS1/CPS2 ROMs use .zip format (MAME format)
-        // Check unified game database to determine which core to use
+        // CPS1/CPS2 and NeoGeo ROMs use .zip format (MAME format)
+        // Try CPS first, then NeoGeo
         std::string romSetName = m_romFilename.stem().string();
         std::transform(romSetName.begin(), romSetName.end(), romSetName.begin(), ::tolower);
         
         const cps::GameInfo* gameInfo = cps::GameDatabase::findGame(romSetName);
-        if (!gameInfo) {
-            std::cerr << "Unknown CPS game: " << romSetName << std::endl;
-            std::cerr << "Game not found in database" << std::endl;
-            return false;
+        if (gameInfo) {
+            // Create unified core (works for both CPS1 and CPS2)
+            m_core = std::make_unique<cps::Core>();
+        } else {
+            // Try NeoGeo - check game database
+            const neogeo::GameInfo* gameInfo = neogeo::GameDatabase::findGame(romSetName);
+            if (gameInfo) {
+                m_core = std::make_unique<neogeo::Core>();
+            } else {
+                std::cerr << "Unknown game: " << romSetName << std::endl;
+                std::cerr << "Game not found in CPS or NeoGeo database" << std::endl;
+                return false;
+            }
         }
-        
-        // Create unified core (works for both CPS1 and CPS2)
-        m_core = std::make_unique<cps::Core>();
     } else {
         std::cerr << "Unsupported ROM file extension: " << ext << std::endl;
         return false;
