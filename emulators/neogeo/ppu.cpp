@@ -199,8 +199,9 @@ void PPU::step() {
 }
 
 void PPU::clearScreen() {
-    // Clear to backdrop color (palette entry 0x1000, bank 0, color 0)
-    u32 backdropColor = m_palette[0];
+    // Clear to backdrop color (palette entry 0x0FFF - the last palette entry)
+    // This is the standard Neo Geo backdrop color register
+    u32 backdropColor = m_palette[0x0FFF];
     m_frameBuffer.fill(backdropColor);
 }
 
@@ -223,7 +224,7 @@ void PPU::renderFrame() {
     clearScreen();
     
     if (frameCount % 60 == 0) {
-        std::cout << "Frame " << frameCount << ": backdrop color = 0x" << std::hex << m_palette[0] << std::dec << std::endl;
+        std::cout << "Frame " << frameCount << ": backdrop color = 0x" << std::hex << m_palette[0x0FFF] << std::dec << std::endl;
     }
     
     // Render sprites first (they go under the text layer)
