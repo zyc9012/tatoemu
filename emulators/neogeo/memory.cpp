@@ -431,7 +431,9 @@ u8 Memory::readPalette8(u32 address) {
     // Swap byte order (68000 is big-endian, we store little-endian)
     address ^= 1;
     
-    u16 paletteEntry = m_paletteRam[address / 2];
+    // Use current palette bank
+    u32 bankOffset = m_paletteBank * (PALETTE_RAM_SIZE / 2);
+    u16 paletteEntry = m_paletteRam[bankOffset + (address / 2)];
     if (address & 1) {
         return static_cast<u8>(paletteEntry >> 8);
     } else {
@@ -443,7 +445,9 @@ u16 Memory::readPalette16(u32 address) const {
     if (address >= PALETTE_RAM_SIZE) {
         return 0;
     }
-    return m_paletteRam[address / 2];
+    // Use current palette bank
+    u32 bankOffset = m_paletteBank * (PALETTE_RAM_SIZE / 2);
+    return m_paletteRam[bankOffset + (address / 2)];
 }
 
 u16 Memory::readPalette16Private(u32 address) {
@@ -458,7 +462,9 @@ void Memory::writePalette8(u32 address, u8 value) {
     // Swap byte order (68000 is big-endian, we store little-endian)
     address ^= 1;
     
-    u16& paletteEntry = m_paletteRam[address / 2];
+    // Use current palette bank
+    u32 bankOffset = m_paletteBank * (PALETTE_RAM_SIZE / 2);
+    u16& paletteEntry = m_paletteRam[bankOffset + (address / 2)];
     if (address & 1) {
         paletteEntry = (paletteEntry & 0x00FF) | (static_cast<u16>(value) << 8);
     } else {
@@ -470,7 +476,9 @@ void Memory::writePalette16(u32 address, u16 value) {
     if (address >= PALETTE_RAM_SIZE) {
         return;
     }
-    m_paletteRam[address / 2] = value;
+    // Use current palette bank
+    u32 bankOffset = m_paletteBank * (PALETTE_RAM_SIZE / 2);
+    m_paletteRam[bankOffset + (address / 2)] = value;
 }
 
 void Memory::writeIO1(u8 offset, u8 value) {

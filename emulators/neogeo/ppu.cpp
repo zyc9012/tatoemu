@@ -269,7 +269,7 @@ u32 PPU::convertPaletteEntry(u16 entry, bool /* darken */) {
     //
     // Each color is 6 bits (0-63), with resistor network weighting
     
-    // Extract 6-bit color values
+    // Extract 6-bit color values (stored in bits 7-2, bits 1-0 are zero)
     u32 r = (entry & 0x0F00) >> 4;  // Bits 11-8 -> bits 7-4
     r |= (entry >> 11) & 8;          // Bit 14 -> bit 3
     r |= (entry >> 13) & 4;          // Bit 15 (dark) -> bit 2
@@ -282,10 +282,10 @@ u32 PPU::convertPaletteEntry(u16 entry, bool /* darken */) {
     b |= (entry >> 9) & 8;           // Bit 12 -> bit 3
     b |= (entry >> 13) & 4;          // Bit 15 (dark) -> bit 2
     
-    // Simple linear scaling from 6-bit to 8-bit
-    r = (r << 2) | (r >> 4);
-    g = (g << 2) | (g >> 4);
-    b = (b << 2) | (b >> 4);
+    // Scale from 6-bit (in bits 7-2) to 8-bit by replicating top bits to bottom
+    r = r | (r >> 6);
+    g = g | (g >> 6);
+    b = b | (b >> 6);
     
     return 0xFF000000 | (r << 16) | (g << 8) | b;
 }
