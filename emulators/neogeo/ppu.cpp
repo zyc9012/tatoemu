@@ -742,14 +742,13 @@ u32 PPU::alphaBlend(u32 dst, u32 src, u32 alpha) {
     return 0xFF000000 | (r << 16) | (g << 8) | b;
 }
 
-// Video controller VRAM access (auto-increment)
+// Video controller VRAM access
 // The video controller pointer can access both 64KB banks
+// Note: Reads do NOT auto-increment, only writes do
 u16 PPU::readVRAM() {
     // Pointer is already a byte address (0x00000-0x1FFFF) from setVRAMPointer
     u32 fullAddress = m_graphicsRamPointer & 0x1FFFF;  // Safety mask
-    u16 value = readGraphicsRAM16(fullAddress);
-    m_graphicsRamPointer = (m_graphicsRamPointer + m_graphicsRamModulo) & 0x1FFFF;
-    return value;
+    return readGraphicsRAM16(fullAddress);
 }
 
 void PPU::writeVRAM(u16 value) {

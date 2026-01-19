@@ -202,7 +202,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                 return false;
             }
             
-            // Interleave bytes: odd byte from second chip, even byte from first chip
+            // Interleave bytes: even byte from first chip, odd byte from second chip
             for (size_t j = 0; j < evenChip.size(); j++) {
                 m_spriteRom[offset++] = evenChip[j];
                 m_spriteRom[offset++] = oddChip[j];
