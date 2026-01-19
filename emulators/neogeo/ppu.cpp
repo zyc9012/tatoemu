@@ -462,8 +462,10 @@ void PPU::renderSpriteBank(u32 bankIndex) {
                 prevTile = tile;
                 
                 // Read tile number and attributes from sprite RAM
-                tileNumber = readGraphicsRAM16(tileDataBase + tile * 2);
-                tileAttrib = readGraphicsRAM16(tileDataBase + tile * 2 + 0x40);
+                // SCB1 format: tile number and attributes are stored as consecutive word pairs
+                // Word 0: tile 0 number, Word 1: tile 0 attrib, Word 2: tile 1 number, etc.
+                tileNumber = readGraphicsRAM16(tileDataBase + tile * 4);
+                tileAttrib = readGraphicsRAM16(tileDataBase + tile * 4 + 2);
                 
                 // Combine tile number with high bits from attribute
                 tileNumber |= (tileAttrib & 0xF0) << 12;
