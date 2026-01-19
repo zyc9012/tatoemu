@@ -2,8 +2,11 @@
 #include "cpu.h"
 #include "cartridge.h"
 #include "memory.h"
+#include "../core.h"
 #include <cstring>
 #include <algorithm>
+#include <iostream>
+#include <iomanip>
 
 namespace neogeo {
 
@@ -12,343 +15,274 @@ PPU::PPU()
     , m_cartridge(nullptr)
     , m_memory(nullptr)
     , m_videoDevice(nullptr)
-    , m_vramPointer(0)
-    , m_vramModulo(0)
-    , m_vramBank(0)
     , m_frameComplete(false)
     , m_scanline(0)
     , m_cycles(0)
     , m_spriteFrame(0)
-    , m_spriteFrameTimer(0) {
+    , m_graphicsRamPointer(0)
+    , m_graphicsRamModulo(0)
+    , m_enableGraphics(true)
+    , m_enableSprites(true)
+    , m_enableText(true)
+    , m_bankXPos(0)
+    , m_bankYPos(0)
+    , m_bankXZoom(0)
+    , m_bankYZoom(0)
+    , m_bankSize(0)
+    , m_spriteTileMask(0)
+    , m_maxSpriteTile(0)
+    , m_screenWidth(SCREEN_WIDTH)
+    , m_sliceStart(0x10)  // First visible scanline
+    , m_sliceEnd(0x110)   // Last visible scanline (0x110 = 272, includes 224 visible + overscan)
+    , m_maxSpriteBank(0x17d)
+{
     m_frameBuffer.fill(0);
-    m_vram.fill(0);
+    m_graphicsRam.fill(0);
+    m_palette.fill(0);
 }
 
 void PPU::reset() {
+    m_graphicsRam.fill(0);
     m_frameBuffer.fill(0);
-    m_vram.fill(0);
-    m_vramPointer = 0;
-    m_vramModulo = 0;
-    m_vramBank = 0;
-    m_frameComplete = false;
     m_scanline = 0;
     m_cycles = 0;
     m_spriteFrame = 0;
-    m_spriteFrameTimer = 0;
+    m_frameComplete = false;
+    m_graphicsRamPointer = 0;
+    m_graphicsRamModulo = 0;
+    m_bankXPos = 0;
+    m_bankYPos = 0;
+    m_bankXZoom = 0;
+    m_bankYZoom = 0;
+    m_bankSize = 0;
+    
+    // Initialize palette to black
+    m_palette.fill(0xFF000000);
+
+    // Load zoom ROM (256 bytes * 256 zoom levels = 64KB)
+    m_zoomRom.resize(0x10000);
+    for (u32 i = 0; i < 0x10000; i++) {
+        m_zoomRom[i] = m_cartridge->readZoomROM8(i);
+    }
+    
+    // Initialize sprite ROM attributes
+    initSpriteROM();
+    
+    // Initialize text ROM attributes
+    initTextROM();
+}
+
+void PPU::initSpriteROM() {
+    if (!m_cartridge) {
+        return;
+    }
+    
+    u32 spriteRomSize = m_cartridge->getSpriteROMSize();
+    if (spriteRomSize == 0) {
+        return;
+    }
+    
+    // Each tile is 128 bytes (16x16 pixels, 4bpp)
+    u32 numTiles = spriteRomSize / 128;
+    
+    // Calculate tile mask (power of 2 - 1)
+    m_maxSpriteTile = numTiles;
+    m_spriteTileMask = 1;
+    while (m_spriteTileMask < numTiles) {
+        m_spriteTileMask <<= 1;
+    }
+    m_spriteTileMask--;
+    
+    // Initialize tile transparency attributes
+    m_spriteTileAttrib.resize(m_spriteTileMask + 1, 0);
+    
+    // Scan all tiles to determine which are fully transparent
+    for (u32 i = 0; i < m_maxSpriteTile; i++) {
+        bool transparent = true;
+        for (u32 j = 0; j < 128; j++) {
+            if (m_cartridge->readSpriteROM8(i * 128 + j) != 0) {
+                transparent = false;
+                break;
+            }
+        }
+        m_spriteTileAttrib[i] = transparent ? 1 : 0;
+    }
+    
+    // Mark remaining tiles as transparent
+    for (u32 i = m_maxSpriteTile; i <= m_spriteTileMask; i++) {
+        m_spriteTileAttrib[i] = 1;
+    }
+}
+
+void PPU::initTextROM() {
+    if (!m_cartridge) {
+        return;
+    }
+    
+    u32 textRomSize = m_cartridge->getTextROMSize();
+    
+    // Decode text ROM tiles
+    // Each tile in ROM is 32 bytes, we decode to 32 bytes (8x8 pixels, 4bpp, 2 pixels per byte)
+    if (textRomSize > 0) {
+        u32 numTiles = std::max(0x1000u, textRomSize / 32);  // At least 4096 tiles
+        m_decodedText.resize(numTiles * 32, 0);
+        m_textTileAttrib.resize(numTiles, 1);
+        
+        // Copy already-decoded text ROM from cartridge
+        for (u32 i = 0; i < textRomSize; i++) {
+            m_decodedText[i] = m_cartridge->readTextROM8(i);
+        }
+        
+        // Build transparency attributes
+        for (u32 i = 0; i < textRomSize / 32; i++) {
+            bool transparent = true;
+            for (u32 j = 0; j < 32; j++) {
+                if (m_decodedText[i * 32 + j] != 0) {
+                    transparent = false;
+                    break;
+                }
+            }
+            m_textTileAttrib[i] = transparent ? 1 : 0;
+        }
+    }
+    
+    // Decode BIOS text ROM
+    u32 biosTextSize = 0x20000;  // 128KB BIOS text ROM
+    m_decodedTextBios.resize(biosTextSize, 0);
+    m_textTileAttribBios.resize(biosTextSize / 32, 1);
+    
+    for (u32 i = 0; i < biosTextSize; i++) {
+        m_decodedTextBios[i] = m_cartridge->readBIOSText8(i);
+    }
+    
+    // Build BIOS text transparency attributes
+    for (u32 i = 0; i < biosTextSize / 32; i++) {
+        bool transparent = true;
+        for (u32 j = 0; j < 32; j++) {
+            if (m_decodedTextBios[i * 32 + j] != 0) {
+                transparent = false;
+                break;
+            }
+        }
+        m_textTileAttribBios[i] = transparent ? 1 : 0;
+    }
 }
 
 void PPU::step() {
-    m_cycles++;
+    // NeoGeo timing: ~202752 cycles per frame at 12MHz
+    // 264 scanlines total, ~768 cycles per scanline
+    constexpr u32 CYCLES_PER_SCANLINE = 768;
     
-    // NeoGeo timing: ~12MHz CPU, ~59.185 Hz refresh, 264 scanlines
-    u32 cyclesPerFrame = CPU_FREQUENCY / static_cast<u32>(TARGET_FPS);
-    u32 cyclesPerScanline = cyclesPerFrame / TOTAL_SCANLINES;
+    m_cycles += 1;
     
-    u32 newScanline = (m_cycles / cyclesPerScanline) % TOTAL_SCANLINES;
-    
-    if (newScanline != m_scanline) {
-        u32 prevScanline = m_scanline;
-        m_scanline = newScanline;
+    if (m_cycles >= CYCLES_PER_SCANLINE) {
+        m_cycles -= CYCLES_PER_SCANLINE;
+        m_scanline++;
         
-        // VBlank starts at scanline 248 - fire VBlank IRQ (level 1 for cart systems)
-        // This is critical for games to run - they wait for VBlank interrupt
-        if (prevScanline < 248 && m_scanline >= 248) {
-            if (m_cpu) {
-                m_cpu->irq(1);  // VBlank IRQ is level 1 for cartridge systems
-            }
-        }
-        
-        // Frame complete at end of frame (scanline wraps to 0)
-        if (m_scanline == 0) {
-            // Render the entire frame
+        if (m_scanline >= TOTAL_SCANLINES) {
+            m_scanline = 0;
             renderFrame();
-            
             m_frameComplete = true;
-            m_cycles = 0;
             
-            // Update sprite animation frame
-            m_spriteFrameTimer++;
-            // Auto-animation timing (simplified)
-            
-            // Present frame to video device
-            if (m_videoDevice) {
-                m_videoDevice->render(m_frameBuffer.data());
+            // Increment sprite frame counter (used for sprite animation)
+            m_spriteFrame++;
+        }
+        
+        // VBlank starts at scanline 224
+        if (m_scanline == VISIBLE_SCANLINES) {
+            // Trigger VBlank interrupt
+            if (m_cpu) {
+                m_cpu->irq(1);  // VBlank is IRQ level 1
             }
         }
     }
 }
 
-u16 PPU::readVRAM() const {
-    u32 addr = m_vramPointer;
-    if (m_vramBank) {
-        addr += 0x10000;
-    }
-    return readVRAM16(addr);
-}
-
-void PPU::writeVRAM(u16 value) {
-    u32 addr = m_vramPointer;
-    if (m_vramBank) {
-        addr += 0x10000;
-    }
-    writeVRAM16(addr, value);
-    m_vramPointer = (m_vramPointer + m_vramModulo) & 0xFFFF;
-}
-
-void PPU::setVRAMPointer(u16 value) {
-    m_vramPointer = (value & 0x7FFF) << 1;
-    m_vramBank = (value & 0x8000) ? 1 : 0;
-}
-
-void PPU::setVRAMModulo(s16 value) {
-    m_vramModulo = static_cast<s32>(value) << 1;
-}
-
-u16 PPU::readVRAM16(u32 address) const {
-    address &= 0x1FFFF;  // 128KB
-    return static_cast<u16>(m_vram[address]) | 
-           (static_cast<u16>(m_vram[address + 1]) << 8);
-}
-
-void PPU::writeVRAM16(u32 address, u16 value) {
-    address &= 0x1FFFF;  // 128KB
-    m_vram[address] = static_cast<u8>(value & 0xFF);
-    m_vram[address + 1] = static_cast<u8>(value >> 8);
+void PPU::clearScreen() {
+    // Clear to backdrop color (palette entry 0x1000, bank 0, color 0)
+    u32 backdropColor = m_palette[0];
+    m_frameBuffer.fill(backdropColor);
 }
 
 void PPU::renderFrame() {
-    // Clear frame buffer to background color (palette 0, color 0)
-    u32 bgColor = getPaletteColor(0, 0);
-    m_frameBuffer.fill(bgColor);
+    static u32 frameCount = 0;
+    frameCount++;
     
-    // Render sprites (back to front, sprites have priority)
-    renderSprites();
-    
-    // Render text layer (fix layer, always on top)
-    renderText();
-}
-
-void PPU::renderSprites() {
-    if (!m_cartridge) return;
-    
-    // NeoGeo has 381 sprite "banks" (0-380)
-    // Each sprite can be multiple tiles tall (up to 32 tiles, 512 pixels)
-    
-    // Sprite Control Blocks in VRAM:
-    // SCB1 (0x0000-0x6FFF): Tile number + palette for each row
-    // SCB2 (0x8000-0x81FF): Y zoom
-    // SCB3 (0x8200-0x83FF): Y position, sticky bit, height
-    // SCB4 (0x8400-0x85FF): X position, X zoom
-    
-    int yZoom = 0xFF;
-    int spriteY = 0;
-    int spriteHeight = 0;
-    
-    for (int bank = 0; bank < 381; bank++) {
-        // Read SCB3 (Y position, sticky, height)
-        u16 scb3 = readVRAM16(0x8200 + bank * 2);
-        
-        bool sticky = (scb3 & 0x40) != 0;
-        
-        if (!sticky) {
-            // New sprite chain - read Y position and height
-            spriteY = (0x200 - (scb3 >> 7)) & 0x1FF;
-            spriteHeight = scb3 & 0x3F;
-            
-            // Read SCB2 (Y zoom)
-            u16 scb2 = readVRAM16(0x8000 + bank * 2);
-            yZoom = scb2 & 0xFF;
+    if (!m_enableGraphics) {
+        clearScreen();
+        if (m_videoDevice) {
+            m_videoDevice->render(m_frameBuffer.data());
         }
-        
-        if (spriteHeight == 0) continue;
-        
-        // Read SCB4 (X position, X zoom)
-        u16 scb4 = readVRAM16(0x8400 + bank * 2);
-        int spriteX = scb4 >> 7;
-        int xZoom = (scb4 >> 8) & 0x0F;
-        
-        // Adjust X for screen width
-        if (spriteX >= 0x1E0) {
-            spriteX -= 0x200;
-        }
-        
-        // Render each tile row of this sprite bank
-        for (int row = 0; row < spriteHeight && row < 32; row++) {
-            // Read SCB1 (tile number + palette)
-            u16 scb1 = readVRAM16(bank * 0x40 + row * 2);
-            u16 scb1b = readVRAM16(bank * 0x40 + row * 2 + 0x8000 + 0x2000); // Second word for tile num high bits
-            
-            // Tile number is 20 bits
-            u32 tileNum = (scb1 & 0xFFF) | ((scb1b & 0xF0) << 8) | ((scb1b & 0x0F) << 16);
-            u32 palette = (scb1 >> 8) & 0xFF;
-            bool flipX = (scb1b & 0x01) != 0;
-            bool flipY = (scb1b & 0x02) != 0;
-            
-            // Auto-animation
-            if (scb1b & 0x04) {
-                tileNum = (tileNum & ~0x03) | (m_spriteFrame & 0x03);
-            }
-            if (scb1b & 0x08) {
-                tileNum = (tileNum & ~0x07) | (m_spriteFrame & 0x07);
-            }
-            
-            // Calculate Y position for this row
-            int tileY = spriteY + row * 16;
-            if (tileY >= 0x200) tileY -= 0x200;
-            
-            // Render the tile
-            renderTile(tileNum, spriteX, tileY, palette, flipX, flipY, xZoom, yZoom);
-        }
-        
-        // Move X position for next sprite in chain
-        if (sticky) {
-            // Sticky sprites are placed next to each other
-        }
+        return;
+    }
+    
+    // Update palette from memory
+    updatePalette();
+    
+    // Clear screen to backdrop color
+    clearScreen();
+    
+    if (frameCount % 60 == 0) {
+        std::cout << "Frame " << frameCount << ": backdrop color = 0x" << std::hex << m_palette[0] << std::dec << std::endl;
+    }
+    
+    // Render sprites first (they go under the text layer)
+    if (m_enableSprites) {
+        renderSprites();
+    }
+    
+    // Render text layer on top
+    if (m_enableText) {
+        renderText();
+    }
+    
+    // Send frame to video device
+    if (m_videoDevice) {
+        m_videoDevice->render(m_frameBuffer.data());
     }
 }
 
-void PPU::renderTile(u32 tileNum, int x, int y, u32 palette, bool flipX, bool flipY, int zoomX, [[maybe_unused]] int zoomY) {
-    if (!m_cartridge) return;
+void PPU::updatePalette() {
+    if (!m_memory) {
+        return;
+    }
     
-    // Each tile is 16x16 pixels, stored as 128 bytes (4bpp = 4 bits per pixel)
-    // Sprite ROM is organized as: 8 bytes per row, 16 rows per tile
+    // Read palette bank control from memory
+    bool darken = false;  // TODO: Get from I/O register
     
-    u32 tileOffset = tileNum * 128;  // 128 bytes per tile
-    
-    // Calculate zoom factors (0 = full size, 0xF = minimum)
-    // For simplicity, we'll just render at full size initially
-    int tileWidth = 16 - zoomX;
-    
-    for (int ty = 0; ty < 16; ty++) {
-        int screenY = y + (flipY ? (15 - ty) : ty);
-        if (screenY < 0 || screenY >= static_cast<int>(SCREEN_HEIGHT)) continue;
-        
-        // Each row is 8 bytes (4bpp, 16 pixels)
-        u32 rowOffset = tileOffset + ty * 8;
-        
-        for (int tx = 0; tx < 16 && tx < tileWidth; tx++) {
-            int screenX = x + (flipX ? (15 - tx) : tx);
-            if (screenX < 0 || screenX >= static_cast<int>(SCREEN_WIDTH)) continue;
-            
-            // Get pixel color (4bpp)
-            // Sprite ROM is interleaved: odd/even bytes
-            u32 byteOffset = rowOffset + (tx / 2);
-            u8 data = m_cartridge->readSpriteROM8(byteOffset);
-            
-            u8 colorIndex;
-            if (tx & 1) {
-                colorIndex = data >> 4;
-            } else {
-                colorIndex = data & 0x0F;
-            }
-            
-            // Color 0 is transparent
-            if (colorIndex == 0) continue;
-            
-            // Get color from palette
-            u32 color = getPaletteColor(palette, colorIndex);
-            
-            // Write to frame buffer
-            m_frameBuffer[screenY * SCREEN_WIDTH + screenX] = color;
-        }
+    // Convert all 4096 palette entries from 16-bit to 32-bit ARGB
+    for (u32 i = 0; i < 4096; i++) {
+        u16 palEntry = m_memory->readPalette16(i * 2);
+        m_palette[i] = convertPaletteEntry(palEntry, darken);
     }
 }
 
-void PPU::renderText() {
-    if (!m_cartridge) return;
-    
-    // Fix layer (text layer) is a 40x32 tile map at VRAM 0xE000
-    // Each entry is 16 bits: PPPP TTTT TTTT TTTT (P=palette, T=tile)
-    // Tiles are 8x8 pixels
-    // Layout: column-major, each column has 32 tiles
-    
-    for (int row = 2; row < 30; row++) {
-        for (int col = 0; col < 40; col++) {
-            // Read tilemap entry - column-major layout
-            u16 entry = readVRAM16(0xE000 + row * 2 + col * 64);
-            
-            u32 tileNum = entry & 0x0FFF;
-            u32 palette = (entry >> 12) & 0x0F;
-            
-            // Skip empty tiles (tile 0 is typically blank)
-            if (tileNum == 0) continue;
-            
-            int x = col * 8;
-            int y = (row - 2) * 8;  // Adjust for skipped border rows
-            
-            renderTextTile(tileNum, x, y, palette);
-        }
-    }
-}
-
-void PPU::renderTextTile(u32 tileNum, int x, int y, u32 palette) {
-    if (!m_cartridge || !m_memory) return;
-    
-    // Text tiles are 8x8, 4bpp, stored as 32 bytes per tile (after decoding)
-    // Format: 4 bytes per row, each byte = 2 pixels (high nibble first, then low nibble)
-    u32 tileOffset = tileNum * 32;
-    
-    // Use BIOS text ROM or game text ROM depending on setting
-    bool useBiosTextRom = m_memory->isBIOSTextROMEnabled();
-    
-    for (int ty = 0; ty < 8; ty++) {
-        int screenY = y + ty;
-        if (screenY < 0 || screenY >= static_cast<int>(SCREEN_HEIGHT)) continue;
-        
-        // Each row is 4 bytes (4bpp, 8 pixels)
-        for (int tx = 0; tx < 8; tx++) {
-            int screenX = x + tx;
-            if (screenX < 0 || screenX >= static_cast<int>(SCREEN_WIDTH)) continue;
-            
-            // Get pixel data - text ROM is pre-decoded
-            // Each byte has 2 pixels: high nibble = even pixel, low nibble = odd pixel
-            u32 byteOffset = tileOffset + ty * 4 + (tx / 2);
-            u8 data = useBiosTextRom ? m_cartridge->readBIOSText8(byteOffset) 
-                                      : m_cartridge->readTextROM8(byteOffset);
-            
-            u8 colorIndex;
-            if (tx & 1) {
-                colorIndex = data & 0x0F;  // Odd pixel = low nibble
-            } else {
-                colorIndex = data >> 4;    // Even pixel = high nibble
-            }
-            
-            // Color 0 is transparent
-            if (colorIndex == 0) continue;
-            
-            // Text layer uses palettes 0-15 (same palette bank, not offset by 16)
-            u32 color = getPaletteColor(palette, colorIndex);
-            
-            // Write to frame buffer
-            m_frameBuffer[screenY * SCREEN_WIDTH + screenX] = color;
-        }
-    }
-}
-
-u32 PPU::convertPalette(u16 paletteEntry) const {
-    // NeoGeo palette format:
-    // Bit 15: Dark bit (reduces brightness)
-    // Bit 14: Red LSB
-    // Bit 13: Green LSB  
-    // Bit 12: Blue LSB
-    // Bits 11-8: Red high nibble
-    // Bits 7-4: Green high nibble
-    // Bits 3-0: Blue high nibble
+u32 PPU::convertPaletteEntry(u16 entry, bool /* darken */) {
+    // Neo Geo palette format (16-bit):
+    // Bits 11-8: Red (4 bits)
+    // Bits 7-4: Green (4 bits)
+    // Bits 3-0: Blue (4 bits)
+    // Bit 14: Red bit 4
+    // Bit 13: Green bit 4
+    // Bit 12: Blue bit 4
+    // Bit 15: Dark bit (contributes to bit 5 of each channel)
+    //
+    // Each color is 6 bits (0-63), with resistor network weighting
     
     // Extract 6-bit color values
-    int r = (paletteEntry & 0x0F00) >> 4;   // Red bits 11-8 -> bits 7-4
-    r |= (paletteEntry >> 11) & 8;           // Red bit 14 -> bit 3
-    r |= (paletteEntry >> 13) & 4;           // Dark bit 15 -> bit 2
+    u32 r = (entry & 0x0F00) >> 4;  // Bits 11-8 -> bits 7-4
+    r |= (entry >> 11) & 8;          // Bit 14 -> bit 3
+    r |= (entry >> 13) & 4;          // Bit 15 (dark) -> bit 2
     
-    int g = (paletteEntry & 0x00F0);         // Green bits 7-4 -> bits 7-4
-    g |= (paletteEntry >> 10) & 8;           // Green bit 13 -> bit 3
-    g |= (paletteEntry >> 13) & 4;           // Dark bit 15 -> bit 2
+    u32 g = (entry & 0x00F0);        // Bits 7-4
+    g |= (entry >> 10) & 8;          // Bit 13 -> bit 3
+    g |= (entry >> 13) & 4;          // Bit 15 (dark) -> bit 2
     
-    int b = (paletteEntry & 0x000F) << 4;    // Blue bits 3-0 -> bits 7-4
-    b |= (paletteEntry >> 9) & 8;            // Blue bit 12 -> bit 3
-    b |= (paletteEntry >> 13) & 4;           // Dark bit 15 -> bit 2
+    u32 b = (entry & 0x000F) << 4;   // Bits 3-0 -> bits 7-4
+    b |= (entry >> 9) & 8;           // Bit 12 -> bit 3
+    b |= (entry >> 13) & 4;          // Bit 15 (dark) -> bit 2
     
-    // Expand 6-bit to 8-bit (simple method: shift left 2, copy top bits to bottom)
+    // Simple linear scaling from 6-bit to 8-bit
     r = (r << 2) | (r >> 4);
     g = (g << 2) | (g >> 4);
     b = (b << 2) | (b >> 4);
@@ -356,38 +290,546 @@ u32 PPU::convertPalette(u16 paletteEntry) const {
     return 0xFF000000 | (r << 16) | (g << 8) | b;
 }
 
-u32 PPU::getPaletteColor(u32 paletteIndex, u32 colorIndex) const {
-    if (!m_memory) return 0xFF000000;
+void PPU::renderSprites() {
+    static u32 frameCount = 0;
+    frameCount++;
     
-    // Each palette has 16 colors, each color is 2 bytes
-    u32 address = (paletteIndex * 16 + colorIndex) * 2;
-    u16 paletteEntry = m_memory->readPalette16(address);
+    if (!m_cartridge || m_spriteTileMask == 0) {
+        if (frameCount % 60 == 0) {
+            std::cout << "renderSprites: cartridge null or tileMask=0" << std::endl;
+        }
+        return;
+    }
     
-    return convertPalette(paletteEntry);
+    // Calculate sprite bank limit for optimization
+    calcSpriteBankLimit();
+    
+    if (frameCount % 60 == 0) {
+        std::cout << "renderSprites: frame " << frameCount << ", maxSpriteBank=" << m_maxSpriteBank << std::endl;
+    }
+    
+    // Reset bank position for first sprite
+    m_bankXPos = 0;
+    m_bankYPos = 0;
+    m_bankXZoom = 0;
+    m_bankYZoom = 0;
+    m_bankSize = 0;
+    
+    // Render all sprite banks
+    constexpr u32 MAX_SPRITE_BANKS = 0x17d;  // 381 sprite banks
+    u32 numBanks = std::min(m_maxSpriteBank, MAX_SPRITE_BANKS);
+    
+    for (u32 bank = 0; bank < numBanks; bank++) {
+        // Read sprite control block attributes
+        // SCB2: Y position and size (0x10400 + bank * 2)
+        // SCB3: X position (0x10800 + bank * 2)
+        // SCB1: Tile data pointer (bank * 0x80)
+        
+        u16 attrib02 = readGraphicsRAM16(0x10400 + bank * 2);
+        u16 attrib03 = readGraphicsRAM16(0x10800 + bank * 2);
+        
+        // Check if this is a chained sprite (bit 6 of attrib02)
+        if (attrib02 & 0x40) {
+            // Chained sprite - continues previous sprite horizontally
+            m_bankXPos += m_bankXZoom + 1;
+        } else {
+            // New sprite strip
+            m_bankYPos = (0x0200 - (attrib02 >> 7)) & 0x01FF;
+            m_bankXPos = (attrib03 >> 7);
+            
+            // Adjust for non-overscan mode (304 pixels)
+            if (m_screenWidth == 304) {
+                m_bankXPos -= 8;
+            }
+            
+            u16 attrib01 = readGraphicsRAM16(0x10000 + bank * 2);
+            m_bankYZoom = attrib01 & 0xFF;
+            m_bankSize = attrib02 & 0x3F;
+        }
+        
+        // Skip if size is 0
+        if (m_bankSize == 0) {
+            continue;
+        }
+        
+        // Get X zoom
+        u16 attrib01 = readGraphicsRAM16(0x10000 + bank * 2);
+        m_bankXZoom = (attrib01 >> 8) & 0x0F;
+        
+        // Handle X position wraparound
+        if (m_bankXPos >= 0x01E0) {
+            m_bankXPos -= 0x200;
+        }
+        
+        // Only render if sprite is visible
+        if (m_bankXPos >= -static_cast<s32>(m_bankXZoom) && m_bankXPos < static_cast<s32>(m_screenWidth)) {
+            renderSpriteBank(bank);
+        }
+    }
+}
+
+void PPU::calcSpriteBankLimit() {
+    // Calculate maximum sprite bank based on per-scanline sprite limits
+    // Neo Geo has a limit of ~96 sprites per scanline
+    constexpr u32 MAX_SPRITE_BANKS = 0x17d;
+    
+    m_maxSpriteBank = MAX_SPRITE_BANKS;  // No limit for now (can be optimized)
+}
+
+void PPU::renderSpriteBank(u32 bankIndex) {
+    if (!m_cartridge) {
+        return;
+    }
+    
+    // Get sprite tile data base pointer (64 bytes per sprite tile)
+    u32 tileDataBase = bankIndex * 0x80;
+    
+    // Get zoom table for Y zoom
+    const u8* zoomTable = &m_zoomRom[m_bankYZoom * 256];
+    
+    // Calculate number of lines to render
+    u32 linesTotal = (m_bankSize >= 0x20) ? 0x01FF : ((m_bankSize << 4) - 1);
+    u32 linesDone = 0;
+    
+    while (linesDone <= linesTotal) {
+        u32 line = (m_bankYPos + linesDone) & 0x01FF;
+        u32 yPos = line;
+        
+        // Skip lines outside visible area
+        if (yPos < m_sliceStart) {
+            linesDone += m_sliceStart - yPos;
+            continue;
+        }
+        if (yPos >= m_sliceEnd) {
+            linesDone += m_sliceStart + 512 - yPos;
+            continue;
+        }
+        
+        // Render this strip section
+        u32 startTile = (linesDone >= 0x0100) ? 0x10 : 0;
+        u32 startLine = linesDone & 0xFF;
+        u32 endLine = (linesDone < 0x0100 && linesTotal >= 0x0100) ? 0xFF : (linesTotal & 0xFF);
+        
+        // Handle wraparound for full-size sprite strips
+        if (m_bankSize > 0x10 && m_bankYZoom != 0xFF) {
+            if (m_bankSize <= 0x20) {
+                if (linesDone >= 0x0100) {
+                    if (static_cast<s32>(linesDone) < (0x01FF - static_cast<s32>(m_bankYZoom))) {
+                        linesDone = (0x01FF - m_bankYZoom);
+                        continue;
+                    }
+                    startLine -= 0xFF - m_bankYZoom;
+                    endLine -= 0xFF - m_bankYZoom;
+                }
+            } else {
+                // Full strip with full wrap
+                if (linesDone >= 0x0100) {
+                    startLine -= 0xFF - m_bankYZoom;
+                    if (static_cast<s32>(startLine) < 0) {
+                        startLine = m_bankYZoom - ((-static_cast<s32>(startLine) - 1) % (m_bankYZoom + 1));
+                        startTile = 0;
+                    }
+                } else {
+                    if (static_cast<s32>(startLine) > static_cast<s32>(m_bankYZoom)) {
+                        startLine %= m_bankYZoom + 1;
+                        startTile = 0x10;
+                    }
+                }
+                endLine = m_bankYZoom;
+            }
+        }
+        
+        linesDone += endLine - startLine + 1;
+        
+        // Clip to visible screen area
+        if (endLine - startLine > m_sliceEnd - yPos - 1) {
+            endLine = startLine + m_sliceEnd - yPos - 1;
+        }
+        
+        // Render each line in this section
+        u32 thisLine = startLine;
+        s32 prevTile = -1;
+        u32 tileNumber = 0;
+        u16 tileAttrib = 0;
+        u8 transparent = 0;
+        u32* tilePalette = nullptr;
+        
+        while (thisLine <= endLine) {
+            u32 tile = startTile + (zoomTable[thisLine] >> 4);
+            
+            // Only read tile data if tile changed
+            if (static_cast<s32>(tile) != prevTile) {
+                prevTile = tile;
+                
+                // Read tile number and attributes from sprite RAM
+                tileNumber = readGraphicsRAM16(tileDataBase + tile * 2);
+                tileAttrib = readGraphicsRAM16(tileDataBase + tile * 2 + 0x40);
+                
+                // Combine tile number with high bits from attribute
+                tileNumber |= (tileAttrib & 0xF0) << 12;
+                tileNumber &= m_spriteTileMask;
+                
+                // Handle sprite animation
+                if (tileAttrib & 8) {
+                    tileNumber &= ~7;
+                    tileNumber |= (m_spriteFrame & 7);
+                } else if (tileAttrib & 4) {
+                    tileNumber &= ~3;
+                    tileNumber |= (m_spriteFrame & 3);
+                }
+                
+                // Check transparency
+                transparent = m_spriteTileAttrib[tileNumber];
+                
+                if (transparent != 1) {
+                    // Get palette for this tile
+                    u32 paletteIndex = (tileAttrib & 0xFF00) >> 4;
+                    tilePalette = &m_palette[paletteIndex];
+                }
+            }
+            
+            // Render the line if not transparent
+            if (transparent != 1) {
+                u32 tileLine = (zoomTable[thisLine] & 0x0F);
+                
+                // Apply Y flip
+                if (tileAttrib & 2) {
+                    tileLine ^= 0x0F;
+                }
+                
+                // Render the sprite line (lineData will be read inside the function)
+                renderSpriteLine(nullptr, tilePalette, m_bankXPos, yPos - 0x10, 
+                               tileNumber, tileLine, tileAttrib & 1, tileAttrib & 2, m_bankXZoom, transparent);
+            }
+            
+            yPos++;
+            thisLine++;
+        }
+    }
+}
+
+void PPU::renderSpriteLine(const u8* /* tileData */, u32* palette, s32 xPos, s32 yPos,
+                          u32 tileNumber, u32 line, bool flipX, bool /* flipY */, u32 xZoom, u8 transparent) {
+    if (!palette || !m_cartridge) {
+        return;
+    }
+    
+    // Check if line is visible
+    if (yPos < 0 || yPos >= static_cast<s32>(SCREEN_HEIGHT)) {
+        return;
+    }
+    
+    // Calculate pixel position in framebuffer
+    u32* lineBuffer = &m_frameBuffer[yPos * SCREEN_WIDTH];
+    
+    // Sprite ROM is decoded into 32-bit words
+    // Each sprite tile is 128 bytes = 32 UINT32 values
+    // Each scanline uses 2 UINT32 values (16 pixels, 4bpp = 64 bits = 8 bytes)
+    u32 tileOffset = tileNumber * 128;
+    
+    // Read the two 32-bit words for this line
+    // Note: line is already the Y position within the tile (0-15)
+    // Decoded sprite data is stored as u32 array, so read in little-endian order
+    u32 word0 = m_cartridge->readSpriteROM8(tileOffset + line * 8 + 0) |
+                m_cartridge->readSpriteROM8(tileOffset + line * 8 + 1) << 8 |
+                m_cartridge->readSpriteROM8(tileOffset + line * 8 + 2) << 16 |
+                m_cartridge->readSpriteROM8(tileOffset + line * 8 + 3) << 24;
+    
+    u32 word1 = m_cartridge->readSpriteROM8(tileOffset + line * 8 + 4) |
+                m_cartridge->readSpriteROM8(tileOffset + line * 8 + 5) << 8 |
+                m_cartridge->readSpriteROM8(tileOffset + line * 8 + 6) << 16 |
+                m_cartridge->readSpriteROM8(tileOffset + line * 8 + 7) << 24;
+    
+    // Render pixels with zoom
+    // For now, simplified zoom: just render based on xZoom value
+    // xZoom 15 = full 16 pixels, xZoom 0 = 1 pixel
+    // TODO: Use zoom table for accurate rendering like FBNeo
+    u32 pixelsToRender = xZoom + 1;
+    if (pixelsToRender > 16) pixelsToRender = 16;
+    
+    for (u32 px = 0; px < pixelsToRender; px++) {
+        s32 screenX = xPos + px;
+        
+        // Clip to screen bounds
+        if (screenX < 0 || screenX >= static_cast<s32>(m_screenWidth)) {
+            continue;
+        }
+        
+        // Get pixel index (with X flip)
+        u32 pixelIdx = flipX ? (15 - px) : px;
+        
+        // Extract 4-bit color from the appropriate word
+        // Pixels are packed sequentially: bits 3-0, 7-4, 11-8, 15-12, 19-16, 23-20, 27-24, 31-28
+        u8 colorIdx;
+        if (pixelIdx < 8) {
+            // Pixels 0-7 are in word0, starting from LSB
+            colorIdx = (word0 >> (pixelIdx * 4)) & 0x0F;
+        } else {
+            // Pixels 8-15 are in word1, starting from LSB
+            colorIdx = (word1 >> ((pixelIdx - 8) * 4)) & 0x0F;
+        }
+        
+        // Skip transparent pixels (color 0)
+        if (colorIdx == 0) {
+            continue;
+        }
+        
+        // Plot pixel with alpha blending if needed
+        u32 color = palette[colorIdx];
+        
+        if (transparent > 1) {
+            // Apply transparency/alpha blending
+            lineBuffer[screenX] = alphaBlend(lineBuffer[screenX], color, transparent);
+        } else {
+            lineBuffer[screenX] = color;
+        }
+    }
+}
+
+void PPU::renderText() {
+    static u32 frameCount = 0;
+    static bool logged = false;
+    frameCount++;
+    
+    if (!m_cartridge || !m_memory) {
+        if (frameCount % 60 == 0) {
+            std::cout << "renderText: cartridge or memory is null" << std::endl;
+        }
+        return;
+    }
+    
+    // Text layer is 40x28 tiles (320x224 pixels with 8x8 tiles)
+    // Located at 0xE000-0xFFFF in graphics RAM
+    // Each tile entry is 16 bits:
+    // - Bits 15-12: Palette (16 palettes of 16 colors)
+    // - Bits 11-0: Tile number (4096 tiles)
+    
+    const u8* textRom;
+    const u8* tileAttrib;
+    bool useBios = m_memory->isBIOSTextROMEnabled();
+    
+    // Check if BIOS text ROM is enabled
+    if (useBios) {
+        textRom = m_decodedTextBios.data();
+        tileAttrib = m_textTileAttribBios.data();
+        
+        if (!textRom || m_decodedTextBios.empty()) {
+            if (frameCount % 60 == 0) {
+                std::cout << "renderText: BIOS text ROM is empty" << std::endl;
+            }
+            return;
+        }
+    } else {
+        textRom = m_decodedText.data();
+        tileAttrib = m_textTileAttrib.data();
+        
+        if (!textRom || m_decodedText.empty()) {
+            if (frameCount % 60 == 0) {
+                std::cout << "renderText: cartridge text ROM is empty" << std::endl;
+            }
+            return;
+        }
+    }
+    
+    // Render text tiles
+    // Text layer is stored in COLUMN-MAJOR order in graphics RAM
+    // Each column is 64 bytes (32 tiles * 2 bytes per tile)
+    // Skip first 2 rows and last 2 rows (only render rows 2-29)
+    u32 nonEmptyTiles = 0;
+    for (u32 y = 2; y < 30; y++) {
+        for (u32 x = 0; x < 40; x++) {
+            // Text layer is column-major: tile(x,y) = 0xE000 + x*64 + y*2
+            u32 tileAddr = 0xE000 + (x << 6) + (y << 1);
+            u16 tileEntry = readGraphicsRAM16(tileAddr);
+            
+            if (tileEntry != 0 && !logged && frameCount > 60) {
+                std::cout << "Text tile at (" << x << "," << y << ") addr=0x" << std::hex << tileAddr 
+                         << " entry=0x" << tileEntry << std::dec << std::endl;
+                logged = true;
+            }
+            
+            u32 tileNum = tileEntry & 0x0FFF;
+            u32 paletteIdx = (tileEntry >> 12) & 0x0F;
+            
+            if (tileEntry != 0) {
+                nonEmptyTiles++;
+            }
+            
+            // Check if tile is transparent
+            if (tileNum < m_textTileAttrib.size() && tileAttrib[tileNum] == 1) {
+                continue;  // Skip transparent tiles
+            }
+            
+            // Render tile
+            renderTextTile(x * 8, y * 8, tileNum, paletteIdx * 16, textRom, tileAttrib);
+        }
+    }
+    
+    if (frameCount % 60 == 0) {
+        std::cout << "renderText: frame " << frameCount << ", BIOS=" << useBios 
+                 << ", nonEmptyTiles=" << nonEmptyTiles << std::endl;
+    }
+}
+
+void PPU::renderTextTile(s32 x, s32 y, u32 tileNum, u32 paletteOffset, 
+                        const u8* textRom, const u8* /* attrib */) {
+    if (!textRom) {
+        return;
+    }
+    
+    // Each text tile is 8x8 pixels, 4bpp (32 bytes)
+    // Stored as 2 pixels per byte in decoded format
+    const u8* tileData = textRom + tileNum * 32;
+    u32* palette = &m_palette[paletteOffset];
+    
+    // Render each pixel of the tile
+    for (u32 py = 0; py < 8; py++) {
+        s32 screenY = y + py;
+        
+        // Clip to screen bounds
+        if (screenY < 0 || screenY >= static_cast<s32>(SCREEN_HEIGHT)) {
+            continue;
+        }
+        
+        u32* lineBuffer = &m_frameBuffer[screenY * SCREEN_WIDTH];
+        
+        for (u32 px = 0; px < 8; px++) {
+            s32 screenX = x + px;
+            
+            // Clip to screen bounds
+            if (screenX < 0 || screenX >= static_cast<s32>(m_screenWidth)) {
+                continue;
+            }
+            
+            // Get pixel color (4bpp, 2 pixels per byte)
+            u32 byteIdx = py * 4 + (px >> 1);
+            u8 pixelPair = tileData[byteIdx];
+            
+            u8 colorIdx;
+            if (px & 1) {
+                colorIdx = pixelPair & 0x0F;  // Low nibble
+            } else {
+                colorIdx = pixelPair >> 4;     // High nibble
+            }
+            
+            // Skip transparent pixels (color 0)
+            if (colorIdx == 0) {
+                continue;
+            }
+            
+            // Plot pixel
+            lineBuffer[screenX] = palette[colorIdx];
+        }
+    }
+}
+
+u32 PPU::alphaBlend(u32 dst, u32 src, u32 alpha) {
+    // Simple alpha blending
+    u32 invAlpha = 255 - alpha;
+    
+    u32 dstR = (dst >> 16) & 0xFF;
+    u32 dstG = (dst >> 8) & 0xFF;
+    u32 dstB = dst & 0xFF;
+    
+    u32 srcR = (src >> 16) & 0xFF;
+    u32 srcG = (src >> 8) & 0xFF;
+    u32 srcB = src & 0xFF;
+    
+    u32 r = (srcR * alpha + dstR * invAlpha) / 255;
+    u32 g = (srcG * alpha + dstG * invAlpha) / 255;
+    u32 b = (srcB * alpha + dstB * invAlpha) / 255;
+    
+    return 0xFF000000 | (r << 16) | (g << 8) | b;
+}
+
+// Video controller VRAM access (auto-increment)
+// The video controller pointer can access both 64KB banks
+u16 PPU::readVRAM() {
+    // Pointer is already a byte address (0x00000-0x1FFFF) from setVRAMPointer
+    u32 fullAddress = m_graphicsRamPointer & 0x1FFFF;  // Safety mask
+    u16 value = readGraphicsRAM16(fullAddress);
+    m_graphicsRamPointer = (m_graphicsRamPointer + m_graphicsRamModulo) & 0x1FFFF;
+    return value;
+}
+
+void PPU::writeVRAM(u16 value) {
+    static u32 writeCount = 0;
+    writeCount++;
+    
+    // Pointer is already a byte address (0x00000-0x1FFFF) from setVRAMPointer
+    u32 fullAddress = m_graphicsRamPointer & 0x1FFFF;  // Safety mask
+    
+    if (writeCount < 10) {
+        std::cout << "writeVRAM[" << writeCount << "]: addr=0x" << std::hex << fullAddress 
+                 << " value=0x" << value << " pointer=0x" << m_graphicsRamPointer 
+                 << " modulo=" << std::dec << m_graphicsRamModulo << std::endl;
+    } else if (writeCount == 10) {
+        std::cout << "writeVRAM: (suppressing further logs)" << std::endl;
+    }
+    
+    writeGraphicsRAM16(fullAddress, value);
+    m_graphicsRamPointer = (m_graphicsRamPointer + m_graphicsRamModulo) & 0x1FFFF;
+}
+
+// Graphics RAM access
+u8 PPU::readGraphicsRAM8(u32 address) {
+    address &= 0x1FFFF;  // Wrap to 128KB (0x00000-0x1FFFF)
+    return m_graphicsRam[address];
+}
+
+u16 PPU::readGraphicsRAM16(u32 address) {
+    address &= 0x1FFFE;  // Align to 16-bit and wrap to 128KB
+    
+    // Big endian
+    return (m_graphicsRam[address] << 8) | m_graphicsRam[address + 1];
+}
+
+void PPU::writeGraphicsRAM8(u32 address, u8 value) {
+    address &= 0x1FFFF;  // Wrap to 128KB
+    m_graphicsRam[address] = value;
+}
+
+void PPU::writeGraphicsRAM16(u32 address, u16 value) {
+    static u32 directWriteCount = 0;
+    
+    address &= 0x1FFFE;  // Align to 16-bit and wrap to 128KB
+    
+    if (directWriteCount < 5) {
+        std::cout << "writeGraphicsRAM16[" << directWriteCount << "]: addr=0x" << std::hex 
+                 << address << " value=0x" << value << std::dec << std::endl;
+        directWriteCount++;
+    }
+    
+    // Big endian
+    m_graphicsRam[address] = value >> 8;
+    m_graphicsRam[address + 1] = value & 0xFF;
 }
 
 void PPU::saveState(std::ofstream& file) {
-    file.write(reinterpret_cast<const char*>(m_frameBuffer.data()), m_frameBuffer.size() * sizeof(u32));
-    file.write(reinterpret_cast<const char*>(m_vram.data()), m_vram.size());
-    file.write(reinterpret_cast<const char*>(&m_vramPointer), sizeof(m_vramPointer));
-    file.write(reinterpret_cast<const char*>(&m_vramModulo), sizeof(m_vramModulo));
-    file.write(reinterpret_cast<const char*>(&m_vramBank), sizeof(m_vramBank));
+    // Write graphics RAM
+    file.write(reinterpret_cast<const char*>(m_graphicsRam.data()), m_graphicsRam.size());
+    
+    // Write frame state
     file.write(reinterpret_cast<const char*>(&m_scanline), sizeof(m_scanline));
     file.write(reinterpret_cast<const char*>(&m_cycles), sizeof(m_cycles));
     file.write(reinterpret_cast<const char*>(&m_spriteFrame), sizeof(m_spriteFrame));
-    file.write(reinterpret_cast<const char*>(&m_spriteFrameTimer), sizeof(m_spriteFrameTimer));
+    file.write(reinterpret_cast<const char*>(&m_graphicsRamPointer), sizeof(m_graphicsRamPointer));
+    file.write(reinterpret_cast<const char*>(&m_graphicsRamModulo), sizeof(m_graphicsRamModulo));
 }
 
 void PPU::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(m_frameBuffer.data()), m_frameBuffer.size() * sizeof(u32));
-    file.read(reinterpret_cast<char*>(m_vram.data()), m_vram.size());
-    file.read(reinterpret_cast<char*>(&m_vramPointer), sizeof(m_vramPointer));
-    file.read(reinterpret_cast<char*>(&m_vramModulo), sizeof(m_vramModulo));
-    file.read(reinterpret_cast<char*>(&m_vramBank), sizeof(m_vramBank));
+    // Read graphics RAM
+    file.read(reinterpret_cast<char*>(m_graphicsRam.data()), m_graphicsRam.size());
+    
+    // Read frame state
     file.read(reinterpret_cast<char*>(&m_scanline), sizeof(m_scanline));
     file.read(reinterpret_cast<char*>(&m_cycles), sizeof(m_cycles));
     file.read(reinterpret_cast<char*>(&m_spriteFrame), sizeof(m_spriteFrame));
-    file.read(reinterpret_cast<char*>(&m_spriteFrameTimer), sizeof(m_spriteFrameTimer));
+    file.read(reinterpret_cast<char*>(&m_graphicsRamPointer), sizeof(m_graphicsRamPointer));
+    file.read(reinterpret_cast<char*>(&m_graphicsRamModulo), sizeof(m_graphicsRamModulo));
+    
+    // Update palette
+    updatePalette();
 }
 
 } // namespace neogeo

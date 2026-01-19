@@ -64,7 +64,7 @@ private:
     double m_gameSpeed = 1.0;
 
     // BIOS configuration
-    u32 m_bios68kIndex = 15;
+    u32 m_bios68kIndex = 19;
 };
 
 } // namespace neogeo

@@ -535,7 +535,7 @@ void Memory::writeIO1(u8 offset, u8 value) {
     }
 }
 
-void Memory::writeIO2(u8 offset, u8 value) {
+void Memory::writeIO2(u8 offset, u8 /* value */) {
     // I/O port 2 (0x3A0000 area) - uses only lower 5 bits
     switch (offset) {
         case 0x01:
