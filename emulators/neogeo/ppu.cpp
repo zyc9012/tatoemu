@@ -206,9 +206,6 @@ void PPU::clearScreen() {
 }
 
 void PPU::renderFrame() {
-    static u32 frameCount = 0;
-    frameCount++;
-    
     if (!m_enableGraphics) {
         clearScreen();
         if (m_videoDevice) {
@@ -222,10 +219,6 @@ void PPU::renderFrame() {
     
     // Clear screen to backdrop color
     clearScreen();
-    
-    if (frameCount % 60 == 0) {
-        std::cout << "Frame " << frameCount << ": backdrop color = 0x" << std::hex << m_palette[0x0FFF] << std::dec << std::endl;
-    }
     
     // Render sprites first (they go under the text layer)
     if (m_enableSprites) {
@@ -292,22 +285,12 @@ u32 PPU::convertPaletteEntry(u16 entry, bool /* darken */) {
 }
 
 void PPU::renderSprites() {
-    static u32 frameCount = 0;
-    frameCount++;
-    
     if (!m_cartridge || m_spriteTileMask == 0) {
-        if (frameCount % 60 == 0) {
-            std::cout << "renderSprites: cartridge null or tileMask=0" << std::endl;
-        }
         return;
     }
     
     // Calculate sprite bank limit for optimization
     calcSpriteBankLimit();
-    
-    if (frameCount % 60 == 0) {
-        std::cout << "renderSprites: frame " << frameCount << ", maxSpriteBank=" << m_maxSpriteBank << std::endl;
-    }
     
     // Reset bank position for first sprite
     m_bankXPos = 0;
@@ -590,14 +573,7 @@ void PPU::renderSpriteLine(const u8* /* tileData */, u32* palette, s32 xPos, s32
 }
 
 void PPU::renderText() {
-    static u32 frameCount = 0;
-    static bool logged = false;
-    frameCount++;
-    
     if (!m_cartridge || !m_memory) {
-        if (frameCount % 60 == 0) {
-            std::cout << "renderText: cartridge or memory is null" << std::endl;
-        }
         return;
     }
     
@@ -617,9 +593,6 @@ void PPU::renderText() {
         tileAttrib = m_textTileAttribBios.data();
         
         if (!textRom || m_decodedTextBios.empty()) {
-            if (frameCount % 60 == 0) {
-                std::cout << "renderText: BIOS text ROM is empty" << std::endl;
-            }
             return;
         }
     } else {
@@ -627,9 +600,6 @@ void PPU::renderText() {
         tileAttrib = m_textTileAttrib.data();
         
         if (!textRom || m_decodedText.empty()) {
-            if (frameCount % 60 == 0) {
-                std::cout << "renderText: cartridge text ROM is empty" << std::endl;
-            }
             return;
         }
     }
@@ -638,25 +608,14 @@ void PPU::renderText() {
     // Text layer is stored in COLUMN-MAJOR order in graphics RAM
     // Each column is 64 bytes (32 tiles * 2 bytes per tile)
     // Skip first 2 rows and last 2 rows (only render rows 2-29)
-    u32 nonEmptyTiles = 0;
     for (u32 y = 2; y < 30; y++) {
         for (u32 x = 0; x < 40; x++) {
             // Text layer is column-major: tile(x,y) = 0xE000 + x*64 + y*2
             u32 tileAddr = 0xE000 + (x << 6) + (y << 1);
             u16 tileEntry = readGraphicsRAM16(tileAddr);
-            
-            if (tileEntry != 0 && !logged && frameCount > 60) {
-                std::cout << "Text tile at (" << x << "," << y << ") addr=0x" << std::hex << tileAddr 
-                         << " entry=0x" << tileEntry << std::dec << std::endl;
-                logged = true;
-            }
-            
+
             u32 tileNum = tileEntry & 0x0FFF;
             u32 paletteIdx = (tileEntry >> 12) & 0x0F;
-            
-            if (tileEntry != 0) {
-                nonEmptyTiles++;
-            }
             
             // Check if tile is transparent
             if (tileNum < m_textTileAttrib.size() && tileAttrib[tileNum] == 1) {
@@ -666,11 +625,6 @@ void PPU::renderText() {
             // Render tile - rows 2-29 map to screen Y 0-223
             renderTextTile(x * 8, (y - 2) * 8, tileNum, paletteIdx * 16, textRom, tileAttrib);
         }
-    }
-    
-    if (frameCount % 60 == 0) {
-        std::cout << "renderText: frame " << frameCount << ", BIOS=" << useBios 
-                 << ", nonEmptyTiles=" << nonEmptyTiles << std::endl;
     }
 }
 
@@ -755,20 +709,9 @@ u16 PPU::readVRAM() {
 }
 
 void PPU::writeVRAM(u16 value) {
-    static u32 writeCount = 0;
-    writeCount++;
-    
     // Pointer is already a byte address (0x00000-0x1FFFF) from setVRAMPointer
     u32 fullAddress = m_graphicsRamPointer & 0x1FFFF;  // Safety mask
-    
-    if (writeCount < 10) {
-        std::cout << "writeVRAM[" << writeCount << "]: addr=0x" << std::hex << fullAddress 
-                 << " value=0x" << value << " pointer=0x" << m_graphicsRamPointer 
-                 << " modulo=" << std::dec << m_graphicsRamModulo << std::endl;
-    } else if (writeCount == 10) {
-        std::cout << "writeVRAM: (suppressing further logs)" << std::endl;
-    }
-    
+
     writeGraphicsRAM16(fullAddress, value);
     m_graphicsRamPointer = (m_graphicsRamPointer + m_graphicsRamModulo) & 0x1FFFF;
 }
@@ -792,16 +735,8 @@ void PPU::writeGraphicsRAM8(u32 address, u8 value) {
 }
 
 void PPU::writeGraphicsRAM16(u32 address, u16 value) {
-    static u32 directWriteCount = 0;
-    
     address &= 0x1FFFE;  // Align to 16-bit and wrap to 128KB
-    
-    if (directWriteCount < 5) {
-        std::cout << "writeGraphicsRAM16[" << directWriteCount << "]: addr=0x" << std::hex 
-                 << address << " value=0x" << value << std::dec << std::endl;
-        directWriteCount++;
-    }
-    
+
     // Big endian
     m_graphicsRam[address] = value >> 8;
     m_graphicsRam[address + 1] = value & 0xFF;
