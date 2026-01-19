@@ -32,8 +32,8 @@ PPU::PPU()
     , m_spriteTileMask(0)
     , m_maxSpriteTile(0)
     , m_screenWidth(SCREEN_WIDTH)
-    , m_sliceStart(0x10)  // First visible scanline
-    , m_sliceEnd(0x110)   // Last visible scanline (0x110 = 272, includes 224 visible + overscan)
+    , m_sliceStart(0x10)  // First visible scanline (Neo Geo Y coordinate)
+    , m_sliceEnd(0xF0)    // Last visible scanline + 1 (0x10 + 224 = 0xF0 = 240)
     , m_maxSpriteBank(0x17d)
 {
     m_frameBuffer.fill(0);
@@ -662,8 +662,8 @@ void PPU::renderText() {
                 continue;  // Skip transparent tiles
             }
             
-            // Render tile
-            renderTextTile(x * 8, y * 8, tileNum, paletteIdx * 16, textRom, tileAttrib);
+            // Render tile - rows 2-29 map to screen Y 0-223
+            renderTextTile(x * 8, (y - 2) * 8, tileNum, paletteIdx * 16, textRom, tileAttrib);
         }
     }
     
