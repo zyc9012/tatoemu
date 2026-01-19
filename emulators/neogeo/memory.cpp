@@ -52,7 +52,7 @@ void Memory::reset() {
     m_sramWritable = false;
     m_paletteBank = 0;
     m_darkenPalette = false;
-    m_biosTextRomEnabled = true;
+    m_biosTextRomEnabled = false;
     
     // Reset video controller registers
     m_graphicsRamPointer = 0;
@@ -561,7 +561,11 @@ void Memory::writeIO2(u8 offset, u8 /* value */) {
             
         case 0x0B:
             // Select BIOS text/Z80 ROM
-            m_biosTextRomEnabled = true;
+            // For AES systems, this doesn't enable BIOS text ROM (games use their own text ROM)
+            // For MVS systems, this enables BIOS text ROM
+            if (m_cartridge && !m_cartridge->isAES()) {
+                m_biosTextRomEnabled = true;
+            }
             if (m_z80BiosRomMapped == false) {
                 m_z80BiosRomMapped = true;
             }
