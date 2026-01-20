@@ -116,7 +116,8 @@ private:
     void decodeBIOSTextROM();
     void processSWAPCRom();  // SWAPC: swap sprite ROM regions
     void buildVectorTables();  // Build vector table copies
-    
+    void extractTextFromSprites(u32 textRomSize);  // Extract text data from sprite ROMs
+
     // Text tile decoding helper (decodes one 32-byte tile)
     static void decodeTextTile(const u8* src, u8* dst);
 };

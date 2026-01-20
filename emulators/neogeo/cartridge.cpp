@@ -183,6 +183,13 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     if (!interleaveSpriteROMs(spriteRomChips)) {
         return false;
     }
+
+    // If no text ROM was loaded, extract text data from sprites
+    if (m_textRom.empty() && !m_spriteRom.empty() && m_spriteRom.size() > 0x80000) {
+        // Extract 512KB of text data from the end of the sprite ROM
+        extractTextFromSprites(0x80000);
+    }
+
     decodeSpriteROM();
 
     // Handle SWAPC: swap sprite ROM regions (0x200000-0x3FFFFF with 0x400000-0x4FFFFF)
@@ -558,6 +565,29 @@ void Cartridge::processSWAPCRom() {
     for (u32 i = 0; i < WORD_COUNT; i++) {
         dest1[i] = src1[i];  // Copy region 2 (from temp) to region 1
         dest2[i] = src2[i];  // Copy region 1 (from temp) to region 2
+    }
+}
+
+void Cartridge::extractTextFromSprites(u32 textRomSize) {
+    if (m_spriteRom.empty() || textRomSize == 0) {
+        return;
+    }
+
+    m_textRom.resize(textRomSize);
+
+    // Extract text data from the end of sprite ROMs
+    const u8* spriteRom = m_spriteRom.data();
+    u32 spriteRomSize = static_cast<u32>(m_spriteRom.size());
+    const u8* src = spriteRom + (spriteRomSize - textRomSize);
+
+    // Rearrange bytes
+    for (u32 i = 0; i < textRomSize; i++) {
+        u32 srcOffset = (i & ~0x1F) + ((i & 7) << 2) + ((~i & 8) >> 2) + ((i & 0x10) >> 4);
+        if (srcOffset < textRomSize) {
+            m_textRom[i] = src[srcOffset];
+        } else {
+            m_textRom[i] = 0;
+        }
     }
 }
 
