@@ -60,8 +60,8 @@ bool Cartridge::load(const fs::path& filename, u32 bios68kIndex) {
         return false;
     }
     
-    // Load BIOS ROMs from neogeo.zip in the same directory
-    if (!loadBIOSROMs(filename, bios68kIndex)) {
+    // Load BIOS ROMs from game ZIP first, then neogeo.zip
+    if (!loadBIOSROMs(romFiles, filename, bios68kIndex)) {
         return false;
     }
     
@@ -401,30 +401,7 @@ void Cartridge::decodeSpriteROM() {
     }
 }
 
-bool Cartridge::loadBIOSROMs(const fs::path& gameRomPath, u32 bios68kIndex) {
-    // Find neogeo.zip in the same directory as the game ROM
-    fs::path biosZipPath = gameRomPath.parent_path() / "neogeo.zip";
-    
-    if (!fs::exists(biosZipPath)) {
-        std::cerr << "Warning: neogeo.zip not found in " << gameRomPath.parent_path() << std::endl;
-        std::cerr << "BIOS ROMs will not be available" << std::endl;
-        return false;  // BIOS is optional for now, but should be present
-    }
-    
-    // Open BIOS ZIP
-    util::ZipReader biosZip;
-    if (!biosZip.open(biosZipPath)) {
-        std::cerr << "Failed to open BIOS ZIP: " << biosZipPath << std::endl;
-        return false;
-    }
-    
-    // Extract all BIOS ROM files
-    std::map<std::string, std::vector<u8>> biosFiles;
-    if (!biosZip.extractAll(biosFiles)) {
-        std::cerr << "Failed to extract BIOS files from ZIP" << std::endl;
-        return false;
-    }
-    
+bool Cartridge::loadBIOSROMs(const std::map<std::string, std::vector<u8>>& romFiles, const fs::path& gameRomPath, u32 bios68kIndex) {
     // Clear existing BIOS ROMs
     m_bios68kRom.clear();
     m_biosZ80Rom.clear();
@@ -437,7 +414,51 @@ bool Cartridge::loadBIOSROMs(const fs::path& gameRomPath, u32 bios68kIndex) {
     // Index 38: Text BIOS (sfix.sfix)
     // Index 39: Zoom table (000-lo.lo)
     const BIOSROMEntry* biosROMs = GameDatabase::getBIOSROMs();
-    
+
+    // BIOS files from neogeo.zip - loaded on demand
+    std::map<std::string, std::vector<u8>> biosFiles;
+
+    // Lambda function to load a BIOS file with priority: game ZIP -> neogeo.zip
+    auto loadBIOSFile = [&](const BIOSROMEntry& entry, std::vector<u8>& targetRom, const std::string& biosTypeName, bool checkEmptyFilename = true) -> bool {
+        bool found = false;
+        // First check game ZIP for BIOS file
+        for (const auto& pair : romFiles) {
+            if (GameDatabase::validateBIOSROM(pair.first, pair.second, entry)) {
+                std::cout << "Loading " << biosTypeName << ": " << entry.filename << std::endl;
+                targetRom.assign(pair.second.begin(), pair.second.end());
+                found = true;
+                break;
+            }
+        }
+        // If not found in game ZIP, check neogeo.zip (load it on demand if needed)
+        if (!found) {
+            if (biosFiles.empty()) {
+                // Try to load neogeo.zip on demand
+                fs::path biosZipPath = gameRomPath.parent_path() / "neogeo.zip";
+                if (fs::exists(biosZipPath)) {
+                    util::ZipReader biosZip;
+                    if (!biosZip.open(biosZipPath) || !biosZip.extractAll(biosFiles)) {
+                        std::cerr << "Failed to load BIOS files from neogeo.zip" << std::endl;
+                        return false;
+                    }
+                }
+            }
+            // Search in loaded BIOS files
+            for (const auto& pair : biosFiles) {
+                if (GameDatabase::validateBIOSROM(pair.first, pair.second, entry)) {
+                    std::cout << "Loading " << biosTypeName << " (neogeo.zip): " << entry.filename << std::endl;
+                    targetRom.assign(pair.second.begin(), pair.second.end());
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found && (checkEmptyFilename || entry.filename[0] != '\0')) {
+            std::cerr << "Error: " << biosTypeName << " ROM not found: " << entry.filename << std::endl;
+        }
+        return found;
+    };
+
     // Load 68K BIOS using provided index
     const BIOSROMEntry& bios68kEntry = biosROMs[bios68kIndex];
 
@@ -445,62 +466,26 @@ bool Cartridge::loadBIOSROMs(const fs::path& gameRomPath, u32 bios68kIndex) {
     m_isAES = (bios68kIndex == 15 || bios68kIndex == 16 || bios68kIndex == 17 ||
                (bios68kIndex >= 19 && bios68kIndex <= 27));
 
-    bool found68k = false;
-    for (const auto& pair : biosFiles) {
-        if (GameDatabase::validateBIOSROM(pair.first, pair.second, bios68kEntry)) {
-            std::cout << "Loading 68K BIOS: " << bios68kEntry.filename << std::endl;
-            m_bios68kRom.assign(pair.second.begin(), pair.second.end());
-            found68k = true;
-            break;
-        }
-    }
-    if (!found68k && bios68kEntry.filename[0] != '\0') {
-        std::cerr << "Warning: 68K BIOS ROM not found: " << bios68kEntry.filename << std::endl;
+    if (!loadBIOSFile(bios68kEntry, m_bios68kRom, "68K BIOS", false)) {
+        return false;
     }
     
     // Load Z80 BIOS (index 37)
     const BIOSROMEntry& biosZ80Entry = biosROMs[37];
-    bool foundZ80 = false;
-    for (const auto& pair : biosFiles) {
-        if (GameDatabase::validateBIOSROM(pair.first, pair.second, biosZ80Entry)) {
-            std::cout << "Loading Z80 BIOS: " << biosZ80Entry.filename << std::endl;
-            m_biosZ80Rom.assign(pair.second.begin(), pair.second.end());
-            foundZ80 = true;
-            break;
-        }
-    }
-    if (!foundZ80) {
-        std::cerr << "Warning: Z80 BIOS ROM not found: " << biosZ80Entry.filename << std::endl;
+    if (!loadBIOSFile(biosZ80Entry, m_biosZ80Rom, "Z80 BIOS")) {
+        return false;
     }
     
     // Load Text BIOS (index 38)
     const BIOSROMEntry& biosTextEntry = biosROMs[38];
-    bool foundText = false;
-    for (const auto& pair : biosFiles) {
-        if (GameDatabase::validateBIOSROM(pair.first, pair.second, biosTextEntry)) {
-            std::cout << "Loading Text BIOS: " << biosTextEntry.filename << std::endl;
-            m_biosTextRom.assign(pair.second.begin(), pair.second.end());
-            foundText = true;
-            break;
-        }
-    }
-    if (!foundText) {
-        std::cerr << "Warning: Text BIOS ROM not found: " << biosTextEntry.filename << std::endl;
+    if (!loadBIOSFile(biosTextEntry, m_biosTextRom, "Text BIOS")) {
+        return false;
     }
     
     // Load Zoom table (index 39)
     const BIOSROMEntry& zoomEntry = biosROMs[39];
-    bool foundZoom = false;
-    for (const auto& pair : biosFiles) {
-        if (GameDatabase::validateBIOSROM(pair.first, pair.second, zoomEntry)) {
-            std::cout << "Loading Zoom table: " << zoomEntry.filename << std::endl;
-            m_zoomRom.assign(pair.second.begin(), pair.second.end());
-            foundZoom = true;
-            break;
-        }
-    }
-    if (!foundZoom) {
-        std::cerr << "Warning: Zoom table ROM not found: " << zoomEntry.filename << std::endl;
+    if (!loadBIOSFile(zoomEntry, m_zoomRom, "Zoom table")) {
+        return false;
     }
     
     // For 68K BIOS, we need to handle 0x20000 -> 0x80000 expansion

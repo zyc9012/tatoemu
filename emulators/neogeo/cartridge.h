@@ -105,7 +105,7 @@ private:
     
     // Helper to load ROMs from database
     bool loadROMsFromDatabase(const std::map<std::string, std::vector<u8>>& romFiles);
-    bool loadBIOSROMs(const fs::path& gameRomPath, u32 bios68kIndex);
+    bool loadBIOSROMs(const std::map<std::string, std::vector<u8>>& romFiles, const fs::path& gameRomPath, u32 bios68kIndex);
     
     // ROM decoding functions
     void decodeTextROM();
