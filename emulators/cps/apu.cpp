@@ -73,7 +73,9 @@ void APU::reset() {
 
         m_ym2151RegSelect = 0;
 
-        m_cyclesPerSample = cps1::SOUND_CPU_FREQUENCY / m_sampleRate;
+        if (m_sampleRate > 0) {
+            m_cyclesPerSample = cps1::SOUND_CPU_FREQUENCY / m_sampleRate;
+        }
     } else {
         // Initialize QSound
         QscInit(44100);
@@ -81,7 +83,9 @@ void APU::reset() {
         QscSetRoute(BURN_SND_QSND_OUTPUT_2, 1.0, BURN_SND_ROUTE_RIGHT);
         QscReset();
 
-        m_cyclesPerSample = cps2::SOUND_CPU_FREQUENCY / m_sampleRate;
+        if (m_sampleRate > 0) {
+            m_cyclesPerSample = cps2::SOUND_CPU_FREQUENCY / m_sampleRate;
+        }
     }
 
     // Reset sample generation
