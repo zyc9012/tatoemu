@@ -1075,36 +1075,22 @@ bool GameDatabase::validateROM(const std::string& filename, const std::vector<u8
     std::string lowerEntry = entry.filename;
     std::transform(lowerEntry.begin(), lowerEntry.end(), lowerEntry.begin(), ::tolower);
     
-    // Try exact match first
-    if (lowerFilename == lowerEntry) {
-        // Check size
-        if (data.size() != entry.size) {
-            return false;
-        }
-        return true;
+    if (lowerFilename != lowerEntry) {
+        return false;
     }
     
-    // Try with .bin extension (MAME ROM sets often use .bin)
-    std::string entryBase = lowerEntry;
-    size_t dotPos = entryBase.find_last_of('.');
-    if (dotPos != std::string::npos) {
-        entryBase = entryBase.substr(0, dotPos);
-    }
-    std::string filenameBase = lowerFilename;
-    dotPos = filenameBase.find_last_of('.');
-    if (dotPos != std::string::npos) {
-        filenameBase = filenameBase.substr(0, dotPos);
+    // Check size
+    if (data.size() != entry.size) {
+        return false;
     }
     
-    if (filenameBase == entryBase) {
-        // Check size
-        if (data.size() != entry.size) {
-            return false;
-        }
-        return true;
+    // Check CRC32
+    u32 calculatedCRC = calculateCRC32(data);
+    if (calculatedCRC != entry.crc32) {
+        return false;
     }
     
-    return false;
+    return true;
 }
 
 } // namespace neogeo
