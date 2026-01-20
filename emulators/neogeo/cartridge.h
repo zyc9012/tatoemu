@@ -110,6 +110,7 @@ private:
     // ROM decoding functions
     void decodeTextROM();
     void decodeSpriteROM();
+    bool interleaveSpriteROMs(const std::vector<std::vector<u8>>& spriteRomChips);
     void byteswapBiosROM();
     void byteswapProgramROM();
     void decodeBIOSTextROM();
