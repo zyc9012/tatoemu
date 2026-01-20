@@ -2,6 +2,7 @@
 #include "cpu.h"
 #include "cartridge.h"
 #include "memory.h"
+#include "db.h"
 #include "../core.h"
 #include <cstring>
 #include <algorithm>
@@ -35,12 +36,15 @@ PPU::PPU()
     , m_screenHeight(224)
     , m_sliceStart(0x10)  // First visible scanline (Neo Geo Y coordinate)
     , m_sliceEnd(0xF0)    // Last visible scanline + 1 (0x10 + 224 = 0xF0 = 240)
+    , m_textBankMode(TextBankMode::NONE)
     , m_maxSpriteBank(0x17d)
 {
     // Initialize framebuffer with default size, will be resized when ROM is loaded
     m_frameBuffer.resize(320 * 224, 0);
     m_graphicsRam.fill(0);
     m_palette.fill(0);
+    m_bankLookupAddress.fill(0);
+    m_bankLookupShift.fill(0);
 }
 
 void PPU::reset() {
@@ -78,6 +82,9 @@ void PPU::reset() {
     
     // Initialize text ROM attributes
     initTextROM();
+    
+    // Initialize text bank switching tables
+    initTextBankSwitching();
 }
 
 void PPU::initSpriteROM() {
@@ -173,6 +180,37 @@ void PPU::initTextROM() {
             }
         }
         m_textTileAttribBios[i] = transparent ? 1 : 0;
+    }
+}
+
+void PPU::initTextBankSwitching() {
+    if (!m_cartridge) {
+        m_textBankMode = TextBankMode::NONE;
+        return;
+    }
+    
+    u32 textRomSize = m_cartridge->getTextROMSize();
+    const GameInfo* gameInfo = m_cartridge->getGameInfo();
+    
+    // Check if text ROM bank switching is needed (text ROM > 256KB)
+    if (textRomSize <= 0x40000) {
+        m_textBankMode = TextBankMode::NONE;
+        return;
+    }
+    
+    // Determine bank switching mode based on game flags
+    if (gameInfo && (gameInfo->flags & GAME_FLAG_ALTERNATE_TEXT)) {
+        m_textBankMode = TextBankMode::ALTERNATE;
+        
+        // Precompute bank lookup tables for ALTERNATE_TEXT mode (KOF2000 style)
+        // Bank info is stored at 0xEA00, with 2 bits per tile, 6 tiles per word
+        for (u32 x = 0; x < 40; x++) {
+            m_bankLookupAddress[x] = (x / 6) << 6;  // (x / 6) * 64, byte offset for column group
+            m_bankLookupShift[x] = (5 - (x % 6)) << 1;  // bit shift position for 2-bit bank value
+        }
+    } else {
+        m_textBankMode = TextBankMode::STANDARD;
+        // Standard mode doesn't use lookup tables; bank is determined per-row at render time
     }
 }
 
@@ -621,6 +659,36 @@ void PPU::renderText() {
     u32 minX = (m_screenWidth == 304) ? 1 : 0;
     u32 maxX = (m_screenWidth == 304) ? 39 : 40;
 
+    // Get bank switching mode (cached during initialization)
+    TextBankMode bankMode = useBios ? TextBankMode::NONE : m_textBankMode;
+    
+    // Standard bank switching mode
+    // This mode uses 0xEA00/0xEB00 to set bank per row rather than per tile
+    // When a marker (0x0200 at 0xEA00 + z, 0xFF00 mask at 0xEB00 + z) is found,
+    // extract bank from bits 0-1 of 0xEB00 + z, XOR with 3, and shift left 12 bits
+    u32 rowBanks[32];
+    if (bankMode == TextBankMode::STANDARD) {
+        u32 currentBank = (3 << 12);  // Default bank 3
+        u32 z = 0;
+        for (u32 row = 0; row < 32; row++) {
+            u16 marker = readGraphicsRAM16(0xEA00 + z);
+            u16 bankData = readGraphicsRAM16(0xEB00 + z);
+            
+            if (marker == 0x0200 && (bankData & 0xFF00) == 0xFF00) {
+                // Bank change marker found
+                currentBank = (((bankData & 3) ^ 3) << 12);
+                rowBanks[row] = currentBank;
+                row++;  // Skip next row as it will use this bank too
+                if (row < 32) {
+                    rowBanks[row] = currentBank;
+                }
+            } else {
+                rowBanks[row] = currentBank;
+            }
+            z += 4;
+        }
+    }
+    
     for (u32 y = 2; y < 30; y++) {
         for (u32 x = minX; x < maxX; x++) {
             // Text layer is column-major: tile(x,y) = 0xE000 + x*64 + y*2
@@ -629,6 +697,22 @@ void PPU::renderText() {
 
             u32 tileNum = tileEntry & 0x0FFF;
             u32 paletteIdx = (tileEntry >> 12) & 0x0F;
+            
+            // Apply text bank switching
+            if (bankMode == TextBankMode::ALTERNATE) {
+                // ALTERNATE_TEXT mode (KOF2000): bank per tile using cached lookup table
+                // Bank info starts at 0xEA00 + 2
+                // Row offset: (y - 2) * 2 bytes per row
+                // Column offset: m_bankLookupAddress[x] = (x / 6) * 64 bytes per column group
+                // Each word contains bank info for 6 tiles using 2 bits each
+                u16 bankInfo = readGraphicsRAM16(0xEA00 + 2 + (y - 2) * 2 + m_bankLookupAddress[x]);
+                u32 bank = ((bankInfo >> m_bankLookupShift[x]) & 3) ^ 3;
+                tileNum += bank << 12;
+            } else if (bankMode == TextBankMode::STANDARD) {
+                // Standard bank switching mode: bank per row
+                // Use precomputed row bank (y-2 maps row 2-29 to index 0-27 in rowBanks)
+                tileNum += rowBanks[y - 2];
+            }
             
             // Check if tile is transparent
             if (tileNum < m_textTileAttrib.size() && tileAttrib[tileNum] == 1) {

@@ -154,9 +154,20 @@ private:
     u32 m_sliceStart;
     u32 m_sliceEnd;
     
+    // Text layer bank switching cache (calculated once at init)
+    enum class TextBankMode {
+        NONE,              // No bank switching (text ROM <= 256KB)
+        STANDARD,          // Standard mode
+        ALTERNATE          // Alternate mode (KOF2000, KOF2003, SVC Chaos)
+    };
+    TextBankMode m_textBankMode;
+    std::array<u32, 40> m_bankLookupAddress;  // Column to address offset mapping
+    std::array<u32, 40> m_bankLookupShift;    // Column to bit shift mapping
+    
     // Helper functions
     void renderFrame();
     void clearScreen();
+    void initTextBankSwitching();  // Initialize text bank switching tables
     
     // Palette handling
     void updatePalette();
