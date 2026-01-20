@@ -101,6 +101,29 @@ static const ROMEntry kof98_roms[] = {
     { "242-v4.v4",    0x400000, 0x7985ea30, ROMType::SOUND_SAMPLE, 0 },
 };
 
+// KOF98 (Combo, Hack) ROMs
+static const ROMEntry kof98cb_roms[] = {
+    { "242-p1cb.p1",    0x100000, 0x2565e431, ROMType::PROGRAM, 0 },
+    { "242-p2cb.sp2",   0x400000, 0xd34a4d38, ROMType::PROGRAM, 0 },
+    { "242-s1cb.s1",    0x020000, 0x7333d8b0, ROMType::TEXT, 0 },
+    { "242-c1cb.c1",    0x800000, 0x066db0a6, ROMType::SPRITE, 0 },
+    { "242-c2cb.c2",    0x800000, 0x99d0b0fa, ROMType::SPRITE, 0 },
+    { "242-c3cb.c3",    0x800000, 0xea84bdae, ROMType::SPRITE, 0 },
+    { "242-c4cb.c4",    0x800000, 0x2c17ac8e, ROMType::SPRITE, 0 },
+    { "242-c5.c5",      0x800000, 0x9d10bed3, ROMType::SPRITE, 0 },
+    { "242-c6.c6",      0x800000, 0xda07b6a2, ROMType::SPRITE, 0 },
+    { "242-c7.c7",      0x800000, 0xf6d7a38a, ROMType::SPRITE, 0 },
+    { "242-c8.c8",      0x800000, 0xc823e045, ROMType::SPRITE, 0 },
+    { "242-m1cb.m1",    0x040000, 0xdb046fc4, ROMType::SOUND_PROGRAM, 0 },
+    { "242-v1.v1",      0x400000, 0xb9ea8051, ROMType::SOUND_SAMPLE, 0 },
+    { "242-v2.v2",      0x400000, 0xcc11106e, ROMType::SOUND_SAMPLE, 0 },
+    { "242-v3.v3",      0x400000, 0x044ea4e1, ROMType::SOUND_SAMPLE, 0 },
+    { "242-v4.v4",      0x400000, 0x7985ea30, ROMType::SOUND_SAMPLE, 0 },
+    /* GOTVG Combo - 20200328 */
+    // { "242-p1cb.dif",   0x100000, 0xee8ec128, ROMType::PROGRAM, 0 },
+    // { "242-s1cb.dif",   0x020000, 0x83ecd0f4, ROMType::TEXT, 0 },
+};
+
 // KOF99FD ROMs (fully decrypted)
 static const ROMEntry kof99fd_roms[] = {
     { "152-p1.p1",    0x100000, 0xf2c7ddfa, ROMType::PROGRAM, 0 },
@@ -665,6 +688,14 @@ const GameInfo GameDatabase::s_games[] = {
         "kof98",
         kof98_roms,
         sizeof(kof98_roms) / sizeof(ROMEntry),
+        304, 224,
+        0
+    },
+    {
+        "The King of Fighters '98 (Combo, Hack)",
+        "kof98cb",
+        kof98cb_roms,
+        sizeof(kof98cb_roms) / sizeof(ROMEntry),
         304, 224,
         0
     },
