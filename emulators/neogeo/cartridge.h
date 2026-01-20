@@ -25,6 +25,9 @@ public:
     void reset();
     
     const std::string& getTitle() const { return m_title; }
+
+    // Game info access
+    const GameInfo* getGameInfo() const { return m_gameInfo; }
     
     // ROM access (for 68000 CPU - program ROMs)
     u8 readROM8(u32 address);

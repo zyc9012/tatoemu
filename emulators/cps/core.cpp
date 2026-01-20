@@ -10,7 +10,7 @@ Core::Core()
     : m_cpsVersion(1) {
 }
 
-bool Core::initialize(::VideoDevice* videoDevice, ::AudioDevice* audioDevice) {
+bool Core::initialize() {
     // Create core components
     m_cartridge = std::make_unique<Cartridge>();
     m_cpu = std::make_unique<CPU>();
@@ -28,12 +28,10 @@ bool Core::initialize(::VideoDevice* videoDevice, ::AudioDevice* audioDevice) {
     m_ppu->setCPU(m_cpu.get());
     m_ppu->setCartridge(m_cartridge.get());
     m_ppu->setMemory(m_memory.get());
-    m_ppu->setVideoDevice(videoDevice);
     
     m_apu->setSoundCPU(m_soundCpu.get());
     m_apu->setMemory(m_memory.get());
     m_apu->setCartridge(m_cartridge.get());
-    m_apu->setAudioDevice(audioDevice);
     
     m_memory->setCPU(m_cpu.get());
     m_memory->setSoundCPU(m_soundCpu.get());
@@ -46,6 +44,18 @@ bool Core::initialize(::VideoDevice* videoDevice, ::AudioDevice* audioDevice) {
     m_cartridge->setPPU(m_ppu.get());
 
     return true;
+}
+
+void Core::setVideoDevice(::VideoDevice* videoDevice) {
+    if (m_ppu) {
+        m_ppu->setVideoDevice(videoDevice);
+    }
+}
+
+void Core::setAudioDevice(::AudioDevice* audioDevice) {
+    if (m_apu) {
+        m_apu->setAudioDevice(audioDevice);
+    }
 }
 
 bool Core::loadROM(const fs::path& filename) {

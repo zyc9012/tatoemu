@@ -97,7 +97,7 @@ private:
     VideoDevice* m_videoDevice;
     
     // Frame buffer (ARGB8888 format)
-    std::array<u32, SCREEN_WIDTH * SCREEN_HEIGHT> m_frameBuffer;
+    std::vector<u32> m_frameBuffer;
     
     // Graphics RAM (128KB - two 64KB banks)
     // Contains sprite control blocks and text layer
@@ -146,8 +146,9 @@ private:
     // Zoom ROM (256 bytes * 256 zoom levels)
     std::vector<u8> m_zoomRom;
     
-    // Screen width (can be 320 or 304)
+    // Screen dimensions
     u32 m_screenWidth;
+    u32 m_screenHeight;
     
     // Slice rendering (for partial screen updates)
     u32 m_sliceStart;

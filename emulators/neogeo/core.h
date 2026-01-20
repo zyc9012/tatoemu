@@ -23,7 +23,9 @@ public:
     ~Core() = default;
 
     // Core interface implementation
-    bool initialize(::VideoDevice* videoDevice, ::AudioDevice* audioDevice) override;
+    bool initialize() override;
+    void setVideoDevice(::VideoDevice* videoDevice) override;
+    void setAudioDevice(::AudioDevice* audioDevice) override;
     bool loadROM(const fs::path& filename) override;
 
     // NeoGeo-specific methods
@@ -38,8 +40,8 @@ public:
 
     // Constants
     double getTargetFPS() const override { return neogeo::TARGET_FPS; }
-    u16 getScreenWidth() const override { return neogeo::SCREEN_WIDTH; }
-    u16 getScreenHeight() const override { return neogeo::SCREEN_HEIGHT; }
+    u16 getScreenWidth() const override { return m_cartridge->getGameInfo()->screenWidth; }
+    u16 getScreenHeight() const override { return m_cartridge->getGameInfo()->screenHeight; }
     
     // NeoGeo games were designed for 4:3 CRT displays
     double getDisplayAspectRatio() const override { return 4.0 / 3.0; }

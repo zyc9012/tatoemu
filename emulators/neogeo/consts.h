@@ -4,12 +4,6 @@
 
 namespace neogeo {
 
-// Screen dimensions
-// NeoGeo can display 320x224 (with overscan) or 304x224 (without overscan)
-// We'll use 320x224 for now
-constexpr u16 SCREEN_WIDTH = 320;
-constexpr u16 SCREEN_HEIGHT = 224;
-
 // Frame rate (NeoGeo runs at ~59.18 Hz)
 // 15625 Hz horizontal refresh / 264 scanlines = ~59.18 Hz
 constexpr double TARGET_FPS = 59.1856;

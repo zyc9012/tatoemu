@@ -172,6 +172,25 @@ bool Emulator::initialize() {
         return false;
     }
 
+    // Initialize core
+    if (!m_core->initialize()) {
+        std::cerr << "Failed to initialize core" << std::endl;
+        return false;
+    }
+
+    // Load bootrom if provided (optional, GB only)
+    if (!m_bootromFilename.empty()) {
+        std::cout << "Loading bootrom: " << m_bootromFilename << std::endl;
+        m_core->loadBootrom(m_bootromFilename);
+    } else if (ext == ".gb" || ext == ".gbc") {
+        std::cout << "No bootrom provided, starting with post-boot state" << std::endl;
+    }
+    
+    if (!m_core->loadROM(m_romFilename)) {
+        std::cerr << "Failed to load ROM: " << m_romFilename << std::endl;
+        return false;
+    }
+
     // Get target FPS and screen dimensions
     m_targetFPS = m_core->getTargetFPS();
     u16 screenWidth = m_core->getScreenWidth();
@@ -243,11 +262,9 @@ bool Emulator::initialize() {
         // Continue anyway - emulator can run without audio
     }
 
-    // Initialize core
-    if (!m_core->initialize(m_videoDevice.get(), m_audioDevice.get())) {
-        std::cerr << "Failed to initialize core" << std::endl;
-        return false;
-    }
+    // Set devices
+    m_core->setVideoDevice(m_videoDevice.get());
+    m_core->setAudioDevice(m_audioDevice.get());
     
     // Set display aspect ratio from core (accounts for non-square pixels on original hardware)
     m_videoDevice->setDisplayAspectRatio(m_core->getDisplayAspectRatio());
@@ -255,19 +272,6 @@ bool Emulator::initialize() {
     m_core->setAudioSampleRate(Config::Audio::SampleRate);
     m_core->setAudioVolume(Config::Audio::Volume);
     
-    // Load bootrom if provided (optional, GB only)
-    if (!m_bootromFilename.empty()) {
-        std::cout << "Loading bootrom: " << m_bootromFilename << std::endl;
-        m_core->loadBootrom(m_bootromFilename);
-    } else if (ext == ".gb" || ext == ".gbc") {
-        std::cout << "No bootrom provided, starting with post-boot state" << std::endl;
-    }
-    
-    if (!m_core->loadROM(m_romFilename)) {
-        std::cerr << "Failed to load ROM: " << m_romFilename << std::endl;
-        return false;
-    }
-
     std::cout << "Emulator initialized successfully" << std::endl;
     return true;
 }

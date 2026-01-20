@@ -23,7 +23,9 @@ public:
     ~Core() = default;
 
     // Core interface implementation
-    bool initialize(::VideoDevice* videoDevice, ::AudioDevice* audioDevice) override;
+    bool initialize() override;
+    void setVideoDevice(::VideoDevice* videoDevice) override;
+    void setAudioDevice(::AudioDevice* audioDevice) override;
     bool loadROM(const fs::path& filename) override;
     bool handleInput(SDL_Event& event) override;
     void update() override;

@@ -11,7 +11,11 @@ public:
     virtual ~Core() = default;
 
     // Initialization
-    virtual bool initialize(VideoDevice* videoDevice, AudioDevice* audioDevice) = 0;
+    virtual bool initialize() = 0;
+
+    // Device configuration (can be called after initialize)
+    virtual void setVideoDevice(VideoDevice* videoDevice) = 0;
+    virtual void setAudioDevice(AudioDevice* audioDevice) = 0;
     virtual bool loadROM(const fs::path& filename) = 0;
     
     // Bootrom loading (optional, GB only - default empty implementation)

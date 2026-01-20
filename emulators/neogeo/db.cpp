@@ -633,6 +633,7 @@ const GameInfo GameDatabase::s_games[] = {
         "kof94",
         kof94_roms,
         sizeof(kof94_roms) / sizeof(ROMEntry),
+        304, 224,
         GAME_FLAG_SWAPP
     },
     {
@@ -640,6 +641,7 @@ const GameInfo GameDatabase::s_games[] = {
         "kof95",
         kof95_roms,
         sizeof(kof95_roms) / sizeof(ROMEntry),
+        304, 224,
         GAME_FLAG_SWAPP
     },
     {
@@ -647,6 +649,7 @@ const GameInfo GameDatabase::s_games[] = {
         "kof96",
         kof96_roms,
         sizeof(kof96_roms) / sizeof(ROMEntry),
+        304, 224,
         0
     },
     {
@@ -654,6 +657,7 @@ const GameInfo GameDatabase::s_games[] = {
         "kof97",
         kof97_roms,
         sizeof(kof97_roms) / sizeof(ROMEntry),
+        304, 224,
         0
     },
     {
@@ -661,6 +665,7 @@ const GameInfo GameDatabase::s_games[] = {
         "kof98",
         kof98_roms,
         sizeof(kof98_roms) / sizeof(ROMEntry),
+        304, 224,
         0
     },
     {
@@ -668,6 +673,7 @@ const GameInfo GameDatabase::s_games[] = {
         "kof99fd",
         kof99fd_roms,
         sizeof(kof99fd_roms) / sizeof(ROMEntry),
+        304, 224,
         0
     },
     {
@@ -675,6 +681,7 @@ const GameInfo GameDatabase::s_games[] = {
         "kof2kfd",
         kof2kfd_roms,
         sizeof(kof2kfd_roms) / sizeof(ROMEntry),
+        304, 224,
         GAME_FLAG_ALTERNATE_TEXT
     },
     {
@@ -682,6 +689,7 @@ const GameInfo GameDatabase::s_games[] = {
         "kof2k1fd",
         kof2k1fd_roms,
         sizeof(kof2k1fd_roms) / sizeof(ROMEntry),
+        304, 224,
         0
     },
     {
@@ -689,6 +697,7 @@ const GameInfo GameDatabase::s_games[] = {
         "kof2k2fd",
         kof2k2fd_roms,
         sizeof(kof2k2fd_roms) / sizeof(ROMEntry),
+        304, 224,
         0
     },
     {
@@ -696,6 +705,7 @@ const GameInfo GameDatabase::s_games[] = {
         "kof2k3fd",
         kof2k3fd_roms,
         sizeof(kof2k3fd_roms) / sizeof(ROMEntry),
+        304, 224,
         GAME_FLAG_ALTERNATE_TEXT
     },
     {
@@ -703,6 +713,7 @@ const GameInfo GameDatabase::s_games[] = {
         "fatfury1",
         fatfury1_roms,
         sizeof(fatfury1_roms) / sizeof(ROMEntry),
+        320, 224,
         0
     },
     {
@@ -710,6 +721,7 @@ const GameInfo GameDatabase::s_games[] = {
         "fatfury2",
         fatfury2_roms,
         sizeof(fatfury2_roms) / sizeof(ROMEntry),
+        320, 224,
         GAME_FLAG_SWAPC
     },
     {
@@ -717,6 +729,7 @@ const GameInfo GameDatabase::s_games[] = {
         "fatfury3",
         fatfury3_roms,
         sizeof(fatfury3_roms) / sizeof(ROMEntry),
+        320, 224,
         0
     },
     {
@@ -724,6 +737,7 @@ const GameInfo GameDatabase::s_games[] = {
         "fatfursp",
         fatfursp_roms,
         sizeof(fatfursp_roms) / sizeof(ROMEntry),
+        320, 224,
         0
     },
     {
@@ -731,6 +745,7 @@ const GameInfo GameDatabase::s_games[] = {
         "garou",
         garou_roms,
         sizeof(garou_roms) / sizeof(ROMEntry),
+        320, 224,
         GAME_FLAG_SMA_PROTECTION
     },
     {
@@ -738,6 +753,7 @@ const GameInfo GameDatabase::s_games[] = {
         "kabukikl",
         kabukikl_roms,
         sizeof(kabukikl_roms) / sizeof(ROMEntry),
+        320, 224,
         GAME_FLAG_SWAPP
     },
     {
@@ -745,6 +761,7 @@ const GameInfo GameDatabase::s_games[] = {
         "lastblad",
         lastblad_roms,
         sizeof(lastblad_roms) / sizeof(ROMEntry),
+        320, 224,
         0
     },
     {
@@ -752,6 +769,7 @@ const GameInfo GameDatabase::s_games[] = {
         "lastbld2",
         lastbld2_roms,
         sizeof(lastbld2_roms) / sizeof(ROMEntry),
+        320, 224,
         0
     },
     {
@@ -759,6 +777,7 @@ const GameInfo GameDatabase::s_games[] = {
         "mslug",
         mslug_roms,
         sizeof(mslug_roms) / sizeof(ROMEntry),
+        304, 224,
         GAME_FLAG_SWAPP
     },
     {
@@ -766,6 +785,7 @@ const GameInfo GameDatabase::s_games[] = {
         "mslug2",
         mslug2_roms,
         sizeof(mslug2_roms) / sizeof(ROMEntry),
+        304, 224,
         0
     },
     {
@@ -773,6 +793,7 @@ const GameInfo GameDatabase::s_games[] = {
         "mslug3fd",
         mslug3fd_roms,
         sizeof(mslug3fd_roms) / sizeof(ROMEntry),
+        304, 224,
         0
     },
     {
@@ -780,6 +801,7 @@ const GameInfo GameDatabase::s_games[] = {
         "mslug4fd",
         mslug4fd_roms,
         sizeof(mslug4fd_roms) / sizeof(ROMEntry),
+        304, 224,
         0
     },
     {
@@ -787,6 +809,7 @@ const GameInfo GameDatabase::s_games[] = {
         "mslug5fd",
         mslug5fd_roms,
         sizeof(mslug5fd_roms) / sizeof(ROMEntry),
+        304, 224,
         0
     },
     {
@@ -794,6 +817,7 @@ const GameInfo GameDatabase::s_games[] = {
         "mslugx",
         mslugx_roms,
         sizeof(mslugx_roms) / sizeof(ROMEntry),
+        304, 224,
         0
     },
     {
@@ -801,6 +825,7 @@ const GameInfo GameDatabase::s_games[] = {
         "rbff1",
         rbff1_roms,
         sizeof(rbff1_roms) / sizeof(ROMEntry),
+        320, 224,
         0
     },
     {
@@ -808,6 +833,7 @@ const GameInfo GameDatabase::s_games[] = {
         "rbff2",
         rbff2_roms,
         sizeof(rbff2_roms) / sizeof(ROMEntry),
+        320, 224,
         0
     },
     {
@@ -815,6 +841,7 @@ const GameInfo GameDatabase::s_games[] = {
         "rbffspec",
         rbffspec_roms,
         sizeof(rbffspec_roms) / sizeof(ROMEntry),
+        320, 224,
         0
     },
     {
@@ -822,6 +849,7 @@ const GameInfo GameDatabase::s_games[] = {
         "samsho",
         samsho_roms,
         sizeof(samsho_roms) / sizeof(ROMEntry),
+        320, 224,
         0
     },
     {
@@ -829,6 +857,7 @@ const GameInfo GameDatabase::s_games[] = {
         "samsho2",
         samsho2_roms,
         sizeof(samsho2_roms) / sizeof(ROMEntry),
+        320, 224,
         GAME_FLAG_SWAPP
     },
     {
@@ -836,6 +865,7 @@ const GameInfo GameDatabase::s_games[] = {
         "samsho3",
         samsho3_roms,
         sizeof(samsho3_roms) / sizeof(ROMEntry),
+        304, 224,
         0
     },
     {
@@ -843,6 +873,7 @@ const GameInfo GameDatabase::s_games[] = {
         "samsho4",
         samsho4_roms,
         sizeof(samsho4_roms) / sizeof(ROMEntry),
+        320, 224,
         0
     },
     {
@@ -850,6 +881,7 @@ const GameInfo GameDatabase::s_games[] = {
         "samsho5",
         samsho5_roms,
         sizeof(samsho5_roms) / sizeof(ROMEntry),
+        304, 224,
         0
     },
     {
@@ -857,6 +889,7 @@ const GameInfo GameDatabase::s_games[] = {
         "samsh5sph",
         samsh5sph_roms,
         sizeof(samsh5sph_roms) / sizeof(ROMEntry),
+        304, 224,
         0
     },
     {
@@ -864,6 +897,7 @@ const GameInfo GameDatabase::s_games[] = {
         "svcfd",
         svcfd_roms,
         sizeof(svcfd_roms) / sizeof(ROMEntry),
+        304, 224,
         0
     },
     {
@@ -871,6 +905,7 @@ const GameInfo GameDatabase::s_games[] = {
         "wakuwak7",
         wakuwak7_roms,
         sizeof(wakuwak7_roms) / sizeof(ROMEntry),
+        304, 224,
         0
     },
 };

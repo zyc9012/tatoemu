@@ -31,19 +31,20 @@ PPU::PPU()
     , m_bankSize(0)
     , m_spriteTileMask(0)
     , m_maxSpriteTile(0)
-    , m_screenWidth(SCREEN_WIDTH)
+    , m_screenWidth(320)
+    , m_screenHeight(224)
     , m_sliceStart(0x10)  // First visible scanline (Neo Geo Y coordinate)
     , m_sliceEnd(0xF0)    // Last visible scanline + 1 (0x10 + 224 = 0xF0 = 240)
     , m_maxSpriteBank(0x17d)
 {
-    m_frameBuffer.fill(0);
+    // Initialize framebuffer with default size, will be resized when ROM is loaded
+    m_frameBuffer.resize(320 * 224, 0);
     m_graphicsRam.fill(0);
     m_palette.fill(0);
 }
 
 void PPU::reset() {
     m_graphicsRam.fill(0);
-    m_frameBuffer.fill(0);
     m_scanline = 0;
     m_cycles = 0;
     m_spriteFrame = 0;
@@ -55,6 +56,13 @@ void PPU::reset() {
     m_bankXZoom = 0;
     m_bankYZoom = 0;
     m_bankSize = 0;
+
+    if (m_cartridge) {
+        m_screenWidth = m_cartridge->getGameInfo()->screenWidth;
+        m_screenHeight = m_cartridge->getGameInfo()->screenHeight;
+        m_frameBuffer.resize(m_screenWidth * m_screenHeight);
+        std::fill(m_frameBuffer.begin(), m_frameBuffer.end(), 0);
+    }
     
     // Initialize palette to black
     m_palette.fill(0xFF000000);
@@ -202,7 +210,7 @@ void PPU::clearScreen() {
     // Clear to backdrop color (palette entry 0x0FFF - the last palette entry)
     // This is the standard Neo Geo backdrop color register
     u32 backdropColor = m_palette[0x0FFF];
-    m_frameBuffer.fill(backdropColor);
+    std::fill(m_frameBuffer.begin(), m_frameBuffer.end(), backdropColor);
 }
 
 void PPU::renderFrame() {
@@ -501,12 +509,12 @@ void PPU::renderSpriteLine(const u8* /* tileData */, u32* palette, s32 xPos, s32
     }
     
     // Check if line is visible
-    if (yPos < 0 || yPos >= static_cast<s32>(SCREEN_HEIGHT)) {
+    if (yPos < 0 || yPos >= static_cast<s32>(m_screenHeight)) {
         return;
     }
-    
+
     // Calculate pixel position in framebuffer
-    u32* lineBuffer = &m_frameBuffer[yPos * SCREEN_WIDTH];
+    u32* lineBuffer = &m_frameBuffer[yPos * m_screenWidth];
     
     // Sprite ROM is decoded into 32-bit words
     // Each sprite tile is 128 bytes = 32 UINT32 values
@@ -608,8 +616,13 @@ void PPU::renderText() {
     // Text layer is stored in COLUMN-MAJOR order in graphics RAM
     // Each column is 64 bytes (32 tiles * 2 bytes per tile)
     // Skip first 2 rows and last 2 rows (only render rows 2-29)
+
+    // For 304-width games, clip leftmost and rightmost columns to center content
+    u32 minX = (m_screenWidth == 304) ? 1 : 0;
+    u32 maxX = (m_screenWidth == 304) ? 39 : 40;
+
     for (u32 y = 2; y < 30; y++) {
-        for (u32 x = 0; x < 40; x++) {
+        for (u32 x = minX; x < maxX; x++) {
             // Text layer is column-major: tile(x,y) = 0xE000 + x*64 + y*2
             u32 tileAddr = 0xE000 + (x << 6) + (y << 1);
             u16 tileEntry = readGraphicsRAM16(tileAddr);
@@ -644,15 +657,20 @@ void PPU::renderTextTile(s32 x, s32 y, u32 tileNum, u32 paletteOffset,
         s32 screenY = y + py;
         
         // Clip to screen bounds
-        if (screenY < 0 || screenY >= static_cast<s32>(SCREEN_HEIGHT)) {
+        if (screenY < 0 || screenY >= static_cast<s32>(m_screenHeight)) {
             continue;
         }
-        
-        u32* lineBuffer = &m_frameBuffer[screenY * SCREEN_WIDTH];
+
+        u32* lineBuffer = &m_frameBuffer[screenY * m_screenWidth];
         
         for (u32 px = 0; px < 8; px++) {
             s32 screenX = x + px;
             
+            // Adjust for non-overscan mode (304 pixels)
+            if (m_screenWidth == 304) {
+                screenX -= 8;
+            }
+
             // Clip to screen bounds
             if (screenX < 0 || screenX >= static_cast<s32>(m_screenWidth)) {
                 continue;
@@ -745,7 +763,11 @@ void PPU::writeGraphicsRAM16(u32 address, u16 value) {
 void PPU::saveState(std::ofstream& file) {
     // Write graphics RAM
     file.write(reinterpret_cast<const char*>(m_graphicsRam.data()), m_graphicsRam.size());
-    
+
+    // Write screen dimensions (for compatibility with different game resolutions)
+    file.write(reinterpret_cast<const char*>(&m_screenWidth), sizeof(m_screenWidth));
+    file.write(reinterpret_cast<const char*>(&m_screenHeight), sizeof(m_screenHeight));
+
     // Write frame state
     file.write(reinterpret_cast<const char*>(&m_scanline), sizeof(m_scanline));
     file.write(reinterpret_cast<const char*>(&m_cycles), sizeof(m_cycles));
@@ -757,7 +779,11 @@ void PPU::saveState(std::ofstream& file) {
 void PPU::loadState(std::ifstream& file) {
     // Read graphics RAM
     file.read(reinterpret_cast<char*>(m_graphicsRam.data()), m_graphicsRam.size());
-    
+
+    // Read screen dimensions
+    file.read(reinterpret_cast<char*>(&m_screenWidth), sizeof(m_screenWidth));
+    file.read(reinterpret_cast<char*>(&m_screenHeight), sizeof(m_screenHeight));
+
     // Read frame state
     file.read(reinterpret_cast<char*>(&m_scanline), sizeof(m_scanline));
     file.read(reinterpret_cast<char*>(&m_cycles), sizeof(m_cycles));

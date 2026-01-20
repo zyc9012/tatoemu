@@ -10,7 +10,7 @@ Core::Core()
     : m_cyclesThisFrame(0) {
 }
 
-bool Core::initialize(VideoDevice* videoDevice, AudioDevice* audioDevice) {
+bool Core::initialize() {
     // Create core components
     m_cartridge = std::make_unique<Cartridge>();
     m_cpu = std::make_unique<CPU>();
@@ -32,14 +32,24 @@ bool Core::initialize(VideoDevice* videoDevice, AudioDevice* audioDevice) {
     m_cpu->setMMU(m_mmu.get());
     m_ppu->setCPU(m_cpu.get());
     m_ppu->setMMU(m_mmu.get());
-    m_ppu->setVideoDevice(videoDevice);
     m_joypad->setCPU(m_cpu.get());
     m_timer->setCPU(m_cpu.get());
     m_apu->setCPU(m_cpu.get());
     m_apu->setMMU(m_mmu.get());
-    m_apu->setAudioDevice(audioDevice);
 
     return true;
+}
+
+void Core::setVideoDevice(VideoDevice* videoDevice) {
+    if (m_ppu) {
+        m_ppu->setVideoDevice(videoDevice);
+    }
+}
+
+void Core::setAudioDevice(AudioDevice* audioDevice) {
+    if (m_apu) {
+        m_apu->setAudioDevice(audioDevice);
+    }
 }
 
 bool Core::loadBootrom(const fs::path& filename) {
