@@ -118,14 +118,36 @@ u8 Memory::read8(u32 address) {
                 // Even: Sound reply
                 return m_soundReply;
             } else {
-                // Odd: System status (NeoInput[3] with RTC bits for MVS)
-                // Bits 0-5: ~NeoInput[3] & 0x3F
-                // Bits 6-7: RTC data (uPD4990A) - return 0 for now
-                if (m_controller) {
-                    u8 input3 = m_controller->readInput3(0x01);  // Get NeoInput[3] style value
-                    return (input3 & 0x3F);  // Mask to lower 6 bits, RTC bits = 0
+                // Odd: System status byte
+                // Bit 0: Test button
+                // Bit 1: Service button
+                // Bit 2: P1 coin
+                // Bit 3: P2 coin
+                // Bit 4-5: Memory card CD1/READY (set if inserted)
+                // Bit 6: Memory card WP (write protect, set if writable)
+                // Bit 7: 1 = AES, 0 = MVS
+                u8 result = 0x70;  // Memory card inserted and writable (bits 4-6)
+
+                // Set AES/MVS bit
+                if (m_cartridge && m_cartridge->isAES()) {
+                    result |= 0x80;  // AES mode (bit 7 = 1)
                 }
-                return 0x3F;
+
+                // Add test/service buttons
+                if (m_controller) {
+                    // Test button (bit 0)
+                    if (m_controller->isTestButtonPressed()) result |= 0x01;
+                    // Service button (bit 1)
+                    if (m_controller->isServiceButtonPressed()) result |= 0x02;
+                }
+
+                // Add coin buttons
+                if (m_controller) {
+                    u8 coinButtons = m_controller->readInput3(0x01);
+                    result |= (coinButtons & 0x0F) << 2;  // Bits 2-3 for coins
+                }
+
+                return ~result;
             }
             
         case 0x340000:
