@@ -197,6 +197,34 @@
         .control-action {
             color: #b0b0b0;
         }
+
+        .log-display {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #e0e0e0;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 14px;
+            max-width: 600px;
+            word-wrap: break-word;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .log-display.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .log-display.error {
+            background: rgba(139, 0, 0, 0.9);
+        }
     </style>
 </head>
 <body>
@@ -221,6 +249,7 @@
             <span>Loading emulator...</span>
         </div>
         <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+        <div id="logDisplay" class="log-display"></div>
     </div>
 
     <!-- Help Modal -->
@@ -305,6 +334,7 @@
         const loadBootromBtn = document.getElementById('loadBootromBtn');
         const romInput = document.getElementById('romInput');
         const bootromInput = document.getElementById('bootromInput');
+        const logElement = document.getElementById('logDisplay');
 
         loadRomBtn.addEventListener('click', function() {
             romInput.click();
@@ -313,6 +343,20 @@
         loadBootromBtn.addEventListener('click', function() {
             bootromInput.click();
         });
+
+        const showLog = (text, isError = false) => {
+            logElement.textContent = text;
+            logElement.classList.add('show');
+            if (isError) {
+                logElement.classList.add('error');
+            } else {
+                logElement.classList.remove('error');
+            }
+            clearTimeout(logElement.hideTimeout);
+            logElement.hideTimeout = setTimeout(() => {
+                logElement.classList.remove('show', 'error');
+            }, 5000);
+        };
 
         // Emscripten configuration
         var Module = {
@@ -334,10 +378,12 @@
             print: function(text) {
                 if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
                 console.log(text);
+                showLog(text);
             },
             printErr: function(text) {
                 if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
                 console.error(text);
+                showLog(text, true);
             },
             canvas: (function() {
                 var canvas = document.getElementById('canvas');
