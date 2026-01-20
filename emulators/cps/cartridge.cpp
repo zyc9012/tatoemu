@@ -299,10 +299,9 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                 }
                 
                 // Interleave bytes: odd byte from second chip, even byte from first chip
-                // CPS1 ROM naming: "e" suffix = odd address bytes, "f" suffix = even address bytes
                 for (size_t j = 0; j < evenChip.size(); j++) {
-                    m_programRom[offset++] = oddChip[j];  // "f" chip has even address bytes
-                    m_programRom[offset++] = evenChip[j];  // "e" chip has odd address bytes
+                    m_programRom[offset++] = oddChip[j];
+                    m_programRom[offset++] = evenChip[j];
                 }
                 
                 // Skip the next chip since we've already processed it as part of the pair
