@@ -27,7 +27,6 @@ Memory::Memory()
     , m_graphicsRamModulo(0)
     , m_irqControl(0)
     , m_irqOffset(0)
-    , m_spriteFrameSpeed(0)
     , m_watchdog(0)
     , m_programRomBank(0x100000)
     , m_z80Bank0(0x02)
@@ -59,7 +58,6 @@ void Memory::reset() {
     m_graphicsRamModulo = 0;
     m_irqControl = 0;
     m_irqOffset = 0;
-    m_spriteFrameSpeed = 0;
     
     m_watchdog = 0;
     
@@ -420,9 +418,10 @@ void Memory::writeVideoController(u32 address, u16 value) {
             
         case 0x06:
             // IRQ control + sprite frame speed
-            m_spriteFrameSpeed = (value >> 8) & 0xFF;
             m_irqControl = value & 0xFF;
-            // IRQ handling would go here
+            if (m_ppu) {
+                m_ppu->setSpriteFrameSpeed((value >> 8) & 0xFF);
+            }
             break;
             
         case 0x08:

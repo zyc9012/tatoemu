@@ -78,6 +78,9 @@ public:
     // Text ROM selection (for PPU)
     bool isBIOSTextROMEnabled() const { return m_biosTextRomEnabled; }
 
+    // IRQ control access (for PPU)
+    u16 getIRQControl() const { return m_irqControl; }
+
 private:
     // Component pointers
     CPU* m_cpu;
@@ -108,7 +111,6 @@ private:
     u16 m_graphicsRamModulo;   // Graphics RAM modulo
     u16 m_irqControl;          // IRQ control register
     u32 m_irqOffset;           // IRQ offset register
-    u8 m_spriteFrameSpeed;      // Sprite frame animation speed
     
     // Watchdog timer (simplified)
     s32 m_watchdog;

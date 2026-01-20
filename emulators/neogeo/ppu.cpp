@@ -19,6 +19,8 @@ PPU::PPU()
     , m_frameComplete(false)
     , m_scanline(0)
     , m_cycles(0)
+    , m_spriteFrameSpeed(0)
+    , m_spriteFrameTimer(0)
     , m_spriteFrame(0)
     , m_graphicsRamPointer(0)
     , m_graphicsRamModulo(0)
@@ -51,8 +53,10 @@ void PPU::reset() {
     m_graphicsRam.fill(0);
     m_scanline = 0;
     m_cycles = 0;
-    m_spriteFrame = 0;
     m_frameComplete = false;
+    m_spriteFrameSpeed = 0;
+    m_spriteFrameTimer = 0;
+    m_spriteFrame = 0;
     m_graphicsRamPointer = 0;
     m_graphicsRamModulo = 0;
     m_bankXPos = 0;
@@ -229,9 +233,9 @@ void PPU::step() {
             m_scanline = 0;
             renderFrame();
             m_frameComplete = true;
-            
-            // Increment sprite frame counter (used for sprite animation)
-            m_spriteFrame++;
+
+            // Update sprite frame timing
+            updateSpriteFrame();
         }
         
         // VBlank starts at scanline 224
@@ -801,6 +805,16 @@ u32 PPU::alphaBlend(u32 dst, u32 src, u32 alpha) {
     return 0xFF000000 | (r << 16) | (g << 8) | b;
 }
 
+// Sprite frame timing
+void PPU::updateSpriteFrame() {
+    if (m_memory && (m_memory->getIRQControl() & 0x08) == 0) {
+        if (++m_spriteFrameTimer > m_spriteFrameSpeed) {
+            m_spriteFrameTimer = 0;
+            m_spriteFrame++;
+        }
+    }
+}
+
 // Video controller VRAM access
 // The video controller pointer can access both 64KB banks
 // Note: Reads do NOT auto-increment, only writes do
@@ -855,6 +869,8 @@ void PPU::saveState(std::ofstream& file) {
     // Write frame state
     file.write(reinterpret_cast<const char*>(&m_scanline), sizeof(m_scanline));
     file.write(reinterpret_cast<const char*>(&m_cycles), sizeof(m_cycles));
+    file.write(reinterpret_cast<const char*>(&m_spriteFrameSpeed), sizeof(m_spriteFrameSpeed));
+    file.write(reinterpret_cast<const char*>(&m_spriteFrameTimer), sizeof(m_spriteFrameTimer));
     file.write(reinterpret_cast<const char*>(&m_spriteFrame), sizeof(m_spriteFrame));
     file.write(reinterpret_cast<const char*>(&m_graphicsRamPointer), sizeof(m_graphicsRamPointer));
     file.write(reinterpret_cast<const char*>(&m_graphicsRamModulo), sizeof(m_graphicsRamModulo));
@@ -871,6 +887,8 @@ void PPU::loadState(std::ifstream& file) {
     // Read frame state
     file.read(reinterpret_cast<char*>(&m_scanline), sizeof(m_scanline));
     file.read(reinterpret_cast<char*>(&m_cycles), sizeof(m_cycles));
+    file.read(reinterpret_cast<char*>(&m_spriteFrameSpeed), sizeof(m_spriteFrameSpeed));
+    file.read(reinterpret_cast<char*>(&m_spriteFrameTimer), sizeof(m_spriteFrameTimer));
     file.read(reinterpret_cast<char*>(&m_spriteFrame), sizeof(m_spriteFrame));
     file.read(reinterpret_cast<char*>(&m_graphicsRamPointer), sizeof(m_graphicsRamPointer));
     file.read(reinterpret_cast<char*>(&m_graphicsRamModulo), sizeof(m_graphicsRamModulo));

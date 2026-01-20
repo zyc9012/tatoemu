@@ -2,6 +2,7 @@
 
 #include "../types.h"
 #include "consts.h"
+#include "memory.h"
 #include <array>
 #include <vector>
 #include <fstream>
@@ -10,7 +11,6 @@ namespace neogeo {
 
 class CPU;
 class Cartridge;
-class Memory;
 
 // Graphics RAM size (128KB total - two 64KB banks)
 // Bank 0: 0x00000-0x0FFFF (sprite tile data, text layer)
@@ -82,9 +82,10 @@ public:
     void setEnableSprites(bool enable) { m_enableSprites = enable; }
     void setEnableText(bool enable) { m_enableText = enable; }
     
-    // Get current sprite frame counter (for sprite animation)
+    // Sprite frame control
+    void setSpriteFrameSpeed(u8 speed) { m_spriteFrameSpeed = speed; }
+    void updateSpriteFrame();
     u32 getSpriteFrame() const { return m_spriteFrame; }
-    void setSpriteFrame(u32 frame) { m_spriteFrame = frame; }
     
     // Save/Load state
     void saveState(std::ofstream& file);
@@ -121,7 +122,11 @@ private:
     bool m_frameComplete;
     u32 m_scanline;
     u32 m_cycles;
-    u32 m_spriteFrame;  // Sprite animation frame counter
+
+    // Sprite frame timing
+    u8 m_spriteFrameSpeed;     // Sprite frame animation speed
+    u8 m_spriteFrameTimer;     // Timer for sprite frame advancement
+    u8 m_spriteFrame;          // Current sprite animation frame (0-7)
     
     // Video controller state (for auto-increment VRAM access)
     u32 m_graphicsRamPointer;  // Current VRAM byte address (0x00000-0x1FFFF)
