@@ -9,7 +9,7 @@ namespace neogeo {
 // Game Database
 // ============================================================================
 
-// KOF94 ROMs
+// The King of Fighters '94 ROMs
 static const ROMEntry kof94_roms[] = {
     { "055-p1.p1",    0x200000, 0xf10a2042, ROMType::PROGRAM, 0 },
     { "055-s1.s1",    0x020000, 0x825976c1, ROMType::TEXT, 0 },
@@ -27,7 +27,7 @@ static const ROMEntry kof94_roms[] = {
     { "055-v3.v3",    0x200000, 0x83cf32c0, ROMType::SOUND_SAMPLE, 0 },
 };
 
-// KOF95 ROMs
+// The King of Fighters '95 ROMs
 static const ROMEntry kof95_roms[] = {
     { "084-p1.p1",    0x200000, 0x2cba2716, ROMType::PROGRAM, 0 },
     { "084-s1.s1",    0x020000, 0xde716f8a, ROMType::TEXT, 0 },
@@ -45,7 +45,7 @@ static const ROMEntry kof95_roms[] = {
     { "084-v3.v3",    0x100000, 0xd683a338, ROMType::SOUND_SAMPLE, 0 },
 };
 
-// KOF96 ROMs
+// The King of Fighters '96 ROMs
 static const ROMEntry kof96_roms[] = {
     { "214-p1.p1",    0x100000, 0x52755d74, ROMType::PROGRAM, 0 },
     { "214-p2.sp2",   0x200000, 0x002ccb73, ROMType::PROGRAM, 0 },
@@ -81,9 +81,9 @@ static const ROMEntry kof97_roms[] = {
     { "232-v3.v3",    0x400000, 0x759eb954, ROMType::SOUND_SAMPLE, 0 },
 };
 
-// KOF98 ROMs
-static const ROMEntry kof98_roms[] = {
-    { "242-p1.p1",    0x200000, 0x8893df89, ROMType::PROGRAM, 0 },
+// The King of Fighters '98 ROMs
+static const ROMEntry kof98h_roms[] = {
+    { "242-pn1.p1",   0x100000, 0x61ac868a, ROMType::PROGRAM, 0 },
     { "242-p2.sp2",   0x400000, 0x980aba4c, ROMType::PROGRAM, 0 },
     { "242-s1.s1",    0x020000, 0x7f7b4805, ROMType::TEXT, 0 },
     { "242-c1.c1",    0x800000, 0xe564ecd6, ROMType::SPRITE, 0 },
@@ -94,14 +94,14 @@ static const ROMEntry kof98_roms[] = {
     { "242-c6.c6",    0x800000, 0xda07b6a2, ROMType::SPRITE, 0 },
     { "242-c7.c7",    0x800000, 0xf6d7a38a, ROMType::SPRITE, 0 },
     { "242-c8.c8",    0x800000, 0xc823e045, ROMType::SPRITE, 0 },
-    { "242-m1.m1",    0x040000, 0x4ef7016b, ROMType::SOUND_PROGRAM, 0 },
+    { "242-mg1.m1",   0x040000, 0x4e7a6b1b, ROMType::SOUND_PROGRAM, 0 },
     { "242-v1.v1",    0x400000, 0xb9ea8051, ROMType::SOUND_SAMPLE, 0 },
     { "242-v2.v2",    0x400000, 0xcc11106e, ROMType::SOUND_SAMPLE, 0 },
     { "242-v3.v3",    0x400000, 0x044ea4e1, ROMType::SOUND_SAMPLE, 0 },
     { "242-v4.v4",    0x400000, 0x7985ea30, ROMType::SOUND_SAMPLE, 0 },
 };
 
-// KOF98 (Combo, Hack) ROMs
+// The King of Fighters '98 (Combo, Hack) ROMs
 static const ROMEntry kof98cb_roms[] = {
     { "242-p1cb.p1",    0x100000, 0x2565e431, ROMType::PROGRAM, 0 },
     { "242-p2cb.sp2",   0x400000, 0xd34a4d38, ROMType::PROGRAM, 0 },
@@ -124,7 +124,7 @@ static const ROMEntry kof98cb_roms[] = {
     // { "242-s1cb.dif",   0x020000, 0x83ecd0f4, ROMType::TEXT, 0 },
 };
 
-// KOF99FD ROMs (fully decrypted)
+// The King of Fighters '99 (Fully Decrypted) ROMs
 static const ROMEntry kof99fd_roms[] = {
     { "152-p1.p1",    0x100000, 0xf2c7ddfa, ROMType::PROGRAM, 0 },
     { "152-p2.sp2",   0x400000, 0x274ef47a, ROMType::PROGRAM, 0 },
@@ -144,7 +144,7 @@ static const ROMEntry kof99fd_roms[] = {
     { "251-v4.v4",    0x200000, 0xb49e6178, ROMType::SOUND_SAMPLE, 0 },
 };
 
-// KOF2KFD ROMs (fully decrypted)
+// The King of Fighters 2000 (Fully Decrypted) ROMs
 static const ROMEntry kof2kfd_roms[] = {
     { "257-pg1.p1",   0x100000, 0x5f809dbe, ROMType::PROGRAM, 0 },
     { "257-pg2.sp2",  0x400000, 0x693c2c5e, ROMType::PROGRAM, 0 },
@@ -163,7 +163,7 @@ static const ROMEntry kof2kfd_roms[] = {
     { "257-v4.v4",    0x400000, 0x764bbd6b, ROMType::SOUND_SAMPLE, 0 },
 };
 
-// KOF2K1FD ROMs (fully decrypted)
+// The King of Fighters 2001 (Fully Decrypted) ROMs
 static const ROMEntry kof2k1fd_roms[] = {
     { "262-pg1.p1",   0x100000, 0x2af7e741, ROMType::PROGRAM, 0 },
     { "262-pg2.sp2",  0x400000, 0x91eea062, ROMType::PROGRAM, 0 },
@@ -183,7 +183,7 @@ static const ROMEntry kof2k1fd_roms[] = {
     { "262-v4-08-e0.v4", 0x400000, 0x26ec4dd9, ROMType::SOUND_SAMPLE, 0 },
 };
 
-// KOF2K2FD ROMs (fully decrypted)
+// The King of Fighters 2002 (Fully Decrypted) ROMs
 static const ROMEntry kof2k2fd_roms[] = {
     { "265-p1.p1",    0x100000, 0x9ede7323, ROMType::PROGRAM, 0 },
     { "265-p2d.sp2",  0x400000, 0x432fdf53, ROMType::PROGRAM, 0 },
@@ -201,7 +201,7 @@ static const ROMEntry kof2k2fd_roms[] = {
     { "265-v2d.v2",   0x800000, 0xb8c475a4, ROMType::SOUND_SAMPLE, 0 },
 };
 
-// KOF2K3FD ROMs (fully decrypted)
+// The King of Fighters 2003 (Fully Decrypted) ROMs
 static const ROMEntry kof2k3fd_roms[] = {
     { "271-p1d.p1",   0x800000, 0x57a1981d, ROMType::PROGRAM, 0 },
     { "271-s1d.s1",   0x080000, 0x3230e10f, ROMType::TEXT, 0 },
@@ -380,18 +380,18 @@ static const ROMEntry mslug2_roms[] = {
 
 // Metal Slug X ROMs
 static const ROMEntry mslugx_roms[] = {
-    { "250-p1.p1",    0x100000, 0x09b8a894, ROMType::PROGRAM, 0 },
-    { "250-p2.sp2",   0x400000, 0x1fda2e12, ROMType::PROGRAM, 0 },
+    { "250-p1.p1",    0x100000, 0x81f1f60b, ROMType::PROGRAM, 0 },
+    { "250-p2.ep1",   0x400000, 0x1fda2e12, ROMType::PROGRAM, 0 },
     { "250-s1.s1",    0x020000, 0xfb6f441d, ROMType::TEXT, 0 },
     { "250-c1.c1",    0x800000, 0x09a52c6f, ROMType::SPRITE, 0 },
     { "250-c2.c2",    0x800000, 0x31679821, ROMType::SPRITE, 0 },
-    { "250-c3.c3",    0x800000, 0x602fdb9a, ROMType::SPRITE, 0 },
-    { "250-c4.c4",    0x800000, 0xfd60ff48, ROMType::SPRITE, 0 },
-    { "250-c5.c5",    0x800000, 0xfe51cca6, ROMType::SPRITE, 0 },
-    { "250-c6.c6",    0x800000, 0x3e9b6aae, ROMType::SPRITE, 0 },
+    { "250-c3.c3",    0x800000, 0xfd602019, ROMType::SPRITE, 0 },
+    { "250-c4.c4",    0x800000, 0x31354513, ROMType::SPRITE, 0 },
+    { "250-c5.c5",    0x800000, 0xa4b56124, ROMType::SPRITE, 0 },
+    { "250-c6.c6",    0x800000, 0x83e3e69d, ROMType::SPRITE, 0 },
     { "250-m1.m1",    0x020000, 0xfd42a842, ROMType::SOUND_PROGRAM, 0 },
     { "250-v1.v1",    0x400000, 0xc79ede73, ROMType::SOUND_SAMPLE, 0 },
-    { "250-v2.v2",    0x400000, 0xea9a4d47, ROMType::SOUND_SAMPLE, 0 },
+    { "250-v2.v2",    0x400000, 0xea9aabe1, ROMType::SOUND_SAMPLE, 0 },
     { "250-v3.v3",    0x200000, 0x2ca65102, ROMType::SOUND_SAMPLE, 0 },
 };
 
@@ -519,7 +519,7 @@ static const ROMEntry samsho_roms[] = {
     { "045-c51.c5",   0x100000, 0x81932894, ROMType::SPRITE, 0 },
     { "045-c61.c6",   0x100000, 0xbe30612e, ROMType::SPRITE, 0 },
     { "045-m1.m1",    0x020000, 0x95170640, ROMType::SOUND_PROGRAM, 0 },
-    { "045-v1.v1",    0x200000, 0x37f6d69f, ROMType::SOUND_SAMPLE, 0 },
+    { "045-v1.v1",    0x200000, 0x37f78a9b, ROMType::SOUND_SAMPLE, 0 },
     { "045-v2.v2",    0x200000, 0x568b20cf, ROMType::SOUND_SAMPLE, 0 },
 };
 
@@ -616,7 +616,7 @@ static const ROMEntry samsh5sph_roms[] = {
     { "272-v2.v2",    0x800000, 0x4ba507f1, ROMType::SOUND_SAMPLE, 0 },
 };
 
-// SVC Chaos (Fully Decrypted) ROMs
+// SNK vs. Capcom - SVC Chaos (Fully Decrypted) ROMs
 static const ROMEntry svcfd_roms[] = {
     { "269-p1d.p1",   0x600000, 0x93855c0b, ROMType::PROGRAM, 0 },
     { "269-s1d.s1",   0x080000, 0xad184232, ROMType::TEXT, 0 },
@@ -685,9 +685,9 @@ const GameInfo GameDatabase::s_games[] = {
     },
     {
         "The King of Fighters '98",
-        "kof98",
-        kof98_roms,
-        sizeof(kof98_roms) / sizeof(ROMEntry),
+        "kof98h",
+        kof98h_roms,
+        sizeof(kof98h_roms) / sizeof(ROMEntry),
         304, 224,
         0
     },
@@ -929,7 +929,7 @@ const GameInfo GameDatabase::s_games[] = {
         svcfd_roms,
         sizeof(svcfd_roms) / sizeof(ROMEntry),
         304, 224,
-        0
+        GAME_FLAG_ALTERNATE_TEXT
     },
     {
         "Waku Waku 7",
