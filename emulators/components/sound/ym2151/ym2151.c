@@ -15,10 +15,6 @@
 #include "../../compact.h"
 #include "ym2151.h"
 
-#ifdef __cplusplus
-#include <fstream>
-#endif
-
 /* struct describing a single operator */
 typedef struct{
 	UINT32		phase;					/* accumulated operator phase */
@@ -1387,32 +1383,32 @@ void YM2151SetTimerInterleave(double d)
 	init_chip_tables(chip);
 }
 
-void YM2151SaveContext(std::ofstream& file)
+void YM2151SaveContext(Buffer* buf)
 {
 	if (!YMPSG) return;
 	
 	// Save number of chips
 	unsigned int numChips = YMNumChips;
-	file.write(reinterpret_cast<const char*>(&numChips), sizeof(numChips));
+	buffer_write_data(buf, &numChips, sizeof(numChips));
 	
 	// Calculate size without function pointers
 	size_t sizeNoPointers = offsetof(YM2151, irqhandler);
-	file.write(reinterpret_cast<const char*>(&sizeNoPointers), sizeof(sizeNoPointers));
+	buffer_write_data(buf, &sizeNoPointers, sizeof(sizeNoPointers));
 	
 	// Save each chip's state (without function pointers)
 	for (unsigned int i = 0; i < YMNumChips; i++)
 	{
-		file.write(reinterpret_cast<const char*>(&YMPSG[i]), sizeNoPointers);
+		buffer_write_data(buf, &YMPSG[i], sizeNoPointers);
 	}
 }
 
-void YM2151LoadContext(std::ifstream& file)
+void YM2151LoadContext(Buffer* buf)
 {
 	if (!YMPSG) return;
 	
 	// Load number of chips
 	unsigned int numChips;
-	file.read(reinterpret_cast<char*>(&numChips), sizeof(numChips));
+	buffer_read_data(buf, &numChips, sizeof(numChips));
 	
 	// Verify we have enough chips allocated
 	if (numChips > YMNumChips || numChips == 0) {
@@ -1421,7 +1417,7 @@ void YM2151LoadContext(std::ifstream& file)
 	
 	// Load size
 	size_t sizeNoPointers;
-	file.read(reinterpret_cast<char*>(&sizeNoPointers), sizeof(sizeNoPointers));
+	buffer_read_data(buf, &sizeNoPointers, sizeof(sizeNoPointers));
 	
 	// Verify size matches expected
 	if (sizeNoPointers != offsetof(YM2151, irqhandler)) {
@@ -1431,7 +1427,7 @@ void YM2151LoadContext(std::ifstream& file)
 	// Load each chip's state (without function pointers)
 	for (unsigned int i = 0; i < numChips; i++)
 	{
-		file.read(reinterpret_cast<char*>(&YMPSG[i]), sizeNoPointers);
+		buffer_read_data(buf, &YMPSG[i], sizeNoPointers);
 	}
 	
 	// Restore operator pointers for all chips

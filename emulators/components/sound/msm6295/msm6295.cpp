@@ -20,7 +20,6 @@
 #include "../../compact.h"
 #include "msm6295.h"
 #include <stddef.h>
-#include <fstream>
 
 UINT8* MSM6295ROM;
 
@@ -123,33 +122,33 @@ void MSM6295ResetAll(void)
 	}
 }
 
-void MSM6295SaveContext(std::ofstream& file)
+void MSM6295SaveContext(Buffer* buf)
 {
 	// Save number of chips
 	INT32 numChips = nLastMSM6295Chip + 1;
-	file.write(reinterpret_cast<const char*>(&numChips), sizeof(numChips));
+	buffer_write_data(buf, &numChips, sizeof(numChips));
 	
 	// Save each chip's state and status
 	for (INT32 nChip = 0; nChip <= nLastMSM6295Chip; nChip++)
 	{
-		file.write(reinterpret_cast<const char*>(&MSM6295[nChip]), sizeof(MSM6295Struct));
-		file.write(reinterpret_cast<const char*>(&nMSM6295Status[nChip]), sizeof(UINT32));
+		buffer_write_data(buf, &MSM6295[nChip], sizeof(MSM6295Struct));
+		buffer_write_data(buf, &nMSM6295Status[nChip], sizeof(UINT32));
 	}
 }
 
-void MSM6295LoadContext(std::ifstream& file)
+void MSM6295LoadContext(Buffer* buf)
 {
 	// Load number of chips
 	INT32 numChips;
-	file.read(reinterpret_cast<char*>(&numChips), sizeof(numChips));
+	buffer_read_data(buf, &numChips, sizeof(numChips));
 	
 	nLastMSM6295Chip = numChips - 1;
 	
 	// Load each chip's state and status
 	for (INT32 nChip = 0; nChip < numChips; nChip++)
 	{
-		file.read(reinterpret_cast<char*>(&MSM6295[nChip]), sizeof(MSM6295Struct));
-		file.read(reinterpret_cast<char*>(&nMSM6295Status[nChip]), sizeof(UINT32));
+		buffer_read_data(buf, &MSM6295[nChip], sizeof(MSM6295Struct));
+		buffer_read_data(buf, &nMSM6295Status[nChip], sizeof(UINT32));
 	}
 }
 

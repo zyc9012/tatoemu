@@ -822,20 +822,20 @@ INT16 QscGetRightSample()
 	return chip.out[1];
 }
 
-void QscSaveContext(std::ofstream& file)
+void QscSaveContext(Buffer* buf)
 {
-	file.write(reinterpret_cast<const char*>(&chip), sizeof(qsound_chip));
-	file.write(reinterpret_cast<const char*>(&QsndGain), sizeof(QsndGain));
-	file.write(reinterpret_cast<const char*>(&QsndOutputDir), sizeof(QsndOutputDir));
-	file.write(reinterpret_cast<const char*>(&interpolate_buffer), sizeof(interpolate_buffer));
-	file.write(reinterpret_cast<const char*>(&nDelta), sizeof(nDelta));
+	buffer_write_data(buf, &chip, sizeof(qsound_chip));
+	buffer_write_data(buf, &QsndGain, sizeof(QsndGain));
+	buffer_write_data(buf, &QsndOutputDir, sizeof(QsndOutputDir));
+	buffer_write_data(buf, &interpolate_buffer, sizeof(interpolate_buffer));
+	buffer_write_data(buf, &nDelta, sizeof(nDelta));
 }
 
-void QscLoadContext(std::ifstream& file)
+void QscLoadContext(Buffer* buf)
 {
-	file.read(reinterpret_cast<char*>(&chip), sizeof(qsound_chip));
-	file.read(reinterpret_cast<char*>(&QsndGain), sizeof(QsndGain));
-	file.read(reinterpret_cast<char*>(&QsndOutputDir), sizeof(QsndOutputDir));
-	file.read(reinterpret_cast<char*>(&interpolate_buffer), sizeof(interpolate_buffer));
-	file.read(reinterpret_cast<char*>(&nDelta), sizeof(nDelta));
+	buffer_read_data(buf, &chip, sizeof(qsound_chip));
+	buffer_read_data(buf, &QsndGain, sizeof(QsndGain));
+	buffer_read_data(buf, &QsndOutputDir, sizeof(QsndOutputDir));
+	buffer_read_data(buf, &interpolate_buffer, sizeof(interpolate_buffer));
+	buffer_read_data(buf, &nDelta, sizeof(nDelta));
 }

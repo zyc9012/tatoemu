@@ -3,7 +3,9 @@
 #include "../types.h"
 #include "memory.h"
 #include "cartridge.h"
+extern "C" {
 #include "../components/sound/ym2151/ym2151.h"
+}
 #include "../components/sound/msm6295/msm6295.h"
 #include "../components/sound/qsound/qsound.h"
 #include "../components/compact.h"

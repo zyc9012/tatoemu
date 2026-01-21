@@ -5,7 +5,6 @@
 #define _H_QSOUND_
 
 #include "../../compact.h"
-#include <fstream>
 
 #define MAX_QSOUND (1)
 
@@ -45,7 +44,7 @@ INT16 QscGetLeftSample();
 INT16 QscGetRightSample();
 
 // Save/Load context for state saving
-void QscSaveContext(std::ofstream& file);
-void QscLoadContext(std::ifstream& file);
+void QscSaveContext(Buffer* buf);
+void QscLoadContext(Buffer* buf);
 
 #endif

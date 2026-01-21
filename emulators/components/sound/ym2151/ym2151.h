@@ -33,7 +33,6 @@
 #define _H_YM2151_
 
 #include "../../compact.h"
-#include <fstream>
 
 /* 16- and 8-bit samples (signed) are supported*/
 #define SAMPLE_BITS 16
@@ -89,7 +88,7 @@ void YM2151SetPortWriteHandler(int n, write8_handler handler);
 void YM2151SetSampleRate(int n, int rate);
 
 /* Save/Load context for state saving (all chips) */
-void YM2151SaveContext(std::ofstream& file);
-void YM2151LoadContext(std::ifstream& file);
+void YM2151SaveContext(Buffer* buf);
+void YM2151LoadContext(Buffer* buf);
 
 #endif /*_H_YM2151_*/

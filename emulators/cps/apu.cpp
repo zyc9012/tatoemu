@@ -251,15 +251,19 @@ void APU::saveState(std::ofstream& file) {
     file.write(reinterpret_cast<const char*>(&m_cyclesPerSample), sizeof(m_cyclesPerSample));
     file.write(reinterpret_cast<const char*>(&m_ym2151RegSelect), sizeof(m_ym2151RegSelect));
 
+    Buffer* buf = buffer_create(1);
     if (m_cartridge->getCPSVersion() == 1) {
         // Save YM2151 state
-        YM2151SaveContext(file);
+        YM2151SaveContext(buf);
         // Save MSM6295 state
-        MSM6295SaveContext(file);
+        MSM6295SaveContext(buf);
     } else {
         // Save QSound state
-        QscSaveContext(file);
+        QscSaveContext(buf);
     }
+    file.write(reinterpret_cast<const char*>(&buf->size), sizeof(buf->size));
+    file.write(reinterpret_cast<const char*>(buf->data), buf->size);
+    buffer_destroy(buf);
 }
 
 void APU::loadState(std::ifstream& file) {
@@ -269,15 +273,20 @@ void APU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_cyclesPerSample), sizeof(m_cyclesPerSample));
     file.read(reinterpret_cast<char*>(&m_ym2151RegSelect), sizeof(m_ym2151RegSelect));
 
+    Buffer* buf = buffer_create(1);
+    file.read(reinterpret_cast<char*>(&buf->size), sizeof(buf->size));
+    buffer_resize(buf, buf->size);
+    file.read(reinterpret_cast<char*>(buf->data), buf->size);
     if (m_cartridge->getCPSVersion() == 1) {
         // Load YM2151 state
-        YM2151LoadContext(file);
+        YM2151LoadContext(buf);
         // Load MSM6295 state
-        MSM6295LoadContext(file);
+        MSM6295LoadContext(buf);
     } else {
         // Load QSound state
-        QscLoadContext(file);
+        QscLoadContext(buf);
     }
+    buffer_destroy(buf);
 }
 
 } // namespace cps

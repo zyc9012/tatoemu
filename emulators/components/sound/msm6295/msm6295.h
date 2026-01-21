@@ -4,7 +4,6 @@
 #define _H_MSM6295_
 
 #include "../../compact.h"
-#include <fstream>
 
 #define MAX_MSM6295 (4)
 #define MSM6295_PIN7_HIGH (132)
@@ -22,8 +21,8 @@ INT32 MSM6295RenderAll(INT16* pSoundBuf, INT32 nSegmenLength); // render all
 INT32 MSM6295Render(INT32 nChip, INT16* pSoundBuf, INT32 nSegmenLength);
 void MSM6295Write(INT32 nChip, UINT8 nCommand);
 
-void MSM6295SaveContext(std::ofstream& file);
-void MSM6295LoadContext(std::ifstream& file);
+void MSM6295SaveContext(Buffer* buf);
+void MSM6295LoadContext(Buffer* buf);
 
 // for backwards compatibility. Remove when done configuring all banks
 extern UINT8* MSM6295ROM;
