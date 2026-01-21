@@ -457,37 +457,61 @@ void YM_DELTAT_postload(YM_DELTAT *DELTAT,UINT8 *regszz)
 		DELTAT->now_data = *(DELTAT->memory + (DELTAT->now_addr>>1) );
 }
 
-void YM_DELTAT_savestate(const char *statename,int num,YM_DELTAT *DELTAT)
+void YM_DELTAT_savestate(Buffer* buf, YM_DELTAT *DELTAT)
 {
-#ifdef _STATE_H
 	// hooked up proper deltaT states -dink july31, 2021
 	// hint: mechatt now works with run-ahead! :)
-	state_save_register_UINT8 (statename, num, "DeltaT.now_data" , &DELTAT->now_data, 1);
-	state_save_register_UINT8 (statename, num, "DeltaT.CPU_data" , &DELTAT->CPU_data, 1);
-	state_save_register_UINT8 (statename, num, "DeltaT.portstate", &DELTAT->portstate, 1);
-	state_save_register_UINT8 (statename, num, "DeltaT.control2" , &DELTAT->control2, 1);
-	state_save_register_UINT8 (statename, num, "DeltaT.portshift", &DELTAT->portshift, 1);
-	state_save_register_UINT8 (statename, num, "DeltaT.DRAMportshift", &DELTAT->DRAMportshift, 1);
-	state_save_register_UINT8 (statename, num, "DeltaT.memread"  , &DELTAT->memread, 1);
-	state_save_register_UINT8 (statename, num, "DeltaT.PCM_BSY"  , &DELTAT->PCM_BSY, 1);
-	state_save_register_UINT8 (statename, num, "DeltaT.reg"      , &DELTAT->reg[0], 16);
+	buffer_write_data(buf, &DELTAT->now_data, sizeof(UINT8));
+	buffer_write_data(buf, &DELTAT->CPU_data, sizeof(UINT8));
+	buffer_write_data(buf, &DELTAT->portstate, sizeof(UINT8));
+	buffer_write_data(buf, &DELTAT->control2, sizeof(UINT8));
+	buffer_write_data(buf, &DELTAT->portshift, sizeof(UINT8));
+	buffer_write_data(buf, &DELTAT->DRAMportshift, sizeof(UINT8));
+	buffer_write_data(buf, &DELTAT->memread, sizeof(UINT8));
+	buffer_write_data(buf, &DELTAT->PCM_BSY, sizeof(UINT8));
+	buffer_write_data(buf, &DELTAT->reg[0], 16 * sizeof(UINT8));
 
-	state_save_register_UINT32(statename, num, "DeltaT.now_addr" , &DELTAT->now_addr , 1);
-	state_save_register_UINT32(statename, num, "DeltaT.now_step" , &DELTAT->now_step , 1);
-	state_save_register_UINT32(statename, num, "DeltaT.step"     , &DELTAT->step , 1);
-	state_save_register_UINT32(statename, num, "DeltaT.start"    , &DELTAT->start , 1);
-	state_save_register_UINT32(statename, num, "DeltaT.limit"    , &DELTAT->limit , 1);
-	state_save_register_UINT32(statename, num, "DeltaT.end"      , &DELTAT->end , 1);
-	state_save_register_UINT32(statename, num, "DeltaT.delta"    , &DELTAT->delta , 1);
+	buffer_write_data(buf, &DELTAT->now_addr, sizeof(UINT32));
+	buffer_write_data(buf, &DELTAT->now_step, sizeof(UINT32));
+	buffer_write_data(buf, &DELTAT->step, sizeof(UINT32));
+	buffer_write_data(buf, &DELTAT->start, sizeof(UINT32));
+	buffer_write_data(buf, &DELTAT->limit, sizeof(UINT32));
+	buffer_write_data(buf, &DELTAT->end, sizeof(UINT32));
+	buffer_write_data(buf, &DELTAT->delta, sizeof(UINT32));
 
-	state_save_register_INT32 (statename, num, "DeltaT.volume"   , &DELTAT->volume   , 1);
-	state_save_register_INT32 (statename, num, "DeltaT.acc"      , &DELTAT->acc      , 1);
-	state_save_register_INT32 (statename, num, "DeltaT.prev_acc" , &DELTAT->prev_acc , 1);
-	state_save_register_INT32 (statename, num, "DeltaT.adpcmd"   , &DELTAT->adpcmd   , 1);
-	state_save_register_INT32 (statename, num, "DeltaT.adpcml"   , &DELTAT->adpcml   , 1);
-#endif
+	buffer_write_data(buf, &DELTAT->volume, sizeof(INT32));
+	buffer_write_data(buf, &DELTAT->acc, sizeof(INT32));
+	buffer_write_data(buf, &DELTAT->prev_acc, sizeof(INT32));
+	buffer_write_data(buf, &DELTAT->adpcmd, sizeof(INT32));
+	buffer_write_data(buf, &DELTAT->adpcml, sizeof(INT32));
 }
 
+void YM_DELTAT_loadstate(Buffer* buf, YM_DELTAT *DELTAT)
+{
+	buffer_read_data(buf, &DELTAT->now_data, sizeof(UINT8));
+	buffer_read_data(buf, &DELTAT->CPU_data, sizeof(UINT8));
+	buffer_read_data(buf, &DELTAT->portstate, sizeof(UINT8));
+	buffer_read_data(buf, &DELTAT->control2, sizeof(UINT8));
+	buffer_read_data(buf, &DELTAT->portshift, sizeof(UINT8));
+	buffer_read_data(buf, &DELTAT->DRAMportshift, sizeof(UINT8));
+	buffer_read_data(buf, &DELTAT->memread, sizeof(UINT8));
+	buffer_read_data(buf, &DELTAT->PCM_BSY, sizeof(UINT8));
+	buffer_read_data(buf, &DELTAT->reg[0], 16 * sizeof(UINT8));
+
+	buffer_read_data(buf, &DELTAT->now_addr, sizeof(UINT32));
+	buffer_read_data(buf, &DELTAT->now_step, sizeof(UINT32));
+	buffer_read_data(buf, &DELTAT->step, sizeof(UINT32));
+	buffer_read_data(buf, &DELTAT->start, sizeof(UINT32));
+	buffer_read_data(buf, &DELTAT->limit, sizeof(UINT32));
+	buffer_read_data(buf, &DELTAT->end, sizeof(UINT32));
+	buffer_read_data(buf, &DELTAT->delta, sizeof(UINT32));
+
+	buffer_read_data(buf, &DELTAT->volume, sizeof(INT32));
+	buffer_read_data(buf, &DELTAT->acc, sizeof(INT32));
+	buffer_read_data(buf, &DELTAT->prev_acc, sizeof(INT32));
+	buffer_read_data(buf, &DELTAT->adpcmd, sizeof(INT32));
+	buffer_read_data(buf, &DELTAT->adpcml, sizeof(INT32));
+}
 
 #define YM_DELTAT_Limit(val,max,min)	\
 {										\

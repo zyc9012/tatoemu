@@ -44,8 +44,6 @@ INT32 AY8910InitYM(INT32 chip, INT32 clock, INT32 sample_rate,
 		write8_handler portAwrite, write8_handler portBwrite,
 		void (*update_callback)(void));
 
-void AY8910Scan(INT32 nAction, INT32* pnMin);
-
 INT32 AY8910SetPorts(INT32 chip, read8_handler portAread, read8_handler portBread,write8_handler portAwrite, write8_handler portBwrite);
 
 void AY8910Render(INT16* dest, INT32 length); // render everything
@@ -54,6 +52,9 @@ void AY8910RenderInternal(INT32 length); // render everything to internal buffer
 
 void AY8910SetRoute(INT32 chip, INT32 nIndex, double nVolume, INT32 nRouteDir);
 void AY8910SetBuffered(INT32 (*pCPUCyclesCB)(), INT32 nCpuMHZ);
+
+void AY8910SaveContext(Buffer* buf);
+void AY8910LoadContext(Buffer* buf);
 
 #define BURN_SND_AY8910_ROUTE_1		0
 #define BURN_SND_AY8910_ROUTE_2		1

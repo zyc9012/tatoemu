@@ -847,31 +847,36 @@ INT32 AY8910SetPorts(INT32 chip, read8_handler portAread, read8_handler portBrea
 	return 0;
 }
 
-// void AY8910Scan(INT32 nAction, INT32* pnMin)
-// {
-// 	struct BurnArea ba;
-// 	INT32 i;
-	
-// 	if ((nAction & ACB_DRIVER_DATA) == 0) {
-// 		return;
-// 	}
+void AY8910SaveContext(Buffer* buf)
+{
+	if (!buf) return;
 
-// 	if (pnMin && *pnMin < 0x029496) {			// Return minimum compatible version
-// 		*pnMin = 0x029496;
-// 	}
+	// Write number of chips
+	buffer_write_data(buf, &num, sizeof(num));
 
-// 	for (i = 0; i < num; i++) {
-// 		char szName[32];
+	// Write each AY8910 struct (up to RNG field)
+	for (INT32 i = 0; i < num; i++) {
+		size_t struct_size = STRUCT_SIZE_HELPER(struct AY8910, RNG);
+		buffer_write_data(buf, &AYPSG[i], struct_size);
+	}
 
-// 		sprintf(szName, "AY8910 #%d", i);
+}
 
-// 		ba.Data		= &AYPSG[i];
-// 		ba.nLen		= STRUCT_SIZE_HELPER(struct AY8910, RNG);
-// 		ba.nAddress = 0;
-// 		ba.szName	= szName;
-// 		BurnAcb(&ba);
-// 	}
-// }
+void AY8910LoadContext(Buffer* buf)
+{
+	if (!buf) return;
+
+	// Read number of chips
+	buffer_read_data(buf, &num, sizeof(num));
+
+	if (num > MAX_8910) num = MAX_8910; // Safety check
+
+	// Read each AY8910 struct (up to RNG field)
+	for (INT32 i = 0; i < num; i++) {
+		size_t struct_size = STRUCT_SIZE_HELPER(struct AY8910, RNG);
+		buffer_read_data(buf, &AYPSG[i], struct_size);
+	}
+}
 
 #define AY8910_ADD_SOUND(route, output)												\
 	if ((AY8910RouteDirs[route] & BURN_SND_ROUTE_LEFT) == BURN_SND_ROUTE_LEFT) {	\

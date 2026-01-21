@@ -199,6 +199,9 @@ void YM2610BUpdateOne(int num, INT16 **buffer, int length);
 int YM2610Write(int n, int a,UINT8 v);
 UINT8 YM2610Read(int n,int a);
 int YM2610TimerOver(int n, int c );
+
+void YM2610SaveContext(Buffer* buf);
+void YM2610LoadContext(Buffer* buf);
 #endif /* BUILD_YM2610 */
 
 #if BUILD_YM2612

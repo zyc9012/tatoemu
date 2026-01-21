@@ -77,6 +77,7 @@ void YM_DELTAT_ADPCM_Reset(YM_DELTAT *DELTAT,int pan,int emulation_mode);
 void YM_DELTAT_ADPCM_CALC(YM_DELTAT *DELTAT);
 
 void YM_DELTAT_postload(YM_DELTAT *DELTAT,UINT8 *regs);
-void YM_DELTAT_savestate(const char *statename,int num,YM_DELTAT *DELTAT);
+void YM_DELTAT_savestate(Buffer* buf, YM_DELTAT *DELTAT);
+void YM_DELTAT_loadstate(Buffer* buf, YM_DELTAT *DELTAT);
 
 #endif

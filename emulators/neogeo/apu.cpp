@@ -288,8 +288,12 @@ void APU::saveState(std::ofstream& file) {
     file.write(reinterpret_cast<const char*>(&m_timerA), sizeof(m_timerA));
     file.write(reinterpret_cast<const char*>(&m_timerB), sizeof(m_timerB));
     
-    // TODO: Save YM2610 internal state
-    // The FBNeo cores have scan functions for state saving
+    Buffer* buf = buffer_create(1920);
+    AY8910SaveContext(buf);
+    YM2610SaveContext(buf);
+    file.write(reinterpret_cast<const char*>(&buf->size), sizeof(buf->size));
+    file.write(reinterpret_cast<const char*>(buf->data), buf->size);
+    buffer_destroy(buf);
 }
 
 void APU::loadState(std::ifstream& file) {
@@ -299,8 +303,14 @@ void APU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_nmiEnabled), sizeof(m_nmiEnabled));
     file.read(reinterpret_cast<char*>(&m_timerA), sizeof(m_timerA));
     file.read(reinterpret_cast<char*>(&m_timerB), sizeof(m_timerB));
-    
-    // TODO: Load YM2610 internal state
+
+    Buffer* buf = buffer_create(1);
+    file.read(reinterpret_cast<char*>(&buf->size), sizeof(buf->size));
+    buffer_resize(buf, buf->size);
+    file.read(reinterpret_cast<char*>(buf->data), buf->size);
+    AY8910LoadContext(buf);
+    YM2610LoadContext(buf);
+    buffer_destroy(buf);
 }
 
 } // namespace neogeo
