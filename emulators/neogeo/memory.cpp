@@ -17,12 +17,10 @@ Memory::Memory()
     , m_controller(nullptr)
     , m_apu(nullptr)
     , m_inputSelect(0)
-    , m_soundCommand(0)
-    , m_soundReply(0)
     , m_sramWritable(false)
     , m_paletteBank(0)
     , m_darkenPalette(false)
-    , m_biosTextRomEnabled(true)
+    , m_biosTextRomEnabled(false)
     , m_graphicsRamPointer(0)
     , m_graphicsRamModulo(0)
     , m_irqControl(0)
@@ -33,7 +31,7 @@ Memory::Memory()
     , m_z80Bank1(0x06)
     , m_z80Bank2(0x0E)
     , m_z80Bank3(0x1E)
-    , m_z80BiosRomMapped(true) {
+    , m_z80BiosRomMapped(false) {
 }
 
 void Memory::reset() {
@@ -46,8 +44,6 @@ void Memory::reset() {
     
     // Reset I/O registers
     m_inputSelect = 0;
-    m_soundCommand = 0;
-    m_soundReply = 0;
     m_sramWritable = false;
     m_paletteBank = 0;
     m_darkenPalette = false;
@@ -66,7 +62,7 @@ void Memory::reset() {
     m_z80Bank1 = 0x06;  // Bank 1: starts at 0xC000 in Z80 ROM
     m_z80Bank2 = 0x0E;  // Bank 2: starts at 0x38000 in Z80 ROM
     m_z80Bank3 = 0x1E;  // Bank 3: starts at 0x3C000 in Z80 ROM
-    m_z80BiosRomMapped = true;  // Start with BIOS ROM mapped
+    m_z80BiosRomMapped = false;
     
     // Reset 68K ROM banking (initial bank is 0x100000 for games > 1MB)
     m_programRomBank = 0x100000;
@@ -114,7 +110,10 @@ u8 Memory::read8(u32 address) {
         case 0x320000:
             if ((address & 1) == 0) {
                 // Even: Sound reply
-                return m_soundReply;
+                if (m_apu) {
+                    return m_apu->getSoundReply();
+                }
+                return 0x00;
             } else {
                 // Odd: System status byte
                 // Bit 0: Test button
@@ -296,8 +295,10 @@ void Memory::write8(u32 address, u8 value) {
         case 0x320000:
             // Sound command (even addresses)
             if ((address & 1) == 0) {
-                m_soundCommand = value;
-                // Skip sound processing for now
+                // Send sound command (triggers NMI to Z80 if enabled)
+                if (m_apu) {
+                    m_apu->setSoundCommand(value);
+                }
             }
             return;
             
@@ -718,7 +719,7 @@ u8 Memory::readZ80IO(u16 port) {
             if (m_apu) {
                 return m_apu->readPort(port);
             }
-            return m_soundCommand;
+            return 0x00;
             
         case 0x04:
         case 0x05:
@@ -767,7 +768,6 @@ void Memory::saveState(std::ofstream& file) {
     file.write(reinterpret_cast<const char*>(m_paletteRam.data()), m_paletteRam.size() * sizeof(u16));
     file.write(reinterpret_cast<const char*>(m_z80Ram.data()), m_z80Ram.size());
     file.write(reinterpret_cast<const char*>(&m_inputSelect), sizeof(m_inputSelect));
-    file.write(reinterpret_cast<const char*>(&m_soundCommand), sizeof(m_soundCommand));
     file.write(reinterpret_cast<const char*>(&m_sramWritable), sizeof(m_sramWritable));
     file.write(reinterpret_cast<const char*>(&m_paletteBank), sizeof(m_paletteBank));
     file.write(reinterpret_cast<const char*>(&m_darkenPalette), sizeof(m_darkenPalette));
@@ -791,7 +791,6 @@ void Memory::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(m_paletteRam.data()), m_paletteRam.size() * sizeof(u16));
     file.read(reinterpret_cast<char*>(m_z80Ram.data()), m_z80Ram.size());
     file.read(reinterpret_cast<char*>(&m_inputSelect), sizeof(m_inputSelect));
-    file.read(reinterpret_cast<char*>(&m_soundCommand), sizeof(m_soundCommand));
     file.read(reinterpret_cast<char*>(&m_sramWritable), sizeof(m_sramWritable));
     file.read(reinterpret_cast<char*>(&m_paletteBank), sizeof(m_paletteBank));
     file.read(reinterpret_cast<char*>(&m_darkenPalette), sizeof(m_darkenPalette));

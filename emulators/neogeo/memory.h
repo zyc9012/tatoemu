@@ -99,8 +99,6 @@ private:
     
     // I/O registers
     u8 m_inputSelect;          // Input port selection
-    u8 m_soundCommand;          // Sound command latch
-    u8 m_soundReply;           // Sound reply (skip for now)
     bool m_sramWritable;       // SRAM write protection
     u8 m_paletteBank;          // Current palette bank (0 or 1)
     bool m_darkenPalette;      // Shadow/darken palette flag

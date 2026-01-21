@@ -262,7 +262,7 @@ void Core::update() {
         soundCpuSyncOffset = static_cast<s32>(soundCpuCyclesActual) - static_cast<s32>(soundCpuCycles);
 
         // Run APU using actual cycles executed
-        // m_apu->step(soundCpuCyclesActual, m_gameSpeed);
+        m_apu->step(soundCpuCyclesActual, m_gameSpeed);
         
         // Run PPU (graphics chip runs in parallel)
         // PPU typically runs at similar speed to main CPU

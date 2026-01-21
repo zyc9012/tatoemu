@@ -56,9 +56,13 @@ public:
     // Program ROM access
     u8 readProgramROM8(u32 offset) const;  // Raw ROM access by offset
     
-    // Sound ROM access (for Z80 - skip for now, but keep structure)
+    // Sound ROM access (for Z80 - M ROM)
     u8 readSoundROM8(u32 address) const;
     u32 getSoundROMSize() const { return static_cast<u32>(m_soundRom.size()); }
+    
+    // ADPCM ROM access (for YM2610 - V ROMs)
+    const u8* getADPCMROM() const { return m_adpcmRom.empty() ? nullptr : m_adpcmRom.data(); }
+    u32 getADPCMROMSize() const { return static_cast<u32>(m_adpcmRom.size()); }
     
     // Component connections
     void setCPU(CPU* cpu) { m_cpu = cpu; }

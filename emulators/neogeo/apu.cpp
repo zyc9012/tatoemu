@@ -1,11 +1,81 @@
+// YM2610 and AY8910 sound core interface
+// Include these first before any headers that might include compact.h
+extern "C" {
+#include "../components/sound/driver.h"
+#include "../components/sound/state.h"
+#include "../components/sound/fm/fm.h"
+#include "../components/sound/ay8910/ay8910.h"
+}
+
 #include "apu.h"
 #include "sound_cpu.h"
 #include "memory.h"
 #include "cartridge.h"
 #include "consts.h"
 #include <iostream>
+#include <cstring>
+
+extern "C" {
+
+// Global variables required by FBNeo sound cores
+INT32 nBurnSoundLen = 0;
+INT32 nBurnSoundRate = 44100;
+INT32 nBurnFPS = 6000;  // 60.00 Hz * 100
+UINT32 nCurrentFrame = 0;
+INT16* pBurnSoundOut = nullptr;
+// Note: FM_IS_POSTLOADING is defined in fm.c, declared as extern in state.h
+BurnAcbCallback BurnAcb = nullptr;
+
+// Timer function for FM core
+double BurnTimerGetTime(void) {
+    return 0.0;  // Not used for basic operation
+}
+
+// YM2610 update request callback
+void BurnYM2610UpdateRequest(void) {
+    // This is called when the YM2610 needs to update
+    // For now, we handle this in our step function
+}
+
+}  // extern "C"
 
 namespace neogeo {
+
+// YM2610 clock frequency
+static constexpr u32 YM2610_CLOCK = 8000000;
+
+// Static pointer to SoundCPU for interrupt handler callback
+static SoundCPU* s_ym2610SoundCpu = nullptr;
+
+// Static pointer to APU for timer handler callback
+static APU* s_ym2610Apu = nullptr;
+
+// YM2610 IRQ handler - sets/clears Z80 IRQ line based on YM2610 timer interrupt status
+static void ym2610IrqHandler(int chip, int irq) {
+    (void)chip;  // Unused, we only have one chip
+    if (s_ym2610SoundCpu) {
+        s_ym2610SoundCpu->irq(irq != 0);
+    }
+}
+
+// YM2610 Timer handler - called when YM2610 starts/stops a timer
+// n: chip number, c: timer (0=A, 1=B), cnt: counter value (0=stop), stepTime: time per tick in seconds
+static void ym2610TimerHandler(int n, int c, int cnt, double stepTime) {
+    (void)n;  // Unused, we only have one chip
+    if (!s_ym2610Apu) return;
+    
+    if (cnt == 0) {
+        // Timer stopped
+        s_ym2610Apu->setTimer(c, -1);
+    } else {
+        // Timer started
+        // Calculate Z80 cycles until timer fires: cnt * stepTime * SOUND_CPU_FREQUENCY
+        // stepTime is the time per timer tick in seconds (TimerBase from YM2610)
+        double periodSeconds = cnt * stepTime;
+        s32 cycles = static_cast<s32>(periodSeconds * SOUND_CPU_FREQUENCY);
+        s_ym2610Apu->setTimer(c, cycles);
+    }
+}
 
 APU::APU()
     : m_soundCpu(nullptr)
@@ -18,10 +88,63 @@ APU::APU()
     , m_soundReply(0)
     , m_soundStatus(false)
     , m_nmiEnabled(false)
+    , m_timerA(-1)
+    , m_timerB(-1)
     , m_cycleAccumulator(0)
     , m_cyclesPerSample(0) {
-    m_ym2610RegSelect[0] = 0;
-    m_ym2610RegSelect[1] = 0;
+}
+
+APU::~APU() {
+    YM2610Shutdown();
+    AY8910Exit(0);
+    
+    s_ym2610SoundCpu = nullptr;
+    s_ym2610Apu = nullptr;
+}
+
+void APU::setSoundCPU(SoundCPU* soundCpu) {
+    m_soundCpu = soundCpu;
+    // Update the static pointers so the IRQ/timer handlers can work
+    s_ym2610SoundCpu = soundCpu;
+    s_ym2610Apu = this;
+}
+
+void APU::init(u32 sampleRate) {
+    m_sampleRate = sampleRate;
+    // Calculate cycles per sample based on Z80 frequency
+    if (m_sampleRate > 0) {
+        m_cyclesPerSample = SOUND_CPU_FREQUENCY / m_sampleRate;
+    }
+
+    nBurnSoundRate = static_cast<INT32>(sampleRate);
+    
+    // Calculate samples per frame (~735 samples at 44100 Hz / 60 fps)
+    nBurnSoundLen = static_cast<INT32>(sampleRate / 60);
+    
+    if (!m_cartridge) {
+        return;
+    }
+    
+    // Get ADPCM ROM data from cartridge
+    u8* adpcmRomA = const_cast<u8*>(m_cartridge->getADPCMROM());
+    int adpcmRomASize = static_cast<int>(m_cartridge->getADPCMROMSize());
+    // For Neo Geo, ADPCM-A and ADPCM-B use the same ROM
+    u8* adpcmRomB = adpcmRomA;
+    int adpcmRomBSize = adpcmRomASize;
+    
+    // Initialize YM2610 with timer and IRQ handlers
+    YM2610Shutdown();
+    int result = YM2610Init(1, 0, YM2610_CLOCK, static_cast<int>(sampleRate),
+                           (void**)&adpcmRomA, &adpcmRomASize,
+                           (void**)&adpcmRomB, &adpcmRomBSize,
+                           ym2610TimerHandler, ym2610IrqHandler);
+    
+    if (result != 0) {
+        std::cerr << "Error: Failed to initialize YM2610" << std::endl;
+    }
+
+    // Reset YM2610
+    YM2610ResetChip(0);
 }
 
 void APU::reset() {
@@ -29,24 +152,70 @@ void APU::reset() {
     m_soundReply = 0;
     m_soundStatus = false;
     m_nmiEnabled = false;
-    m_ym2610RegSelect[0] = 0;
-    m_ym2610RegSelect[1] = 0;
     m_cycleAccumulator = 0;
     
-    // Calculate cycles per sample based on Z80 frequency
-    if (m_sampleRate > 0) {
-        m_cyclesPerSample = SOUND_CPU_FREQUENCY / m_sampleRate;
+    // Reset timers
+    m_timerA = -1;
+    m_timerB = -1;
+    
+    init(m_sampleRate);
+}
+
+void APU::setSampleRate(u32 sampleRate) {
+    m_sampleRate = sampleRate;
+    nBurnSoundRate = static_cast<INT32>(sampleRate);
+    nBurnSoundLen = static_cast<INT32>(sampleRate / 60);
+
+    init(sampleRate);
+}
+
+void APU::setTimer(int timer, s32 cycles) {
+    if (timer == 0) {
+        m_timerA = cycles;
+    } else {
+        m_timerB = cycles;
+    }
+}
+
+void APU::updateTimers(u32 cycles) {
+    // Update Timer A
+    if (m_timerA >= 0) {
+        m_timerA -= static_cast<s32>(cycles);
+        if (m_timerA <= 0) {
+            YM2610TimerOver(0, 0);
+        }
+    }
+    
+    // Update Timer B
+    if (m_timerB >= 0) {
+        m_timerB -= static_cast<s32>(cycles);
+        if (m_timerB <= 0) {
+            YM2610TimerOver(0, 1);
+        }
     }
 }
 
 void APU::step(u32 cycles, double gameSpeed) {
-    // Stub: In a full implementation, this would:
-    // 1. Run the YM2610 emulation
-    // 2. Generate audio samples
-    // 3. Mix FM and ADPCM channels
-    // 4. Output to audio device
-    (void)cycles;
-    (void)gameSpeed;
+    // Accumulate cycles and generate samples when needed
+    m_cycleAccumulator += cycles;
+    
+    // Generate audio samples based on accumulated cycles
+    while (m_cycleAccumulator >= m_cyclesPerSample * gameSpeed) {
+        m_cycleAccumulator -= m_cyclesPerSample * gameSpeed;
+        
+        // Generate one sample
+        INT16 leftBuf = 0;
+        INT16 rightBuf = 0;
+        INT16* buffers[2] = { &leftBuf, &rightBuf };
+        YM2610UpdateOne(0, buffers, 1);
+        
+        // Apply volume
+        float left = leftBuf / 32768.0f * m_volume;
+        float right = rightBuf / 32768.0f * m_volume;
+        
+        float samples[2] = {left, right};
+        m_audioDevice->writeSamples(samples, 2 * sizeof(float));
+    }
 }
 
 u8 APU::readPort(u16 port) {
@@ -57,25 +226,15 @@ u8 APU::readPort(u16 port) {
             return m_soundCommand;
             
         case 0x04:
-            // YM2610 status register (address A)
-            // Stub: Return ready status
-            return 0x00;
-            
         case 0x05:
-            // YM2610 data read (address A)
-            return 0x00;
-            
         case 0x06:
-            // YM2610 status register (address B)
-            return 0x00;
+            return YM2610Read(0, port & 3);
             
         case 0x08:
         case 0x09:
         case 0x0A:
         case 0x0B:
             // Bank switch commands - handled by Memory class via I/O read
-            // The high byte of the port address contains the bank number
-            // This is handled in Memory::readZ80IO
             return 0x00;
             
         default:
@@ -86,28 +245,16 @@ u8 APU::readPort(u16 port) {
 void APU::writePort(u16 port, u8 value) {
     switch (port & 0xFF) {
         case 0x00:
-            // Clear sound command
+            // Clear sound command (acknowledge)
             m_soundCommand = 0;
             break;
             
         case 0x04:
-            // YM2610 address write (address A)
-            m_ym2610RegSelect[0] = value;
-            break;
-            
         case 0x05:
-            // YM2610 data write (address A)
-            // Stub: Would write to YM2610 register
-            break;
-            
         case 0x06:
-            // YM2610 address write (address B)
-            m_ym2610RegSelect[1] = value;
-            break;
-            
         case 0x07:
-            // YM2610 data write (address B)
-            // Stub: Would write to YM2610 register
+            // YM2610 data write
+            YM2610Write(0, port & 3, value);
             break;
             
         case 0x08:
@@ -123,14 +270,13 @@ void APU::writePort(u16 port, u8 value) {
         case 0x0C:
             // Write reply to 68000
             m_soundReply = value;
-            // In FBNeo this calls ZetRunEnd() to return control
             break;
             
         case 0x80:
         case 0xC0:
         case 0xC1:
         case 0xC2:
-            // NOP
+            // NOP - these are used for timing/sync but don't need handling
             break;
             
         default:
@@ -153,7 +299,11 @@ void APU::saveState(std::ofstream& file) {
     file.write(reinterpret_cast<const char*>(&m_soundReply), sizeof(m_soundReply));
     file.write(reinterpret_cast<const char*>(&m_soundStatus), sizeof(m_soundStatus));
     file.write(reinterpret_cast<const char*>(&m_nmiEnabled), sizeof(m_nmiEnabled));
-    file.write(reinterpret_cast<const char*>(m_ym2610RegSelect), sizeof(m_ym2610RegSelect));
+    file.write(reinterpret_cast<const char*>(&m_timerA), sizeof(m_timerA));
+    file.write(reinterpret_cast<const char*>(&m_timerB), sizeof(m_timerB));
+    
+    // TODO: Save YM2610 internal state
+    // The FBNeo cores have scan functions for state saving
 }
 
 void APU::loadState(std::ifstream& file) {
@@ -161,7 +311,10 @@ void APU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_soundReply), sizeof(m_soundReply));
     file.read(reinterpret_cast<char*>(&m_soundStatus), sizeof(m_soundStatus));
     file.read(reinterpret_cast<char*>(&m_nmiEnabled), sizeof(m_nmiEnabled));
-    file.read(reinterpret_cast<char*>(m_ym2610RegSelect), sizeof(m_ym2610RegSelect));
+    file.read(reinterpret_cast<char*>(&m_timerA), sizeof(m_timerA));
+    file.read(reinterpret_cast<char*>(&m_timerB), sizeof(m_timerB));
+    
+    // TODO: Load YM2610 internal state
 }
 
 } // namespace neogeo

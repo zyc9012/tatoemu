@@ -113,6 +113,12 @@ u32 SoundCPU::step(u32 cycles) {
         s32 executed = Z80Execute(static_cast<s32>(cycles));
         u32 actualCycles = static_cast<u32>(executed);
         m_cycles += actualCycles;
+
+        // Update YM2610 timers - this will trigger IRQs when timers expire
+        if (m_apu) {
+            m_apu->updateTimers(actualCycles);
+        }
+
         return actualCycles;
     }
     return 0;
@@ -124,6 +130,7 @@ void SoundCPU::irq(bool state) {
 
 void SoundCPU::nmi() {
     Z80SetIrqLine(Z80_INPUT_LINE_NMI, Z80_ASSERT_LINE);
+    Z80SetIrqLine(Z80_INPUT_LINE_NMI, Z80_CLEAR_LINE);
 }
 
 void SoundCPU::saveState(std::ofstream& file) {
