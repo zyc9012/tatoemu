@@ -11,11 +11,6 @@ extern "C" {
 #include "../components/sound/fm/fm.h"
 #include "../components/sound/ay8910/ay8910.h"
 
-// Global variables required by FBNeo sound cores
-INT32 nBurnSoundLen = 0;
-INT32 nBurnSoundRate = 44100;
-INT32 nBurnFPS = 6000;  // 60.00 Hz * 100
-
 }  // extern "C"
 
 namespace neogeo {
@@ -95,11 +90,6 @@ void APU::init(u32 sampleRate) {
         m_cyclesPerSample = SOUND_CPU_FREQUENCY / m_sampleRate;
     }
 
-    nBurnSoundRate = static_cast<INT32>(sampleRate);
-    
-    // Calculate samples per frame (~735 samples at 44100 Hz / 60 fps)
-    nBurnSoundLen = static_cast<INT32>(sampleRate / 60);
-    
     if (!m_cartridge) {
         return;
     }
@@ -146,8 +136,6 @@ void APU::reset() {
 
 void APU::setSampleRate(u32 sampleRate) {
     m_sampleRate = sampleRate;
-    nBurnSoundRate = static_cast<INT32>(sampleRate);
-    nBurnSoundLen = static_cast<INT32>(sampleRate / 60);
 
     init(sampleRate);
 }

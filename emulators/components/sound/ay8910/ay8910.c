@@ -42,7 +42,6 @@ static INT32 num = 0, ym_num = 0;
 static double AY8910Volumes[3 * 6];
 static INT32 AY8910RouteDirs[3 * 6];
 INT16 *pAY8910Buffer[(MAX_8910 + 1) * 3] = { NULL, NULL, NULL,  NULL, NULL, NULL,  NULL, NULL, NULL,  NULL, NULL, NULL,  NULL, NULL, NULL };
-static INT32 nBurnSoundLenSave = 0;
 static INT32 AY8910AddSignal = 0;
 
 INT32 ay8910burgertime_mode = 0;
@@ -61,42 +60,9 @@ static INT32 nPosition[MAX_8910];
 static INT16 *soundbuf[MAX_8910];
 
 // for as long as ay8910.c is .c:
-extern INT32 nBurnSoundLen;
-extern INT32 nBurnFPS;
 extern INT32 FM_IS_POSTLOADING;
 
 // Streambuffer handling
-static INT32 SyncInternal()
-{
-    if (!ay8910_buffered) return 0;
-	return (INT32)(float)(nBurnSoundLen * (pCPUTotalCycles() / (nDACCPUMHZ / (nBurnFPS / 100.0000))));
-}
-
-static void UpdateStream(INT32 chip, INT32 samples_len)
-{
-    if (!ay8910_buffered) return;
-    if (samples_len > nBurnSoundLen) samples_len = nBurnSoundLen;
-
-	INT32 nSamplesNeeded = samples_len - nPosition[chip];
-	if (nSamplesNeeded <= 0) return;
-
-    AY8910Update(chip, pAY8910Buffer + (chip * 3), nSamplesNeeded);
-    nPosition[chip] += nSamplesNeeded;
-}
-
-void AY8910SetBuffered(INT32 (*pCPUCyclesCB)(), INT32 nCpuMHZ)
-{
-    for (INT32 i = 0; i < num; i++) {
-        nPosition[i] = 0;
-    }
-
-    ay8910_buffered = 1;
-
-    pCPUTotalCycles = pCPUCyclesCB;
-    nDACCPUMHZ = nCpuMHZ;
-}
-
-
 struct AY8910
 {
 	INT32 register_latch;
@@ -336,8 +302,6 @@ static void AYWriteReg(INT32 chip, INT32 r, INT32 v)
 	    if (r == AY_ESHAPE || PSG->Regs[r] != v)
 		{
             /* update the output buffer before changing the register */
-            if (ay8910_buffered) UpdateStream(chip, SyncInternal());
-
             if (!FM_IS_POSTLOADING) AYStreamUpdate(); // for ym-cores
 		}
 	}
@@ -741,7 +705,6 @@ void AY8910Exit(INT32 chip)
 	num = 0;
 	ym_num = 0;
 	AY8910AddSignal = 0;
-	nBurnSoundLenSave = 0;
 	ay8910_index_ym = 0;
 
     if (ay8910_buffered) {
@@ -806,7 +769,7 @@ INT32 AY8910InitCore(INT32 chip, INT32 clock, INT32 sample_rate,
 	return 0;
 }
 
-INT32 AY8910Init(INT32 chip, INT32 clock, INT32 add_signal)
+INT32 AY8910Init(INT32 chip, INT32 clock, INT32 sample_rate, INT32 add_signal)
 {
 	INT32 i;
 	if (chip != num) {
@@ -818,12 +781,11 @@ INT32 AY8910Init(INT32 chip, INT32 clock, INT32 add_signal)
 
 	AYStreamUpdate = dummy_callback;
 	if (chip == 0) AY8910AddSignal = add_signal;
-	extern INT32 nBurnSoundLen, nBurnSoundRate;
 
 	struct AY8910 *PSG = &AYPSG[chip];
 
 	memset(PSG, 0, sizeof(struct AY8910));
-	PSG->SampleRate = nBurnSoundRate;
+	PSG->SampleRate = sample_rate;
 	PSG->PortAread = NULL; //portAread;
 	PSG->PortBread = NULL; //portBread;
 	PSG->PortAwrite = NULL; //portAwrite;
@@ -842,8 +804,6 @@ INT32 AY8910Init(INT32 chip, INT32 clock, INT32 add_signal)
 	AY8910RouteDirs[(chip * 3) + BURN_SND_AY8910_ROUTE_3] = BURN_SND_ROUTE_BOTH;
 
 	AY8910Reset(chip);
-
-	nBurnSoundLenSave = nBurnSoundLen;
 
 	for (i = 0; i < 3; i++)
 	{
@@ -928,10 +888,6 @@ INT32 AY8910SetPorts(INT32 chip, read8_handler portAread, read8_handler portBrea
 void AY8910RenderInternal(INT32 length)
 {
 	INT32 i;
-
-	if (ay8910_buffered && length != nBurnSoundLen) {
-        return;
-    }
 
 	for (i = 0; i < num; i++) {
         INT32 update_len = (ay8910_buffered) ? length - nPosition[i] : length;

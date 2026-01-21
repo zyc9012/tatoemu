@@ -37,7 +37,7 @@ void AY8910Reset(INT32 chip);
 void AY8910Exit(INT32 chip);
 
 // add signal ignored for any chip but #0
-INT32 AY8910Init(INT32 chip, INT32 clock, INT32 add_signal);
+INT32 AY8910Init(INT32 chip, INT32 clock, INT32 sample_rate, INT32 add_signal);
 
 INT32 AY8910InitYM(INT32 chip, INT32 clock, INT32 sample_rate,
 		read8_handler portAread, read8_handler portBread,
