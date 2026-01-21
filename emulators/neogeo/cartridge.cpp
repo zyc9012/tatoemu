@@ -15,7 +15,7 @@ Cartridge::Cartridge()
     , m_ppu(nullptr)
     , m_gameInfo(nullptr)
     , m_biosVectorTableActive(true)  // Start with BIOS vector table active
-    , m_isAES(false)                 // Default to MVS system
+    , m_systemType(SystemType::MVS)  // Default to MVS system
     , m_programRomSize(0)
     , m_spriteRomSize(0)
     , m_textRomSize(0)
@@ -476,8 +476,12 @@ bool Cartridge::loadBIOSROMs(const std::map<std::string, std::vector<u8>>& romFi
     const BIOSROMEntry& bios68kEntry = biosROMs[bios68kIndex];
 
     // Determine if this is AES or MVS
-    m_isAES = (bios68kIndex == 15 || bios68kIndex == 16 || bios68kIndex == 17 ||
-               (bios68kIndex >= 19 && bios68kIndex <= 27));
+    if (bios68kIndex == 15 || bios68kIndex == 16 || bios68kIndex == 17 ||
+        (bios68kIndex >= 19 && bios68kIndex <= 27)) {
+        m_systemType = SystemType::AES;
+    } else {
+        m_systemType = SystemType::MVS;
+    }
 
     if (!loadBIOSFile(bios68kEntry, m_bios68kRom, "68K BIOS", false)) {
         return false;

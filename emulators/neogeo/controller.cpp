@@ -98,7 +98,7 @@ u8 Controller::readInput1(u8 offset) const {
         // MVS slot status: Bit 6 = 1 for 1/2 slot MVS
         // For AES, this should be 0 (no slot reporting)
         u8 result = 0x00;
-        if (m_cartridge && !m_cartridge->isAES()) {
+        if (m_cartridge && m_cartridge->getSystemType() == SystemType::MVS) {
             result = 0x40;  // 1/2 slot MVS
         }
         return ~result;

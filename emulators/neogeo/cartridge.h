@@ -13,6 +13,12 @@ namespace neogeo {
 class CPU;
 class PPU;
 
+// System types
+enum class SystemType {
+    AES,  // Advanced Entertainment System (home console)
+    MVS   // Multi Video System (arcade)
+};
+
 // NeoGeo Cartridge loader
 // Loads ROMs from ZIP files (MAME format)
 // For now, skips decryption as requested
@@ -69,7 +75,7 @@ public:
     void setPPU(PPU* ppu) { m_ppu = ppu; }
 
     // System type detection
-    bool isAES() const { return m_isAES; }
+    SystemType getSystemType() const { return m_systemType; }
     
     // Save/Load state
     void saveState(std::ofstream& file);
@@ -100,7 +106,7 @@ private:
     std::vector<u8> m_hybridBiosVectors;   // BIOS[0x00-0x7F] + Cart[0x80-0x3FF] - used at 0x000000 when BIOS vectors active
     std::vector<u8> m_hybridCartVectors;   // Cart[0x00-0x7F] + BIOS[0x80-0x3FF] - used at 0xC00000 when BIOS vectors active
     bool m_biosVectorTableActive;          // true = BIOS vectors at 0x000000, false = cartridge vectors
-    bool m_isAES;                          // true = AES system, false = MVS system
+    SystemType m_systemType;               // AES or MVS system type
     
     u32 m_programRomSize;
     u32 m_spriteRomSize;

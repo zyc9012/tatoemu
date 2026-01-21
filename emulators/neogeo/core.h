@@ -11,6 +11,7 @@
 #include "controller.h"
 #include "config.h"
 #include "consts.h"
+#include "upd4990a.h"
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -31,7 +32,6 @@ public:
     // NeoGeo-specific methods
     void setBIOSIndex(u32 bios68kIndex) { m_bios68kIndex = bios68kIndex; }
     u32 getBIOSIndex() const { return m_bios68kIndex; }
-    bool isAES() const { return m_cartridge->isAES(); }
     bool handleInput(SDL_Event& event) override;
     void update() override;
     void updateGameSpeed(double gameSpeed) override;
@@ -61,9 +61,13 @@ private:
     std::unique_ptr<Memory> m_memory;
     std::unique_ptr<Cartridge> m_cartridge;
     std::unique_ptr<Controller> m_controller;
+    std::unique_ptr<UPD4990A> m_upd4990a;
     
     // Frame timing
     double m_gameSpeed = 1.0;
+
+    // Total cycle counter
+    u32 m_totalCycles = 0;
 
     // BIOS configuration
     u32 m_bios68kIndex = 19;

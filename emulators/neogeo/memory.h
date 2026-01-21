@@ -13,6 +13,7 @@ class PPU;
 class Cartridge;
 class Controller;
 class APU;
+class UPD4990A;
 
 // NeoGeo Memory Map (Cartridge systems - MVS/AES):
 // 0x000000-0x0003FF: Vector table (switchable BIOS/cartridge)
@@ -63,6 +64,7 @@ public:
     void setCartridge(Cartridge* cartridge) { m_cartridge = cartridge; }
     void setController(Controller* controller) { m_controller = controller; }
     void setAPU(APU* apu) { m_apu = apu; }
+    void setUPD4990A(UPD4990A* upd4990a) { m_upd4990a = upd4990a; }
     
     // Save/Load state
     void saveState(std::ofstream& file);
@@ -89,6 +91,7 @@ private:
     Cartridge* m_cartridge;
     Controller* m_controller;
     APU* m_apu;
+    UPD4990A* m_upd4990a;
     
     // RAM banks
     std::array<u8, WORK_RAM_SIZE> m_workRam;      // 0x100000-0x1FFFFF (64KB mirrored)

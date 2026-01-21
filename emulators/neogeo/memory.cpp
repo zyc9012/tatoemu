@@ -1,4 +1,5 @@
 #include "memory.h"
+#include "upd4990a.h"
 #include "cpu.h"
 #include "ppu.h"
 #include "cartridge.h"
@@ -126,7 +127,7 @@ u8 Memory::read8(u32 address) {
                 u8 result = 0x70;  // Memory card inserted and writable (bits 4-6)
 
                 // Set AES/MVS bit
-                if (m_cartridge && m_cartridge->isAES()) {
+                if (m_cartridge && m_cartridge->getSystemType() == SystemType::AES) {
                     result |= 0x80;  // AES mode (bit 7 = 1)
                 }
 
@@ -142,6 +143,11 @@ u8 Memory::read8(u32 address) {
                 if (m_controller) {
                     u8 coinButtons = m_controller->readInput3(0x01);
                     result |= (coinButtons & 0x0F) << 2;  // Bits 2-3 for coins
+                }
+
+                // For MVS systems, OR in uPD4990A data (bits 6-7)
+                if (m_cartridge && m_cartridge->getSystemType() == SystemType::MVS && m_upd4990a) {
+                    result |= (m_upd4990a->read() << 6);
                 }
 
                 return ~result;
@@ -206,7 +212,10 @@ u8 Memory::read8(u32 address) {
     
     // NVRAM (0xD00000-0xDFFFFF) - MVS only, 64KB mirrored
     if (address >= 0xD00000 && address < 0xE00000) {
-        return m_nvram[address & 0xFFFF];
+        if (m_cartridge && m_cartridge->getSystemType() == SystemType::MVS) {
+            return m_nvram[address & 0xFFFF];
+        }
+        return 0xFF;  // Open bus on AES
     }
     
     // 0xE00000-0xFFFFFF: Open bus for cartridge systems (CD transfer area for NeoCD)
@@ -339,7 +348,7 @@ void Memory::write8(u32 address, u8 value) {
     
     // NVRAM (0xD00000-0xDFFFFF) - MVS only, 64KB mirrored
     if (address >= 0xD00000 && address < 0xE00000) {
-        if (m_sramWritable) {
+        if (m_cartridge && m_cartridge->getSystemType() == SystemType::MVS && m_sramWritable) {
             m_nvram[address & 0xFFFF] = value;
         }
         return;
@@ -524,7 +533,10 @@ void Memory::writeIO1(u8 offset, u8 value) {
             break;
             
         case 0x51:
-            // Send command to RTC
+            // Send command to RTC (MVS only)
+            if (m_upd4990a) {
+                m_upd4990a->write(value & 2, value & 4, value & 1);
+            }
             break;
             
         case 0x61:
@@ -544,7 +556,10 @@ void Memory::writeIO1(u8 offset, u8 value) {
             break;
             
         case 0xD1:
-            // Send command to RTC
+            // Send command to RTC (MVS only)
+            if (m_upd4990a) {
+                m_upd4990a->write(value & 2, value & 4, value & 1);
+            }
             break;
             
         case 0xE1:
@@ -585,7 +600,7 @@ void Memory::writeIO2(u8 offset, u8 /* value */) {
             // Select BIOS text/Z80 ROM
             // For AES systems, this doesn't enable BIOS text ROM (games use their own text ROM)
             // For MVS systems, this enables BIOS text ROM
-            if (m_cartridge && !m_cartridge->isAES()) {
+            if (m_cartridge && m_cartridge->getSystemType() == SystemType::MVS) {
                 m_biosTextRomEnabled = true;
             }
             if (m_z80BiosRomMapped == false) {

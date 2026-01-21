@@ -18,6 +18,7 @@ bool Core::initialize() {
     m_ppu = std::make_unique<PPU>();
     m_memory = std::make_unique<Memory>();
     m_controller = std::make_unique<Controller>();
+    m_upd4990a = std::make_unique<UPD4990A>();
 
     // Wire up components
     m_cpu->setMemory(m_memory.get());
@@ -38,6 +39,7 @@ bool Core::initialize() {
     m_memory->setCartridge(m_cartridge.get());
     m_memory->setController(m_controller.get());
     m_memory->setAPU(m_apu.get());
+    m_memory->setUPD4990A(m_upd4990a.get());
     
     m_cartridge->setCPU(m_cpu.get());
     m_cartridge->setPPU(m_ppu.get());
@@ -72,6 +74,7 @@ bool Core::loadROM(const fs::path& filename) {
     m_memory->reset();
     m_controller->reset();
     m_cartridge->reset();
+    m_upd4990a->initialize(CPU_FREQUENCY, [this]() { return m_totalCycles; });
 
     return true;
 }
@@ -253,7 +256,10 @@ void Core::update() {
         
         // Calculate how many CPU cycles the instruction took
         u32 cpuCycles = m_cpu->getCycles() - cyclesBefore;
-        
+
+        // Update total cycle counter
+        m_totalCycles += cpuCycles;
+
         // Run sound CPU proportionally
         s32 soundCpuCycles = static_cast<u32>(cpuCycles * SOUND_CYCLES_RATIO) - soundCpuSyncOffset;
         
@@ -294,6 +300,7 @@ bool Core::saveState(const fs::path& filename) {
     m_memory->saveState(file);
     m_cartridge->saveState(file);
     m_controller->saveState(file);
+    m_upd4990a->saveState(file);
     
     file.close();
     return true;
@@ -323,6 +330,7 @@ bool Core::loadState(const fs::path& filename) {
     m_memory->loadState(file);
     m_cartridge->loadState(file);
     m_controller->loadState(file);
+    m_upd4990a->loadState(file);
     
     file.close();
     return true;
