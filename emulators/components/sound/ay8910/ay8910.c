@@ -16,23 +16,12 @@
 
 ***************************************************************************/
 
-#include "driver.h"
-#include "state.h"
+#include "../compact.h"
 #include <stddef.h>
 
 #define AY8910_CORE
 #include "ay8910.h"
 #undef AY8910_CORE
-
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__
-	// MSVC doesn't like this - this module only supports debug tracking with GCC only
-	#include <tchar.h>
-	extern UINT8 DebugSnd_AY8910Initted;
-	extern INT32 (__cdecl *bprintf) (INT32 nStatus, TCHAR* szFormat, ...);
-	#define PRINT_ERROR		(3)
-#endif
-#endif
 
 #define MAX_OUTPUT 0x7fff
 
@@ -74,8 +63,6 @@ static INT16 *soundbuf[MAX_8910];
 // for as long as ay8910.c is .c:
 extern INT32 nBurnSoundLen;
 extern INT32 nBurnFPS;
-extern UINT32 nCurrentFrame;
-extern INT16 *pBurnSoundOut;
 extern INT32 FM_IS_POSTLOADING;
 
 // Streambuffer handling
@@ -87,17 +74,11 @@ static INT32 SyncInternal()
 
 static void UpdateStream(INT32 chip, INT32 samples_len)
 {
-    if (!ay8910_buffered || !pBurnSoundOut) return;
+    if (!ay8910_buffered) return;
     if (samples_len > nBurnSoundLen) samples_len = nBurnSoundLen;
 
 	INT32 nSamplesNeeded = samples_len - nPosition[chip];
 	if (nSamplesNeeded <= 0) return;
-
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-    //bprintf(0, _T("ay8910_sync: %d samples    frame %d\n"), nSamplesNeeded, nCurrentFrame);
-#endif
-#endif
 
     AY8910Update(chip, pAY8910Buffer + (chip * 3), nSamplesNeeded);
     nPosition[chip] += nSamplesNeeded;
@@ -105,11 +86,6 @@ static void UpdateStream(INT32 chip, INT32 samples_len)
 
 void AY8910SetBuffered(INT32 (*pCPUCyclesCB)(), INT32 nCpuMHZ)
 {
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-    bprintf(0, _T("*** Using BUFFERED AY8910-mode.\n"));
-#endif
-#endif
     for (INT32 i = 0; i < num; i++) {
         nPosition[i] = 0;
     }
@@ -404,13 +380,6 @@ void AY8910Write(INT32 chip, INT32 a, INT32 data)
 {
 	struct AY8910 *PSG = &AYPSG[chip];
 	
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-	if (!DebugSnd_AY8910Initted) bprintf(PRINT_ERROR, _T("AY8910Write called without init\n"));
-	if (chip > num) bprintf(PRINT_ERROR, _T("AY8910Write called with invalid chip number %x\n"), chip);
-#endif
-#endif
-
 	if (a & 1)
 	{	/* Data port */
 		AYWriteReg(chip,PSG->register_latch,data);
@@ -425,13 +394,6 @@ INT32 AY8910Read(INT32 chip)
 {
 	struct AY8910 *PSG = &AYPSG[chip];
 	
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-	if (!DebugSnd_AY8910Initted) bprintf(PRINT_ERROR, _T("AY8910Read called without init\n"));
-	if (chip > num) bprintf(PRINT_ERROR, _T("AY8910Read called with invalid chip number %x\n"), chip);
-#endif
-#endif
-
 	return AYReadReg(chip,PSG->register_latch);
 }
 
@@ -441,13 +403,6 @@ void AY8910Update(INT32 chip, INT16 **buffer, INT32 length)
 	INT16 *buf1,*buf2,*buf3;
 	INT32 outn;
 	
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-	if (!DebugSnd_AY8910Initted) bprintf(PRINT_ERROR, _T("AY8910Update called without init\n"));
-	if (chip > num) bprintf(PRINT_ERROR, _T("AY8910Update called with invalid chip number %x\n"), chip);
-#endif
-#endif
-
     if (ay8910_buffered) {
         buf1 = buffer[0] + nPosition[chip];
         buf2 = buffer[1] + nPosition[chip];
@@ -721,13 +676,6 @@ void AY8910_set_clock(INT32 chip, INT32 clock)
 {
 	struct AY8910 *PSG = &AYPSG[chip];
 	
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-	if (!DebugSnd_AY8910Initted) bprintf(PRINT_ERROR, _T("AY8910_set_clock called without init\n"));
-	if (chip > num) bprintf(PRINT_ERROR, _T("AY8910_set_clock called with invalid chip number %x\n"), chip);
-#endif
-#endif
-
 	/* the step clock for the tone and noise generators is the chip clock    */
 	/* divided by 8; for the envelope generator of the AY-3-8910, it is half */
 	/* that much (clock/16), but the envelope of the YM2149 goes twice as    */
@@ -769,13 +717,6 @@ void AY8910Reset(INT32 chip)
 	INT32 i;
 	struct AY8910 *PSG = &AYPSG[chip];
 	
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-	if (!DebugSnd_AY8910Initted) bprintf(PRINT_ERROR, _T("AY8910Reset called without init\n"));
-	if (chip > num) bprintf(PRINT_ERROR, _T("AY8910Reset called with invalid chip number %x\n"), chip);
-#endif
-#endif
-
 	PSG->register_latch = 0;
 	PSG->RNG = 1;
 	PSG->OutputA = 0;
@@ -797,12 +738,6 @@ void AY8910Reset(INT32 chip)
 
 void AY8910Exit(INT32 chip)
 {
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-	if (!DebugSnd_AY8910Initted && !chip) bprintf(PRINT_ERROR, _T("AY8910Exit called without init\n"));
-#endif
-#endif
-
 	num = 0;
 	ym_num = 0;
 	AY8910AddSignal = 0;
@@ -826,12 +761,6 @@ void AY8910Exit(INT32 chip)
 			}
 		}
 	}
-	
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-	DebugSnd_AY8910Initted = 0;
-#endif
-#endif
 }
 
 static void dummy_callback(void)
@@ -845,12 +774,6 @@ INT32 AY8910InitCore(INT32 chip, INT32 clock, INT32 sample_rate,
 {
 	struct AY8910 *PSG = &AYPSG[chip];
 	
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-	DebugSnd_AY8910Initted = 1;
-#endif
-#endif
-
 	AYStreamUpdate = dummy_callback;
 
 	if (chip != num) {
@@ -886,21 +809,11 @@ INT32 AY8910InitCore(INT32 chip, INT32 clock, INT32 sample_rate,
 INT32 AY8910Init(INT32 chip, INT32 clock, INT32 add_signal)
 {
 	INT32 i;
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-	DebugSnd_AY8910Initted = 1;
-#endif
-#endif
 	if (chip != num) {
 		return 1;
 	}
 
     if (ay8910_buffered) {
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-        bprintf(0, _T("*** ERROR: AY8910SetBuffered() must be called AFTER all chips have been initted!\n"));
-#endif
-#endif
     }
 
 	AYStreamUpdate = dummy_callback;
@@ -966,12 +879,6 @@ INT32 AY8910SetPorts(INT32 chip, read8_handler portAread, read8_handler portBrea
 {
 	struct AY8910 *PSG = &AYPSG[chip];
 	
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-	if (!DebugSnd_AY8910Initted) bprintf(PRINT_ERROR, _T("AY8910SetPorts called without init\n"));
-#endif
-#endif
-
 	PSG->PortAread = portAread;
 	PSG->PortBread = portBread;
 	PSG->PortAwrite = portAwrite;
@@ -980,37 +887,31 @@ INT32 AY8910SetPorts(INT32 chip, read8_handler portAread, read8_handler portBrea
 	return 0;
 }
 
-void AY8910Scan(INT32 nAction, INT32* pnMin)
-{
-	struct BurnArea ba;
-	INT32 i;
+// void AY8910Scan(INT32 nAction, INT32* pnMin)
+// {
+// 	struct BurnArea ba;
+// 	INT32 i;
 	
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-	if (!DebugSnd_AY8910Initted) bprintf(PRINT_ERROR, _T("AY8910Scan called without init\n"));
-#endif
-#endif
+// 	if ((nAction & ACB_DRIVER_DATA) == 0) {
+// 		return;
+// 	}
 
-	if ((nAction & ACB_DRIVER_DATA) == 0) {
-		return;
-	}
+// 	if (pnMin && *pnMin < 0x029496) {			// Return minimum compatible version
+// 		*pnMin = 0x029496;
+// 	}
 
-	if (pnMin && *pnMin < 0x029496) {			// Return minimum compatible version
-		*pnMin = 0x029496;
-	}
+// 	for (i = 0; i < num; i++) {
+// 		char szName[32];
 
-	for (i = 0; i < num; i++) {
-		char szName[32];
+// 		sprintf(szName, "AY8910 #%d", i);
 
-		sprintf(szName, "AY8910 #%d", i);
-
-		ba.Data		= &AYPSG[i];
-		ba.nLen		= STRUCT_SIZE_HELPER(struct AY8910, RNG);
-		ba.nAddress = 0;
-		ba.szName	= szName;
-		BurnAcb(&ba);
-	}
-}
+// 		ba.Data		= &AYPSG[i];
+// 		ba.nLen		= STRUCT_SIZE_HELPER(struct AY8910, RNG);
+// 		ba.nAddress = 0;
+// 		ba.szName	= szName;
+// 		BurnAcb(&ba);
+// 	}
+// }
 
 #define AY8910_ADD_SOUND(route, output)												\
 	if ((AY8910RouteDirs[route] & BURN_SND_ROUTE_LEFT) == BURN_SND_ROUTE_LEFT) {	\
@@ -1026,21 +927,9 @@ void AY8910Scan(INT32 nAction, INT32* pnMin)
 
 void AY8910RenderInternal(INT32 length)
 {
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-	if (!DebugSnd_AY8910Initted) bprintf(PRINT_ERROR, _T("AY8910RenderInternal called without init\n"));
-	if (num >= 7) bprintf(PRINT_ERROR, _T("AY8910RenderInternal called with invalid number of chips %i (max is 6)\n"), num);
-#endif
-#endif
-
 	INT32 i;
 
 	if (ay8910_buffered && length != nBurnSoundLen) {
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-        bprintf(0, _T("AY8910RenderInternal() in buffered mode must be called once per frame!\n"));
-#endif
-#endif
         return;
     }
 
@@ -1055,13 +944,6 @@ void AY8910RenderInternal(INT32 length)
 
 void AY8910Render(INT16* dest, INT32 length)
 {
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-	if (!DebugSnd_AY8910Initted) bprintf(PRINT_ERROR, _T("AY8910Render called without init\n"));
-	if (num >= 7) bprintf(PRINT_ERROR, _T("AY8910Render called with invalid number of chips %i (max is 6)\n"), num);
-#endif
-#endif
-
 	INT32 i, n;
 
 	AY8910RenderInternal(length);
@@ -1105,14 +987,6 @@ void AY8910Render(INT16* dest, INT32 length)
 
 void AY8910SetRoute(INT32 chip, INT32 nIndex, double nVolume, INT32 nRouteDir)
 {
-#if defined FBNEO_DEBUG
-#ifdef __GNUC__ 
-	if (!DebugSnd_AY8910Initted) bprintf(PRINT_ERROR, _T("AY8910SetRoute called without init\n"));
-	if (nIndex < 0 || nIndex > 2) bprintf(PRINT_ERROR, _T("AY8910SetRoute called with invalid index %i\n"), nIndex);
-	if (chip >= num) bprintf(PRINT_ERROR, _T("AY8910SetRoute called with invalid chip %i\n"), chip);
-#endif
-#endif
-	
 	AY8910Volumes[(chip * 3) + nIndex] = nVolume;
 	AY8910RouteDirs[(chip * 3) + nIndex] = nRouteDir;
 }

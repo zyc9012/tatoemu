@@ -1,12 +1,3 @@
-// YM2610 and AY8910 sound core interface
-// Include these first before any headers that might include compact.h
-extern "C" {
-#include "../components/sound/driver.h"
-#include "../components/sound/state.h"
-#include "../components/sound/fm/fm.h"
-#include "../components/sound/ay8910/ay8910.h"
-}
-
 #include "apu.h"
 #include "sound_cpu.h"
 #include "memory.h"
@@ -17,31 +8,13 @@ extern "C" {
 
 extern "C" {
 
+#include "../components/sound/fm/fm.h"
+#include "../components/sound/ay8910/ay8910.h"
+
 // Global variables required by FBNeo sound cores
 INT32 nBurnSoundLen = 0;
 INT32 nBurnSoundRate = 44100;
 INT32 nBurnFPS = 6000;  // 60.00 Hz * 100
-UINT32 nCurrentFrame = 0;
-INT16* pBurnSoundOut = nullptr;
-// Note: FM_IS_POSTLOADING is defined in fm.c, declared as extern in state.h
-BurnAcbCallback BurnAcb = nullptr;
-
-// Timer function for FM core
-double BurnTimerGetTime(void) {
-    return 0.0;  // Not used for basic operation
-}
-
-// YM2610 update request callback
-void BurnYM2610UpdateRequest(void) {
-    // This is called when the YM2610 needs to update
-    // For now, we handle this in our step function
-}
-
-// AY8910 update request callback
-void BurnAY8910UpdateRequest(void) {
-    // This is called when the AY8910 needs to update
-    // For now, we handle this in our step function
-}
 
 }  // extern "C"
 
@@ -140,7 +113,7 @@ void APU::init(u32 sampleRate) {
     
     // Initialize AY8910 (must be done before YM2610)
     AY8910Exit(0);
-    AY8910InitYM(0, YM2610_CLOCK, static_cast<int>(sampleRate), nullptr, nullptr, nullptr, nullptr, BurnAY8910UpdateRequest);
+    AY8910InitYM(0, YM2610_CLOCK, static_cast<int>(sampleRate), nullptr, nullptr, nullptr, nullptr, []{});
 
     // Initialize YM2610 with timer and IRQ handlers
     YM2610Shutdown();

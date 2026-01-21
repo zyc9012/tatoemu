@@ -62,8 +62,7 @@
 **
 */
 
-#include "driver.h"
-#include "state.h"
+#include "../compact.h"
 #include "ymdeltat.h"
 
 #define YM_DELTAT_DELTA_MAX (24576)

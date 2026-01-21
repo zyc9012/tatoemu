@@ -1,6 +1,4 @@
-#ifndef DRIVER_H
-#include "driver.h"
-#endif
+#include "../compact.h"
 
 #ifndef AY8910_CORE
 extern "C" {

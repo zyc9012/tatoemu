@@ -96,8 +96,11 @@ typedef union {
 #define BURN_SND_CLIP(x) \
     ((x) > 32767 ? 32767 : ((x) < -32768 ? -32768 : (x)))
 
-// write8_handler type (port, data)
-typedef void (*write8_handler)(UINT8 port, UINT8 data);
+// write8_handler type
+#ifndef _H_FM_FM_
+typedef UINT8 (*read8_handler)(UINT32 offset);
+typedef void (*write8_handler)(UINT32 offset, UINT32 data);
+#endif
 
 // Stub out logerror (can be implemented if needed)
 #define logerror(...) ((void)0)
@@ -106,6 +109,20 @@ typedef void (*write8_handler)(UINT8 port, UINT8 data);
 #define bprintf(...) ((void)0)
 #define PRINT_ERROR 0
 #define _T(x) x
+
+/* OPN chip enable flags */
+#define HAS_YM2203  0
+#define HAS_YM2608  0
+#define HAS_YM2610  1
+#define HAS_YM2610B 0
+#define HAS_YM2612  0
+#define HAS_YM3438  0
+/* OPL */
+#define HAS_YM3812  0
+#define HAS_YM3526  0
+#define HAS_Y8950   0
+
+#define timer_get_time() 0.0
 
 #ifdef __cplusplus
 }

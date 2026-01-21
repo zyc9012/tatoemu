@@ -106,13 +106,7 @@
 #include <stdarg.h>
 #include <math.h>
 
-#ifndef __RAINE__
-#include "driver.h"		/* use M.A.M.E. */
-#include "state.h"
-#else
-#include "deftypes.h"		/* use RAINE */
-#include "support.h"		/* use RAINE */
-#endif
+#include "../compact.h"		/* use M.A.M.E. */
 
 #define AY8910_CORE
 #include "ay8910.h"
