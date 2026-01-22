@@ -406,6 +406,23 @@
             text-transform: uppercase;
         }
 
+        .file-download-btn {
+            background: rgba(74, 144, 226, 0.8);
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 8px;
+            transition: all 0.2s ease;
+            min-width: 24px;
+        }
+
+        .file-download-btn:hover {
+            background: #4a90e2;
+        }
+
         .file-manager-empty {
             text-align: center;
             color: #888;
@@ -857,10 +874,18 @@
                             <span class="file-name" title="${filename}">${filename}</span>
                             <span class="file-size">${formatFileSize(fileSize)}</span>
                             <span class="file-type">${fileType}</span>
+                            <button class="file-download-btn" title="Download ${filename}">↓</button>
                         `;
 
-                        fileItem.addEventListener('click', function() {
-                            loadGameFile(filepath, filename);
+                        fileItem.addEventListener('click', function(e) {
+                            // If clicking on download button, download file
+                            if (e.target.classList.contains('file-download-btn')) {
+                                e.stopPropagation();
+                                downloadFile(filepath, filename);
+                            } else {
+                                // Otherwise, load the game
+                                loadGameFile(filepath, filename);
+                            }
                         });
 
                         fileListContainer.appendChild(fileItem);
@@ -893,6 +918,29 @@
             const sizes = ['B', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function downloadFile(filepath, filename) {
+            try {
+                // Read file from virtual filesystem
+                const fileData = Module.FS.readFile(filepath);
+                const blob = new Blob([fileData], { type: 'application/octet-stream' });
+
+                // Create download link
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showLog('Downloaded: ' + filename);
+            } catch (error) {
+                console.error('Error downloading file:', error);
+                showLog('Error downloading file: ' + error.message, true);
+            }
         }
 
         async function loadGameFile(filepath, filename, isUpload = false) {
