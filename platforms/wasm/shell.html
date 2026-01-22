@@ -536,6 +536,7 @@
                 }
                 try {
                     Module.FS.mount(Module.FS.filesystems.IDBFS, { autoPersist: true }, '/roms');
+                    Module.FS.syncfs(true);
                 } catch (err) {
                     console.error('Failed to mount persistent storage:', err);
                 }

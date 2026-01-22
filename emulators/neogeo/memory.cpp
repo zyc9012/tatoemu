@@ -777,6 +777,10 @@ void Memory::loadState(std::ifstream& file) {
 }
 
 void Memory::saveNVRAM() {
+    if (m_romFilename.empty()) {
+        return;
+    }
+
     fs::path nvramPath = m_romFilename;
     nvramPath.replace_extension(".nvram");
 
