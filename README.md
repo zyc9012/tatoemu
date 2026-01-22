@@ -1,6 +1,6 @@
 # TatoEmu - Multi-System Emulator
 
-TatoEmu is a multi-system emulator written in C++ with SDL3 and WebAssembly targets. It currently supports GB/GBC, NES, and CPS1 ROMs.
+TatoEmu is a multi-system emulator written in C++ with SDL3 and WebAssembly targets. It currently supports GB/GBC, NES, CPS1, CPS2, and NeoGeo ROMs.
 
 This project is just for fun. It aims to build minimal emulators that work for most games, with only basic features like saving and loading states. It prioritizes playability over accuracy.
 
@@ -87,7 +87,7 @@ python3 -m http.server 8080
 - **Enter** - Start Button
 - **Shift** - Select Button
 
-#### CPS1 (Arcade)
+#### CPS1 / CPS2
 - **Player 1:**
   - **Arrow Keys** - Movement (Up/Down/Left/Right)
   - **A/S/D** - Punch buttons (Light/Medium/Heavy)
@@ -100,6 +100,26 @@ python3 -m http.server 8080
   - **M/Comma/Period** - Kick buttons (Light/Medium/Heavy)
   - **2** - Start
   - **6** - Insert Coin
+- **System**
+  - **F2** - Diagnostic
+  - **F3** - Service
+
+#### NeoGeo
+- **Player 1:**
+  - **Arrow Keys** - Movement (Up/Down/Left/Right)
+  - **A/S/D/F** - Buttons A/B/C/D
+  - **1** - Start
+  - **3** - Select
+  - **5** - Insert Coin
+- **Player 2:**
+  - **Keypad 8/5/4/6** - Movement (Up/Down/Left/Right)
+  - **J/K/L/Semicolon** - Buttons A/B/C/D
+  - **2** - Start
+  - **4** - Select
+  - **6** - Insert Coin
+- **System**
+  - **F2** - Test
+  - **F3** - Service
 
 #### Common Controls
 - **ESC** - Quit emulator
@@ -134,7 +154,13 @@ python3 -m http.server 8080
 - **Sunsoft**: FME-7 (069)
 - **Unlicensed**: Waixing (162/164/178), Nanjing (163)
 
-### Capcom Play System 1 (CPS1)
+### Capcom Play System 1/2
+
+Supports FBNeo ROM sets (partial).
+
+ROM sets available at: [Myrient](https://myrient.erista.me/files/Internet%20Archive/chadmaster/fbnarcade-fullnonmerged/arcade/)
+
+### NeoGeo (AES/MVS)
 
 Supports FBNeo ROM sets (partial).
 
@@ -147,4 +173,5 @@ ROM sets available at: [Myrient](https://myrient.erista.me/files/Internet%20Arch
 - [NanoBoyAdvance](https://github.com/nba-emu/NanoBoyAdvance)
 - [NESDev Wiki](https://www.nesdev.org/wiki/Main_Page) - NES architecture, mappers, tests
 - [Mesen2](https://github.com/SourMesen/Mesen2)
-- [FBNeo](https://github.com/finalburnneo/FBNeo)
+- [FBNeo](https://github.com/finalburnneo/FBNeo) - Reference implementation for CPS1/CPS2/NeoGeo
+- [NeoGeo Development Wiki](https://wiki.neogeodev.org/) - NeoGeo hardware documentation
