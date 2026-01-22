@@ -250,18 +250,176 @@
         .log-display.error {
             background: rgba(139, 0, 0, 0.9);
         }
+
+        /* File Manager Modal */
+        .file-manager-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 900;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .file-manager-modal.show {
+            display: flex;
+        }
+
+        .file-manager-content {
+            background: rgba(30, 30, 30, 0.98);
+            border-radius: 12px;
+            padding: 20px;
+            width: 90%;
+            height: 90%;
+            max-width: 1200px;
+            max-height: 800px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .file-manager-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+        }
+
+        .file-manager-header h2 {
+            color: #e0e0e0;
+            font-size: 1.5em;
+            margin: 0;
+        }
+
+        .file-manager-close {
+            background: transparent;
+            border: none;
+            color: #e0e0e0;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .file-manager-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .file-manager-upload-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(45, 45, 45, 0.5);
+            border-radius: 8px;
+        }
+
+        .file-manager-upload-btn {
+            background: #4a90e2;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .file-manager-upload-btn:hover {
+            background: #357abd;
+        }
+
+        .file-manager-files-section {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(45, 45, 45, 0.3);
+            border-radius: 8px;
+        }
+
+        .file-manager-files-section h3 {
+            color: #e0e0e0;
+            margin: 0 0 15px 0;
+            font-size: 1.2em;
+        }
+
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: rgba(60, 60, 60, 0.7);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .file-item:hover {
+            background: rgba(80, 80, 80, 0.8);
+            border-color: #4a90e2;
+        }
+
+        .file-item.loaded {
+            background: rgba(74, 144, 226, 0.2);
+            border-color: #4a90e2;
+        }
+
+        .file-name {
+            color: #e0e0e0;
+            font-weight: 500;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-size {
+            color: #b0b0b0;
+            font-size: 12px;
+            margin-right: 15px;
+        }
+
+        .file-type {
+            color: #90caf9;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .file-manager-empty {
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            padding: 40px 20px;
+        }
     </style>
 </head>
 <body>
     <div class="toolbar">
         <div class="toolbar-title" id="gameTitle">TatoEmu</div>
         <input type="file" id="romInput" accept=".gb,.gbc,.nes,.zip" style="display: none;">
-        <button class="toolbar-btn" id="loadRomBtn">
-            Load ROM
-        </button>
-        <input type="file" id="bootromInput" accept=".bin" style="display: none;">
-        <button class="toolbar-btn" id="loadBootromBtn">
-            Load Bootrom
+        <button class="toolbar-btn" id="fileManagerBtn">
+            Game Library
         </button>
         <button class="toolbar-btn" id="helpBtn">
             Help
@@ -472,6 +630,27 @@
         </div>
     </div>
 
+    <!-- File Manager Modal -->
+    <div id="fileManagerModal" class="file-manager-modal">
+        <div class="file-manager-content">
+            <div class="file-manager-header">
+                <h2>📁 Game Library</h2>
+                <button class="file-manager-close" id="fileManagerClose">&times;</button>
+            </div>
+            <div class="file-manager-upload-section">
+                <button class="file-manager-upload-btn" id="fileManagerUploadBtn">
+                    Upload Game ROM
+                </button>
+            </div>
+            <div class="file-manager-files-section">
+                <h3>Your Games</h3>
+                <div id="fileList" class="file-list">
+                    <div class="file-manager-empty">No games uploaded yet. Use the upload button above to add some!</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type='text/javascript'>
         let romLoaded = false;
         let bootromLoaded = false;
@@ -498,18 +677,40 @@
         });
 
         // File upload button handlers
-        const loadRomBtn = document.getElementById('loadRomBtn');
-        const loadBootromBtn = document.getElementById('loadBootromBtn');
+        const fileManagerBtn = document.getElementById('fileManagerBtn');
         const romInput = document.getElementById('romInput');
-        const bootromInput = document.getElementById('bootromInput');
         const logElement = document.getElementById('logDisplay');
 
-        loadRomBtn.addEventListener('click', function() {
+        // File Manager elements
+        const fileManagerModal = document.getElementById('fileManagerModal');
+        const fileManagerClose = document.getElementById('fileManagerClose');
+        const fileManagerUploadBtn = document.getElementById('fileManagerUploadBtn');
+        const fileList = document.getElementById('fileList');
+
+        fileManagerBtn.addEventListener('click', function() {
+            showFileManager();
+        });
+
+        // File Manager event listeners
+        fileManagerClose.addEventListener('click', function() {
+            hideFileManager();
+        });
+
+        fileManagerModal.addEventListener('click', function(e) {
+            if (e.target === fileManagerModal) {
+                hideFileManager();
+            }
+        });
+
+        fileManagerUploadBtn.addEventListener('click', function() {
             romInput.click();
         });
 
-        loadBootromBtn.addEventListener('click', function() {
-            bootromInput.click();
+        // ESC key handler for file manager
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && fileManagerModal.classList.contains('show')) {
+                hideFileManager();
+            }
         });
 
         const showLog = (text, isError = false) => {
@@ -536,13 +737,17 @@
                 }
                 try {
                     Module.FS.mount(Module.FS.filesystems.IDBFS, { autoPersist: true }, '/roms');
-                    Module.FS.syncfs(true);
+                    Module.FS.syncfs(true, () => {});
                 } catch (err) {
                     console.error('Failed to mount persistent storage:', err);
                 }
             }],
             postRun: [function() {
                 setupFileUploads();
+                // Open file manager when page loads
+                setTimeout(() => {
+                    showFileManager();
+                }, 100);
             }],
             print: function(text) {
                 if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
@@ -608,41 +813,112 @@
                         Module.setStatus('');
                         romLoaded = true;
                         titleElement.textContent = file.name;
-                    } else {
-                        alert('Failed to load ROM file');
+                        hideFileManager();
+                        refreshFileList();
                     }
                 } catch (error) {
                     console.error('Error loading ROM:', error);
-                    alert('Error loading ROM: ' + error.message);
+                    showLog('Error loading ROM: ' + error.message, true);
                 }
             });
+        }
 
-            bootromInput.addEventListener('change', async function(e) {
-                const file = e.target.files[0];
-                if (!file) return;
+        // File Manager functions
+        function showFileManager() {
+            fileManagerModal.classList.add('show');
+            refreshFileList();
+        }
 
-                try {
-                    // Read file
-                    const arrayBuffer = await file.arrayBuffer();
-                    const uint8Array = new Uint8Array(arrayBuffer);
-                    
-                    // Write file to virtual filesystem
-                    const filename = '/roms/' + file.name;
-                    Module.FS.writeFile(filename, uint8Array);
-                    
-                    // Call C function to load bootrom
-                    const result = Module.ccall('loadBootromFile', 'number', ['string'], [filename]);
-                    
-                    if (result === 1) {
-                        bootromLoaded = true;
-                    } else {
-                        alert('Failed to load bootrom file');
+        function hideFileManager() {
+            fileManagerModal.classList.remove('show');
+        }
+
+        function refreshFileList() {
+            try {
+                if (!Module.FS) {
+                    console.warn('Module.FS not ready yet');
+                    return;
+                }
+                const files = Module.FS.readdir('/roms');
+                const fileListContainer = document.getElementById('fileList');
+
+                // Filter out '.' and '..' and sort by name
+                const gameFiles = files.filter(file => file !== '.' && file !== '..').sort();
+
+                if (gameFiles.length === 0) {
+                    fileListContainer.innerHTML = '<div class="file-manager-empty">No games uploaded yet. Use the upload button above to add some!</div>';
+                    return;
+                }
+
+                fileListContainer.innerHTML = '';
+
+                gameFiles.forEach(filename => {
+                    const filepath = '/roms/' + filename;
+                    try {
+                        const stat = Module.FS.stat(filepath);
+                        const fileSize = stat.size;
+                        const fileType = getFileType(filename);
+
+                        const fileItem = document.createElement('div');
+                        fileItem.className = 'file-item' + (romLoaded && titleElement.textContent === filename ? ' loaded' : '');
+                        fileItem.innerHTML = `
+                            <span class="file-name" title="${filename}">${filename}</span>
+                            <span class="file-size">${formatFileSize(fileSize)}</span>
+                            <span class="file-type">${fileType}</span>
+                        `;
+
+                        fileItem.addEventListener('click', function() {
+                            loadGameFile(filepath, filename);
+                        });
+
+                        fileListContainer.appendChild(fileItem);
+                    } catch (error) {
+                        console.warn('Could not get file info for', filename, error);
                     }
-                } catch (error) {
-                    console.error('Error loading bootrom:', error);
-                    alert('Error loading bootrom: ' + error.message);
+                });
+            } catch (error) {
+                console.error('Error listing files:', error);
+                fileList.innerHTML = '<div class="file-manager-empty">Error loading file list.</div>';
+            }
+        }
+
+        function getFileType(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            switch (ext) {
+                case 'gb': return 'Game Boy';
+                case 'gbc': return 'Game Boy Color';
+                case 'nes': return 'NES';
+                case 'zip': return 'ZIP Archive';
+                default: return ext.toUpperCase();
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        async function loadGameFile(filepath, filename) {
+            try {
+                // Call C function to load ROM
+                const result = Module.ccall('loadROMFile', 'number', ['string'], [filepath]);
+
+                if (result === 1) {
+                    Module.setStatus('');
+                    romLoaded = true;
+                    titleElement.textContent = filename;
+                    hideFileManager();
+                    refreshFileList();
+                } else {
+                    console.error('Failed to load ROM file: ' + filename);
                 }
-            });
+            } catch (error) {
+                console.error('Error loading game file:', error);
+                showLog('Error loading game file: ' + error.message, true);
+            }
         }
         
         Module.setStatus('Downloading...');
