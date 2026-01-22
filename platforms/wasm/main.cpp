@@ -49,7 +49,6 @@ extern "C" {
             g_emulatorWasm->running = true;
             return 1;
         } else {
-            std::cerr << "Failed to load ROM" << std::endl;
             return 0;
         }
     }
