@@ -20,6 +20,7 @@ Memory::Memory()
     , m_controller(nullptr)
     , m_apu(nullptr)
     , m_core(nullptr)
+    , m_nvramLoaded(false)
     , m_inputSelect(0)
     , m_sramWritable(false)
     , m_paletteBank(0)
@@ -72,8 +73,16 @@ void Memory::reset() {
     // Reset 68K ROM banking (initial bank is 0x100000 for games > 1MB)
     m_programRomBank = 0x100000;
 
+    // Save NVRAM before rom filename is updated
+    if (m_nvramLoaded) {
+        saveNVRAM();
+    }
+
     m_romFilename = m_cartridge->getRomFilename();
+
+    // Load after rom filename is updated
     loadNVRAM();
+    m_nvramLoaded = true;
 }
 
 u8 Memory::read8(u32 address) {

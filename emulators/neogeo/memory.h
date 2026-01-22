@@ -109,6 +109,8 @@ private:
     std::array<u8, 0x10000> m_nvram;              // MVS NVRAM 0xD00000-0xDFFFFF (64KB mirrored)
     std::array<u16, PALETTE_RAM_SIZE> m_paletteRam;  // Two banks of 4096 colors each (8KB per bank)
     std::array<u8, Z80_RAM_SIZE> m_z80Ram;        // Z80 RAM (0xF800-0xFFFF, 2KB)
+
+    bool m_nvramLoaded;        // True if NVRAM has been loaded from file
     
     // I/O registers
     u8 m_inputSelect;          // Input port selection
