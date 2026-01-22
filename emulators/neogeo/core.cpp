@@ -63,7 +63,7 @@ void Core::setAudioDevice(::AudioDevice* audioDevice) {
 }
 
 bool Core::loadROM(const fs::path& filename) {
-    if (!m_cartridge->load(filename, m_bios68kIndex)) {
+    if (!m_cartridge->load(filename, Config::BiosIndex)) {
         return false;
     }
     

@@ -75,9 +75,6 @@ public:
     void setCPU(CPU* cpu) { m_cpu = cpu; }
     void setPPU(PPU* ppu) { m_ppu = ppu; }
 
-    // System type detection
-    SystemType getSystemType() const { return m_systemType; }
-    
     // Save/Load state
     void saveState(std::ofstream& file);
     void loadState(std::ifstream& file);
@@ -108,7 +105,6 @@ private:
     std::vector<u8> m_hybridBiosVectors;   // BIOS[0x00-0x7F] + Cart[0x80-0x3FF] - used at 0x000000 when BIOS vectors active
     std::vector<u8> m_hybridCartVectors;   // Cart[0x00-0x7F] + BIOS[0x80-0x3FF] - used at 0xC00000 when BIOS vectors active
     bool m_biosVectorTableActive;          // true = BIOS vectors at 0x000000, false = cartridge vectors
-    SystemType m_systemType;               // AES or MVS system type
     
     u32 m_programRomSize;
     u32 m_spriteRomSize;

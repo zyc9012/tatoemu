@@ -1,5 +1,6 @@
 #include "emulator.h"
 #include "config.h"
+#include "neogeo/config.h"
 #include <iostream>
 #include <string>
 #include <cstdlib>
@@ -43,6 +44,8 @@ int main(int argc, char* argv[]) {
         std::cout << "  --scale-mode <mode>   Scale mode: linear, nearest (default: linear)" << std::endl;
         std::cout << "  --sample-rate <hz>    Audio sample rate (default: " << Config::Audio::SampleRate << ")" << std::endl;
         std::cout << "  --volume <0.0-1.0>    Audio volume (default: " << Config::Audio::Volume << ")" << std::endl;
+        std::cout << "  --neo-sys <system>    NeoGeo system: aes, mvs (default: mvs)" << std::endl;
+        std::cout << "  --neo-bios <index>    NeoGeo BIOS index: 0 ~ 34 (default: " << static_cast<int>(neogeo::Config::BiosIndex) << ")" << std::endl;
         std::cout << "\nControls:" << std::endl;
         std::cout << "  Arrow Keys  - D-Pad" << std::endl;
         std::cout << "  Z           - A Button" << std::endl;
@@ -82,13 +85,30 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--volume" && i + 1 < argc) {
             float volume = std::stof(argv_narrow[++i]);
             if (volume < 0.0f || volume > 1.0f) {
-                std::cerr << "Warning: Volume should be between 0.0 and 1.0, clamping to " 
+                std::cerr << "Warning: Volume should be between 0.0 and 1.0, clamping to "
                           << (volume < 0.0f ? 0.0f : 1.0f) << std::endl;
                 volume = (volume < 0.0f) ? 0.0f : 1.0f;
             }
             Config::Audio::Volume = volume;
         } else if (arg == "--bootrom" && i + 1 < argc) {
             bootromFile = fs::path(argv_narrow[++i]);
+        } else if (arg == "--neo-sys" && i + 1 < argc) {
+            std::string system = argv_narrow[++i];
+            std::transform(system.begin(), system.end(), system.begin(), ::tolower);
+            if (system == "aes") {
+                neogeo::Config::System = neogeo::SystemType::AES;
+            } else if (system == "mvs") {
+                neogeo::Config::System = neogeo::SystemType::MVS;
+            } else {
+                std::cerr << "Warning: Unknown NeoGeo system '" << system << "', using MVS" << std::endl;
+            }
+        } else if (arg == "--neo-bios" && i + 1 < argc) {
+            u8 biosIndex = static_cast<u8>(std::stoul(argv_narrow[++i]));
+            if (biosIndex < 0 || biosIndex > 34) {
+                std::cerr << "Warning: NeoGeo BIOS index should be between 0 and 34, using " << static_cast<int>(neogeo::Config::BiosIndex) << std::endl;
+                biosIndex = neogeo::Config::BiosIndex;
+            }
+            neogeo::Config::BiosIndex = biosIndex;
         } else if (arg[0] != '-') {
             // Positional argument (rom file)
             if (romFile.empty()) {

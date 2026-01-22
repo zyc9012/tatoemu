@@ -122,7 +122,7 @@ u8 Memory::read8(u32 address) {
             } else {
                 // Odd: System status byte
                 u8 inputBank3 = m_controller->getInputBank(3);
-                if (m_cartridge && m_cartridge->getSystemType() == SystemType::MVS) {
+                if (Config::System == SystemType::MVS) {
                     return (~inputBank3 & 0x3F) | (m_upd4990a->read() << 6);
                 } else {
                     return (~inputBank3 & 0x7F) & 0xE7;
@@ -182,7 +182,7 @@ u8 Memory::read8(u32 address) {
     
     // NVRAM (0xD00000-0xDFFFFF) - MVS only, 64KB mirrored
     if (address >= 0xD00000 && address < 0xE00000) {
-        if (m_cartridge && m_cartridge->getSystemType() == SystemType::MVS) {
+        if (Config::System == SystemType::MVS) {
             return m_nvram[address & 0xFFFF];
         }
         return 0xFF;  // Open bus on AES
@@ -293,7 +293,7 @@ void Memory::write8(u32 address, u8 value) {
     
     // NVRAM (0xD00000-0xDFFFFF) - MVS only, 64KB mirrored
     if (address >= 0xD00000 && address < 0xE00000) {
-        if (m_cartridge && m_cartridge->getSystemType() == SystemType::MVS) {
+        if (Config::System == SystemType::MVS) {
             m_nvram[address & 0xFFFF] = value;
         }
         return;
@@ -545,7 +545,7 @@ void Memory::writeIO2(u8 offset, u8 /* value */) {
             // Select BIOS text/Z80 ROM
             // For AES systems, this doesn't enable BIOS text ROM (games use their own text ROM)
             // For MVS systems, this enables BIOS text ROM
-            if (m_cartridge && m_cartridge->getSystemType() == SystemType::MVS) {
+            if (Config::System == SystemType::MVS) {
                 m_biosTextRomEnabled = true;
             }
             if (m_z80BiosRomMapped == false) {

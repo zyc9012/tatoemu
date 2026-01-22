@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL.h>
 #include "../types.h"
+#include "cartridge.h"
 
 namespace neogeo {
 
@@ -36,6 +37,13 @@ namespace Key {
     constexpr SDL_Keycode TEST = SDLK_F2;
     constexpr SDL_Keycode SERVICE = SDLK_F3;
 }
+
+// Default to MVS
+inline SystemType System = SystemType::MVS;
+
+// Default to Universe BIOS 4.0
+inline u8 BiosIndex = 19;
+
 } // namespace Config
 
 } // namespace neogeo

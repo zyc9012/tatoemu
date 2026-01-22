@@ -1,4 +1,5 @@
 #include "controller.h"
+#include "config.h"
 #include <cstring>
 
 namespace neogeo {
@@ -12,7 +13,7 @@ Controller::Controller()
 void Controller::reset() {
     m_inputBanks.fill(0);
 
-    if (m_cartridge && m_cartridge->getSystemType() == SystemType::MVS) {
+    if (Config::System == SystemType::MVS) {
         // 1/2 slot MVS
         m_inputBanks[3] |=  0x20;
         m_inputBanks[5] |=  0x40;
@@ -99,12 +100,12 @@ u8 Controller::readInput1(u8 offset) const {
         case 0x00:
             return m_inputBanks[0];
         case 0x01:
-            if (m_cartridge && m_cartridge->getSystemType() == SystemType::MVS) {
+            if (Config::System == SystemType::MVS) {
                 return m_inputBanks[4];
             }
             return 0x00;
         case 0x81:
-            if (m_cartridge && m_cartridge->getSystemType() == SystemType::MVS) {
+            if (Config::System == SystemType::MVS) {
                 return m_inputBanks[5];
             }
             return 0x00;

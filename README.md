@@ -77,6 +77,8 @@ python3 -m http.server 8080
 - `--sample-rate <hz>` - Audio sample rate in Hz (default: 44100)
 - `--volume <0.0-1.0>` - Audio volume level (default: 0.3)
 - `--bootrom <path>` - Path to bootrom file (Game Boy only)
+- `--neo-sys <system>` - NeoGeo system type: `aes` or `mvs` (default: mvs)
+- `--neo-bios <index>` - NeoGeo BIOS index: 0 ~ 34 (default: 19 - Universe BIOS 4.0)
 
 ### Controls
 

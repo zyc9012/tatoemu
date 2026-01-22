@@ -31,8 +31,6 @@ public:
     bool loadROM(const fs::path& filename) override;
 
     // NeoGeo-specific methods
-    void setBIOSIndex(u32 bios68kIndex) { m_bios68kIndex = bios68kIndex; }
-    u32 getBIOSIndex() const { return m_bios68kIndex; }
     bool handleInput(SDL_Event& event) override;
     void update() override;
     void updateGameSpeed(double gameSpeed) override;
@@ -76,9 +74,6 @@ private:
 
     // Watchdog timer (for system reset)
     s32 m_watchdogTimer = 0;
-
-    // BIOS configuration
-    u32 m_bios68kIndex = 19;
 };
 
 } // namespace neogeo
