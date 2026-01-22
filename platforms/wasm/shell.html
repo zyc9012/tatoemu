@@ -136,7 +136,7 @@
             background: rgba(45, 45, 45, 0.98);
             border-radius: 12px;
             padding: 30px;
-            max-width: 600px;
+            max-width: 700px;
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
@@ -196,6 +196,31 @@
 
         .control-action {
             color: #b0b0b0;
+        }
+
+        .control-section {
+            margin-bottom: 30px;
+        }
+
+        .control-section h3 {
+            color: #ffffff;
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+
+        .control-section h4 {
+            color: #90caf9;
+            margin: 10px 0 10px 0;
+            padding-left: 15px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .control-subsection .controls-grid {
+            grid-template-columns: 1fr;
+            gap: 8px;
         }
 
         .log-display {
@@ -259,46 +284,189 @@
                 <h2>🎯 Controls</h2>
                 <button class="help-modal-close" id="helpModalClose">&times;</button>
             </div>
-            <div class="controls-grid">
-                <div class="control-item">
-                    <span class="control-key">Arrow Keys</span>
-                    <span class="control-action">D-Pad</span>
+            <!-- Game Boy / NES Controls -->
+            <div class="control-section">
+                <h3>Game Boy / NES</h3>
+                <div class="controls-grid">
+                    <div class="control-item">
+                        <span class="control-key">Arrow Keys</span>
+                        <span class="control-action">D-Pad</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-key">Z</span>
+                        <span class="control-action">A Button</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-key">X</span>
+                        <span class="control-action">B Button</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-key">Enter</span>
+                        <span class="control-action">Start</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-key">Shift</span>
+                        <span class="control-action">Select</span>
+                    </div>
                 </div>
-                <div class="control-item">
-                    <span class="control-key">Z</span>
-                    <span class="control-action">A Button</span>
+            </div>
+
+            <!-- CPS1 / CPS2 Controls -->
+            <div class="control-section">
+                <h3>CPS1 / CPS2</h3>
+                <div class="controls-grid">
+                    <div class="control-subsection">
+                        <h4>Player 1</h4>
+                        <div class="control-item">
+                            <span class="control-key">Arrow Keys</span>
+                            <span class="control-action">Movement</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">A/S/D</span>
+                            <span class="control-action">Punch</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">Z/X/C</span>
+                            <span class="control-action">Kick</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">1</span>
+                            <span class="control-action">Start</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">5</span>
+                            <span class="control-action">Insert Coin</span>
+                        </div>
+                    </div>
+                    <div class="control-subsection">
+                        <h4>Player 2</h4>
+                        <div class="control-item">
+                            <span class="control-key">Keypad 8/5/4/6</span>
+                            <span class="control-action">Movement</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">J/K/L</span>
+                            <span class="control-action">Punch</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">M/,/.</span>
+                            <span class="control-action">Kick</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">2</span>
+                            <span class="control-action">Start</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">6</span>
+                            <span class="control-action">Insert Coin</span>
+                        </div>
+                    </div>
+                    <div class="control-subsection">
+                        <h4>System</h4>
+                        <div class="control-item">
+                            <span class="control-key">F2</span>
+                            <span class="control-action">Diagnostic</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">F3</span>
+                            <span class="control-action">Service</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="control-item">
-                    <span class="control-key">X</span>
-                    <span class="control-action">B Button</span>
+            </div>
+
+            <!-- NeoGeo Controls -->
+            <div class="control-section">
+                <h3>NeoGeo</h3>
+                <div class="controls-grid">
+                    <div class="control-subsection">
+                        <h4>Player 1</h4>
+                        <div class="control-item">
+                            <span class="control-key">Arrow Keys</span>
+                            <span class="control-action">Movement</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">A/S/D/F</span>
+                            <span class="control-action">A/B/C/D</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">1</span>
+                            <span class="control-action">Start</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">3</span>
+                            <span class="control-action">Select</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">5</span>
+                            <span class="control-action">Insert Coin</span>
+                        </div>
+                    </div>
+                    <div class="control-subsection">
+                        <h4>Player 2</h4>
+                        <div class="control-item">
+                            <span class="control-key">Keypad 8/5/4/6</span>
+                            <span class="control-action">Movement</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">J/K/L/;</span>
+                            <span class="control-action">A/B/C/D</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">2</span>
+                            <span class="control-action">Start</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">4</span>
+                            <span class="control-action">Select</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">6</span>
+                            <span class="control-action">Insert Coin</span>
+                        </div>
+                    </div>
+                    <div class="control-subsection">
+                        <h4>System</h4>
+                        <div class="control-item">
+                            <span class="control-key">F2</span>
+                            <span class="control-action">Test</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-key">F3</span>
+                            <span class="control-action">Service</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="control-item">
-                    <span class="control-key">Enter</span>
-                    <span class="control-action">Start</span>
-                </div>
-                <div class="control-item">
-                    <span class="control-key">Shift</span>
-                    <span class="control-action">Select</span>
-                </div>
-                <div class="control-item">
-                    <span class="control-key">P</span>
-                    <span class="control-action">Pause/Resume</span>
-                </div>
-                <div class="control-item">
-                    <span class="control-key">F5</span>
-                    <span class="control-action">Save State</span>
-                </div>
-                <div class="control-item">
-                    <span class="control-key">F9</span>
-                    <span class="control-action">Load State</span>
-                </div>
-                <div class="control-item">
-                    <span class="control-key">+(=)</span>
-                    <span class="control-action">Game speed up</span>
-                </div>
-                <div class="control-item">
-                    <span class="control-key">-</span>
-                    <span class="control-action">Game speed down</span>
+            </div>
+
+            <!-- Common Controls -->
+            <div class="control-section">
+                <h3>Common Controls</h3>
+                <div class="controls-grid">
+                    <div class="control-item">
+                        <span class="control-key">ESC</span>
+                        <span class="control-action">Quit</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-key">P</span>
+                        <span class="control-action">Pause/Resume</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-key">F5</span>
+                        <span class="control-action">Save State</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-key">F9</span>
+                        <span class="control-action">Load State</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-key">+(=)</span>
+                        <span class="control-action">Game speed up</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-key">-</span>
+                        <span class="control-action">Game speed down</span>
+                    </div>
                 </div>
             </div>
         </div>

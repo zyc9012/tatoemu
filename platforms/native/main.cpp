@@ -46,18 +46,6 @@ int main(int argc, char* argv[]) {
         std::cout << "  --volume <0.0-1.0>    Audio volume (default: " << Config::Audio::Volume << ")" << std::endl;
         std::cout << "  --neo-sys <system>    NeoGeo system: aes, mvs (default: mvs)" << std::endl;
         std::cout << "  --neo-bios <index>    NeoGeo BIOS index: 0 ~ 34 (default: " << static_cast<int>(neogeo::Config::BiosIndex) << ")" << std::endl;
-        std::cout << "\nControls:" << std::endl;
-        std::cout << "  Arrow Keys  - D-Pad" << std::endl;
-        std::cout << "  Z           - A Button" << std::endl;
-        std::cout << "  X           - B Button" << std::endl;
-        std::cout << "  Enter       - Start" << std::endl;
-        std::cout << "  Shift       - Select" << std::endl;
-        std::cout << "  F5          - Save State" << std::endl;
-        std::cout << "  F9          - Load State" << std::endl;
-        std::cout << "  P           - Pause / Resume" << std::endl;
-        std::cout << "  +(=)        - Game speed up" << std::endl;
-        std::cout << "  -           - Game speed down" << std::endl;
-        std::cout << "  ESC         - Quit" << std::endl;
         return 1;
     }
 
