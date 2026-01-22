@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TatoEmu - WebAssembly</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -42,7 +43,7 @@
         }
 
         .toolbar-btn {
-            background: #4a90e2;
+            background: #6c757d;
             border: none;
             color: white;
             padding: 8px 15px;
@@ -56,7 +57,15 @@
         }
 
         .toolbar-btn:hover {
-            background: #357abd;
+            background: #5a6268;
+        }
+
+        .toolbar-btn.primary {
+            background: #e67e22;
+        }
+
+        .toolbar-btn.primary:hover {
+            background: #cc6a1a;
         }
 
         .canvas-container {
@@ -81,20 +90,6 @@
             outline: none;
         }
 
-        .spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
         .status {
             position: absolute;
             top: 50%;
@@ -112,6 +107,10 @@
             align-items: center;
             gap: 8px;
             color: #e0e0e0;
+        }
+
+        #status .fa-spinner {
+            font-size: 16px;
         }
 
         /* Help Modal */
@@ -251,6 +250,10 @@
             background: rgba(139, 0, 0, 0.9);
         }
 
+        .log-display i {
+            margin-right: 6px;
+        }
+
         /* File Manager Modal */
         .file-manager-modal {
             display: none;
@@ -325,7 +328,7 @@
         }
 
         .file-manager-upload-btn {
-            background: #4a90e2;
+            background: #e67e22;
             border: none;
             color: white;
             padding: 10px 20px;
@@ -339,7 +342,15 @@
         }
 
         .file-manager-upload-btn:hover {
-            background: #357abd;
+            background: #cc6a1a;
+        }
+
+        .upload-note {
+            display: block;
+            margin-top: 8px;
+            color: #b0b0b0;
+            font-size: 12px;
+            line-height: 1.4;
         }
 
         .file-manager-files-section {
@@ -376,12 +387,12 @@
 
         .file-item:hover {
             background: rgba(80, 80, 80, 0.8);
-            border-color: #4a90e2;
+            border-color: #e67e22;
         }
 
         .file-item.loaded {
-            background: rgba(74, 144, 226, 0.2);
-            border-color: #4a90e2;
+            background: #e4b89133;
+            border-color: #e67e22;
         }
 
         .file-name {
@@ -400,14 +411,19 @@
         }
 
         .file-type {
-            color: #90caf9;
+            color: #e67e22;
             font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;
         }
 
+        .file-type i {
+            margin-right: 4px;
+            font-size: 12px;
+        }
+
         .file-download-btn {
-            background: rgba(74, 144, 226, 0.8);
+            background: #6c757d;
             border: none;
             color: white;
             padding: 4px 8px;
@@ -420,7 +436,7 @@
         }
 
         .file-download-btn:hover {
-            background: #4a90e2;
+            background: #5a6268;
         }
 
         .file-manager-empty {
@@ -433,19 +449,20 @@
 </head>
 <body>
     <div class="toolbar">
+        <i class="fas fa-gamepad"></i>
         <div class="toolbar-title" id="gameTitle">TatoEmu</div>
         <input type="file" id="romInput" accept=".gb,.gbc,.nes,.zip,.sav,.state" style="display: none;">
-        <button class="toolbar-btn" id="fileManagerBtn">
-            Game Library
+        <button class="toolbar-btn primary" id="fileManagerBtn">
+            <i class="fas fa-folder-plus"></i> Game Library
         </button>
         <button class="toolbar-btn" id="helpBtn">
-            Help
+            <i class="fas fa-question-circle"></i> Help
         </button>
     </div>
 
     <div class="canvas-container">
         <div class="status" id="status">
-            <span class="spinner"></span>
+            <i class="fas fa-spinner fa-spin"></i>
             <span>Loading emulator...</span>
         </div>
         <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
@@ -456,8 +473,8 @@
     <div id="helpModal" class="help-modal">
         <div class="help-modal-content">
             <div class="help-modal-header">
-                <h2>🎯 Controls</h2>
-                <button class="help-modal-close" id="helpModalClose">&times;</button>
+                <h2><i class="fas fa-gamepad"></i> Controls</h2>
+                <button class="help-modal-close" id="helpModalClose"><i class="fas fa-times"></i></button>
             </div>
             <!-- Game Boy / NES Controls -->
             <div class="control-section">
@@ -651,13 +668,16 @@
     <div id="fileManagerModal" class="file-manager-modal">
         <div class="file-manager-content">
             <div class="file-manager-header">
-                <h2>📁 Game Library</h2>
-                <button class="file-manager-close" id="fileManagerClose">&times;</button>
+                <h2><i class="fas fa-folder-open"></i> Game Library</h2>
+                <button class="file-manager-close" id="fileManagerClose"><i class="fas fa-times"></i></button>
             </div>
             <div class="file-manager-upload-section">
                 <button class="file-manager-upload-btn" id="fileManagerUploadBtn">
-                    Upload Game ROM
+                    <i class="fas fa-upload"></i> Upload
                 </button>
+                <small class="upload-note">
+                    Supports game ROMs (.gb, .gbc, .nes, .zip), save files (.sav, .state) and BIOS files (neogeo.zip)
+                </small>
             </div>
             <div class="file-manager-files-section">
                 <h3>Your Games</h3>
@@ -731,7 +751,8 @@
         });
 
         const showLog = (text, isError = false) => {
-            logElement.textContent = text;
+            const icon = isError ? '<i class="fas fa-exclamation-triangle"></i> ' : '<i class="fas fa-info-circle"></i> ';
+            logElement.innerHTML = icon + text;
             logElement.classList.add('show');
             if (isError) {
                 logElement.classList.add('error');
@@ -796,7 +817,7 @@
                         var percent = Math.round((parseFloat(m[2]) / parseFloat(m[4])) * 100);
                         text = m[1] + ' (' + percent + '%)';
                     }
-                    statusElement.innerHTML = '<span><span class="spinner"></span> ' + text + '</span>';
+                    statusElement.innerHTML = '<span><span class="fas fa-spinner fa-spin"></span> ' + text + '</span>';
                 } else {
                     statusElement.style.display = 'none';
                 }
@@ -874,7 +895,7 @@
                             <span class="file-name" title="${filename}">${filename}</span>
                             <span class="file-size">${formatFileSize(fileSize)}</span>
                             <span class="file-type">${fileType}</span>
-                            <button class="file-download-btn" title="Download ${filename}">↓</button>
+                            <button class="file-download-btn" title="Download ${filename}"><i class="fas fa-download"></i></button>
                         `;
 
                         fileItem.addEventListener('click', function(e) {
@@ -902,13 +923,13 @@
         function getFileType(filename) {
             const ext = filename.split('.').pop().toLowerCase();
             switch (ext) {
-                case 'gb': return 'Game Boy';
-                case 'gbc': return 'Game Boy Color';
-                case 'nes': return 'NES';
-                case 'zip': return 'ZIP Archive';
-                case 'sav': return 'Game Save';
-                case 'state': return 'State Save';
-                default: return ext.toUpperCase();
+                case 'gb': return '<i class="fas fa-gamepad"></i> Game Boy';
+                case 'gbc': return '<i class="fas fa-gamepad"></i> Game Boy Color';
+                case 'nes': return '<i class="fas fa-gamepad"></i> NES';
+                case 'zip': return '<i class="fas fa-file-archive"></i> ZIP Archive';
+                case 'sav': return '<i class="fas fa-save"></i> Game Save';
+                case 'state': return '<i class="fas fa-save"></i> State Save';
+                default: return '<i class="fas fa-file"></i> ' + ext.toUpperCase();
             }
         }
 
