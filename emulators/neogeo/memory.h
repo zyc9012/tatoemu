@@ -38,7 +38,7 @@ class Core;
 class Memory {
 public:
     Memory();
-    ~Memory() = default;
+    ~Memory();
 
     void reset();
     
@@ -71,6 +71,10 @@ public:
     // Save/Load state
     void saveState(std::ofstream& file);
     void loadState(std::ifstream& file);
+
+    // NVRAM persistence
+    void saveNVRAM();
+    void loadNVRAM();
     
     // Video controller access (for PPU)
     u16 readVideoController(u32 address);
@@ -95,6 +99,9 @@ private:
     APU* m_apu;
     UPD4990A* m_upd4990a;
     Core* m_core;
+
+    // Backup of ROM filename
+    fs::path m_romFilename;
     
     // RAM banks
     std::array<u8, WORK_RAM_SIZE> m_workRam;      // 0x100000-0x1FFFFF (64KB mirrored)

@@ -32,7 +32,8 @@ bool Cartridge::load(const fs::path& filename, u32 bios68kIndex) {
     
     // Extract ROM set name from filename (without .zip extension)
     m_romSetName = filename.stem().string();
-    
+    m_romFilename = filename;
+
     // Look up game in database
     std::string romSetNameLower = m_romSetName;
     std::transform(romSetNameLower.begin(), romSetNameLower.end(), romSetNameLower.begin(), ::tolower);

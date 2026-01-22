@@ -8,6 +8,7 @@
 #include "core.h"
 #include <iostream>
 #include <cstring>
+#include <filesystem>
 
 namespace neogeo {
 
@@ -37,13 +38,16 @@ Memory::Memory()
     m_nvram.fill(0);
 }
 
+Memory::~Memory() {
+    saveNVRAM();
+}
+
 void Memory::reset() {
     // Clear RAM
     m_workRam.fill(0);
     m_sram.fill(0);
     m_paletteRam.fill(0);
     m_z80Ram.fill(0);
-    // NVRAM is not cleared for board check
     
     // Reset I/O registers
     m_inputSelect = 0;
@@ -67,6 +71,9 @@ void Memory::reset() {
     
     // Reset 68K ROM banking (initial bank is 0x100000 for games > 1MB)
     m_programRomBank = 0x100000;
+
+    m_romFilename = m_cartridge->getRomFilename();
+    loadNVRAM();
 }
 
 u8 Memory::read8(u32 address) {
@@ -758,6 +765,47 @@ void Memory::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_z80Bank3), sizeof(m_z80Bank3));
     file.read(reinterpret_cast<char*>(&m_z80BiosRomMapped), sizeof(m_z80BiosRomMapped));
     file.read(reinterpret_cast<char*>(&m_programRomBank), sizeof(m_programRomBank));
+}
+
+void Memory::saveNVRAM() {
+    fs::path nvramPath = m_romFilename;
+    nvramPath.replace_extension(".nvram");
+
+    std::ofstream file(nvramPath, std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Failed to create NVRAM file: " << nvramPath.string() << std::endl;
+        return;
+    }
+
+    // Write NVRAM data
+    file.write(reinterpret_cast<const char*>(m_nvram.data()), m_nvram.size());
+
+    file.close();
+    std::cout << "NVRAM saved to: " << nvramPath.string() << std::endl;
+}
+
+void Memory::loadNVRAM() {
+    fs::path nvramPath = m_romFilename;
+    nvramPath.replace_extension(".nvram");
+
+    std::ifstream file(nvramPath, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+        return;
+    }
+
+    std::streamsize fileSize = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    // Read NVRAM data
+    size_t nvramSize = m_nvram.size();
+    if (fileSize >= static_cast<std::streamsize>(nvramSize)) {
+        file.read(reinterpret_cast<char*>(m_nvram.data()), nvramSize);
+        std::cout << "NVRAM loaded from: " << nvramPath.string() << std::endl;
+    } else {
+        std::cerr << "NVRAM file size mismatch, expected " << nvramSize << " bytes, got " << fileSize << " bytes" << std::endl;
+    }
+
+    file.close();
 }
 
 } // namespace neogeo

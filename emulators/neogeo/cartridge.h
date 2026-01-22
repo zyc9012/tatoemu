@@ -31,6 +31,7 @@ public:
     void reset();
     
     const std::string& getTitle() const { return m_title; }
+    const fs::path& getRomFilename() const { return m_romFilename; }
 
     // Game info access
     const GameInfo* getGameInfo() const { return m_gameInfo; }
@@ -87,6 +88,7 @@ private:
     
     std::string m_title;
     std::string m_romSetName;  // MAME ROM set name (from ZIP filename)
+    fs::path m_romFilename;     // Full path to ROM file
     const GameInfo* m_gameInfo;  // Game database entry
     
     // ROM banks organized by type
