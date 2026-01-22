@@ -417,7 +417,7 @@
 <body>
     <div class="toolbar">
         <div class="toolbar-title" id="gameTitle">TatoEmu</div>
-        <input type="file" id="romInput" accept=".gb,.gbc,.nes,.zip" style="display: none;">
+        <input type="file" id="romInput" accept=".gb,.gbc,.nes,.zip,.sav,.state" style="display: none;">
         <button class="toolbar-btn" id="fileManagerBtn">
             Game Library
         </button>
@@ -806,19 +806,11 @@
                     const filename = '/roms/' + file.name;
                     Module.FS.writeFile(filename, uint8Array);
                     
-                    // Call C function to load ROM
-                    const result = Module.ccall('loadROMFile', 'number', ['string'], [filename]);
-                    
-                    if (result === 1) {
-                        Module.setStatus('');
-                        romLoaded = true;
-                        titleElement.textContent = file.name;
-                        hideFileManager();
-                        refreshFileList();
-                    }
+                    // Load game
+                    loadGameFile(filename, file.name, true);
                 } catch (error) {
-                    console.error('Error loading ROM:', error);
-                    showLog('Error loading ROM: ' + error.message, true);
+                    console.error('Error uploading ROM:', error);
+                    showLog('Error uploading ROM: ' + error.message, true);
                 }
             });
         }
@@ -889,6 +881,8 @@
                 case 'gbc': return 'Game Boy Color';
                 case 'nes': return 'NES';
                 case 'zip': return 'ZIP Archive';
+                case 'sav': return 'Game Save';
+                case 'state': return 'State Save';
                 default: return ext.toUpperCase();
             }
         }
@@ -901,8 +895,17 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
         }
 
-        async function loadGameFile(filepath, filename) {
+        async function loadGameFile(filepath, filename, isUpload = false) {
             try {
+                const ext = filename.split('.').pop().toLowerCase();
+                if (ext === 'sav' || ext === 'state') {
+                    if (isUpload) {
+                        refreshFileList();
+                    } else {
+                        showLog('Please choose a game ROM to load');
+                    }
+                    return;
+                }
                 // Call C function to load ROM
                 const result = Module.ccall('loadROMFile', 'number', ['string'], [filepath]);
 
