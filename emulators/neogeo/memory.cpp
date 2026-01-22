@@ -103,10 +103,7 @@ u8 Memory::read8(u32 address) {
     // Input ports
     switch (address & 0xFE0000) {
         case 0x300000:
-            if (m_controller) {
-                return m_controller->readInput1(address & 0xFF);
-            }
-            return 0xFF;
+            return ~m_controller->readInput1(address & 0xFF);
             
         case 0x320000:
             if ((address & 1) == 0) {
@@ -117,53 +114,19 @@ u8 Memory::read8(u32 address) {
                 return 0x00;
             } else {
                 // Odd: System status byte
-                // Bit 0: Test button
-                // Bit 1: Service button
-                // Bit 2: P1 coin
-                // Bit 3: P2 coin
-                // Bit 4-5: Memory card CD1/READY (set if inserted)
-                // Bit 6: Memory card WP (write protect, set if writable)
-                // Bit 7: 1 = AES, 0 = MVS
-                u8 result = 0x70;  // Memory card inserted and writable (bits 4-6)
-
-                // Set AES/MVS bit
-                if (m_cartridge && m_cartridge->getSystemType() == SystemType::AES) {
-                    result |= 0x80;  // AES mode (bit 7 = 1)
+                u8 inputBank3 = m_controller->getInputBank(3);
+                if (m_cartridge && m_cartridge->getSystemType() == SystemType::MVS) {
+                    return (~inputBank3 & 0x3F) | (m_upd4990a->read() << 6);
+                } else {
+                    return (~inputBank3 & 0x7F) & 0xE7;
                 }
-
-                // Add test/service buttons
-                if (m_controller) {
-                    // Test button (bit 0)
-                    if (m_controller->isTestButtonPressed()) result |= 0x01;
-                    // Service button (bit 1)
-                    if (m_controller->isServiceButtonPressed()) result |= 0x02;
-                }
-
-                // Add coin buttons
-                if (m_controller) {
-                    u8 coinButtons = m_controller->readInput3(0x01);
-                    result |= (coinButtons & 0x0F) << 2;  // Bits 2-3 for coins
-                }
-
-                // For MVS systems, OR in uPD4990A data (bits 6-7)
-                if (m_cartridge && m_cartridge->getSystemType() == SystemType::MVS && m_upd4990a) {
-                    result |= (m_upd4990a->read() << 6);
-                }
-
-                return ~result;
             }
             
         case 0x340000:
-            if (m_controller) {
-                return m_controller->readInput2(address & 0xFF);
-            }
-            return 0xFF;
+            return ~m_controller->readInput2(address & 0xFF);
             
         case 0x380000:
-            if (m_controller) {
-                return m_controller->readInput3(address & 0xFF);
-            }
-            return 0xFF;
+            return ~m_controller->readInput3(address & 0xFF);
     }
     
     // Video controller (0x3C0000-0x3C000F)
@@ -224,33 +187,6 @@ u8 Memory::read8(u32 address) {
 }
 
 u16 Memory::read16(u32 address) {
-    // Input ports (word reads)
-    switch (address & 0xFE0000) {
-        case 0x300000:
-            if (m_controller) {
-                u8 high = m_controller->readInput1(address & 0xFF);
-                u8 low = m_controller->readInput1((address & 0xFF) | 1);
-                return (static_cast<u16>(high) << 8) | low;
-            }
-            return 0xFFFF;
-            
-        case 0x340000:
-            if (m_controller) {
-                u8 high = m_controller->readInput2(address & 0xFF);
-                u8 low = m_controller->readInput2((address & 0xFF) | 1);
-                return (static_cast<u16>(high) << 8) | low;
-            }
-            return 0xFFFF;
-            
-        case 0x380000:
-            if (m_controller) {
-                u8 high = m_controller->readInput3(address & 0xFF);
-                u8 low = m_controller->readInput3((address & 0xFF) | 1);
-                return (static_cast<u16>(high) << 8) | low;
-            }
-            return 0xFFFF;
-    }
-    
     // Video controller
     if (address >= 0x3C0000 && address <= 0x3C000F) {
         return readVideoController(address);

@@ -25,9 +25,9 @@ enum ControllerButton : u8 {
     BUTTON_SERVICE = 12,
 };
 
-// Button mapping: maps (player, button) -> (port, bit)
+// Button mapping: maps (player, button) -> (bank, bit)
 struct ButtonMapping {
-    u16 port;
+    u16 bank;
     u8 bit;
 };
 
@@ -42,14 +42,13 @@ public:
     void pressButton(u8 player, ControllerButton button);
     void releaseButton(u8 player, ControllerButton button);
 
-    // Read input port value (active low, so returns inverted value)
+    // Read input value
     u8 readInput1(u8 offset) const;
     u8 readInput2(u8 offset) const;
     u8 readInput3(u8 offset) const;
 
-    // Check system button state (for compatibility)
-    bool isTestButtonPressed() const { return (m_portRegisters[0] & 0x01) == 0; }
-    bool isServiceButtonPressed() const { return (m_portRegisters[0] & 0x02) == 0; }
+    // Get input bank value
+    u8 getInputBank(u8 index) const;
 
     // Save/Load state
     void saveState(std::ofstream& file);
@@ -59,21 +58,17 @@ public:
     void setCartridge(Cartridge* cartridge) { m_cartridge = cartridge; }
 
 private:
-    // Port registers (indexed by offset within each input port)
-    // Port 0: Player 1 input (0x300000)
-    // Port 1: Player 2 input (0x340000)
-    // Port 2: System buttons (0x380000)
-    // Port 3: Coin buttons (for system status)
-    std::array<u8, 4> m_portRegisters;
+    // Input banks (indexed by offset within each input bank)
+    std::array<u8, 6> m_inputBanks;
 
-    // Button mapping configuration: (player << 8 | button) -> (port, bit)
+    // Button mapping configuration: (player << 8 | button) -> (bank, bit)
     std::unordered_map<u16, ButtonMapping> m_buttonMappings;
 
     // Initialize Neo Geo button mappings
     void initButtonMappings();
 
-    // Helper to set/clear a bit in a port register
-    void setPortBit(u8 port, u8 bit, bool pressed);
+    // Helper to set/clear a bit in an input bank
+    void setBankBit(u8 bank, u8 bit, bool pressed);
 
     // Component connections
     Cartridge* m_cartridge;
