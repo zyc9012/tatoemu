@@ -782,7 +782,7 @@ void Memory::saveNVRAM() {
     }
 
     fs::path nvramPath = m_romFilename;
-    nvramPath.replace_extension(".nvram");
+    nvramPath.replace_extension(".sav");
 
     std::ofstream file(nvramPath, std::ios::binary);
     if (!file.is_open()) {
@@ -799,7 +799,7 @@ void Memory::saveNVRAM() {
 
 void Memory::loadNVRAM() {
     fs::path nvramPath = m_romFilename;
-    nvramPath.replace_extension(".nvram");
+    nvramPath.replace_extension(".sav");
 
     std::ifstream file(nvramPath, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
