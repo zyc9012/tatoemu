@@ -5,6 +5,7 @@
 #include "cartridge.h"
 #include "controller.h"
 #include "apu.h"
+#include "core.h"
 #include <iostream>
 #include <cstring>
 
@@ -17,6 +18,7 @@ Memory::Memory()
     , m_cartridge(nullptr)
     , m_controller(nullptr)
     , m_apu(nullptr)
+    , m_core(nullptr)
     , m_inputSelect(0)
     , m_sramWritable(false)
     , m_paletteBank(0)
@@ -26,22 +28,22 @@ Memory::Memory()
     , m_graphicsRamModulo(0)
     , m_irqControl(0)
     , m_irqOffset(0)
-    , m_watchdog(0)
     , m_programRomBank(0x100000)
     , m_z80Bank0(0x02)
     , m_z80Bank1(0x06)
     , m_z80Bank2(0x0E)
     , m_z80Bank3(0x1E)
     , m_z80BiosRomMapped(false) {
+    m_nvram.fill(0);
 }
 
 void Memory::reset() {
     // Clear RAM
     m_workRam.fill(0);
     m_sram.fill(0);
-    m_nvram.fill(0);
     m_paletteRam.fill(0);
     m_z80Ram.fill(0);
+    // NVRAM is not cleared for board check
     
     // Reset I/O registers
     m_inputSelect = 0;
@@ -55,8 +57,6 @@ void Memory::reset() {
     m_graphicsRamModulo = 0;
     m_irqControl = 0;
     m_irqOffset = 0;
-    
-    m_watchdog = 0;
     
     // Reset Z80 banking
     m_z80Bank0 = 0x02;  // Bank 0: starts at 0x8000 in Z80 ROM
@@ -233,7 +233,9 @@ void Memory::write8(u32 address, u8 value) {
         case 0x300000:
             // Watchdog timer reset (odd addresses)
             if ((address & 1) == 1) {
-                m_watchdog = 0;  // Reset watchdog
+                if (m_core) {
+                    m_core->resetWatchdog();
+                }
             }
             return;
             
@@ -284,7 +286,7 @@ void Memory::write8(u32 address, u8 value) {
     
     // NVRAM (0xD00000-0xDFFFFF) - MVS only, 64KB mirrored
     if (address >= 0xD00000 && address < 0xE00000) {
-        if (m_cartridge && m_cartridge->getSystemType() == SystemType::MVS && m_sramWritable) {
+        if (m_cartridge && m_cartridge->getSystemType() == SystemType::MVS) {
             m_nvram[address & 0xFFFF] = value;
         }
         return;

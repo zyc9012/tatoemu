@@ -16,6 +16,7 @@ constexpr u32 SOUND_CPU_FREQUENCY = 4000000;  // 4 MHz (Z80)
 constexpr u32 CPU_CYCLES_PER_FRAME = static_cast<u32>(CPU_FREQUENCY / TARGET_FPS);
 constexpr u32 SOUND_CPU_CYCLES_PER_FRAME = static_cast<u32>(SOUND_CPU_FREQUENCY / TARGET_FPS);
 constexpr float SOUND_CYCLES_RATIO = static_cast<float>(SOUND_CPU_FREQUENCY) / static_cast<float>(CPU_FREQUENCY);
+constexpr u32 WATCHDOG_TIMEOUT_CYCLES = CPU_CYCLES_PER_FRAME * 8;
 
 // Memory sizes
 constexpr u32 WORK_RAM_SIZE = 64 * 1024;      // 64 KB work RAM

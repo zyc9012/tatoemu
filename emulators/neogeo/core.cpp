@@ -40,6 +40,7 @@ bool Core::initialize() {
     m_memory->setController(m_controller.get());
     m_memory->setAPU(m_apu.get());
     m_memory->setUPD4990A(m_upd4990a.get());
+    m_memory->setCore(this);
     
     m_cartridge->setCPU(m_cpu.get());
     m_cartridge->setPPU(m_ppu.get());
@@ -66,7 +67,12 @@ bool Core::loadROM(const fs::path& filename) {
         return false;
     }
     
-    // Reset all components
+    reset();
+
+    return true;
+}
+
+void Core::reset() {
     m_cpu->reset();
     m_soundCpu->reset();
     m_apu->reset();
@@ -76,7 +82,8 @@ bool Core::loadROM(const fs::path& filename) {
     m_cartridge->reset();
     m_upd4990a->initialize(CPU_FREQUENCY, [this]() { return m_totalCycles; });
 
-    return true;
+    m_watchdogTimer = 0;
+    m_totalCycles = 0;
 }
 
 bool Core::handleInput(SDL_Event& event) {
@@ -246,6 +253,7 @@ void Core::update() {
     
     // Track accumulated excess/deficit for Z80 synchronization
     s32 soundCpuSyncOffset = 0;
+    u32 cyclesThisFrame = 0;
     
     while (!m_ppu->isFrameComplete()) {
         // Track cycles before instruction
@@ -257,8 +265,9 @@ void Core::update() {
         // Calculate how many CPU cycles the instruction took
         u32 cpuCycles = m_cpu->getCycles() - cyclesBefore;
 
-        // Update total cycle counter
+        // Update cycle counter
         m_totalCycles += cpuCycles;
+        cyclesThisFrame += cpuCycles;
 
         // Run sound CPU proportionally
         s32 soundCpuCycles = static_cast<u32>(cpuCycles * SOUND_CYCLES_RATIO) - soundCpuSyncOffset;
@@ -279,6 +288,18 @@ void Core::update() {
     }
     
     m_ppu->clearFrameComplete();
+
+    // Update watchdog timer
+    if (m_cartridge) {
+        m_watchdogTimer += cyclesThisFrame;
+
+        // Check if watchdog has expired (should trigger every ~8 frames)
+        if (m_watchdogTimer > static_cast<s32>(WATCHDOG_TIMEOUT_CYCLES)) {
+            std::cout << "Watchdog timer expired, resetting system..." << std::endl;
+            reset();
+            return;
+        }
+    }
 }
 
 bool Core::saveState(const fs::path& filename) {

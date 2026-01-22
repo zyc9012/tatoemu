@@ -14,6 +14,7 @@ class Cartridge;
 class Controller;
 class APU;
 class UPD4990A;
+class Core;
 
 // NeoGeo Memory Map (Cartridge systems - MVS/AES):
 // 0x000000-0x0003FF: Vector table (switchable BIOS/cartridge)
@@ -65,6 +66,7 @@ public:
     void setController(Controller* controller) { m_controller = controller; }
     void setAPU(APU* apu) { m_apu = apu; }
     void setUPD4990A(UPD4990A* upd4990a) { m_upd4990a = upd4990a; }
+    void setCore(Core* core) { m_core = core; }
     
     // Save/Load state
     void saveState(std::ofstream& file);
@@ -92,6 +94,7 @@ private:
     Controller* m_controller;
     APU* m_apu;
     UPD4990A* m_upd4990a;
+    Core* m_core;
     
     // RAM banks
     std::array<u8, WORK_RAM_SIZE> m_workRam;      // 0x100000-0x1FFFFF (64KB mirrored)
@@ -112,9 +115,6 @@ private:
     u16 m_graphicsRamModulo;   // Graphics RAM modulo
     u16 m_irqControl;          // IRQ control register
     u32 m_irqOffset;           // IRQ offset register
-    
-    // Watchdog timer (simplified)
-    s32 m_watchdog;
     
     // 68K ROM banking (for games > 1MB)
     u32 m_programRomBank;  // Bank offset for 0x200000-0x2FFFFF area

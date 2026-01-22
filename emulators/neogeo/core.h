@@ -25,6 +25,7 @@ public:
 
     // Core interface implementation
     bool initialize() override;
+    void reset();
     void setVideoDevice(::VideoDevice* videoDevice) override;
     void setAudioDevice(::AudioDevice* audioDevice) override;
     bool loadROM(const fs::path& filename) override;
@@ -35,6 +36,10 @@ public:
     bool handleInput(SDL_Event& event) override;
     void update() override;
     void updateGameSpeed(double gameSpeed) override;
+
+    // Watchdog timer
+    void resetWatchdog() { m_watchdogTimer = 0; }
+
     void setAudioSampleRate(u32 sampleRate) override;
     void setAudioVolume(float volume) override;
 
@@ -68,6 +73,9 @@ private:
 
     // Total cycle counter
     u32 m_totalCycles = 0;
+
+    // Watchdog timer (for system reset)
+    s32 m_watchdogTimer = 0;
 
     // BIOS configuration
     u32 m_bios68kIndex = 19;
