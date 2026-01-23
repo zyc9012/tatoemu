@@ -405,14 +405,14 @@ u8 Memory::readPort(u16 port) {
     if (cpsVer == 2) {
         if (port == 0x020) {
             if (m_controller) {
-                return m_controller->readPort(port);
+                return ~m_controller->readPort(port);
             }
             return 0xFF;
         }
         
         // Port 0x021: EEPROM read (bit 0), Diagnostic (bit 1), Service (bit 2)
         if (port == 0x021) {
-            value = m_controller->readPort(port) & ~0x01; // Bit 0 cleared (will be set by EEPROM)
+            value = (~m_controller->readPort(port)) & ~0x01; // Bit 0 cleared (will be set by EEPROM)
             value |= m_eeprom.read();
             return value;
         }
@@ -463,7 +463,7 @@ u8 Memory::readPort(u16 port) {
         case 0x018:
         case 0x177:
             if (m_controller) {
-                return m_controller->readPort(port);
+                return ~m_controller->readPort(port);
             }
             return 0xFF;
 

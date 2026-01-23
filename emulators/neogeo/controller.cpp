@@ -1,5 +1,6 @@
 #include "controller.h"
 #include "config.h"
+#include "../components/socd.h"
 #include <cstring>
 
 namespace neogeo {
@@ -12,6 +13,7 @@ Controller::Controller()
 
 void Controller::reset() {
     m_inputBanks.fill(0);
+    m_socdProcessor.reset();
 
     if (Config::System == SystemType::MVS) {
         // 1/2 slot MVS
@@ -97,8 +99,12 @@ u8 Controller::readInput1(u8 offset) const {
     // Input bank 1 (0x300000)
 
     switch (offset) {
-        case 0x00:
-            return m_inputBanks[0];
+        case 0x00: {
+            u8 input = m_inputBanks[0];
+            // Apply SOCD processing to directional inputs
+            m_socdProcessor.lie(0, input, (1<<0), (1<<1), (1<<2), (1<<3));
+            return input;
+        }
         case 0x01:
             if (Config::System == SystemType::MVS) {
                 return m_inputBanks[4];
@@ -117,7 +123,10 @@ u8 Controller::readInput2(u8 offset) const {
     // Input bank 2 (0x340000)
 
     if ((offset & 1) == 0) {
-        return m_inputBanks[1];
+        u8 input = m_inputBanks[1];
+        // Apply SOCD processing to directional inputs
+        m_socdProcessor.lie(1, input, (1<<0), (1<<1), (1<<2), (1<<3));
+        return input;
     }
 
     return 0x00; // Default open bus

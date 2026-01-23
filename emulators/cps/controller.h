@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../types.h"
+#include "../components/socd.h"
 #include <fstream>
 #include <array>
 #include <unordered_map>
@@ -45,7 +46,7 @@ public:
     void pressButton(u8 player, ControllerButton button);
     void releaseButton(u8 player, ControllerButton button);
     
-    // Read port register value (active low, so returns inverted value)
+    // Read port register value
     u8 readPort(u16 port) const;
     
     // Save/Load state
@@ -54,12 +55,14 @@ public:
 
 private:
     // Port registers (indexed by port address)
-    // All ports default to 0xFF (active low, so 0xFF = no inputs pressed)
     std::array<u8, 0x200> m_portRegisters;
     
     // Button mapping configuration: (player << 8 | button) -> (port, bit)
     std::unordered_map<u16, ButtonMapping> m_buttonMappings;
     
+    // SOCD processor for directional inputs
+    ClearOpposite<2> m_socdProcessor;
+
     // Initialize button mappings for CPS1
     void initCPS1Mappings();
     

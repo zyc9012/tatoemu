@@ -2,6 +2,7 @@
 
 #include "../types.h"
 #include "cartridge.h"
+#include "../components/socd.h"
 #include <fstream>
 #include <array>
 #include <unordered_map>
@@ -63,6 +64,9 @@ private:
 
     // Button mapping configuration: (player << 8 | button) -> (bank, bit)
     std::unordered_map<u16, ButtonMapping> m_buttonMappings;
+
+    // SOCD processor for directional inputs
+    ClearOpposite<2> m_socdProcessor;
 
     // Initialize Neo Geo button mappings
     void initButtonMappings();

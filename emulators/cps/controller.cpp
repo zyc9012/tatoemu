@@ -1,4 +1,5 @@
 #include "controller.h"
+#include "../components/socd.h"
 #include <cstring>
 
 namespace cps {
@@ -8,8 +9,9 @@ Controller::Controller() {
 }
 
 void Controller::reset() {
-    // Initialize all port registers to 0xFF (active low, so 0xFF = no inputs)
-    m_portRegisters.fill(0xFF);
+    // Initialize all port registers
+    m_portRegisters.fill(0x00);
+    m_socdProcessor.reset();
 }
 
 void Controller::setCPSVersion(u8 cpsVersion) {
@@ -136,11 +138,10 @@ void Controller::setPortBit(u16 port, u8 bit, bool pressed) {
         return;
     }
     
-    // Active low: pressed = clear bit, released = set bit
     if (pressed) {
-        m_portRegisters[port] &= ~(1 << bit);
-    } else {
         m_portRegisters[port] |= (1 << bit);
+    } else {
+        m_portRegisters[port] &= ~(1 << bit);
     }
 }
 
@@ -148,7 +149,17 @@ u8 Controller::readPort(u16 port) const {
     if (port >= m_portRegisters.size()) {
         return 0xFF;
     }
-    return m_portRegisters[port];
+
+    u8 value = m_portRegisters[port];
+
+    // Apply SOCD processing to directional inputs
+    if (port == 0x001) {
+        m_socdProcessor.lie(0, value, (1<<3), (1<<2), (1<<1), (1<<0));
+    } else if (port == 0x000) {
+        m_socdProcessor.lie(1, value, (1<<3), (1<<2), (1<<1), (1<<0));
+    }
+
+    return value;
 }
 
 void Controller::saveState(std::ofstream& file) {
