@@ -72,10 +72,9 @@ jobs:
           path: build-wasm/dist/
           retention-days: 30
       
-      - name: Deploy to Netlify
-        uses: netlify/actions/cli@master
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
         with:
-          args: deploy --dir=build-wasm/dist --prod
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: 6031616f-ce66-437f-a0f9-5f32445c449f
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --assets build-wasm/dist --name=tatoemu --latest

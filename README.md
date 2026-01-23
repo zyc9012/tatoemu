@@ -6,7 +6,7 @@ This project is just for fun. It aims to build minimal emulators that work for m
 
 ## Try it Online
 
-**Play in your browser**: [https://tatoemu.netlify.app](https://tatoemu.netlify.app)
+**Play in your browser**: [https://emu.tatoz.net](https://emu.tatoz.net)
 
 ## Requirements
 
