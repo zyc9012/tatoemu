@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <set>
 
 namespace util {
 
@@ -24,7 +25,10 @@ public:
     
     // Extract a file from the ZIP
     bool extractFile(const std::string& filename, std::vector<u8>& output);
-    
+
+    // Find and extract a file by extension
+    bool findAndExtractFile(const std::set<std::string>& extensions, std::vector<u8>& output, std::string& foundFilename, bool topLevelOnly = false);
+
     // Extract all files (for ROM loading)
     bool extractAll(std::map<std::string, std::vector<u8>>& files);
 

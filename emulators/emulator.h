@@ -8,6 +8,14 @@
 #include <string>
 #include <SDL3/SDL.h>
 
+enum class CoreType {
+    GB,
+    NES,
+    CPS,
+    NEOGEO,
+    UNKNOWN
+};
+
 class SDLVideoDevice : public VideoDevice {
 public:
     SDLVideoDevice(SDL_Renderer* renderer, SDL_Texture* texture, u16 screenWidth, u16 screenHeight);

@@ -5,6 +5,7 @@
 #include "cps/db.h"
 #include "neogeo/core.h"
 #include "neogeo/db.h"
+#include "../utilities/zip_reader.h"
 #include <SDL3/SDL.h>
 #include <iostream>
 #include <fstream>
@@ -58,6 +59,59 @@ void SDLVideoDevice::render(u32* buffer) {
 
     // Present
     SDL_RenderPresent(m_renderer);
+}
+
+// Function to determine which core to create based on ROM file
+CoreType determineCoreType(const fs::path& romFilename) {
+    fs::path ext = romFilename.extension();
+
+    // Handle direct file extensions
+    if (ext == ".gb" || ext == ".gbc") {
+        return CoreType::GB;
+    } else if (ext == ".nes") {
+        return CoreType::NES;
+    } else if (ext == ".zip") {
+        // Check ZIP contents for GB/GBC/NES files
+        util::ZipReader zip;
+        if (!zip.open(romFilename)) {
+            std::cerr << "Failed to open ZIP file for inspection: " << romFilename << std::endl;
+            return CoreType::UNKNOWN;
+        }
+
+        std::vector<std::string> files = zip.getFileList();
+        zip.close();
+
+        // Check if ZIP contains GB/GBC/NES files
+        for (const auto& filename : files) {
+            fs::path filePath = filename;
+            fs::path fileExt = filePath.extension();
+
+            if (fileExt == ".gb" || fileExt == ".gbc") {
+                return CoreType::GB;
+            } else if (fileExt == ".nes") {
+                return CoreType::NES;
+            }
+        }
+
+        // If no GB/GBC/NES files found, fall back to CPS/NeoGeo
+        std::string romSetName = romFilename.stem().string();
+        std::transform(romSetName.begin(), romSetName.end(), romSetName.begin(), ::tolower);
+
+        const cps::GameInfo* cpsGameInfo = cps::GameDatabase::findGame(romSetName);
+        if (cpsGameInfo) {
+            return CoreType::CPS;
+        }
+
+        const neogeo::GameInfo* neogeoGameInfo = neogeo::GameDatabase::findGame(romSetName);
+        if (neogeoGameInfo) {
+            return CoreType::NEOGEO;
+        }
+
+        std::cerr << "Unknown game in ZIP: " << romSetName << std::endl;
+        return CoreType::UNKNOWN;
+    }
+
+    return CoreType::UNKNOWN;
 }
 
 SDLAudioDevice::SDLAudioDevice()
@@ -134,37 +188,27 @@ Emulator::~Emulator() {
 }
 
 bool Emulator::initialize() {
-    fs::path ext = m_romFilename.extension();
+    // Determine which core to create based on ROM file
+    CoreType coreType = determineCoreType(m_romFilename);
 
-    // Create core based on ROM file extension
-    if (ext == ".gb" || ext == ".gbc") {
-        m_core = std::make_unique<gb::Core>();
-    } else if (ext == ".nes") {
-        m_core = std::make_unique<nes::Core>();
-    } else if (ext == ".zip") {
-        // CPS1/CPS2 and NeoGeo ROMs use .zip format (MAME format)
-        // Try CPS first, then NeoGeo
-        std::string romSetName = m_romFilename.stem().string();
-        std::transform(romSetName.begin(), romSetName.end(), romSetName.begin(), ::tolower);
-        
-        const cps::GameInfo* gameInfo = cps::GameDatabase::findGame(romSetName);
-        if (gameInfo) {
-            // Create unified core (works for both CPS1 and CPS2)
+    // Create core based on determined type
+    switch (coreType) {
+        case CoreType::GB:
+            m_core = std::make_unique<gb::Core>();
+            break;
+        case CoreType::NES:
+            m_core = std::make_unique<nes::Core>();
+            break;
+        case CoreType::CPS:
             m_core = std::make_unique<cps::Core>();
-        } else {
-            // Try NeoGeo - check game database
-            const neogeo::GameInfo* gameInfo = neogeo::GameDatabase::findGame(romSetName);
-            if (gameInfo) {
-                m_core = std::make_unique<neogeo::Core>();
-            } else {
-                std::cerr << "Unknown game: " << romSetName << std::endl;
-                std::cerr << "Game not found in CPS or NeoGeo database" << std::endl;
-                return false;
-            }
-        }
-    } else {
-        std::cerr << "Unsupported ROM file extension: " << ext << std::endl;
-        return false;
+            break;
+        case CoreType::NEOGEO:
+            m_core = std::make_unique<neogeo::Core>();
+            break;
+        case CoreType::UNKNOWN:
+        default:
+            std::cerr << "Unsupported ROM file or unknown game: " << m_romFilename << std::endl;
+            return false;
     }
 
     if (!m_core) {
@@ -182,7 +226,7 @@ bool Emulator::initialize() {
     if (!m_bootromFilename.empty()) {
         std::cout << "Loading bootrom: " << m_bootromFilename << std::endl;
         m_core->loadBootrom(m_bootromFilename);
-    } else if (ext == ".gb" || ext == ".gbc") {
+    } else if (coreType == CoreType::GB) {
         std::cout << "No bootrom provided, starting with post-boot state" << std::endl;
     }
     

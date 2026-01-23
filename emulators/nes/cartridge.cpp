@@ -1,6 +1,8 @@
 #include "cartridge.h"
 #include "cpu.h"
 #include "ppu.h"
+#include "../../utilities/zip_reader.h"
+#include <set>
 #include "mappers/mapper000.h"
 #include "mappers/mapper001.h"
 #include "mappers/mapper002.h"
@@ -49,24 +51,49 @@ Cartridge::~Cartridge() {
 }
 
 bool Cartridge::load(const fs::path& filename) {
-    std::ifstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open ROM file: " << filename << std::endl;
-        return false;
+    fs::path ext = filename.extension();
+    std::vector<u8> romData;
+
+    if (ext == ".zip") {
+        // Handle ZIP files
+        util::ZipReader zip;
+        if (!zip.open(filename)) {
+            std::cerr << "Failed to open ZIP file: " << filename << std::endl;
+            return false;
+        }
+
+        // Find and extract NES ROM file from ZIP
+        std::string romFilename;
+        std::set<std::string> extensions = {".nes"};
+
+        if (!zip.findAndExtractFile(extensions, romData, romFilename, true)) {
+            zip.close();
+            return false;
+        }
+
+        zip.close();
+        std::cout << "Extracted " << romFilename << " from ZIP" << std::endl;
+    } else {
+        // Handle regular files
+        std::ifstream file(filename, std::ios::binary);
+        if (!file.is_open()) {
+            std::cerr << "Failed to open ROM file: " << filename << std::endl;
+            return false;
+        }
+
+        // Read entire file
+        romData = std::vector<u8>((std::istreambuf_iterator<char>(file)),
+                               std::istreambuf_iterator<char>());
+        file.close();
     }
     
-    // Read entire file
-    std::vector<u8> data((std::istreambuf_iterator<char>(file)),
-                          std::istreambuf_iterator<char>());
-    file.close();
-    
-    if (data.size() < INES_HEADER_SIZE) {
+    if (romData.size() < INES_HEADER_SIZE) {
         std::cerr << "ROM file too small" << std::endl;
         return false;
     }
     
     // Parse iNES header
-    if (!parseINES(data)) {
+    if (!parseINES(romData)) {
         return false;
     }
     

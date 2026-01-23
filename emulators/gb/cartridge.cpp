@@ -1,8 +1,10 @@
 #include "cartridge.h"
+#include "../../utilities/zip_reader.h"
 #include <fstream>
 #include <iostream>
 #include <cmath>
 #include <filesystem>
+#include <set>
 
 namespace gb {
 
@@ -94,20 +96,43 @@ void Cartridge::loadState(std::ifstream& file) {
 }
 
 bool Cartridge::load(const fs::path& filename) {
-    std::ifstream file(filename, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open ROM file: " << filename << std::endl;
-        return false;
+    fs::path ext = filename.extension();
+    std::vector<u8> romData;
+
+    if (ext == ".zip") {
+        // Handle ZIP files
+        util::ZipReader zip;
+        if (!zip.open(filename)) {
+            std::cerr << "Failed to open ZIP file: " << filename << std::endl;
+            return false;
+        }
+
+        // Find and extract GB/GBC ROM file from ZIP
+        std::string romFilename;
+        std::set<std::string> extensions = {".gb", ".gbc"};
+
+        if (!zip.findAndExtractFile(extensions, romData, romFilename, true)) {
+            zip.close();
+            return false;
+        }
+
+        zip.close();
+    } else {
+        // Handle regular files
+        std::ifstream file(filename, std::ios::binary);
+        if (!file.is_open()) {
+            std::cerr << "Failed to open ROM file: " << filename << std::endl;
+            return false;
+        }
+
+        // Read entire file
+        romData = std::vector<u8>((std::istreambuf_iterator<char>(file)),
+                               std::istreambuf_iterator<char>());
+        file.close();
     }
 
-    std::streamsize size = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    m_rom.resize(size);
-    if (!file.read(reinterpret_cast<char*>(m_rom.data()), size)) {
-        std::cerr << "Failed to read ROM file" << std::endl;
-        return false;
-    }
+    // Copy ROM data to member variable
+    m_rom = std::move(romData);
 
     m_romFilename = filename;
     parseHeader();

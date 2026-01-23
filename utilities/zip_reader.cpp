@@ -3,6 +3,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cstring>
+#include <filesystem>
 
 namespace util {
 
@@ -88,6 +89,46 @@ bool ZipReader::extractFile(const std::string& filename, std::vector<u8>& output
     mz_free(p);
     
     return true;
+}
+
+bool ZipReader::findAndExtractFile(const std::set<std::string>& extensions, std::vector<u8>& output, std::string& foundFilename, bool topLevelOnly) {
+    if (!m_initialized) {
+        return false;
+    }
+
+    // Get list of files in the ZIP
+    std::vector<std::string> files = getFileList();
+    foundFilename.clear();
+
+    // Search for files with matching extensions
+    for (const auto& filename : files) {
+        // Skip files in subdirectories if topLevelOnly is true
+        if (topLevelOnly && (filename.find('/') != std::string::npos || filename.find('\\') != std::string::npos)) {
+            continue;
+        }
+
+        fs::path filePath = filename;
+        fs::path fileExt = filePath.extension();
+        std::string extStr = fileExt.string();
+
+        std::transform(extStr.begin(), extStr.end(), extStr.begin(), ::tolower);
+
+        if (extensions.count(extStr) > 0) {
+            if (!foundFilename.empty()) {
+                std::cerr << "Multiple ROM files found in ZIP" << std::endl;
+                return false;
+            }
+            foundFilename = filename;
+        }
+    }
+
+    if (foundFilename.empty()) {
+        std::cerr << "No ROM file found in ZIP" << std::endl;
+        return false;
+    }
+
+    // Extract the found file
+    return extractFile(foundFilename, output);
 }
 
 bool ZipReader::extractAll(std::map<std::string, std::vector<u8>>& files) {
