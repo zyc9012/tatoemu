@@ -126,7 +126,7 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
+            z-index: 900;
             justify-content: center;
             align-items: center;
         }
@@ -230,7 +230,7 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
+            z-index: 900;
             justify-content: center;
             align-items: center;
         }
@@ -975,6 +975,43 @@
 
         let currentConfig = { ...configDefaults };
 
+        // Configuration persistence
+        const CONFIG_FILE_PATH = '/roms/config.json';
+
+        function saveConfiguration() {
+            try {
+                const configJson = JSON.stringify(currentConfig, null, 2);
+                // Convert string to Uint8Array
+                const encoder = new TextEncoder();
+                const data = encoder.encode(configJson);
+                Module.FS.writeFile(CONFIG_FILE_PATH, data);
+            } catch (error) {
+                console.error('Error saving configuration:', error);
+            }
+        }
+
+        function loadConfiguration() {
+            try {
+                if (Module.FS.analyzePath(CONFIG_FILE_PATH).exists) {
+                    const configData = Module.FS.readFile(CONFIG_FILE_PATH);
+                    // Convert Uint8Array to string
+                    const decoder = new TextDecoder();
+                    const configJson = decoder.decode(configData);
+                    const loadedConfig = JSON.parse(configJson);
+
+                    // Merge with defaults to ensure all keys exist
+                    currentConfig = { ...configDefaults, ...loadedConfig };
+                    console.log('Configuration loaded');
+                } else {
+                    console.log('No saved configuration found, using defaults');
+                    currentConfig = { ...configDefaults };
+                }
+            } catch (error) {
+                console.error('Error loading configuration:', error);
+                currentConfig = { ...configDefaults };
+            }
+        }
+
         // Configuration Modal functionality
         const configModal = document.getElementById('configModal');
         const configBtn = document.getElementById('configBtn');
@@ -998,10 +1035,6 @@
             configModal.classList.add('show');
         });
 
-        // Apply default configuration on startup
-        function applyDefaultConfiguration() {
-            applyConfiguration();
-        }
 
         configModalClose.addEventListener('click', function() {
             configModal.classList.remove('show');
@@ -1027,8 +1060,9 @@
 
             // Apply settings to C++
             applyConfiguration();
+            // Save configuration to persistent storage
+            saveConfiguration();
             configModal.classList.remove('show');
-            showLog('Configuration applied');
         });
 
         resetConfigBtn.addEventListener('click', function() {
@@ -1098,14 +1132,20 @@
                 }
                 try {
                     Module.FS.mount(Module.FS.filesystems.IDBFS, { autoPersist: true }, '/roms');
-                    Module.FS.syncfs(true, () => {});
+                    Module.FS.syncfs(true, (err) => {
+                        if (err) {
+                            console.error('Failed to sync filesystem:', err);
+                            return;
+                        }
+                        loadConfiguration();
+                        applyConfiguration();
+                    });
                 } catch (err) {
                     console.error('Failed to mount persistent storage:', err);
                 }
             }],
             postRun: [function() {
                 setupFileUploads();
-                applyDefaultConfiguration();
                 // Open file manager when page loads
                 setTimeout(() => {
                     showFileManager();
