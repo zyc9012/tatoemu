@@ -3,8 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TatoEmu - WebAssembly</title>
+    <title>TatoEmu - Retro Game Emulator online</title>
+    <meta name="description" content="Play retro games online with TatoEmu. Supports Game Boy, Game Boy Color, NES, CPS1, CPS2, and NeoGeo systems. Upload your game ROMs and play instantly!">
+    <meta name="keywords" content="emulator, Game Boy, Game Boy Color, NES, CPS1, CPS2, NeoGeo, retro gaming, browser games, TatoEmu, web emulator">
+    <meta name="robots" content="index, follow">
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="TatoEmu - Retro Game Emulator">
+    <meta property="og:description" content="Play retro video games online. Supports Game Boy, Game Boy Color, NES, CPS1, CPS2, and NeoGeo systems.">
+    <meta property="og:url" content="https://emu.tatoz.net">
+    <!-- Twitter -->
+    <meta property="twitter:title" content="TatoEmu - Retro Game Emulator">
+    <meta property="twitter:description" content="Play retro video games online. Supports Game Boy, Game Boy Color, NES, CPS1, CPS2, and NeoGeo systems.">
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://emu.tatoz.net">
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/x-icon;base64,">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "TatoEmu",
+        "description": "Retro Game Emulator for Game Boy, Game Boy Color, NES, CPS1, CPS2, and NeoGeo games playable online",
+        "url": "https://emu.tatoz.net",
+        "applicationCategory": "Game",
+        "operatingSystem": "Web Browser",
+        "featureList": [
+            "Game Boy / Game Boy Color support",
+            "NES support",
+            "CPS1 / CPS2 support",
+            "NeoGeo support",
+            "Save states",
+            "Browser-based",
+            "No installation required"
+        ]
+    }
+    </script>
     <style>
         * {
             margin: 0;
@@ -62,6 +100,20 @@
 
         .toolbar-btn:hover {
             background: #5a6268;
+        }
+
+        .toolbar-btn.github-btn {
+            padding: 8px 12px;
+            background: #24292e;
+            color: #ffffff;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toolbar-btn.github-btn:hover {
+            background: #1b1f23;
         }
 
         .toolbar-btn.primary {
@@ -631,6 +683,9 @@
         <button class="toolbar-btn" id="helpBtn">
             <i class="fas fa-question-circle"></i> Help
         </button>
+        <a href="https://github.com/zyc9012/tatoemu" target="_blank" class="toolbar-btn github-btn" title="View on GitHub">
+            <i class="fab fa-github"></i>
+        </a>
     </div>
 
     <div class="canvas-container">
