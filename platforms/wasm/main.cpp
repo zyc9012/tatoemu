@@ -1,9 +1,13 @@
 #include "emulator.h"
+#include "config.h"
+#include "neogeo/config.h"
 #include <SDL3/SDL.h>
 #include <emscripten.h>
 #include <emscripten/html5.h>
 #include <iostream>
 #include <string>
+#include <algorithm>
+#include <cstdio>
 
 // Emulator wrapper class with public access to necessary methods
 class EmulatorWasm {
@@ -32,7 +36,7 @@ void emscripten_main_loop() {
     }
 }
 
-// C functions exported to JavaScript for file loading
+// C functions exported to JavaScript for file loading and configuration
 extern "C" {
     // Load ROM from uploaded file
     int loadROMFile(const char* filename) {
@@ -69,6 +73,49 @@ extern "C" {
             std::cerr << "Failed to load bootrom" << std::endl;
             return 0;
         }
+    }
+
+    // Configuration functions
+    void setScaleMode(const char* mode) {
+        std::string modeStr = mode;
+        std::transform(modeStr.begin(), modeStr.end(), modeStr.begin(), ::tolower);
+        if (modeStr == "nearest") {
+            Config::Window::ScaleMode = SDL_SCALEMODE_NEAREST;
+        } else if (modeStr == "linear") {
+            Config::Window::ScaleMode = SDL_SCALEMODE_LINEAR;
+        } else {
+            std::cerr << "Warning: Unknown scale mode '" << modeStr << "', using linear" << std::endl;
+            Config::Window::ScaleMode = SDL_SCALEMODE_LINEAR;
+        }
+    }
+
+    void setVolume(int volume) {
+        float volumeFloat = volume / 100.0f;
+        if (volumeFloat < 0.0f) volumeFloat = 0.0f;
+        if (volumeFloat > 1.0f) volumeFloat = 1.0f;
+        Config::Audio::Volume = volumeFloat;
+    }
+
+    void setNeoSys(const char* sys) {
+        std::string sysStr = sys;
+        std::transform(sysStr.begin(), sysStr.end(), sysStr.begin(), ::tolower);
+        if (sysStr == "aes") {
+            neogeo::Config::System = neogeo::SystemType::AES;
+        } else if (sysStr == "mvs") {
+            neogeo::Config::System = neogeo::SystemType::MVS;
+        } else {
+            std::cerr << "Warning: Unknown NeoGeo system '" << sysStr << "', using MVS" << std::endl;
+            neogeo::Config::System = neogeo::SystemType::MVS;
+        }
+    }
+
+    void setNeoBios(const char* bios) {
+        u8 biosIndex = static_cast<u8>(std::stoul(bios));
+        if (biosIndex < 0 || biosIndex > 34) {
+            std::cerr << "Warning: NeoGeo BIOS index should be between 0 and 34, using " << static_cast<int>(neogeo::Config::BiosIndex) << std::endl;
+            biosIndex = neogeo::Config::BiosIndex;
+        }
+        neogeo::Config::BiosIndex = biosIndex;
     }
 }
 

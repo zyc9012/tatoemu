@@ -40,6 +40,9 @@
             font-weight: 600;
             color: #e0e0e0;
             margin-right: auto;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; 
         }
 
         .toolbar-btn {
@@ -54,6 +57,7 @@
             align-items: center;
             gap: 6px;
             transition: all 0.2s ease;
+            flex-shrink: 0;
         }
 
         .toolbar-btn:hover {
@@ -215,6 +219,168 @@
             padding-left: 15px;
             font-size: 14px;
             font-weight: 600;
+        }
+
+        /* Configuration Modal */
+        .config-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .config-modal.show {
+            display: flex;
+        }
+
+        .config-modal-content {
+            background: rgba(30, 30, 30, 0.98);
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .config-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+        }
+
+        .config-modal-header h2 {
+            color: #e0e0e0;
+            font-size: 1.5em;
+            margin: 0;
+        }
+
+        .config-modal-close {
+            background: transparent;
+            border: none;
+            color: #e0e0e0;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .config-modal-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .config-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .config-section {
+            border-bottom: 1px solid #444;
+            padding-bottom: 15px;
+        }
+
+        .config-section:last-child {
+            border-bottom: none;
+        }
+
+        .config-section h3 {
+            color: #ffffff;
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+
+        .config-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .config-item label {
+            min-width: 80px;
+            color: #b0b0b0;
+            font-size: 14px;
+        }
+
+        .config-item select {
+            flex: 1;
+            padding: 6px 10px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background: #2d2d2d;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        .config-item input[type="range"] {
+            flex: 1;
+            margin: 0;
+            padding: 0;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background: #2d2d2d;
+            color: #e0e0e0;
+            font-size: 14px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .config-item #volumeValue {
+            min-width: 50px;
+            text-align: center;
+            color: #e67e22;
+            font-weight: 600;
+        }
+
+        .config-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+
+        .config-btn {
+            background: #e67e22;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .config-btn:hover {
+            background: #cc6a1a;
+        }
+
+        .config-btn.secondary {
+            background: #6c757d;
+        }
+
+        .config-btn.secondary:hover {
+            background: #5a6268;
         }
 
         .control-subsection .controls-grid {
@@ -455,6 +621,9 @@
         <button class="toolbar-btn primary" id="fileManagerBtn">
             <i class="fas fa-folder-plus"></i> Game Library
         </button>
+        <button class="toolbar-btn" id="configBtn">
+            <i class="fas fa-cog"></i> Config
+        </button>
         <button class="toolbar-btn" id="helpBtn">
             <i class="fas fa-question-circle"></i> Help
         </button>
@@ -664,6 +833,89 @@
         </div>
     </div>
 
+    <!-- Configuration Modal -->
+    <div id="configModal" class="config-modal">
+        <div class="config-modal-content">
+            <div class="config-modal-header">
+                <h2><i class="fas fa-cog"></i> Configuration</h2>
+                <button class="config-modal-close" id="configModalClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="config-content">
+                <div class="config-section">
+                    <h3>General</h3>
+                    <div class="config-item">
+                        <label for="scaleMode">Scale Mode:</label>
+                        <select id="scaleMode">
+                            <option value="nearest">Nearest</option>
+                            <option value="linear">Linear</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label for="volume">Volume:</label>
+                        <input type="range" id="volume" min="0" max="100" value="100">
+                        <span id="volumeValue">100%</span>
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h3>NeoGeo</h3>
+                    <div class="config-item">
+                        <label for="neoSys">System:</label>
+                        <select id="neoSys">
+                            <option value="mvs">MVS</option>
+                            <option value="aes">AES</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label for="neoBios">BIOS:</label>
+                        <select id="neoBios">
+                            <option value="0">MVS Asia/Europe ver. 6 (1 slot)</option>
+                            <option value="1">MVS Asia/Europe ver. 5 (1 slot)</option>
+                            <option value="2">MVS Asia/Europe ver. 3 (4 slot)</option>
+                            <option value="3">MVS USA ver. 5 (2 slot)</option>
+                            <option value="4">MVS USA ver. 5 (4 slot)</option>
+                            <option value="5">MVS USA ver. 5 (6 slot)</option>
+                            <option value="6">MVS USA (U4)</option>
+                            <option value="7">MVS USA (U3)</option>
+                            <option value="8">MVS Japan ver. 6 (? slot)</option>
+                            <option value="9">MVS Japan ver. 5 (? slot)</option>
+                            <option value="10">MVS Japan ver. 3 (4 slot)</option>
+                            <option value="11">NEO-MVH MV1C (Asia)</option>
+                            <option value="12">NEO-MVH MV1C (Japan)</option>
+                            <option value="13">MVS Japan (J3)</option>
+                            <option value="14">MVS Japan (J3, alt)</option>
+                            <option value="15">AES Japan</option>
+                            <option value="16">AES Asia</option>
+                            <option value="17">Development Kit</option>
+                            <option value="18">Deck ver. 6 (Git Ver 1.3)</option>
+                            <option value="19">Universe BIOS (Hack, Ver. 4.0)</option>
+                            <option value="20">Universe BIOS (Hack, Ver. 3.3)</option>
+                            <option value="21">Universe BIOS (Hack, Ver. 3.2)</option>
+                            <option value="22">Universe BIOS (Hack, Ver. 3.1)</option>
+                            <option value="23">Universe BIOS (Hack, Ver. 3.0)</option>
+                            <option value="24">Universe BIOS (Hack, Ver. 2.3)</option>
+                            <option value="25">Universe BIOS (Hack, Ver. 2.3)</option>
+                            <option value="26">Universe BIOS (Hack, Ver. 2.2)</option>
+                            <option value="27">Universe BIOS (Hack, Ver. 2.1)</option>
+                            <option value="28">Universe BIOS (Hack, Ver. 2.0)</option>
+                            <option value="29">Universe BIOS (Hack, Ver. 1.3)</option>
+                            <option value="30">Universe BIOS (Hack, Ver. 1.2)</option>
+                            <option value="31">Universe BIOS (Hack, Ver. 1.2)</option>
+                            <option value="32">Universe BIOS (Hack, Ver. 1.1)</option>
+                            <option value="33">Universe BIOS (Hack, Ver. 1.0)</option>
+                            <option value="34">NeoOpen BIOS v0.1 beta</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="config-actions">
+                    <button class="config-btn" id="applyConfigBtn">Apply</button>
+                    <button class="config-btn secondary" id="resetConfigBtn">Reset to Defaults</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- File Manager Modal -->
     <div id="fileManagerModal" class="file-manager-modal">
         <div class="file-manager-content">
@@ -711,6 +963,77 @@
             if (e.target === helpModal) {
                 helpModal.classList.remove('show');
             }
+        });
+
+        // Configuration defaults and current values
+        const configDefaults = {
+            scaleMode: 'linear',
+            volume: 100,
+            neoSys: 'mvs',
+            neoBios: '19'
+        };
+
+        let currentConfig = { ...configDefaults };
+
+        // Configuration Modal functionality
+        const configModal = document.getElementById('configModal');
+        const configBtn = document.getElementById('configBtn');
+        const configModalClose = document.getElementById('configModalClose');
+        const applyConfigBtn = document.getElementById('applyConfigBtn');
+        const resetConfigBtn = document.getElementById('resetConfigBtn');
+        const scaleModeSelect = document.getElementById('scaleMode');
+        const volumeSlider = document.getElementById('volume');
+        const volumeValue = document.getElementById('volumeValue');
+        const neoSysSelect = document.getElementById('neoSys');
+        const neoBiosSelect = document.getElementById('neoBios');
+        const neogeoSection = document.getElementById('neogeoSection');
+
+        configBtn.addEventListener('click', function() {
+            // Load current config values into the modal
+            scaleModeSelect.value = currentConfig.scaleMode;
+            volumeSlider.value = currentConfig.volume;
+            volumeValue.textContent = currentConfig.volume + '%';
+            neoSysSelect.value = currentConfig.neoSys;
+            neoBiosSelect.value = currentConfig.neoBios;
+            configModal.classList.add('show');
+        });
+
+        // Apply default configuration on startup
+        function applyDefaultConfiguration() {
+            applyConfiguration();
+        }
+
+        configModalClose.addEventListener('click', function() {
+            configModal.classList.remove('show');
+        });
+
+        configModal.addEventListener('click', function(e) {
+            if (e.target === configModal) {
+                configModal.classList.remove('show');
+            }
+        });
+
+        // Volume slider value display
+        volumeSlider.addEventListener('input', function() {
+            volumeValue.textContent = volumeSlider.value + '%';
+        });
+
+        applyConfigBtn.addEventListener('click', function() {
+            // Update current config
+            currentConfig.scaleMode = scaleModeSelect.value;
+            currentConfig.volume = parseInt(volumeSlider.value);
+            currentConfig.neoSys = neoSysSelect.value;
+            currentConfig.neoBios = neoBiosSelect.value;
+
+            // Apply settings to C++
+            applyConfiguration();
+            configModal.classList.remove('show');
+            showLog('Configuration applied');
+        });
+
+        resetConfigBtn.addEventListener('click', function() {
+            resetToDefaults();
+            showLog('Configuration reset to defaults');
         });
 
         // File upload button handlers
@@ -782,6 +1105,7 @@
             }],
             postRun: [function() {
                 setupFileUploads();
+                applyDefaultConfiguration();
                 // Open file manager when page loads
                 setTimeout(() => {
                     showFileManager();
@@ -975,6 +1299,8 @@
                     }
                     return;
                 }
+                // Apply current configuration before loading
+                applyConfiguration();
                 // Call C function to load ROM
                 const result = Module.ccall('loadROMFile', 'number', ['string'], [filepath]);
 
@@ -992,9 +1318,42 @@
                 showLog('Error loading game file: ' + error.message, true);
             }
         }
-        
+
+
+        function applyConfiguration() {
+            try {
+                // Apply scale mode
+                Module.ccall('setScaleMode', 'void', ['string'], [currentConfig.scaleMode]);
+
+                // Apply volume
+                Module.ccall('setVolume', 'void', ['number'], [currentConfig.volume]);
+
+                // Apply NeoGeo settings
+                Module.ccall('setNeoSys', 'void', ['string'], [currentConfig.neoSys]);
+                Module.ccall('setNeoBios', 'void', ['string'], [currentConfig.neoBios]);
+
+            } catch (e) {
+                console.error('Error applying configuration:', e);
+                showLog('Error applying configuration: ' + e.message, true);
+            }
+        }
+
+        function resetToDefaults() {
+            // Reset to defaults
+            currentConfig = { ...configDefaults };
+
+            // Update modal display
+            scaleModeSelect.value = currentConfig.scaleMode;
+            volumeSlider.value = currentConfig.volume;
+            volumeValue.textContent = currentConfig.volume + '%';
+            neoSysSelect.value = currentConfig.neoSys;
+            neoBiosSelect.value = currentConfig.neoBios;
+
+            applyConfiguration();
+        }
+
         Module.setStatus('Downloading...');
-        
+
         window.onerror = function(event) {
             Module.setStatus('Exception thrown, see JavaScript console');
         };
