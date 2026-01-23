@@ -9,6 +9,27 @@ namespace cps {
 // ROM Definitions
 // ============================================================================
 
+// 19XX: The War Against Destiny
+static const ROMEntry game_19xx_roms[] = {
+    { "19xe.03b",      0x080000, 0x9bf9d9b1, ROMType::PROGRAM, 0 },
+    { "19xe.04b",      0x080000, 0x9aa46476, ROMType::PROGRAM, 0 },
+    { "19xe.05b",      0x080000, 0xa04a2c5e, ROMType::PROGRAM, 0 },
+    { "19xe.06b",      0x080000, 0xf0a81c33, ROMType::PROGRAM, 0 },
+    { "19x.07",        0x080000, 0x61c0296c, ROMType::PROGRAM, 0 },
+    { "19x.13m",       0x080000, 0x427aeb18, ROMType::GRAPHICS, 0 },
+    { "19x.15m",       0x080000, 0x63bdbf54, ROMType::GRAPHICS, 0 },
+    { "19x.17m",       0x080000, 0x2dfe18b5, ROMType::GRAPHICS, 0 },
+    { "19x.19m",       0x080000, 0xcbef9579, ROMType::GRAPHICS, 0 },
+    { "19x.14m",       0x200000, 0xe916967c, ROMType::GRAPHICS, 0 },
+    { "19x.16m",       0x200000, 0x6e75f3db, ROMType::GRAPHICS, 0 },
+    { "19x.18m",       0x200000, 0x2213e798, ROMType::GRAPHICS, 0 },
+    { "19x.20m",       0x200000, 0xab9d5b96, ROMType::GRAPHICS, 0 },
+    { "19x.01",        0x020000, 0xef55195e, ROMType::SOUND_PROGRAM, 0 },
+    { "19x.11m",       0x200000, 0xd38beef3, ROMType::SOUND_SAMPLE, 0 },
+    { "19x.12m",       0x200000, 0xd47c96e2, ROMType::SOUND_SAMPLE, 0 },
+    { "19xx.key",      0x000014, 0x6f5d6406, ROMType::ENCRYPTION_KEY, 0 },
+};
+
 // 1944: The Loop Master
 static const ROMEntry game_1944_roms[] = {
     { "nffe.03",       0x080000, 0x7544b926, ROMType::PROGRAM, 0 },
@@ -450,10 +471,21 @@ static const ROMEntry game_xmvsf_roms[] = {
 const GameInfo GameDatabase::s_cps2_games[] = {
     {
         2,
+        "19XX: The War Against Destiny",
+        "19xx",
+        game_19xx_roms,
+        sizeof(game_19xx_roms) / sizeof(ROMEntry),
+        GameFlags::GAME_FLAG_VERTICAL_SCREEN,
+        CPSBoard::CPS_B_21_DEF,
+        CPSMapper::MAPPER_NONE
+    },
+    {
+        2,
         "1944: The Loop Master",
         "1944",
         game_1944_roms,
         sizeof(game_1944_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -463,6 +495,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "avsp",
         game_avsp_roms,
         sizeof(game_avsp_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -472,6 +505,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "ddsom",
         game_ddsom_roms,
         sizeof(game_ddsom_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -481,6 +515,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "ddtod",
         game_ddtod_roms,
         sizeof(game_ddtod_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -490,6 +525,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "hsf2",
         game_hsf2_roms,
         sizeof(game_hsf2_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -499,6 +535,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "msh",
         game_msh_roms,
         sizeof(game_msh_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -508,6 +545,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "mshvsf",
         game_mshvsf_roms,
         sizeof(game_mshvsf_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -517,6 +555,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "mvsc",
         game_mvsc_roms,
         sizeof(game_mvsc_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -526,6 +565,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "progear",
         game_progear_roms,
         sizeof(game_progear_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -535,6 +575,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "sfa",
         game_sfa_roms,
         sizeof(game_sfa_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -544,6 +585,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "sfa2",
         game_sfa2_roms,
         sizeof(game_sfa2_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -553,6 +595,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "sfa3",
         game_sfa3_roms,
         sizeof(game_sfa3_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -562,6 +605,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "spf2t",
         game_spf2t_roms,
         sizeof(game_spf2t_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -571,6 +615,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "ssf2",
         game_ssf2_roms,
         sizeof(game_ssf2_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -580,6 +625,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "ssf2t",
         game_ssf2t_roms,
         sizeof(game_ssf2t_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -589,6 +635,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "vsav",
         game_vsav_roms,
         sizeof(game_vsav_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -598,6 +645,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "vsav2",
         game_vsav2_roms,
         sizeof(game_vsav2_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -607,6 +655,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "xmcota",
         game_xmcota_roms,
         sizeof(game_xmcota_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },
@@ -616,6 +665,7 @@ const GameInfo GameDatabase::s_cps2_games[] = {
         "xmvsf",
         game_xmvsf_roms,
         sizeof(game_xmvsf_roms) / sizeof(ROMEntry),
+        0,
         CPSBoard::CPS_B_21_DEF,
         CPSMapper::MAPPER_NONE
     },

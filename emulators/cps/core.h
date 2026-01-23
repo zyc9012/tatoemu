@@ -35,12 +35,13 @@ public:
 
     // Constants
     double getTargetFPS() const override { return cps::TARGET_FPS; }
-    u16 getScreenWidth() const override { return cps::SCREEN_WIDTH; }
-    u16 getScreenHeight() const override { return cps::SCREEN_HEIGHT; }
+    u16 getScreenWidth() const override { return isScreenVertical() ? cps::SCREEN_HEIGHT : cps::SCREEN_WIDTH; }
+    u16 getScreenHeight() const override { return isScreenVertical() ? cps::SCREEN_WIDTH : cps::SCREEN_HEIGHT; }
+    bool isScreenVertical() const { return m_cartridge->getGameInfo()->flags & GameFlags::GAME_FLAG_VERTICAL_SCREEN != 0; }
     
     // CPS games were designed for 4:3 CRT displays with non-square pixels
     // The internal resolution is 384x224, but should be displayed at 4:3 aspect ratio
-    double getDisplayAspectRatio() const override { return 4.0 / 3.0; }
+    double getDisplayAspectRatio() const override { return isScreenVertical() ? 3.0 / 4.0 : 4.0 / 3.0; }
     
     // Save/Load state
     bool saveState(const fs::path& filename) override;

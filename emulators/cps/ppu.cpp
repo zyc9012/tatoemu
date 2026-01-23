@@ -22,6 +22,7 @@ PPU::PPU()
     , m_cartridge(nullptr)
     , m_memory(nullptr)
     , m_videoDevice(nullptr)
+    , m_isVertical(false)
     , m_gfxLen(0)
     , m_gfxMask(0)
     , m_layer1XOffs(0), m_layer1YOffs(0)
@@ -112,6 +113,8 @@ void PPU::reset() {
 
         const GameInfo* gameInfo = m_cartridge->getGameInfo();
         if (gameInfo) {
+            m_isVertical = gameInfo->flags & GameFlags::GAME_FLAG_VERTICAL_SCREEN != 0;
+
             m_is_xmcota = (strcmp(gameInfo->romSetName, "xmcota") == 0);
             bool is_hsf2 = (strcmp(gameInfo->romSetName, "hsf2") == 0);
             m_is_ssf2 = (strncmp(gameInfo->romSetName, "ssf2", 4) == 0) || is_hsf2;
@@ -1395,13 +1398,22 @@ void PPU::renderSpritesCPS2ByPriority(s32 levelFrom, s32 levelTo) {
 
 inline void PPU::plotPixel(s32 x, s32 y, u32 color) {
     if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT) {
-        m_frameBuffer[y * SCREEN_WIDTH + x] = color;
+        if (m_isVertical) {
+            m_frameBuffer[(SCREEN_WIDTH - x - 1) * SCREEN_HEIGHT + y] = color;
+        } else {
+            m_frameBuffer[y * SCREEN_WIDTH + x] = color;
+        }
     }
 }
 
 inline void PPU::plotPixelWithZ(s32 x, s32 y, u32 color) {
     if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT) {
-        u32 offset = y * SCREEN_WIDTH + x;
+        u32 offset;
+        if (m_isVertical) {
+            offset = (SCREEN_WIDTH - x - 1) * SCREEN_HEIGHT + y;
+        } else {
+            offset = y * SCREEN_WIDTH + x;
+        }
         // Only draw if Z-buffer allows (sprite hasn't been drawn here yet at this Z level)
         if (m_zBuffer[offset] < m_currentZValue) {
             m_frameBuffer[offset] = color;

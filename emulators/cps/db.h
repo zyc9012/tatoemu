@@ -105,6 +105,10 @@ enum class CPSMapper {
     MAPPER_NONE = 255,
 };
 
+enum GameFlags {
+    GAME_FLAG_VERTICAL_SCREEN = 0x01,
+};
+
 // Board configuration (CPS1 only)
 struct BoardConfig {
     u8 boardIdOffset;      // Offset where board ID is stored (from 0x800100)
@@ -125,7 +129,8 @@ struct GameInfo {
     const char* romSetName;        // MAME ROM set name
     const ROMEntry* roms;          // Array of ROM entries
     u32 romCount;                  // Number of ROM entries
-    
+    u8 flags;                      // Game flags
+
     // CPS1-specific fields
     CPSBoard board;                // B-board type
     CPSMapper mapper;              // Graphics ROM mapper

@@ -77,6 +77,9 @@ private:
     
     // Frame buffer (ARGB8888 format)
     std::array<u32, SCREEN_WIDTH * SCREEN_HEIGHT> m_frameBuffer;
+
+    // Whether the screen is vertical
+    bool m_isVertical;
     
     // VRAM (192KB) - organized as:
     // 0x00000-0x2FFFF: Scroll/tile maps, sprite data, palette, etc.
