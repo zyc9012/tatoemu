@@ -62,6 +62,11 @@ bool Cartridge::load(const fs::path& filename, u32 bios68kIndex) {
     
     // Load BIOS ROMs from game ZIP first, then neogeo.zip
     if (!loadBIOSROMs(romFiles, filename, bios68kIndex)) {
+        #ifdef __EMSCRIPTEN__
+        std::cerr << "Failed to load BIOS ROMs. Upload neogeo.zip and try again." << std::endl;
+        #else
+        std::cerr << "Failed to load BIOS ROMs. Put neogeo.zip in the same directory as the game ZIP and try again." << std::endl;
+        #endif
         return false;
     }
     

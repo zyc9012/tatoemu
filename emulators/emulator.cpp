@@ -231,7 +231,6 @@ bool Emulator::initialize() {
     }
     
     if (!m_core->loadROM(m_romFilename)) {
-        std::cerr << "Failed to load ROM: " << m_romFilename << std::endl;
         return false;
     }
 
