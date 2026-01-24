@@ -133,9 +133,6 @@ private:
     std::array<std::array<u8, 256>, MAX_RASTER> m_rasterRegs;  // Register set per raster zone
     std::array<std::array<u8, 16>, MAX_RASTER> m_rasterFrg;    // CpsSaveFrg per zone
     
-    // CPS1 Star field data (4KB per layer, 2 layers)
-    std::array<u8, 0x2000> m_starField;
-    
     // CPS1 tile masking (BgHi mode)
     std::array<u32, 4> m_maskAddr;
     u16 m_currentMask;
@@ -174,9 +171,6 @@ private:
     void renderScroll1(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine);
     void renderScroll2(const u8* base, s32 scrollX, s32 scrollY);
     void renderScroll3(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine);
-    
-    // CPS1 star field
-    void renderStarField(s32 layer);
     
     // Tile rendering (internal)
     void drawTile8x8(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, u16 mask = 0);

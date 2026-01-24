@@ -45,7 +45,6 @@ PPU::PPU()
     m_vram.fill(0);
     m_palette.fill(0);
     m_cpsRegs.fill(0);
-    m_starField.fill(0);
     m_rasterLines.fill(0);
     m_maskAddr.fill(0);
     
@@ -75,7 +74,6 @@ void PPU::reset() {
     m_frameBuffer.fill(0);
     m_vram.fill(0);
     m_cpsRegs.fill(0);
-    m_starField.fill(0);
     m_rasterLines.fill(0);
     m_maskAddr.fill(0);
     
@@ -603,15 +601,6 @@ void PPU::renderLayersCPS1() {
     u8* scr2Base = findGfxRam(scr2Off, 0x4000);
     u8* scr3Base = findGfxRam(scr3Off, 0x4000);
     
-    // Render star fields if enabled (CpsLayEn[4] and CpsLayEn[5])
-    // Check enable bits from layer control register
-    if (layerCtrl & m_boardConfig.layerEnable[4]) {
-        renderStarField(0);  // Star field layer 0
-    }
-    if (layerCtrl & m_boardConfig.layerEnable[5]) {
-        renderStarField(1);  // Star field layer 1
-    }
-    
     // Render layers from bottom to top
     for (int i = 3; i >= 0; i--) {
         s32 n = draw[i];
@@ -1067,64 +1056,6 @@ void PPU::renderScroll3(const u8* base, s32 scrollX, s32 scrollY, s32 startLine,
     }
 }
 
-
-// ============================================================================
-// Star Field Rendering (CPS1 Only)
-// ============================================================================
-
-void PPU::renderStarField(s32 layer) {
-    // Star field rendering based on FBNeo DrawStar()
-    // Each star field layer has 0x1000 bytes of data
-    // Position is calculated based on star control register and frame counter
-    
-    if (layer < 0 || layer > 1) return;
-    
-    const u8* starData = m_starField.data() + (layer << 12);  // 0x1000 per layer
-    
-    // Get star control offsets from registers 0x18-0x1F
-    // Star 1: regs 0x18-0x19 (X), 0x1A-0x1B (Y)
-    // Star 2: regs 0x1C-0x1D (X), 0x1E-0x1F (Y)
-    s16 starXOffs = static_cast<s16>((static_cast<u16>(m_cpsRegs[0x18 + (layer << 2)]) << 8) | 
-                                     m_cpsRegs[0x19 + (layer << 2)]);
-    s16 starYOffs = static_cast<s16>((static_cast<u16>(m_cpsRegs[0x1A + (layer << 2)]) << 8) | 
-                                     m_cpsRegs[0x1B + (layer << 2)]);
-    
-    // Render each star
-    for (u32 nStar = 0; nStar < 0x1000; nStar++) {
-        u8 starColor = starData[nStar];
-        
-        // Skip if star is transparent (0x0F)
-        if (starColor == 0x0F) continue;
-        
-        // Calculate star position
-        // X: ((nStar >> 8) << 5) - starXOffs + (starColor & 0x1F) - 64
-        s32 starX = (((nStar >> 8) << 5) - starXOffs + (starColor & 0x1F) - 64) & 0x01FF;
-        
-        // Y: (nStar & 0xFF) - starYOffs - 16
-        s32 starY = ((nStar & 0xFF) - starYOffs - 16) & 0xFF;
-        
-        // Check if star is visible on screen
-        if (starX >= 0 && starX < SCREEN_WIDTH && starY >= 0 && starY < SCREEN_HEIGHT) {
-            // Calculate star palette color
-            // Color index = ((starColor & 0xE0) >> 1) + frame_animation
-            // Frame animation cycles based on whether bit 7 is set
-            u32 baseColor = (starColor & 0xE0) >> 1;
-            
-            // Simple frame animation (would need actual frame counter)
-            // For now, use scanline as pseudo-frame counter
-            u32 frameAnim = (m_scanline >> 4) % ((starColor & 0x80) ? 0x0E : 0x0F);
-            
-            u32 colorIndex = baseColor + frameAnim;
-            
-            // Stars use palette base 0x0800 + (layer << 9)
-            u32 paletteIndex = 0x0800 + (layer << 9) + colorIndex;
-            
-            if (paletteIndex < m_palette.size()) {
-                plotPixel(starX, starY, m_palette[paletteIndex]);
-            }
-        }
-    }
-}
 
 // ============================================================================
 // Sprite Rendering - CPS1 Version
