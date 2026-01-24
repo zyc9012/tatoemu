@@ -97,7 +97,7 @@ private:
     // CPS registers (0x00-0xFF, mapped from 0x800100-0x8001FF)
     std::array<u8, 256> m_cpsRegs;
     
-    // Board configuration (CPS1 only, from cartridge/database)
+    // Board configuration
     BoardConfig m_boardConfig;
     
     // Scroll offsets (can be adjusted per-game)
@@ -203,7 +203,7 @@ private:
     u16 readFrgReg16(u8 reg);
     
     // Setup graphics mapper from board type
-    void setupGfxMapper();
+    void setupGraphicsMapper();
 };
 
 } // namespace cps

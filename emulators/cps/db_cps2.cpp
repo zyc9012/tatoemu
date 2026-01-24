@@ -470,204 +470,84 @@ static const ROMEntry game_xmvsf_roms[] = {
 
 const GameInfo GameDatabase::s_cps2_games[] = {
     {
-        2,
-        "19XX: The War Against Destiny",
-        "19xx",
-        game_19xx_roms,
-        sizeof(game_19xx_roms) / sizeof(ROMEntry),
-        GameFlags::GAME_FLAG_VERTICAL_SCREEN,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "19xx", "19XX: The War Against Destiny", 2, game_19xx_roms, sizeof(game_19xx_roms) / sizeof(ROMEntry),
+        GameFlags::GAME_FLAG_VERTICAL_SCREEN, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "1944: The Loop Master",
-        "1944",
-        game_1944_roms,
-        sizeof(game_1944_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "1944", "1944: The Loop Master", 2, game_1944_roms, sizeof(game_1944_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "Alien vs. Predator",
-        "avsp",
-        game_avsp_roms,
-        sizeof(game_avsp_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "avsp", "Alien vs. Predator", 2, game_avsp_roms, sizeof(game_avsp_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "Dungeons & Dragons: Shadow over Mystara",
-        "ddsom",
-        game_ddsom_roms,
-        sizeof(game_ddsom_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "ddsom", "Dungeons & Dragons: Shadow over Mystara", 2, game_ddsom_roms, sizeof(game_ddsom_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "Dungeons & Dragons: Tower of Doom",
-        "ddtod",
-        game_ddtod_roms,
-        sizeof(game_ddtod_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "ddtod", "Dungeons & Dragons: Tower of Doom", 2, game_ddtod_roms, sizeof(game_ddtod_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "Hyper Street Fighter II: The Anniversary Edition",
-        "hsf2",
-        game_hsf2_roms,
-        sizeof(game_hsf2_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "hsf2", "Hyper Street Fighter II: The Anniversary Edition", 2, game_hsf2_roms, sizeof(game_hsf2_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "Marvel Super Heroes",
-        "msh",
-        game_msh_roms,
-        sizeof(game_msh_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "msh", "Marvel Super Heroes", 2, game_msh_roms, sizeof(game_msh_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "Marvel Super Heroes vs. Street Fighter",
-        "mshvsf",
-        game_mshvsf_roms,
-        sizeof(game_mshvsf_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "mshvsf", "Marvel Super Heroes vs. Street Fighter", 2, game_mshvsf_roms, sizeof(game_mshvsf_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "Marvel vs. Capcom: Clash of Super Heroes",
-        "mvsc",
-        game_mvsc_roms,
-        sizeof(game_mvsc_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "mvsc", "Marvel vs. Capcom: Clash of Super Heroes", 2, game_mvsc_roms, sizeof(game_mvsc_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "Progear",
-        "progear",
-        game_progear_roms,
-        sizeof(game_progear_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "progear", "Progear", 2, game_progear_roms, sizeof(game_progear_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "Street Fighter Alpha: Warriors' Dreams",
-        "sfa",
-        game_sfa_roms,
-        sizeof(game_sfa_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "sfa", "Street Fighter Alpha: Warriors' Dreams", 2, game_sfa_roms, sizeof(game_sfa_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "Street Fighter Alpha 2",
-        "sfa2",
-        game_sfa2_roms,
-        sizeof(game_sfa2_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "sfa2", "Street Fighter Alpha 2", 2, game_sfa2_roms, sizeof(game_sfa2_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "Street Fighter Alpha 3",
-        "sfa3",
-        game_sfa3_roms,
-        sizeof(game_sfa3_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "sfa3", "Street Fighter Alpha 3", 2, game_sfa3_roms, sizeof(game_sfa3_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "Super Puzzle Fighter II Turbo",
-        "spf2t",
-        game_spf2t_roms,
-        sizeof(game_spf2t_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "spf2t", "Super Puzzle Fighter II Turbo", 2, game_spf2t_roms, sizeof(game_spf2t_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "Super Street Fighter II: The New Challengers",
-        "ssf2",
-        game_ssf2_roms,
-        sizeof(game_ssf2_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "ssf2", "Super Street Fighter II: The New Challengers", 2, game_ssf2_roms, sizeof(game_ssf2_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "Super Street Fighter II Turbo",
-        "ssf2t",
-        game_ssf2t_roms,
-        sizeof(game_ssf2t_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "ssf2t", "Super Street Fighter II Turbo", 2, game_ssf2t_roms, sizeof(game_ssf2t_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "Vampire Savior: The Lord of Vampire",
-        "vsav",
-        game_vsav_roms,
-        sizeof(game_vsav_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "vsav", "Vampire Savior: The Lord of Vampire", 2, game_vsav_roms, sizeof(game_vsav_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "Vampire Savior 2: The Lord of Vampire",
-        "vsav2",
-        game_vsav2_roms,
-        sizeof(game_vsav2_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "vsav2", "Vampire Savior 2: The Lord of Vampire", 2, game_vsav2_roms, sizeof(game_vsav2_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "X-Men: Children of the Atom",
-        "xmcota",
-        game_xmcota_roms,
-        sizeof(game_xmcota_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "xmcota", "X-Men: Children of the Atom", 2, game_xmcota_roms, sizeof(game_xmcota_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
     {
-        2,
-        "X-Men vs. Street Fighter",
-        "xmvsf",
-        game_xmvsf_roms,
-        sizeof(game_xmvsf_roms) / sizeof(ROMEntry),
-        0,
-        CPSBoard::CPS_B_21_DEF,
-        CPSMapper::MAPPER_NONE
+        "xmvsf", "X-Men vs. Street Fighter", 2, game_xmvsf_roms, sizeof(game_xmvsf_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
     },
 };
 

@@ -122,7 +122,7 @@ void PPU::reset() {
         }
         
         if (cpsVer == 1) {
-            setupGfxMapper();
+            setupGraphicsMapper();
             m_gfxScroll[1] = 0;
             m_gfxScroll[2] = 0;
             m_gfxScroll[3] = 0;
@@ -138,18 +138,11 @@ void PPU::reset() {
     }
 }
 
-void PPU::setupGfxMapper() {
+void PPU::setupGraphicsMapper() {
     if (!m_cartridge) return;
     
     CPSMapper mapper = m_cartridge->getMapper();
-    
-    // Get mapper table and bank sizes from database
-    m_gfxMapper = GameDatabase::getGfxMapperTable(mapper);
-    if (!m_gfxMapper) {
-        throw std::runtime_error("Unsupported mapper");
-    }
-    
-    GameDatabase::getGfxBankSizes(mapper, m_gfxBankSizes);
+    GameDatabase::getGraphicsMapper(mapper, m_gfxBankSizes, m_gfxMapper);
 }
 
 // ============================================================================
@@ -547,9 +540,9 @@ void PPU::renderLayersCPS1() {
     u16 layerCtrl = (static_cast<u16>(m_cpsRegs[lcReg]) << 8) | m_cpsRegs[lcReg + 1];
     
     // Determine which layers are enabled using board-specific enable bits
-    bool layer1Enable = (layerCtrl & m_boardConfig.layerEnable[0]) != 0;
-    bool layer2Enable = (layerCtrl & m_boardConfig.layerEnable[1]) != 0;
-    bool layer3Enable = (layerCtrl & m_boardConfig.layerEnable[2]) != 0;
+    bool layer1Enable = (layerCtrl & m_boardConfig.layerEnable[1]) != 0;
+    bool layer2Enable = (layerCtrl & m_boardConfig.layerEnable[2]) != 0;
+    bool layer3Enable = (layerCtrl & m_boardConfig.layerEnable[3]) != 0;
     
     // Extract layer priority order (from layer control register)
     // Bits 13-12: Top layer
@@ -680,9 +673,9 @@ void PPU::renderLayersCPS2() {
         u16 layerCtrl = (static_cast<u16>(regs[lcReg]) << 8) | regs[lcReg + 1];
         
         // Determine which layers are enabled using board-specific enable bits
-        bool layer1Enable = (layerCtrl & m_boardConfig.layerEnable[0]) != 0;
-        bool layer2Enable = (layerCtrl & m_boardConfig.layerEnable[1]) != 0;
-        bool layer3Enable = (layerCtrl & m_boardConfig.layerEnable[2]) != 0;
+        bool layer1Enable = (layerCtrl & m_boardConfig.layerEnable[1]) != 0;
+        bool layer2Enable = (layerCtrl & m_boardConfig.layerEnable[2]) != 0;
+        bool layer3Enable = (layerCtrl & m_boardConfig.layerEnable[3]) != 0;
         
         // Determine layer order (3=top, 0=bottom)
         draw[numZones][3] = (layerCtrl >> 12) & 3;  // Top layer

@@ -84,11 +84,18 @@ struct GfxRange {
 // Graphics ROM mappers (CPS1 only)
 enum class CPSMapper {
     MAPPER_LWCHR = 0,
+    MAPPER_LW621 = 1,
+    MAPPER_DM620 = 2,
+    MAPPER_ST24M1 = 3,
+    MAPPER_TK22B = 7,
     MAPPER_WL24B = 8,
     MAPPER_S224B = 9,
     MAPPER_YI24B = 10,
+    MAPPER_AR24B = 11,
+    MAPPER_AR22B = 12,
     MAPPER_O224B = 13,
     MAPPER_MS24B = 14,
+    MAPPER_CK24B = 15,
     MAPPER_NM24B = 16,
     MAPPER_CA24B = 17,
     MAPPER_STF29 = 19,
@@ -98,15 +105,26 @@ enum class CPSMapper {
     MAPPER_KR63B = 24,
     MAPPER_S9263B = 25,
     MAPPER_VA63B = 26,
+    MAPPER_Q522B = 28,
     MAPPER_TK263B = 29,
+    MAPPER_CD63B = 30,
     MAPPER_PS63B = 31,
+    MAPPER_MB63B = 32,
+    MAPPER_QD22B = 33,
+    MAPPER_TN2292 = 35,
     MAPPER_RCM63B = 36,
+    MAPPER_SFZ63B = 36,
+    MAPPER_PKB10B = 37,
+    MAPPER_SFZCH = 39,
+    MAPPER_POKONYAN = 42,
+    MAPPER_GULUN = 44,
     MAPPER_CP1B1F = 45,
     MAPPER_NONE = 255,
 };
 
 enum GameFlags {
     GAME_FLAG_VERTICAL_SCREEN = 0x01,
+    GAME_FLAG_CPS1_QSOUND = 0x02,
 };
 
 // Board configuration (CPS1 only)
@@ -121,12 +139,18 @@ struct BoardConfig {
     u8 memProt[4];         // Memory protection offsets for multiplication registers
 };
 
+struct CPS1DecryptKeys {
+    u32 swapKey1;
+    u32 swapKey2;
+    u32 addrKey;
+    u32 xorKey;
+};
+
 // Game database entry (unified for CPS1 and CPS2)
 struct GameInfo {
-    u8 cpsVer;                     // CPS version: 1 for CPS1, 2 for CPS2
-
-    const char* name;              // Game name
     const char* romSetName;        // MAME ROM set name
+    const char* name;              // Game name
+    u8 cpsVer;                     // CPS version: 1 for CPS1, 2 for CPS2
     const ROMEntry* roms;          // Array of ROM entries
     u32 romCount;                  // Number of ROM entries
     u8 flags;                      // Game flags
@@ -134,6 +158,7 @@ struct GameInfo {
     // CPS1-specific fields
     CPSBoard board;                // B-board type
     CPSMapper mapper;              // Graphics ROM mapper
+    const CPS1DecryptKeys* cps1DecKeys;  // CPS1 decryption keys
 };
 
 // Game database
@@ -145,8 +170,7 @@ public:
     
     // CPS1-specific functions
     static BoardConfig getBoardConfig(CPSBoard board);
-    static const GfxRange* getGfxMapperTable(CPSMapper mapper);
-    static void getGfxBankSizes(CPSMapper mapper, u32 sizes[4]);
+    static void getGraphicsMapper(CPSMapper mapper, u32 sizes[4], const GfxRange*& mapperTable);
     
 private:
     static const GameInfo s_cps1_games[];
