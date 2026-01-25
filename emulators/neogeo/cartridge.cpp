@@ -181,7 +181,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     }
     
     // Byteswap program ROM (68000 is big-endian, ROMs stored little-endian)
-    byteswapProgramROM();
+    byteswap(m_programRom);
 
     // Process sprite ROMs
     std::cout << "Decoding sprite ROMs..." << std::endl;
@@ -306,18 +306,12 @@ void Cartridge::decodeTextTile(const u8* src, u8* dst) {
     }
 }
 
-void Cartridge::byteswapBiosROM() {
-    // Byteswap 68K BIOS (68000 is big-endian, ROMs stored little-endian)
-    for (size_t i = 0; i + 1 < m_bios68kRom.size(); i += 2) {
-        std::swap(m_bios68kRom[i], m_bios68kRom[i + 1]);
+void Cartridge::byteswap(std::vector<u8>& rom) {
+    if (rom.empty()) {
+        return;
     }
-}
-
-void Cartridge::byteswapProgramROM() {
-    // NeoGeo 68000 program ROMs need byteswapping
-    // Swap bytes for each 16-bit word (68000 is big-endian, ROMs stored little-endian)
-    for (size_t i = 0; i < m_programRom.size() - 1; i += 2) {
-        std::swap(m_programRom[i], m_programRom[i + 1]);
+    for (size_t i = 0; i < rom.size() - 1; i += 2) {
+        std::swap(rom[i], rom[i + 1]);
     }
 }
 
@@ -514,7 +508,7 @@ bool Cartridge::loadBIOSROMs(const std::map<std::string, std::vector<u8>>& romFi
     }
     
     // Byteswap 68K BIOS
-    byteswapBiosROM();
+    byteswap(m_bios68kRom);
     
     // Decode BIOS text ROM
     decodeBIOSTextROM();

@@ -285,25 +285,8 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                     return false;
                 }
                 
-                // Verify the pair also needs interleaving
-                if (!programRomNeedsInterleave[i + 1]) {
-                    std::cerr << "Error: ROM chip at index " << i << " needs interleaving but its pair doesn't" << std::endl;
-                    return false;
-                }
-                
-                const auto& evenChip = programRomChips[i];
-                const auto& oddChip = programRomChips[i + 1];
-                
-                if (evenChip.size() != oddChip.size()) {
-                    std::cerr << "Error: ROM chip size mismatch in pair " << (i/2) << std::endl;
-                    return false;
-                }
-                
-                // Interleave bytes: odd byte from second chip, even byte from first chip
-                for (size_t j = 0; j < evenChip.size(); j++) {
-                    m_programRom[offset++] = oddChip[j];
-                    m_programRom[offset++] = evenChip[j];
-                }
+                interleave(m_programRom.data() + offset, programRomChips[i + 1], programRomChips[i]);
+                offset += programRomChips[i + 1].size() + programRomChips[i].size();
                 
                 // Skip the next chip since we've already processed it as part of the pair
                 i++;
@@ -344,11 +327,12 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     }
     
     // Byteswap program ROM (both CPS1 and CPS2 use big-endian for 68000)
-    byteswapProgramROM();
+    byteswap(m_programRom);
+    byteswap(m_programRomEncrypted);
     
     // Byteswap sound sample ROM for CPS2
     if (m_cpsVer == 2) {
-        byteswapSoundSampleROM();
+        byteswap(m_soundSampleRom);
     }
     
     // Decode graphics ROM (CPS1 and CPS2 use different decoding methods)
@@ -417,24 +401,24 @@ void Cartridge::decryptCPS2ProgramROM() {
                       static_cast<u32>(m_programRomEncrypted.size()));
 }
 
-void Cartridge::byteswapProgramROM() {
-    // Both CPS1 and CPS2 program ROMs need byteswapping
-    // Swap bytes for each 16-bit word
-    for (size_t i = 0; i < m_programRom.size() - 1; i += 2) {
-        std::swap(m_programRom[i], m_programRom[i + 1]);
+void Cartridge::byteswap(std::vector<u8>& rom) {
+    if (rom.empty()) {
+        return;
     }
-    if (!m_programRomEncrypted.empty()) {
-        for (size_t i = 0; i < m_programRomEncrypted.size() - 1; i += 2) {
-            std::swap(m_programRomEncrypted[i], m_programRomEncrypted[i + 1]);
-        }
+    for (size_t i = 0; i < rom.size() - 1; i += 2) {
+        std::swap(rom[i], rom[i + 1]);
     }
 }
 
-void Cartridge::byteswapSoundSampleROM() {
-    // CPS2 QSound sample ROMs need byteswapping
-    // Swap bytes for each 16-bit word
-    for (size_t i = 0; i < m_soundSampleRom.size() - 1; i += 2) {
-        std::swap(m_soundSampleRom[i], m_soundSampleRom[i + 1]);
+void Cartridge::interleave(u8* romDest, std::vector<u8>& romSrc1, std::vector<u8>& romSrc2) {
+    if (romSrc1.size() != romSrc2.size()) {
+        std::cerr << "Error: ROM size mismatch for interleave" << std::endl;
+        return;
+    }
+    u32 offset = 0;
+    for (size_t i = 0; i < romSrc1.size(); i++) {
+        romDest[offset++] = romSrc1[i];
+        romDest[offset++] = romSrc2[i];
     }
 }
 
