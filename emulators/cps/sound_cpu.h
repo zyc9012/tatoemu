@@ -8,6 +8,7 @@ namespace cps {
 
 class Memory;
 class APU;
+class Cartridge;
 
 // Z80 CPU emulator (shared between CPS1 and CPS2)
 class SoundCPU {
@@ -21,6 +22,7 @@ public:
     u32 getCycles() const { return m_cycles; }
     void setMemory(Memory* memory) { m_memory = memory; }
     void setAPU(APU* apu) { m_apu = apu; }
+    void setCartridge(Cartridge* cartridge) { m_cartridge = cartridge; }
     
     // Accessors for Z80 callbacks
     Memory* getMemory() const { return m_memory; }
@@ -42,6 +44,7 @@ protected:
     Memory* m_memory;
     APU* m_apu;
     u32 m_cycles;
+    Cartridge* m_cartridge;
     
     // CPS2 timer-based interrupt (252 Hz)
     u8 m_cpsVersion;

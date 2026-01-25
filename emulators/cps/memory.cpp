@@ -26,10 +26,23 @@
  * 0x708000-0x717FFF: Object RAM (64KB)
  */
 
- static const EEPROMInterface cps2EEPROMInterface =
- {
+static const EEPROMInterface cps2EEPROMInterface =
+{
     6,      /* address bits */
     16,     /* data bits */
+    "0110", /* read command */
+    "0101", /* write command */
+    "0111", /* erase command */
+    0,
+    0,
+    0,
+    0
+};
+
+static const EEPROMInterface cps1QsoundEEPROMInterface =
+{
+    7,      /* address bits */
+    8,      /* data bits */
     "0110", /* read command */
     "0101", /* write command */
     "0111", /* erase command */
@@ -81,6 +94,9 @@ void Memory::reset() {
     // Initialize EEPROM
     if (cpsVer == 2) {
         m_eeprom.init(&cps2EEPROMInterface);
+        m_eeprom.reset();
+    } else if (cpsVer == 1 && m_cartridge && m_cartridge->isCPS1QSound()) {
+        m_eeprom.init(&cps1QsoundEEPROMInterface);
         m_eeprom.reset();
     }
     
@@ -183,6 +199,38 @@ u8 Memory::read8(u32 address) {
         return readVRAM8(address - 0x900000);
     }
     
+    // QSound shared RAM (0xF18000-0xF19FFF and 0xF1E000-0xF1FFFF, CPS1 QSound only)
+    // QSound EEPROM read (0xF1C000-0xF1C007, CPS1 QSound only)
+    if (getCPSVersion() == 1 && m_cartridge && m_cartridge->isCPS1QSound()) {
+        if (address >= 0xF18000 && address <= 0xF19FFF) {
+            if (address & 1) {
+                u32 ramIndex = (address & 0x1FFF) >> 1;  // 0x000-0x0FFF
+                return m_soundRam[ramIndex];
+            } else {
+                return 0xFF;
+            }
+        } else if (address >= 0xF1C000 && address <= 0xF1C007) {
+            return readPort(address & 0xC00F);
+        } else if (address >= 0xF1E000 && address <= 0xF1FFFF) {
+            if (address & 1) {
+                u32 ramIndex = (address & 0x1FFF) >> 1;  // 0x000-0x0FFF
+                return m_soundRam[0x1000 + ramIndex];
+            } else {
+                return 0xFF;
+            }
+        }
+    }
+
+    // QSound ROM (encrypted) access (0xF00000-0xF0FFFF, CPS1 QSound only)
+    if (getCPSVersion() == 1 && m_cartridge && m_cartridge->isCPS1QSound() &&
+        address >= 0xF00000 && address <= 0xF0FFFF) {
+        if (address & 1) {
+            return 0xFF;
+        } else {
+            return m_cartridge->readEncryptedSoundROM8((address & 0xFFFF) >> 1);
+        }
+    }
+
     // Work RAM (0xFF0000-0xFFFFFF)
     if (address >= 0xFF0000 && address <= 0xFFFFFF) {
         return m_workRam[address & 0xFFFF];
@@ -312,6 +360,27 @@ void Memory::write8(u32 address, u8 value) {
         return;
     }
     
+    // QSound shared RAM (0xF18000-0xF19FFF and 0xF1E000-0xF1FFFF, CPS1 QSound only)
+    // QSound EEPROM write (0xF1C000-0xF1C007, CPS1 QSound only)
+    if (getCPSVersion() == 1 && m_cartridge && m_cartridge->isCPS1QSound()) {
+        if (address >= 0xF18000 && address <= 0xF19FFF) {
+            if (address & 1) {
+                u32 ramIndex = (address & 0x1FFF) >> 1;  // 0x000-0x0FFF
+                m_soundRam[ramIndex] = value;
+            }
+            return;
+        } else if (address == 0xF1C007) {
+            writePort(address & 0xC00F, value);
+            return;
+        } else if (address >= 0xF1E000 && address <= 0xF1FFFF) {
+            if (address & 1) {
+                u32 ramIndex = (address & 0x1FFF) >> 1;  // 0x000-0x0FFF
+                m_soundRam[0x1000 + ramIndex] = value;
+            }
+            return;
+        }
+    }
+
     // VRAM (0x900000-0x92FFFF)
     if (address >= 0x900000 && address <= 0x92FFFF) {
         writeVRAM8(address - 0x900000, value);
@@ -450,6 +519,11 @@ u8 Memory::readPort(u16 port) {
                 }
             }
         }
+    } else if (m_cartridge && m_cartridge->isCPS1QSound()) {
+        if (port == 0xC007) {
+            // CPS1 QSound EEPROM read
+            return m_eeprom.read();
+        }
     }
     
     // Input ports
@@ -577,22 +651,30 @@ void Memory::writePort(u16 port, u8 value) {
             }
         }
     } else {
-        // Sound command (0x181)
-        // This is how the 68000 sends commands to the Z80 sound CPU
-        // The Z80 reads this from 0xF008
-        if (port == 0x181) {
-            // Store sound command (Z80 reads from 0xF008)
-            m_soundCommand = value;
-            return;
-        }
-        
-        // Sound fade (0x189)
-        // Used by some games to fade music in/out
-        // The Z80 reads this from 0xF00A
-        if (port == 0x189) {
-            // Store fade value (Z80 reads from 0xF00A)
-            m_soundFade = value;
-            return;
+        if (m_cartridge && m_cartridge->isCPS1QSound()) {
+            // CPS1 QSound EEPROM write
+            if (port == 0xC007) {
+                m_eeprom.write(value & 0x40, value & 0x80, value & 0x01);
+                return;
+            }
+        } else {
+            // Sound command (0x181)
+            // This is how the 68000 sends commands to the Z80 sound CPU
+            // The Z80 reads this from 0xF008
+            if (port == 0x181) {
+                // Store sound command (Z80 reads from 0xF008)
+                m_soundCommand = value;
+                return;
+            }
+            
+            // Sound fade (0x189)
+            // Used by some games to fade music in/out
+            // The Z80 reads this from 0xF00A
+            if (port == 0x189) {
+                // Store fade value (Z80 reads from 0xF00A)
+                m_soundFade = value;
+                return;
+            }
         }
     }
     
@@ -636,54 +718,88 @@ u8 Memory::readZ80(u32 address) {
     }
     
     if (cpsVer == 1) {
-        // CPS1-specific: ROM fallback for fetches (0xC000-0xCFFF)
-        if (address >= 0xC000 && address < 0xD000) {
-            if (m_cartridge) {
-                return m_cartridge->readSoundROM8(address - 0xC000);
+        // Check if this is a QSound game
+        bool isQSound = m_cartridge && m_cartridge->isCPS1QSound();
+
+        if (isQSound) {
+            // CPS1 QSound: Z80 RAM (0xC000-0xCFFF) - 4KB
+            if (address >= 0xC000 && address < 0xD000) {
+                return m_soundRam[address - 0xC000];
             }
-            return 0xFF;
-        }
-        
-        // CPS1: Z80 RAM (0xD000-0xD7FF) - 2KB
-        if (address >= 0xD000 && address < 0xD800) {
-            return m_soundRam[address - 0xD000];
-        }
-        
-        // CPS1: ROM fallback for fetches (0xD800-0xEFFF)
-        if (address >= 0xD800 && address < 0xF000) {
-            if (m_cartridge) {
-                return m_cartridge->readSoundROM8((address - 0xD800) & 0x7FFF);
+
+            // CPS1 QSound: QSound registers (0xD000-0xEFFF)
+            if (address >= 0xD000 && address < 0xF000) {
+                // QSound status register (0xD007)
+                if (address == 0xD007) {
+                    return m_apu->readQSound();
+                }
+                // Other addresses in this range: for data reads, return 0xFF
+                // For opcode fetches, this should map to ROM (handled by fetch logic)
+                return 0xFF;
             }
-            return 0xFF;
-        }
-        
-        // CPS1: I/O Area (0xF000-0xFFFF) - YM2151, MSM6295
-        if (address >= 0xF000) {
-            switch (address) {
-                case 0xF001:
-                    // YM2151 status register
-                    if (m_apu) {
-                        return m_apu->readPort(0x01);
-                    }
-                    return 0xFF;
-                    
-                case 0xF002:
-                    // MSM6295 status
-                    if (m_apu) {
-                        return m_apu->readPort(0x02);
-                    }
-                    return 0xFF;
-                    
-                case 0xF008:
-                    // Sound command latch (from 68000)
+
+            // CPS1 QSound: Z80 RAM (0xF000-0xFFFF) - 4KB
+            if (address >= 0xF000 && address <= 0xFFFF) {
+                // Special registers in RAM area
+                if (address == 0xF008) {
                     return m_soundCommand;
-                    
-                case 0xF00A:
-                    // Sound fade value (from 68000)
+                }
+                if (address == 0xF00A) {
                     return m_soundFade;
-                    
-                default:
-                    return 0xFF;
+                }
+                // Regular RAM access (offset 0x1000-0x1FFF in m_soundRam)
+                return m_soundRam[0x1000 + (address - 0xF000)];
+            }
+        } else {
+            // Regular CPS1: ROM fallback for fetches (0xC000-0xCFFF)
+            if (address >= 0xC000 && address < 0xD000) {
+                if (m_cartridge) {
+                    return m_cartridge->readSoundROM8(address - 0xC000);
+                }
+                return 0xFF;
+            }
+
+            // Regular CPS1: Z80 RAM (0xD000-0xD7FF) - 2KB
+            if (address >= 0xD000 && address < 0xD800) {
+                return m_soundRam[address - 0xD000];
+            }
+
+            // Regular CPS1: ROM fallback for fetches (0xD800-0xEFFF)
+            if (address >= 0xD800 && address < 0xF000) {
+                if (m_cartridge) {
+                    return m_cartridge->readSoundROM8((address - 0xD800) & 0x7FFF);
+                }
+                return 0xFF;
+            }
+
+            // Regular CPS1: I/O Area (0xF000-0xFFFF) - YM2151, MSM6295
+            if (address >= 0xF000) {
+                switch (address) {
+                    case 0xF001:
+                        // YM2151 status register
+                        if (m_apu) {
+                            return m_apu->readPort(0x01);
+                        }
+                        return 0xFF;
+
+                    case 0xF002:
+                        // MSM6295 status
+                        if (m_apu) {
+                            return m_apu->readPort(0x02);
+                        }
+                        return 0xFF;
+
+                    case 0xF008:
+                        // Sound command latch (from 68000)
+                        return m_soundCommand;
+
+                    case 0xF00A:
+                        // Sound fade value (from 68000)
+                        return m_soundFade;
+
+                    default:
+                        return 0xFF;
+                }
             }
         }
     } else {
@@ -737,9 +853,51 @@ u8 Memory::readZ80Opcode(u32 address) {
         return 0xFF;
     }
     
-    // For all other addresses, use regular readZ80
-    // (which handles ROM, RAM, and I/O correctly)
+    // For CPS1 QSound games, opcode fetches from 0x0000-0x7FFF map to the second half of the decrypted opcodes
+    if (cpsVer == 1 && m_cartridge && m_cartridge->isCPS1QSound()) {
+        // Starting from the second half of the ROM
+        u32 baseOffset = m_cartridge->getSoundROMSize() / 2;
+
+        if (address < 0x8000) {
+            return m_cartridge->readSoundROM8(baseOffset + address);
+        } else if (address >= 0x8000 && address < 0xC000) {
+            if (m_cartridge) {
+                u32 bankOffset = (static_cast<u32>(m_z80Bank) << 14) + 0x8000;
+                u32 romAddress = bankOffset + (address - 0x8000);
+                return m_cartridge->readSoundROM8(baseOffset + romAddress);
+            }
+            return 0xFF;
+        } else if (address >= 0xD000 && address < 0xF000) {
+            return m_cartridge->readSoundROM8(baseOffset + address);
+        }
+    }
+
+    // For all other cases, use regular readZ80
     return readZ80(address);
+}
+
+u8 Memory::readZ80OpcodeArg(u32 address) {
+    u8 cpsVer = getCPSVersion();
+    
+    // For CPS1 QSound games, opcode arg fetches from 0x0000-0x7FFF map to the first half of the decrypted opcodes
+    if (cpsVer == 1 && m_cartridge && m_cartridge->isCPS1QSound()) {
+        // Starting from the first half of the ROM
+        if (address < 0x8000) {
+            return m_cartridge->readSoundROM8(address);
+        } else if (address >= 0x8000 && address < 0xC000) {
+            if (m_cartridge) {
+                u32 bankOffset = (static_cast<u32>(m_z80Bank) << 14) + 0x8000;
+                u32 romAddress = bankOffset + (address - 0x8000);
+                return m_cartridge->readSoundROM8(romAddress);
+            }
+            return 0xFF;
+        } else if (address >= 0xD000 && address < 0xF000) {
+            return m_cartridge->readSoundROM8(address);
+        }
+    }
+
+    // For all other cases, use regular readZ80Opcode
+    return readZ80Opcode(address);
 }
 
 void Memory::writeZ80(u32 address, u8 value) {
@@ -756,47 +914,34 @@ void Memory::writeZ80(u32 address, u8 value) {
     }
     
     if (cpsVer == 1) {
-        // CPS1-specific: ROM fallback area is read-only
-        if (address >= 0xC000 && address < 0xD000) {
-            return;
-        }
-        
-        // CPS1: Z80 RAM (0xD000-0xD7FF) - 2KB
-        if (address >= 0xD000 && address < 0xD800) {
-            m_soundRam[address - 0xD000] = value;
-            return;
-        }
-        
-        // CPS1: ROM fallback area is read-only
-        if (address >= 0xD800 && address < 0xF000) {
-            return;
-        }
-        
-        // CPS1: I/O Area (0xF000-0xFFFF) - YM2151, MSM6295
-        if (address >= 0xF000) {
-            switch (address) {
-                case 0xF000:
-                    // YM2151 register select
-                    if (m_apu) {
-                        m_apu->writePort(0x00, value);
-                    }
+        // Check if this is a QSound game
+        bool isQSound = m_cartridge && m_cartridge->isCPS1QSound();
+
+        if (isQSound) {
+            // CPS1 QSound: Z80 RAM (0xC000-0xCFFF) - 4KB
+            if (address >= 0xC000 && address < 0xD000) {
+                m_soundRam[address - 0xC000] = value;
+                return;
+            }
+
+            // CPS1 QSound: QSound registers (0xD000-0xD003)
+            if (address >= 0xD000 && address <= 0xD003) {
+                if (address == 0xD000) {
+                    // QSound command byte 0
+                    m_qscCmd[0] = value;
                     return;
-                    
-                case 0xF001:
-                    // YM2151 data write
-                    if (m_apu) {
-                        m_apu->writePort(0x01, value);
-                    }
+                }
+                if (address == 0xD001) {
+                    // QSound command byte 1
+                    m_qscCmd[1] = value;
                     return;
-                    
-                case 0xF002:
-                    // MSM6295 command
-                    if (m_apu) {
-                        m_apu->writePort(0x02, value);
-                    }
+                }
+                if (address == 0xD002) {
+                    // QSound command write
+                    m_apu->writeQSound(value, (static_cast<u16>(m_qscCmd[0]) << 8) | m_qscCmd[1]);
                     return;
-                    
-                case 0xF004: {
+                }
+                if (address == 0xD003) {
                     // ROM bank switching (0-15)
                     u8 newBank = value & 0x0F;
                     if (m_z80Bank != newBank) {
@@ -804,13 +949,90 @@ void Memory::writeZ80(u32 address, u8 value) {
                     }
                     return;
                 }
-                
-                default:
+            }
+
+            // CPS1 QSound: Z80 RAM (0xF000-0xFFFF) - 4KB
+            if (address >= 0xF000 && address <= 0xFFFF) {
+                // Special registers in sound RAM area
+                if (address == 0xF008) {
+                    m_soundCommand = value;
                     return;
+                }
+                if (address == 0xF00A) {
+                    m_soundFade = value;
+                    return;
+                }
+                // Regular RAM access (offset 0x1000-0x1FFF in m_soundRam)
+                m_soundRam[0x1000 + (address - 0xF000)] = value;
+                return;
+            }
+        } else {
+            // Regular CPS1: ROM fallback area is read-only
+            if (address >= 0xC000 && address < 0xD000) {
+                return;
+            }
+
+            // Regular CPS1: Z80 RAM (0xD000-0xD7FF) - 2KB
+            if (address >= 0xD000 && address < 0xD800) {
+                m_soundRam[address - 0xD000] = value;
+                return;
+            }
+
+            // Regular CPS1: ROM fallback area is read-only
+            if (address >= 0xD800 && address < 0xF000) {
+                return;
+            }
+
+            // Regular CPS1: I/O Area (0xF000-0xFFFF) - YM2151, MSM6295
+            if (address >= 0xF000) {
+                switch (address) {
+                    case 0xF000:
+                        // YM2151 register select
+                        if (m_apu) {
+                            m_apu->writePort(0x00, value);
+                        }
+                        return;
+
+                    case 0xF001:
+                        // YM2151 data write
+                        if (m_apu) {
+                            m_apu->writePort(0x01, value);
+                        }
+                        return;
+
+                    case 0xF002:
+                        // MSM6295 command
+                        if (m_apu) {
+                            m_apu->writePort(0x02, value);
+                        }
+                        return;
+
+                    case 0xF004: {
+                        // ROM bank switching (0-15)
+                        u8 newBank = value & 0x0F;
+                        if (m_z80Bank != newBank) {
+                            m_z80Bank = newBank;
+                        }
+                        return;
+                    }
+
+                    case 0xF008:
+                        // Sound command latch (from Z80 to 68000)
+                        m_soundCommand = value;
+                        return;
+
+                    case 0xF00A:
+                        // Sound fade value
+                        m_soundFade = value;
+                        return;
+
+                    default:
+                        return;
+                }
             }
         }
     } else {
-        // CPS2-specific: Z80 RAM (0xC000-0xCFFF)
+        // CPS2: Z80 RAM (0xC000-0xCFFF)
         if (address >= 0xC000 && address < 0xD000) {
             m_soundRam[address - 0xC000] = value;
             return;

@@ -8,6 +8,10 @@ namespace cps {
 // Helper macros
 #define BIT(x, n) (((x) >> (n)) & 1)
 
+// ========================================================
+// CPS2 decryption functions
+// ========================================================
+
 // Feistel network bit groups
 static const s32 fn1_groupA[8] = { 10, 4, 6, 7, 2, 13, 15, 14 };
 static const s32 fn1_groupB[8] = {  0, 1, 3, 5, 8,  9, 11, 12 };
@@ -302,6 +306,73 @@ void decryptCPS2(const u32* master_key, u32 lower_limit, u32 upper_limit,
             }
         }
     }
+}
+
+// ========================================================
+// CPS1 decryption functions
+// ========================================================
+
+static u32 bitswap1(u32 src, u32 key, u32 select) {
+    if (select & (1 << ((key >> 0) & 7)))
+        src = (src & 0xfc) | ((src & 0x01) << 1) | ((src & 0x02) >> 1);
+    if (select & (1 << ((key >> 4) & 7)))
+        src = (src & 0xf3) | ((src & 0x04) << 1) | ((src & 0x08) >> 1);
+    if (select & (1 << ((key >> 8) & 7)))
+        src = (src & 0xcf) | ((src & 0x10) << 1) | ((src & 0x20) >> 1);
+    if (select & (1 << ((key >> 12) & 7)))
+        src = (src & 0x3f) | ((src & 0x40) << 1) | ((src & 0x80) >> 1);
+
+    return src;
+}
+
+static u32 bitswap2(u32 src, u32 key, u32 select) {
+    if (select & (1 << ((key >> 12) & 7)))
+        src = (src & 0xfc) | ((src & 0x01) << 1) | ((src & 0x02) >> 1);
+    if (select & (1 << ((key >> 8) & 7)))
+        src = (src & 0xf3) | ((src & 0x04) << 1) | ((src & 0x08) >> 1);
+    if (select & (1 << ((key >> 4) & 7)))
+        src = (src & 0xcf) | ((src & 0x10) << 1) | ((src & 0x20) >> 1);
+    if (select & (1 << ((key >> 0) & 7)))
+        src = (src & 0x3f) | ((src & 0x40) << 1) | ((src & 0x80) >> 1);
+
+    return src;
+}
+
+static u32 bytedecode(u32 src, u32 swap_key1, u32 swap_key2, u32 xor_key, u32 select)
+{
+    src = bitswap1(src, swap_key1 & 0xffff, select & 0xff);
+    src = ((src & 0x7f) << 1) | ((src & 0x80) >> 7);
+    src = bitswap2(src, swap_key1 >> 16, select & 0xff);
+    src ^= xor_key;
+    src = ((src & 0x7f) << 1) | ((src & 0x80) >> 7);
+    src = bitswap2(src, swap_key2 & 0xffff, select >> 8);
+    src = ((src & 0x7f) << 1) | ((src & 0x80) >> 7);
+    src = bitswap1(src, swap_key2 >> 16, select >> 8);
+    return src;
+}
+
+static void kabuki_decode(u8 *src, u8 *dest_op, u8 *dest_data, u32 base_addr, u32 length, u32 swap_key1, u32 swap_key2, u32 addr_key, u32 xor_key) {
+    u32 A;
+    u32 select;
+
+    for (A = 0; A < length; A++) {
+        /* decode opcodes */
+        select = (A + base_addr) + addr_key;
+        dest_op[A] = static_cast<u8>(bytedecode(src[A], swap_key1, swap_key2, xor_key, select));
+
+        /* decode data */
+        select = ((A + base_addr) ^ 0x1fc0) + addr_key + 1;
+        dest_data[A] = static_cast<u8>(bytedecode(src[A], swap_key1, swap_key2, xor_key, select));
+    }
+}
+
+void decryptCPS1(u32 swap_key1, u32 swap_key2, u32 addr_key, u32 xor_key, u8* rom, u32 length) {
+    // For QSound games, the ROM buffer is doubled in size
+    // First half: opcode arg
+    // Second half: opcode
+    u32 diff = length / 2;
+
+    kabuki_decode(rom, rom + diff, rom, 0x0000, 0x8000, swap_key1, swap_key2, addr_key, xor_key);
 }
 
 } // namespace cps

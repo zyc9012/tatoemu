@@ -24,7 +24,8 @@ bool Core::initialize() {
     m_cpu->setMemory(m_memory.get());
     m_soundCpu->setMemory(m_memory.get());
     m_soundCpu->setAPU(m_apu.get());
-    
+    m_soundCpu->setCartridge(m_cartridge.get());
+
     m_ppu->setCPU(m_cpu.get());
     m_ppu->setCartridge(m_cartridge.get());
     m_ppu->setMemory(m_memory.get());
@@ -283,7 +284,14 @@ void Core::update() {
         u32 cpuCycles = m_cpu->getCycles() - cyclesBefore;
         
         // Run sound CPU proportionally
-        float soundCyclesRatio = m_cartridge->getCPSVersion() == 1 ? ::cps1::SOUND_CYCLES_RATIO : ::cps2::SOUND_CYCLES_RATIO;
+        float soundCyclesRatio;
+        if (m_cartridge->getCPSVersion() == 2) {
+            soundCyclesRatio = ::cps2::SOUND_CYCLES_RATIO;
+        } else if (m_cartridge->isCPS1QSound()) {
+            soundCyclesRatio = ::cps1qs::SOUND_CYCLES_RATIO;
+        } else {
+            soundCyclesRatio = ::cps1::SOUND_CYCLES_RATIO;
+        }
         s32 soundCpuCycles = static_cast<u32>(cpuCycles * soundCyclesRatio) - soundCpuSyncOffset;
         
         // Execute Z80 and get actual cycles executed

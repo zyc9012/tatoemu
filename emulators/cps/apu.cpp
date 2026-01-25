@@ -33,7 +33,7 @@ APU::APU()
 }
 
 APU::~APU() {
-    if (m_cartridge->getCPSVersion() == 1) {
+    if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
         YM2151Shutdown();
         MSM6295Exit(0);
     } else {
@@ -57,7 +57,7 @@ void APU::setCartridge(Cartridge* cartridge) {
 
 void APU::reset() {
     // Reset sound chips
-    if (m_cartridge->getCPSVersion() == 1) {
+    if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
          // Initialize YM2151
         YM2151Init(1, 0, 3579540, 44100, nullptr);
         
@@ -77,14 +77,18 @@ void APU::reset() {
             m_cyclesPerSample = cps1::SOUND_CPU_FREQUENCY / m_sampleRate;
         }
     } else {
-        // Initialize QSound
+        // Initialize QSound (for both CPS2 and CPS1 QSound games)
         QscInit(44100);
         QscSetRoute(BURN_SND_QSND_OUTPUT_1, 1.0, BURN_SND_ROUTE_LEFT);
         QscSetRoute(BURN_SND_QSND_OUTPUT_2, 1.0, BURN_SND_ROUTE_RIGHT);
         QscReset();
 
         if (m_sampleRate > 0) {
-            m_cyclesPerSample = cps2::SOUND_CPU_FREQUENCY / m_sampleRate;
+            if (m_cartridge->isCPS1QSound()) {
+                m_cyclesPerSample = cps1qs::SOUND_CPU_FREQUENCY / m_sampleRate;
+            } else {
+                m_cyclesPerSample = cps2::SOUND_CPU_FREQUENCY / m_sampleRate;
+            }
         }
     }
 
@@ -105,14 +109,14 @@ void APU::setROMData() {
     u32 sampleSize = m_cartridge->getSoundSampleSize();
 
     if (sampleData && sampleSize > 0) {
-        if (m_cartridge->getCPSVersion() == 1) {
+        if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
             // CPS1: MSM6295 samples
             s32 endAddr = static_cast<s32>(sampleSize - 1);
             MSM6295SetBank(0, const_cast<u8*>(sampleData), 0, endAddr);
-    } else {
-        // CPS2: QSound samples
-        QscSetSampleROM(const_cast<u8*>(sampleData), sampleSize);
-    }
+        } else {
+            // QSound samples (CPS1 QSound games and CPS2)
+            QscSetSampleROM(const_cast<u8*>(sampleData), sampleSize);
+        }
     }
 }
 
@@ -125,15 +129,19 @@ void APU::step(u32 cycles, double gameSpeed) {
 void APU::setSampleRate(u32 sampleRate) {
     m_sampleRate = sampleRate;
 
-    if (m_cartridge->getCPSVersion() == 1) {
+    if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
         // CPS1: YM2151 and MSM6295
         YM2151SetSampleRate(0, sampleRate);
         MSM6295SetSamplerate(0, 7576, static_cast<s32>(sampleRate));
         m_cyclesPerSample = cps1::SOUND_CPU_FREQUENCY / m_sampleRate;
     } else {
-        // CPS2: QSound
+        // QSound (CPS1 QSound games and CPS2)
         QscSetSampleRate(sampleRate);
-        m_cyclesPerSample = cps2::SOUND_CPU_FREQUENCY / m_sampleRate;
+        if (m_cartridge->isCPS1QSound()) {
+            m_cyclesPerSample = cps1qs::SOUND_CPU_FREQUENCY / m_sampleRate;
+        } else {
+            m_cyclesPerSample = cps2::SOUND_CPU_FREQUENCY / m_sampleRate;
+        }
     }
 }
 
@@ -142,7 +150,7 @@ void APU::setVolume(float volume) {
 }
 
 u8 APU::readPort(u16 port) {
-    if (m_cartridge->getCPSVersion() == 1) {
+    if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
         // CPS1: YM2151 and MSM6295
         // YM2151 status register (port 0x01)
         if (port == 0x01) {
@@ -151,6 +159,11 @@ u8 APU::readPort(u16 port) {
         // MSM6295 status register (port 0x02)
         if (port == 0x02) {
             return static_cast<u8>(MSM6295Read(0));
+        }
+    } else if (m_cartridge->isCPS1QSound()) {
+        // QSound status register (port 0x07)
+        if (port == 0x07) {
+            return readQSound();
         }
     }
 
@@ -162,7 +175,7 @@ u8 APU::readQSound() {
 }
 
 void APU::writePort(u16 port, u8 value) {
-    if (m_cartridge->getCPSVersion() == 1) {
+    if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
         // CPS1: YM2151 and MSM6295
         // YM2151 register select (port 0x00)
         if (port == 0x00) {
@@ -200,7 +213,7 @@ void APU::generateSamples(u32 cycles, double gameSpeed) {
 
     float left = 0.0f, right = 0.0f;
 
-    if (m_cartridge->getCPSVersion() == 1) {
+    if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
         // CPS1: YM2151 + MSM6295
         s16* ym2151Buffers[2] = { &m_ym2151LeftSample, &m_ym2151RightSample };
 
@@ -221,7 +234,7 @@ void APU::generateSamples(u32 cycles, double gameSpeed) {
         left = ymLeft * 0.35f + msmLeft * 0.30f;
         right = ymRight * 0.35f + msmRight * 0.30f;
     } else {
-        // CPS2: QSound
+        // QSound (CPS1 QSound games and CPS2)
         // Generate QSound samples
         QscUpdate(1); // Generate one sample
         m_qsoundSamples[0] = QscGetLeftSample();

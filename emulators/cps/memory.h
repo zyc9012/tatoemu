@@ -48,6 +48,7 @@ public:
     u8 readZ80(u32 address);
     void writeZ80(u32 address, u8 value);
     u8 readZ80Opcode(u32 address);
+    u8 readZ80OpcodeArg(u32 address);
     
     // Component connections
     void setCPU(CPU* cpu) { m_cpu = cpu; }
@@ -76,8 +77,8 @@ private:
     
     // RAM banks (common)
     std::array<u8, 64 * 1024> m_workRam;      // 0xFF0000-0xFFFFFF (64KB)
-    std::array<u8, 8 * 1024> m_soundRam;      // Z80/QSound RAM (8KB) - CPS1: 0xD000-0xD7FF (2KB), CPS2: 0xC000-0xCFFF (4KB) and 0xF000-0xFFFF (4KB)
-    
+    std::array<u8, 8 * 1024> m_soundRam;      // Z80/QSound RAM (8KB) - CPS1 non-QSound: 0xD000-0xD7FF (2KB), CPS1 QSound & CPS2: 0xC000-0xCFFF (4KB) and 0xF000-0xFFFF (4KB)
+
     // CPS2-specific RAM banks
     std::array<u8, 16 * 1024> m_extraRam;     // 0x660000-0x663FFF (16KB, CPS2 only)
     std::array<u8, 64 * 1024> m_objRam;       // 0x708000-0x717FFF (64KB, CPS2 only)

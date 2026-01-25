@@ -131,6 +131,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     m_graphicsRom.clear();
     m_decodedGraphicsRom.clear();
     m_soundProgramRom.clear();
+    m_soundProgramRomEncrypted.clear();
     m_soundSampleRom.clear();
     
     // Track which ROMs we've found
@@ -325,9 +326,21 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     m_soundProgramRomSize = static_cast<u32>(m_soundProgramRom.size());
     m_soundSampleRomSize = static_cast<u32>(m_soundSampleRom.size());
     
-    // CPS2-specific: Decrypt program ROM (must be done before byteswap)
-    if (m_cpsVer == 2) {
-        decryptProgramROM();
+    if (m_cpsVer == 1) {
+        if (isCPS1QSound()) {
+            // Save the original encrypted sound program ROM
+            m_soundProgramRomEncrypted.resize(m_soundProgramRom.size());
+            std::memcpy(m_soundProgramRomEncrypted.data(), m_soundProgramRom.data(), m_soundProgramRom.size());
+            // Double the size of the sound program ROM for decryption
+            m_soundProgramRom.resize(m_soundProgramRom.size() * 2);
+            m_soundProgramRomSize = static_cast<u32>(m_soundProgramRom.size());
+            // Decrypt CPS1 sound program ROM
+            std::cout << "Decrypting sound program ROM..." << std::endl;
+            decryptCPS1SoundProgramROM();
+        }
+    } else {
+        // Decrypt CPS2 program ROM (must be done before byteswap)
+        decryptCPS2ProgramROM();
     }
     
     // Byteswap program ROM (both CPS1 and CPS2 use big-endian for 68000)
@@ -347,7 +360,21 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     return true;
 }
 
-void Cartridge::decryptProgramROM() {
+void Cartridge::decryptCPS1SoundProgramROM() {
+    if (m_cpsVer != 1 || !m_gameInfo) {
+        return;
+    }
+
+    const CPS1DecryptKeys* k = m_gameInfo->cps1DecKeys;
+    if (!k) {
+        return;
+    }
+
+    decryptCPS1(k->swapKey1, k->swapKey2, k->addrKey, k->xorKey,
+                    m_soundProgramRom.data(), m_soundProgramRom.size());
+}
+
+void Cartridge::decryptCPS2ProgramROM() {
     // Only for CPS2
     if (m_cpsVer != 2) {
         return;
@@ -455,6 +482,13 @@ u8 Cartridge::readGraphicsROM8(u32 address) const {
 u8 Cartridge::readSoundROM8(u32 address) const {
     if (address < m_soundProgramRom.size()) {
         return m_soundProgramRom[address];
+    }
+    return 0;
+}
+
+u8 Cartridge::readEncryptedSoundROM8(u32 address) const {
+    if (address < m_soundProgramRomEncrypted.size()) {
+        return m_soundProgramRomEncrypted[address];
     }
     return 0;
 }

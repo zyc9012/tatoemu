@@ -32,6 +32,22 @@ constexpr float SOUND_CYCLES_RATIO = static_cast<float>(SOUND_CPU_FREQUENCY) / s
 
 } // namespace cps1
 
+namespace cps1qs {
+
+// Frame rate (CPS1 runs at ~59.63 Hz)
+constexpr double TARGET_FPS = 59.6294;
+
+// CPU frequencies
+constexpr u32 CPU_FREQUENCY = 10000000;  // 10 MHz (68000)
+constexpr u32 SOUND_CPU_FREQUENCY = 8000000;  // 8 MHz (Z80)
+
+// Cycles per frame
+constexpr u32 CPU_CYCLES_PER_FRAME = static_cast<u32>(CPU_FREQUENCY / TARGET_FPS);
+constexpr u32 SOUND_CPU_CYCLES_PER_FRAME = static_cast<u32>(SOUND_CPU_FREQUENCY / TARGET_FPS);
+constexpr float SOUND_CYCLES_RATIO = static_cast<float>(SOUND_CPU_FREQUENCY) / static_cast<float>(CPU_FREQUENCY);
+
+} // namespace cps1qs
+
 namespace cps2 {
 
 // Frame rate (CPS2 runs at ~59.63 Hz)

@@ -45,6 +45,8 @@ public:
     
     // Sound ROM access (for Z80 sound CPU)
     u8 readSoundROM8(u32 address) const;
+    u8 readEncryptedSoundROM8(u32 address) const;
+    u32 getSoundROMSize() const { return static_cast<u32>(m_soundProgramRom.size()); }
     
     // Sound sample data access
     const u8* getSoundSample() const { return m_soundSampleRom.data(); }
@@ -57,6 +59,9 @@ public:
     // CPS version
     u8 getCPSVersion() const { return m_cpsVer; }
     void setCPSVersion(u8 version) { m_cpsVer = version; }
+
+    // QSound detection
+    bool isCPS1QSound() const { return m_gameInfo && (m_gameInfo->flags & GAME_FLAG_CPS1_QSOUND); }
     
     // Game info access
     const GameInfo* getGameInfo() const { return m_gameInfo; }
@@ -87,6 +92,7 @@ private:
     std::vector<u8> m_graphicsRom;     // Graphics/tile ROMs
     std::vector<u8> m_decodedGraphicsRom;  // Decoded graphics ROM
     std::vector<u8> m_soundProgramRom; // Z80 sound program ROM
+    std::vector<u8> m_soundProgramRomEncrypted; // Encrypted Z80 sound program ROM (CPS1 QSound only)
     std::vector<u8> m_soundSampleRom;  // ADPCM sample ROMs (CPS1) or QSound samples (CPS2)
     
     u32 m_programRomSize;
@@ -107,7 +113,8 @@ private:
     
     void initSepTable();
     bool loadROMsFromDatabase(const std::map<std::string, std::vector<u8>>& romFiles);
-    void decryptProgramROM();
+    void decryptCPS1SoundProgramROM();
+    void decryptCPS2ProgramROM();
     void byteswapProgramROM();
     void byteswapSoundSampleROM();
     void decodeGraphicsROM(const std::vector<u32>& graphicsRomSizes = {});

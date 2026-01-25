@@ -398,7 +398,14 @@ void PPU::step() {
     m_cycles++;
     
     // Calculate current scanline
-    u32 cyclesPerFrame = m_cartridge->getCPSVersion() == 1 ? ::cps1::CPU_CYCLES_PER_FRAME : ::cps2::CPU_CYCLES_PER_FRAME;
+    u32 cyclesPerFrame;
+    if (m_cartridge->getCPSVersion() == 2) {
+        cyclesPerFrame = ::cps2::CPU_CYCLES_PER_FRAME;
+    } else if (m_cartridge->isCPS1QSound()) {
+        cyclesPerFrame = ::cps1qs::CPU_CYCLES_PER_FRAME;
+    } else {
+        cyclesPerFrame = ::cps1::CPU_CYCLES_PER_FRAME;
+    }
     u32 cyclesPerScanline = cyclesPerFrame / TOTAL_SCANLINES;
     u32 newScanline = m_cycles / cyclesPerScanline;
     

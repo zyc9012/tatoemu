@@ -66,7 +66,7 @@ static u8 z80_read_op_arg(u32 address) {
     if (g_soundCpuContext) {
         Memory* mem = g_soundCpuContext->getMemory();
         if (mem) {
-            return mem->readZ80Opcode(address);
+            return mem->readZ80OpcodeArg(address);
         }
     }
     return 0xFF;
@@ -76,6 +76,7 @@ SoundCPU::SoundCPU()
     : m_memory(nullptr)
     , m_apu(nullptr)
     , m_cycles(0)
+    , m_cartridge(nullptr)
     , m_cpsVersion(1)
     , m_timerAccumulator(0)
     , m_timerPeriod(0) {
@@ -113,10 +114,14 @@ void SoundCPU::reset() {
     m_timerAccumulator = 0;
     
     // Calculate timer period for CPS2 (252 Hz interrupt rate)
-    if (m_cpsVersion == 2) {
+    if (m_cpsVersion == 2 || (m_cpsVersion == 1 && m_cartridge && m_cartridge->isCPS1QSound())) {
         // Timer fires at 252 Hz = 1/252.0 seconds
         // At 8 MHz: 8000000 / 252 ≈ 31746 cycles
-        m_timerPeriod = cps2::SOUND_CPU_FREQUENCY / 252;
+        if (m_cartridge->isCPS1QSound()) {
+            m_timerPeriod = cps1qs::SOUND_CPU_FREQUENCY / 252;
+        } else {
+            m_timerPeriod = cps2::SOUND_CPU_FREQUENCY / 252;
+        }
     } else {
         m_timerPeriod = 0;  // CPS1 uses YM2151 interrupts, not timer
     }
@@ -132,8 +137,8 @@ u32 SoundCPU::step(u32 cycles) {
         u32 actualCycles = static_cast<u32>(executed);
         m_cycles += actualCycles;
 
-        // For CPS2, check timer-based interrupt
-        if (m_cpsVersion == 2 && m_timerPeriod > 0) {
+        // For CPS2 and CPS1 QSound, check timer-based interrupt
+        if (m_timerPeriod > 0) {
             m_timerAccumulator += executed;
             
             // Check if timer has expired (multiple times if needed)
