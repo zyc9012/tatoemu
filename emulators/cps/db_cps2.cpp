@@ -50,7 +50,7 @@ static const ROMEntry game_1944_roms[] = {
 };
 
 // Alien vs. Predator
-static const ROMEntry game_avsp_roms[] = {
+static const ROMEntry avsp_roms[] = {
     { "avpe.03d",      0x080000, 0x774334a9, ROMType::PROGRAM, 0 },
     { "avpe.04d",      0x080000, 0x7fa83769, ROMType::PROGRAM, 0 },
     { "avp.05d",       0x080000, 0xfbfb5d7a, ROMType::PROGRAM, 0 },
@@ -70,7 +70,7 @@ static const ROMEntry game_avsp_roms[] = {
 };
 
 // Dungeons & Dragons: Shadow over Mystara
-static const ROMEntry game_ddsom_roms[] = {
+static const ROMEntry ddsom_roms[] = {
     { "dd2e.03e",      0x080000, 0x449361AF, ROMType::PROGRAM, 0 },
     { "dd2e.04e",      0x080000, 0x5B7052B6, ROMType::PROGRAM, 0 },
     { "dd2e.05e",      0x080000, 0x788D5F60, ROMType::PROGRAM, 0 },
@@ -95,7 +95,7 @@ static const ROMEntry game_ddsom_roms[] = {
 };
 
 // Dungeons & Dragons: Tower of Doom
-static const ROMEntry game_ddtod_roms[] = {
+static const ROMEntry ddtod_roms[] = {
     { "dade.03c",      0x080000, 0x8e73533d, ROMType::PROGRAM, 0 },
     { "dade.04c",      0x080000, 0x00c2e82e, ROMType::PROGRAM, 0 },
     { "dade.05c",      0x080000, 0xea996008, ROMType::PROGRAM, 0 },
@@ -116,7 +116,7 @@ static const ROMEntry game_ddtod_roms[] = {
 };
 
 // Hyper Street Fighter II: The Anniversary Edition
-static const ROMEntry game_hsf2_roms[] = {
+static const ROMEntry hsf2_roms[] = {
     { "hs2u.03",       0x080000, 0xb308151e, ROMType::PROGRAM, 0 },
     { "hs2u.04",       0x080000, 0x327aa49c, ROMType::PROGRAM, 0 },
     { "hs2.05",        0x080000, 0xdde34a35, ROMType::PROGRAM, 0 },
@@ -136,7 +136,7 @@ static const ROMEntry game_hsf2_roms[] = {
 };
 
 // Marvel Super Heroes
-static const ROMEntry game_msh_roms[] = {
+static const ROMEntry msh_roms[] = {
     { "mshe.03e",      0x080000, 0xbd951414, ROMType::PROGRAM, 0 },
     { "mshe.04e",      0x080000, 0x19dd42f2, ROMType::PROGRAM, 0 },
     { "msh.05",        0x080000, 0x6a091b9e, ROMType::PROGRAM, 0 },
@@ -161,7 +161,7 @@ static const ROMEntry game_msh_roms[] = {
 };
 
 // Marvel Super Heroes vs. Street Fighter
-static const ROMEntry game_mshvsf_roms[] = {
+static const ROMEntry mshvsf_roms[] = {
     { "mvse.03f",      0x080000, 0xb72dc199, ROMType::PROGRAM, 0 },
     { "mvse.04f",      0x080000, 0x6ef799f9, ROMType::PROGRAM, 0 },
     { "mvs.05a",       0x080000, 0x1a5de0cb, ROMType::PROGRAM, 0 },
@@ -186,7 +186,7 @@ static const ROMEntry game_mshvsf_roms[] = {
 };
 
 // Marvel vs. Capcom: Clash of Super Heroes
-static const ROMEntry game_mvsc_roms[] = {
+static const ROMEntry mvsc_roms[] = {
     { "mvce.03a",      0x080000, 0x824e4a90, ROMType::PROGRAM, 0 },
     { "mvce.04a",      0x080000, 0x436c5a4e, ROMType::PROGRAM, 0 },
     { "mvc.05a",       0x080000, 0x2d8c8e86, ROMType::PROGRAM, 0 },
@@ -211,9 +211,9 @@ static const ROMEntry game_mvsc_roms[] = {
 };
 
 // Progear
-static const ROMEntry game_progear_roms[] = {
-    { "pgae.03",       0x080000, 0x8577bc86, ROMType::PROGRAM, 0 },
-    { "pgae.04",       0x080000, 0xd850da04, ROMType::PROGRAM, 0 },
+static const ROMEntry progear_roms[] = {
+    { "pgau.03",       0x080000, 0x343a783e, ROMType::PROGRAM, 0 },
+    { "pgau.04",       0x080000, 0x16208d79, ROMType::PROGRAM, 0 },
     { "pga-simm.01c",  0x200000, 0x452f98b0, ROMType::GRAPHICS_SIMM, 0 },
     { "pga-simm.01d",  0x200000, 0x9e672092, ROMType::GRAPHICS_SIMM, 0 },
     { "pga-simm.01a",  0x200000, 0xae9ddafe, ROMType::GRAPHICS_SIMM, 0 },
@@ -231,7 +231,7 @@ static const ROMEntry game_progear_roms[] = {
 };
 
 // Street Fighter Alpha: Warriors' Dreams
-static const ROMEntry game_sfa_roms[] = {
+static const ROMEntry sfa_roms[] = {
     { "sfze.03d",      0x080000, 0xebf2054d, ROMType::PROGRAM, 0 },
     { "sfz.04b",       0x080000, 0x8b73b0e5, ROMType::PROGRAM, 0 },
     { "sfz.05a",       0x080000, 0x0810544d, ROMType::PROGRAM, 0 },
@@ -248,7 +248,7 @@ static const ROMEntry game_sfa_roms[] = {
 };
 
 // Street Fighter Alpha 2
-static const ROMEntry game_sfa2_roms[] = {
+static const ROMEntry sfa2_roms[] = {
     { "sz2e.03",       0x080000, 0x1061e6bb, ROMType::PROGRAM, 0 },
     { "sz2e.04",       0x080000, 0x22d17b26, ROMType::PROGRAM, 0 },
     { "sz2.05",        0x080000, 0x4b442a7c, ROMType::PROGRAM, 0 },
@@ -271,7 +271,7 @@ static const ROMEntry game_sfa2_roms[] = {
 };
 
 // Street Fighter Alpha 3
-static const ROMEntry game_sfa3_roms[] = {
+static const ROMEntry sfa3_roms[] = {
     { "sz3e.03c",      0x080000, 0x9762b206, ROMType::PROGRAM, 0 },
     { "sz3e.04c",      0x080000, 0x5ad3f721, ROMType::PROGRAM, 0 },
     { "sz3.05c",       0x080000, 0x57fd0a40, ROMType::PROGRAM, 0 },
@@ -296,7 +296,7 @@ static const ROMEntry game_sfa3_roms[] = {
 };
 
 // Super Puzzle Fighter II Turbo
-static const ROMEntry game_spf2t_roms[] = {
+static const ROMEntry spf2t_roms[] = {
     { "pzfe.03",       0x080000, 0x2af51954, ROMType::PROGRAM, 0 },
     { "pzf.04",        0x080000, 0xb80649e2, ROMType::PROGRAM, 0 },
     { "pzf.14m",       0x100000, 0x2d4881cb, ROMType::GRAPHICS, 0 },
@@ -311,7 +311,7 @@ static const ROMEntry game_spf2t_roms[] = {
 };
 
 // Super Street Fighter II: The New Challengers
-static const ROMEntry game_ssf2_roms[] = {
+static const ROMEntry ssf2_roms[] = {
     { "ssfe-03b",      0x080000, 0xaf654792, ROMType::PROGRAM, 0 },
     { "ssfe.04",       0x080000, 0xb082aa67, ROMType::PROGRAM, 0 },
     { "ssfe.05",       0x080000, 0x02b9c137, ROMType::PROGRAM, 0 },
@@ -338,7 +338,7 @@ static const ROMEntry game_ssf2_roms[] = {
 };
 
 // Super Street Fighter II Turbo
-static const ROMEntry game_ssf2t_roms[] = {
+static const ROMEntry ssf2t_roms[] = {
     { "sfxe.03c",      0x080000, 0x2fa1f396, ROMType::PROGRAM, 0 },
     { "sfxe.04a",      0x080000, 0xd0bc29c6, ROMType::PROGRAM, 0 },
     { "sfxe.05",       0x080000, 0x65222964, ROMType::PROGRAM, 0 },
@@ -366,7 +366,7 @@ static const ROMEntry game_ssf2t_roms[] = {
 };
 
 // Vampire Savior: The Lord of Vampire
-static const ROMEntry game_vsav_roms[] = {
+static const ROMEntry vsav_roms[] = {
     { "vm3e.03d",      0x080000, 0xf5962a8c, ROMType::PROGRAM, 0 },
     { "vm3e.04d",      0x080000, 0x21b40ea2, ROMType::PROGRAM, 0 },
     { "vm3.05a",       0x080000, 0x4118e00f, ROMType::PROGRAM, 0 },
@@ -391,7 +391,7 @@ static const ROMEntry game_vsav_roms[] = {
 };
 
 // Vampire Savior 2: The Lord of Vampire
-static const ROMEntry game_vsav2_roms[] = {
+static const ROMEntry vsav2_roms[] = {
     { "vs2j.03",       0x080000, 0x89fd86b4, ROMType::PROGRAM, 0 },
     { "vs2j.04",       0x080000, 0x107c091b, ROMType::PROGRAM, 0 },
     { "vs2j.05",       0x080000, 0x61979638, ROMType::PROGRAM, 0 },
@@ -416,7 +416,7 @@ static const ROMEntry game_vsav2_roms[] = {
 };
 
 // X-Men: Children of the Atom
-static const ROMEntry game_xmcota_roms[] = {
+static const ROMEntry xmcota_roms[] = {
     { "xmne.03f",      0x080000, 0x5a726d13, ROMType::PROGRAM, 0 },
     { "xmne.04f",      0x080000, 0x06a83f3a, ROMType::PROGRAM, 0 },
     { "xmne.05b",      0x080000, 0x87b0ed0f, ROMType::PROGRAM, 0 },
@@ -441,7 +441,7 @@ static const ROMEntry game_xmcota_roms[] = {
 };
 
 // X-Men vs. Street Fighter
-static const ROMEntry game_xmvsf_roms[] = {
+static const ROMEntry xmvsf_roms[] = {
     { "xvse.03f",      0x080000, 0xdb06413f, ROMType::PROGRAM, 0 },
     { "xvse.04f",      0x080000, 0xef015aef, ROMType::PROGRAM, 0 },
     { "xvs.05a",       0x080000, 0x7db6025d, ROMType::PROGRAM, 0 },
@@ -464,6 +464,450 @@ static const ROMEntry game_xmvsf_roms[] = {
     { "xmvsf.key",     0x000014, 0xd5c07311, ROMType::ENCRYPTION_KEY, 0 },
 };
 
+// Armored Warriors
+static const ROMEntry armwar_roms[] = {
+    { "pwge.03c",      0x080000, 0x31f74931, ROMType::PROGRAM, 0 },
+    { "pwge.04c",      0x080000, 0x16f34f5f, ROMType::PROGRAM, 0 },
+    { "pwge.05b",      0x080000, 0x4403ed08, ROMType::PROGRAM, 0 },
+    { "pwg.06",        0x080000, 0x87a60ce8, ROMType::PROGRAM, 0 },
+    { "pwg.07",        0x080000, 0xf7b148df, ROMType::PROGRAM, 0 },
+    { "pwg.08",        0x080000, 0xcc62823e, ROMType::PROGRAM, 0 },
+    { "pwg.09a",       0x080000, 0x4c26baee, ROMType::PROGRAM, 0 },
+    { "pwg.10",        0x080000, 0x07c4fb28, ROMType::PROGRAM, 0 },
+    { "pwg.13m",       0x400000, 0xae8fe08e, ROMType::GRAPHICS, 0 },
+    { "pwg.15m",       0x400000, 0xdb560f58, ROMType::GRAPHICS, 0 },
+    { "pwg.17m",       0x400000, 0xbc475b94, ROMType::GRAPHICS, 0 },
+    { "pwg.19m",       0x400000, 0x07439ff7, ROMType::GRAPHICS, 0 },
+    { "pwg.14m",       0x100000, 0xc3f9ba63, ROMType::GRAPHICS, 0 },
+    { "pwg.16m",       0x100000, 0x815b0e7b, ROMType::GRAPHICS, 0 },
+    { "pwg.18m",       0x100000, 0x0109c71b, ROMType::GRAPHICS, 0 },
+    { "pwg.20m",       0x100000, 0xeb75ffbe, ROMType::GRAPHICS, 0 },
+    { "pwg.01",        0x020000, 0x18a5c0e4, ROMType::SOUND_PROGRAM, 0 },
+    { "pwg.02",        0x020000, 0xc9dfffa6, ROMType::SOUND_PROGRAM, 0 },
+    { "pwg.11m",       0x200000, 0xa78f7433, ROMType::SOUND_SAMPLE, 0 },
+    { "pwg.12m",       0x200000, 0x77438ed0, ROMType::SOUND_SAMPLE, 0 },
+    { "armwar.key",    0x000014, 0xfe979382, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Battle Circuit
+static const ROMEntry batcir_roms[] = {
+    { "btce.03",       0x080000, 0xbc60484b, ROMType::PROGRAM, 0 },
+    { "btce.04",       0x080000, 0x457d55f6, ROMType::PROGRAM, 0 },
+    { "btce.05",       0x080000, 0xe86560d7, ROMType::PROGRAM, 0 },
+    { "btce.06",       0x080000, 0xf778e61b, ROMType::PROGRAM, 0 },
+    { "btc.07",        0x080000, 0x7322d5db, ROMType::PROGRAM, 0 },
+    { "btc.08",        0x080000, 0x6aac85ab, ROMType::PROGRAM, 0 },
+    { "btc.09",        0x080000, 0x1203db08, ROMType::PROGRAM, 0 },
+    { "btc.13m",       0x400000, 0xdc705bad, ROMType::GRAPHICS, 0 },
+    { "btc.15m",       0x400000, 0xe5779a3c, ROMType::GRAPHICS, 0 },
+    { "btc.17m",       0x400000, 0xb33f4112, ROMType::GRAPHICS, 0 },
+    { "btc.19m",       0x400000, 0xa6fcdb7e, ROMType::GRAPHICS, 0 },
+    { "btc.01",        0x020000, 0x1e194310, ROMType::SOUND_PROGRAM, 0 },
+    { "btc.02",        0x020000, 0x01aeb8e6, ROMType::SOUND_PROGRAM, 0 },
+    { "btc.11m",       0x200000, 0xc27f2229, ROMType::SOUND_SAMPLE, 0 },
+    { "btc.12m",       0x200000, 0x418a2e33, ROMType::SOUND_SAMPLE, 0 },
+    { "batcir.key",    0x000014, 0xe316ae67, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Janpai Puzzle Choukou
+static const ROMEntry choko_roms[] = {
+    { "tkoj.03",       0x080000, 0x11f5452f, ROMType::PROGRAM, 0 },
+    { "tkoj.04",       0x080000, 0x68655378, ROMType::PROGRAM, 0 },
+    { "tkoj1_d.simm1", 0x200000, 0x6933377d, ROMType::GRAPHICS_SIMM, 0 },
+    { "tkoj1_c.simm1", 0x200000, 0x7f668950, ROMType::GRAPHICS_SIMM, 0 },
+    { "tkoj1_b.simm1", 0x200000, 0xcfb68ca9, ROMType::GRAPHICS_SIMM, 0 },
+    { "tkoj1_a.simm1", 0x200000, 0x437e21c5, ROMType::GRAPHICS_SIMM, 0 },
+    { "tkoj3_d.simm3", 0x200000, 0xa9e32b57, ROMType::GRAPHICS_SIMM, 0 },
+    { "tkoj3_c.simm3", 0x200000, 0xb7ab9338, ROMType::GRAPHICS_SIMM, 0 },
+    { "tkoj3_b.simm3", 0x200000, 0x4d3f919a, ROMType::GRAPHICS_SIMM, 0 },
+    { "tkoj3_a.simm3", 0x200000, 0xcfef17ab, ROMType::GRAPHICS_SIMM, 0 },
+    { "tko.01",        0x020000, 0x6eda50c2, ROMType::SOUND_PROGRAM, 0 },
+    { "tkoj5_a.simm5", 0x200000, 0xab45d509, ROMType::SOUND_SAMPLE_SIMM_BYTESWAP, 0 },
+    { "tkoj5_b.simm5", 0x200000, 0xfa905c3d, ROMType::SOUND_SAMPLE_SIMM_BYTESWAP, 0 },
+    { "choko.key",     0x000014, 0x08505e8b, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Capcom Sports Club
+static const ROMEntry csclub_roms[] = {
+    { "csce.03a",      0x080000, 0x824082be, ROMType::PROGRAM, 0 },
+    { "csce.04a",      0x080000, 0x74e6a4fe, ROMType::PROGRAM, 0 },
+    { "csce.05a",      0x080000, 0x8ae0df19, ROMType::PROGRAM, 0 },
+    { "csce.06a",      0x080000, 0x51f2f0d3, ROMType::PROGRAM, 0 },
+    { "csce.07a",      0x080000, 0x003968fd, ROMType::PROGRAM, 0 },
+    { "csc.73",        0x080000, 0x335f07c3, ROMType::GRAPHICS_SPLIT4, 0 },
+    { "csc.74",        0x080000, 0xab215357, ROMType::GRAPHICS_SPLIT4, 0 },
+    { "csc.75",        0x080000, 0xa2367381, ROMType::GRAPHICS_SPLIT4, 0 },
+    { "csc.76",        0x080000, 0x728aac1f, ROMType::GRAPHICS_SPLIT4, 0 },
+    { "csc.63",        0x080000, 0x3711b8ca, ROMType::GRAPHICS_SPLIT4, 0 },
+    { "csc.64",        0x080000, 0x828a06d8, ROMType::GRAPHICS_SPLIT4, 0 },
+    { "csc.65",        0x080000, 0x86ee4569, ROMType::GRAPHICS_SPLIT4, 0 },
+    { "csc.66",        0x080000, 0xc24f577f, ROMType::GRAPHICS_SPLIT4, 0 },
+    { "csc.83",        0x080000, 0x0750d12a, ROMType::GRAPHICS_SPLIT4, 0 },
+    { "csc.84",        0x080000, 0x90a92f39, ROMType::GRAPHICS_SPLIT4, 0 },
+    { "csc.85",        0x080000, 0xd08ab012, ROMType::GRAPHICS_SPLIT4, 0 },
+    { "csc.86",        0x080000, 0x41652583, ROMType::GRAPHICS_SPLIT4, 0 },
+    { "csc.93",        0x080000, 0xa756c7f7, ROMType::GRAPHICS_SPLIT4, 0 },
+    { "csc.94",        0x080000, 0xfb7ccc73, ROMType::GRAPHICS_SPLIT4, 0 },
+    { "csc.95",        0x080000, 0x4d014297, ROMType::GRAPHICS_SPLIT4, 0 },
+    { "csc.96",        0x080000, 0x6754b1ef, ROMType::GRAPHICS_SPLIT4, 0 },
+    { "csc.01",        0x020000, 0xee162111, ROMType::SOUND_PROGRAM, 0 },
+    { "csc.51",        0x080000, 0x5a52afd5, ROMType::SOUND_SAMPLE, 0 },
+    { "csc.52",        0x080000, 0x1408a811, ROMType::SOUND_SAMPLE, 0 },
+    { "csc.53",        0x080000, 0x4fb9f57c, ROMType::SOUND_SAMPLE, 0 },
+    { "csc.54",        0x080000, 0x9a8f40ec, ROMType::SOUND_SAMPLE, 0 },
+    { "csc.55",        0x080000, 0x91529a91, ROMType::SOUND_SAMPLE, 0 },
+    { "csc.56",        0x080000, 0x9a345334, ROMType::SOUND_SAMPLE, 0 },
+    { "csc.57",        0x080000, 0xaedc27f2, ROMType::SOUND_SAMPLE, 0 },
+    { "csc.58",        0x080000, 0x2300b7b3, ROMType::SOUND_SAMPLE, 0 },
+    { "csclub.key",    0x000014, 0x903907d7, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Cyberbots: Fullmetal Madness
+static const ROMEntry cybots_roms[] = {
+    { "cybe.03",       0x080000, 0x234381cd, ROMType::PROGRAM, 0 },
+    { "cybe.04",       0x080000, 0x80691061, ROMType::PROGRAM, 0 },
+    { "cyb.05",        0x080000, 0xec40408e, ROMType::PROGRAM, 0 },
+    { "cyb.06",        0x080000, 0x1ad0bed2, ROMType::PROGRAM, 0 },
+    { "cyb.07",        0x080000, 0x6245a39a, ROMType::PROGRAM, 0 },
+    { "cyb.08",        0x080000, 0x4b48e223, ROMType::PROGRAM, 0 },
+    { "cyb.09",        0x080000, 0xe15238f6, ROMType::PROGRAM, 0 },
+    { "cyb.10",        0x080000, 0x75f4003b, ROMType::PROGRAM, 0 },
+    { "cyb.13m",       0x400000, 0xf0dce192, ROMType::GRAPHICS, 0 },
+    { "cyb.15m",       0x400000, 0x187aa39c, ROMType::GRAPHICS, 0 },
+    { "cyb.17m",       0x400000, 0x8a0e4b12, ROMType::GRAPHICS, 0 },
+    { "cyb.19m",       0x400000, 0x34b62612, ROMType::GRAPHICS, 0 },
+    { "cyb.14m",       0x400000, 0xc1537957, ROMType::GRAPHICS, 0 },
+    { "cyb.16m",       0x400000, 0x15349e86, ROMType::GRAPHICS, 0 },
+    { "cyb.18m",       0x400000, 0xd83e977d, ROMType::GRAPHICS, 0 },
+    { "cyb.20m",       0x400000, 0x77cdad5c, ROMType::GRAPHICS, 0 },
+    { "cyb.01",        0x020000, 0x9c0fb079, ROMType::SOUND_PROGRAM, 0 },
+    { "cyb.02",        0x020000, 0x51cb0c4e, ROMType::SOUND_PROGRAM, 0 },
+    { "cyb.11m",       0x200000, 0x362ccab2, ROMType::SOUND_SAMPLE, 0 },
+    { "cyb.12m",       0x200000, 0x7066e9cc, ROMType::SOUND_SAMPLE, 0 },
+    { "cybots.key",    0x000014, 0x9bbcbef3, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Dimahoo
+static const ROMEntry dimahoo_roms[] = {
+    { "gmde.03",       0x080000, 0x968fcecd, ROMType::PROGRAM, 0 },
+    { "gmd.04",        0x080000, 0x37485567, ROMType::PROGRAM, 0 },
+    { "gmd.05",        0x080000, 0xda269ffb, ROMType::PROGRAM, 0 },
+    { "gmd.06",        0x080000, 0x55b483c9, ROMType::PROGRAM, 0 },
+    { "gmd.13m",       0x400000, 0x80dd19f0, ROMType::GRAPHICS, 0 },
+    { "gmd.15m",       0x400000, 0xdfd93a78, ROMType::GRAPHICS, 0 },
+    { "gmd.17m",       0x400000, 0x16356520, ROMType::GRAPHICS, 0 },
+    { "gmd.19m",       0x400000, 0xdfc33031, ROMType::GRAPHICS, 0 },
+    { "gmd.01",        0x020000, 0x3f9bc985, ROMType::SOUND_PROGRAM, 0 },
+    { "gmd.02",        0x020000, 0x3fd39dde, ROMType::SOUND_PROGRAM, 0 },
+    { "gmd.11m",       0x400000, 0x06a65542, ROMType::SOUND_SAMPLE, 0 },
+    { "gmd.12m",       0x400000, 0x50bc7a31, ROMType::SOUND_SAMPLE, 0 },
+    { "dimahoo.key",   0x000014, 0x7d6d2db9, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Darkstalkers: The Night Warriors
+static const ROMEntry dstlk_roms[] = {
+    { "vame.03a",      0x080000, 0x004c9cff, ROMType::PROGRAM, 0 },
+    { "vame.04a",      0x080000, 0xae413ff2, ROMType::PROGRAM, 0 },
+    { "vame.05a",      0x080000, 0x60678756, ROMType::PROGRAM, 0 },
+    { "vame.06a",      0x080000, 0x912870b3, ROMType::PROGRAM, 0 },
+    { "vame.07a",      0x080000, 0xdabae3e8, ROMType::PROGRAM, 0 },
+    { "vame.08a",      0x080000, 0x2c6e3077, ROMType::PROGRAM, 0 },
+    { "vame.09a",      0x080000, 0xf16db74b, ROMType::PROGRAM, 0 },
+    { "vame.10a",      0x080000, 0x701e2147, ROMType::PROGRAM, 0 },
+    { "vam.13m",       0x400000, 0xc51baf99, ROMType::GRAPHICS, 0 },
+    { "vam.15m",       0x400000, 0x3ce83c77, ROMType::GRAPHICS, 0 },
+    { "vam.17m",       0x400000, 0x4f2408e0, ROMType::GRAPHICS, 0 },
+    { "vam.19m",       0x400000, 0x9ff60250, ROMType::GRAPHICS, 0 },
+    { "vam.14m",       0x100000, 0xbd87243c, ROMType::GRAPHICS, 0 },
+    { "vam.16m",       0x100000, 0xafec855f, ROMType::GRAPHICS, 0 },
+    { "vam.18m",       0x100000, 0x3a033625, ROMType::GRAPHICS, 0 },
+    { "vam.20m",       0x100000, 0x2bff6a89, ROMType::GRAPHICS, 0 },
+    { "vam.01",        0x020000, 0x64b685d5, ROMType::SOUND_PROGRAM, 0 },
+    { "vam.02",        0x020000, 0xcf7c97c7, ROMType::SOUND_PROGRAM, 0 },
+    { "vam.11m",       0x200000, 0x4a39deb2, ROMType::SOUND_SAMPLE, 0 },
+    { "vam.12m",       0x200000, 0x1a3e5c03, ROMType::SOUND_SAMPLE, 0 },
+    { "dstlk.key",     0x000014, 0xcfa46dec, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Eco Fighters
+static const ROMEntry ecofghtr_roms[] = {
+    { "uece.03",       0x080000, 0xec2c1137, ROMType::PROGRAM, 0 },
+    { "uece.04",       0x080000, 0xb35f99db, ROMType::PROGRAM, 0 },
+    { "uece.05",       0x080000, 0xd9d42d31, ROMType::PROGRAM, 0 },
+    { "uece.06",       0x080000, 0x9d9771cf, ROMType::PROGRAM, 0 },
+    { "uec.13m",       0x200000, 0xdcaf1436, ROMType::GRAPHICS, 0 },
+    { "uec.15m",       0x200000, 0x2807df41, ROMType::GRAPHICS, 0 },
+    { "uec.17m",       0x200000, 0x8a708d02, ROMType::GRAPHICS, 0 },
+    { "uec.19m",       0x200000, 0xde7be0ef, ROMType::GRAPHICS, 0 },
+    { "uec.14m",       0x100000, 0x1a003558, ROMType::GRAPHICS, 0 },
+    { "uec.16m",       0x100000, 0x4ff8a6f9, ROMType::GRAPHICS, 0 },
+    { "uec.18m",       0x100000, 0xb167ae12, ROMType::GRAPHICS, 0 },
+    { "uec.20m",       0x100000, 0x1064bdc2, ROMType::GRAPHICS, 0 },
+    { "uec.01",        0x020000, 0xc235bd15, ROMType::SOUND_PROGRAM, 0 },
+    { "uec.11m",       0x200000, 0x81b25d39, ROMType::SOUND_SAMPLE, 0 },
+    { "uec.12m",       0x200000, 0x27729e52, ROMType::SOUND_SAMPLE, 0 },
+    { "ecofghtr.key",  0x000014, 0x2250fd9e, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Final Fight: Anniversary Edition
+static const ROMEntry ffightaec2_roms[] = {
+    { "ff-23m.8h",     0x080000, 0xb598d599, ROMType::PROGRAM, 0 },
+    { "ff-22m.7h",     0x080000, 0x3615cfb9, ROMType::PROGRAM, 0 },
+    { "ff-5m.7a",      0x400000, 0x3f4028c5, ROMType::GRAPHICS, 0 },
+    { "ff-7m.9a",      0x400000, 0xbe3858b0, ROMType::GRAPHICS, 0 },
+    { "ff-1m.3a",      0x400000, 0xed622314, ROMType::GRAPHICS, 0 },
+    { "ff-3m.5a",      0x400000, 0xd65b53e9, ROMType::GRAPHICS, 0 },
+    { "sz3.01",        0x020000, 0x7ee68d38, ROMType::SOUND_PROGRAM, 0 },
+    { "sz3.02",        0x020000, 0x72445dc4, ROMType::SOUND_PROGRAM, 0 },
+    { "sz3.11m",       0x400000, 0x71af8d5a, ROMType::SOUND_SAMPLE, 0 },
+    { "sz3.12m",       0x400000, 0xf392b13a, ROMType::SOUND_SAMPLE, 0 },
+    { "phoenix.key",   0x000014, 0x2cf772b0, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Giga Wing
+static const ROMEntry gigawing_roms[] = {
+    { "ggwu.03",       0x080000, 0xac725eb2, ROMType::PROGRAM, 0 },
+    { "ggwu.04",       0x080000, 0x392f4118, ROMType::PROGRAM, 0 },
+    { "ggw.05",        0x080000, 0x3239d642, ROMType::PROGRAM, 0 },
+    { "ggw.13m",       0x400000, 0x105530a4, ROMType::GRAPHICS, 0 },
+    { "ggw.15m",       0x400000, 0x9e774ab9, ROMType::GRAPHICS, 0 },
+    { "ggw.17m",       0x400000, 0x466e0ba4, ROMType::GRAPHICS, 0 },
+    { "ggw.19m",       0x400000, 0x840c8dea, ROMType::GRAPHICS, 0 },
+    { "ggw.01",        0x020000, 0x4c6351d5, ROMType::SOUND_PROGRAM, 0 },
+    { "ggw.11m",       0x400000, 0xe172acf5, ROMType::SOUND_SAMPLE, 0 },
+    { "ggw.12m",       0x400000, 0x4bee4e8f, ROMType::SOUND_SAMPLE, 0 },
+    { "gigawing.key",  0x000014, 0x5076c26b, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Jyangokushi: Haoh no Saihai
+static const ROMEntry jyangoku_roms[] = {
+    { "majj.03",       0x080000, 0x4614a3b2, ROMType::PROGRAM, 0 },
+    { "maj1_d.simm1",  0x200000, 0xba0fe27b, ROMType::GRAPHICS_SIMM, 0 },
+    { "maj1_c.simm1",  0x200000, 0x2cd141bf, ROMType::GRAPHICS_SIMM, 0 },
+    { "maj1_b.simm1",  0x200000, 0xe29e4c26, ROMType::GRAPHICS_SIMM, 0 },
+    { "maj1_a.simm1",  0x200000, 0x7f68b88a, ROMType::GRAPHICS_SIMM, 0 },
+    { "maj3_d.simm3",  0x200000, 0x3aaeb90b, ROMType::GRAPHICS_SIMM, 0 },
+    { "maj3_c.simm3",  0x200000, 0x97894cea, ROMType::GRAPHICS_SIMM, 0 },
+    { "maj3_b.simm3",  0x200000, 0xec737d9d, ROMType::GRAPHICS_SIMM, 0 },
+    { "maj3_a.simm3",  0x200000, 0xc23b6f22, ROMType::GRAPHICS_SIMM, 0 },
+    { "maj.01",        0x020000, 0x1fe8c213, ROMType::SOUND_PROGRAM, 0 },
+    { "maj5_a.simm5",  0x200000, 0x5ad9ee53, ROMType::SOUND_SAMPLE_SIMM_BYTESWAP, 0 },
+    { "maj5_b.simm5",  0x200000, 0xefb3dbfb, ROMType::SOUND_SAMPLE_SIMM_BYTESWAP, 0 },
+    { "jyangoku.key",  0x000014, 0x95b0a560, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Mega Man 2: The Power Fighters
+static const ROMEntry megaman2_roms[] = {
+    { "rm2u.03",       0x080000, 0x8ffc2cd1, ROMType::PROGRAM, 0 },
+    { "rm2u.04",       0x080000, 0xbb30083a, ROMType::PROGRAM, 0 },
+    { "rm2.05",        0x080000, 0x02ee9efc, ROMType::PROGRAM, 0 },
+    { "rm2.14m",       0x200000, 0x9b1f00b4, ROMType::GRAPHICS, 0 },
+    { "rm2.16m",       0x200000, 0xc2bb0c24, ROMType::GRAPHICS, 0 },
+    { "rm2.18m",       0x200000, 0x12257251, ROMType::GRAPHICS, 0 },
+    { "rm2.20m",       0x200000, 0xf9b6e786, ROMType::GRAPHICS, 0 },
+    { "rm2.01a",       0x020000, 0xd18e7859, ROMType::SOUND_PROGRAM, 0 },
+    { "rm2.02",        0x020000, 0xc463ece0, ROMType::SOUND_PROGRAM, 0 },
+    { "rm2.11m",       0x200000, 0x2106174d, ROMType::SOUND_SAMPLE, 0 },
+    { "rm2.12m",       0x200000, 0x546c1636, ROMType::SOUND_SAMPLE, 0 },
+    { "megaman2.key",  0x000014, 0x6828ed6d, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Mars Matrix: Hyper Solid Shooting
+static const ROMEntry mmatrix_roms[] = {
+    { "mmxu.03",       0x080000, 0xab65b599, ROMType::PROGRAM, 0 },
+    { "mmxu.04",       0x080000, 0x0135fc6c, ROMType::PROGRAM, 0 },
+    { "mmxu.05",       0x080000, 0xf1fd2b84, ROMType::PROGRAM, 0 },
+    { "mmx.13m",       0x400000, 0x04748718, ROMType::GRAPHICS, 0 },
+    { "mmx.15m",       0x400000, 0x38074f44, ROMType::GRAPHICS, 0 },
+    { "mmx.17m",       0x400000, 0xe4635e35, ROMType::GRAPHICS, 0 },
+    { "mmx.19m",       0x400000, 0x4400a3f2, ROMType::GRAPHICS, 0 },
+    { "mmx.14m",       0x400000, 0xd52bf491, ROMType::GRAPHICS, 0 },
+    { "mmx.16m",       0x400000, 0x23f70780, ROMType::GRAPHICS, 0 },
+    { "mmx.18m",       0x400000, 0x2562c9d5, ROMType::GRAPHICS, 0 },
+    { "mmx.20m",       0x400000, 0x583a9687, ROMType::GRAPHICS, 0 },
+    { "mmx.01",        0x020000, 0xc57e8171, ROMType::SOUND_PROGRAM, 0 },
+    { "mmx.11m",       0x400000, 0x4180b39f, ROMType::SOUND_SAMPLE, 0 },
+    { "mmx.12m",       0x400000, 0x95e22a59, ROMType::SOUND_SAMPLE, 0 },
+    { "mmatrix.key",   0x000014, 0x8ed66bc4, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Mighty! Pang
+static const ROMEntry mpang_roms[] = {
+    { "mpne.03c",      0x080000, 0xfe16fc9f, ROMType::PROGRAM, 0 },
+    { "mpne.04c",      0x080000, 0x2cc5ec22, ROMType::PROGRAM, 0 },
+    { "mpn-simm.01c",  0x200000, 0x388db66b, ROMType::GRAPHICS_SIMM, 0 },
+    { "mpn-simm.01d",  0x200000, 0xaff1b494, ROMType::GRAPHICS_SIMM, 0 },
+    { "mpn-simm.01a",  0x200000, 0xa9c4857b, ROMType::GRAPHICS_SIMM, 0 },
+    { "mpn-simm.01b",  0x200000, 0xf759df22, ROMType::GRAPHICS_SIMM, 0 },
+    { "mpn-simm.03c",  0x200000, 0xdec6b720, ROMType::GRAPHICS_SIMM, 0 },
+    { "mpn-simm.03d",  0x200000, 0xf8774c18, ROMType::GRAPHICS_SIMM, 0 },
+    { "mpn-simm.03a",  0x200000, 0xc2aea4ec, ROMType::GRAPHICS_SIMM, 0 },
+    { "mpn-simm.03b",  0x200000, 0x84d6dc33, ROMType::GRAPHICS_SIMM, 0 },
+    { "mpn.01",        0x020000, 0x90c7adb6, ROMType::SOUND_PROGRAM, 0 },
+    { "mpn-simm.05a",  0x200000, 0x318a2e21, ROMType::SOUND_SAMPLE_SIMM, 0 },
+    { "mpn-simm.05b",  0x200000, 0x5462f4e8, ROMType::SOUND_SAMPLE_SIMM, 0 },
+    { "mpang.key",     0x000014, 0x95354b0f, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Night Warriors: Darkstalkers' Revenge
+static const ROMEntry nwarr_roms[] = {
+    { "vphe.03f",      0x080000, 0xa922c44f, ROMType::PROGRAM, 0 },
+    { "vphe.04c",      0x080000, 0x7312d890, ROMType::PROGRAM, 0 },
+    { "vphe.05d",      0x080000, 0xcde8b506, ROMType::PROGRAM, 0 },
+    { "vphe.06c",      0x080000, 0xbe99e7d0, ROMType::PROGRAM, 0 },
+    { "vphe.07b",      0x080000, 0x69e0e60c, ROMType::PROGRAM, 0 },
+    { "vphe.08b",      0x080000, 0xd95a3849, ROMType::PROGRAM, 0 },
+    { "vphe.09b",      0x080000, 0x9882561c, ROMType::PROGRAM, 0 },
+    { "vphe.10b",      0x080000, 0x976fa62f, ROMType::PROGRAM, 0 },
+
+    { "vph.13m",       0x400000, 0xc51baf99, ROMType::GRAPHICS, 0 },
+    { "vph.15m",       0x400000, 0x3ce83c77, ROMType::GRAPHICS, 0 },
+    { "vph.17m",       0x400000, 0x4f2408e0, ROMType::GRAPHICS, 0 },
+    { "vph.19m",       0x400000, 0x9ff60250, ROMType::GRAPHICS, 0 },
+    { "vph.14m",       0x400000, 0x7a0e1add, ROMType::GRAPHICS, 0 },
+    { "vph.16m",       0x400000, 0x2f41ca75, ROMType::GRAPHICS, 0 },
+    { "vph.18m",       0x400000, 0x64498eed, ROMType::GRAPHICS, 0 },
+    { "vph.20m",       0x400000, 0x17f2433f, ROMType::GRAPHICS, 0 },
+    { "vph.01",        0x020000, 0x5045dcac, ROMType::SOUND_PROGRAM, 0 },
+    { "vph.02",        0x020000, 0x86b60e59, ROMType::SOUND_PROGRAM, 0 },
+    { "vph.11m",       0x200000, 0xe1837d33, ROMType::SOUND_SAMPLE, 0 },
+    { "vph.12m",       0x200000, 0xfbd3cd90, ROMType::SOUND_SAMPLE, 0 },
+    { "nwarr.key",     0x000014, 0x618a13ca, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Puzz Loop 2
+static const ROMEntry pzloop2_roms[] = {
+    { "pl2e.03",       0x080000, 0x3b1285b2, ROMType::PROGRAM, 0 },
+    { "pl2e.04",       0x080000, 0x40a2d647, ROMType::PROGRAM, 0 },
+    { "pl2e.05",       0x080000, 0x0f11d818, ROMType::PROGRAM, 0 },
+    { "pl2e.06",       0x080000, 0x86fbbdf4, ROMType::PROGRAM, 0 },
+    { "pl2-simm.01c",  0x200000, 0x137b13a7, ROMType::GRAPHICS_SIMM, 0 },
+    { "pl2-simm.01d",  0x200000, 0xa2db1507, ROMType::GRAPHICS_SIMM, 0 },
+    { "pl2-simm.01a",  0x200000, 0x7e80ff8e, ROMType::GRAPHICS_SIMM, 0 },
+    { "pl2-simm.01b",  0x200000, 0xcd93e6ed, ROMType::GRAPHICS_SIMM, 0 },
+    { "pl2-simm.03c",  0x200000, 0x0f52bbca, ROMType::GRAPHICS_SIMM, 0 },
+    { "pl2-simm.03d",  0x200000, 0xa62712c3, ROMType::GRAPHICS_SIMM, 0 },
+    { "pl2-simm.03a",  0x200000, 0xb60c9f8e, ROMType::GRAPHICS_SIMM, 0 },
+    { "pl2-simm.03b",  0x200000, 0x83fef284, ROMType::GRAPHICS_SIMM, 0 },
+    { "pl2.01",        0x020000, 0x35697569, ROMType::SOUND_PROGRAM, 0 },
+    { "pl2-simm.05a",  0x200000, 0x85d8fbe8, ROMType::SOUND_SAMPLE_SIMM, 0 },
+    { "pl2-simm.05b",  0x200000, 0x1ed62584, ROMType::SOUND_SAMPLE_SIMM, 0 },
+    { "pzloop2.key",   0x000014, 0xae13be78, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Quiz Nanairo Dreams: Nijiirochou no Kiseki
+static const ROMEntry qndream_roms[] = {
+    { "tqzj.03a",      0x080000, 0x7acf3e30, ROMType::PROGRAM, 0 },
+    { "tqzj.04",       0x080000, 0xf1044a87, ROMType::PROGRAM, 0 },
+    { "tqzj.05",       0x080000, 0x4105ba0e, ROMType::PROGRAM, 0 },
+    { "tqzj.06",       0x080000, 0xc371e8a5, ROMType::PROGRAM, 0 },
+    { "tqz.14m",       0x200000, 0x98af88a2, ROMType::GRAPHICS, 0 },
+    { "tqz.16m",       0x200000, 0xdf82d491, ROMType::GRAPHICS, 0 },
+    { "tqz.18m",       0x200000, 0x42f132ff, ROMType::GRAPHICS, 0 },
+    { "tqz.20m",       0x200000, 0xb2e128a3, ROMType::GRAPHICS, 0 },
+    { "tqz.01",        0x020000, 0xe9ce9d0a, ROMType::SOUND_PROGRAM, 0 },
+    { "tqz.11m",       0x200000, 0x78e7884f, ROMType::SOUND_SAMPLE, 0 },
+    { "tqz.12m",       0x200000, 0x2e049b13, ROMType::SOUND_SAMPLE, 0 },
+    { "qndream.key",   0x000014, 0x97eee4ff, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Ring of Destruction: Slammasters II
+static const ROMEntry ringdest_roms[] = {
+    { "smbe.03b",      0x080000, 0xb8016278, ROMType::PROGRAM, 0 },
+    { "smbe.04b",      0x080000, 0x18c4c447, ROMType::PROGRAM, 0 },
+    { "smbe.05b",      0x080000, 0x18ebda7f, ROMType::PROGRAM, 0 },
+    { "smbe.06b",      0x080000, 0x89c80007, ROMType::PROGRAM, 0 },
+    { "smb.07",        0x080000, 0xb9a11577, ROMType::PROGRAM, 0 },
+    { "smb.08",        0x080000, 0xf931b76b, ROMType::PROGRAM, 0 },
+    { "smb.13m",       0x200000, 0xd9b2d1de, ROMType::GRAPHICS, 0 },
+    { "smb.15m",       0x200000, 0x9a766d92, ROMType::GRAPHICS, 0 },
+    { "smb.17m",       0x200000, 0x51800f0f, ROMType::GRAPHICS, 0 },
+    { "smb.19m",       0x200000, 0x35757e96, ROMType::GRAPHICS, 0 },
+    { "smb.14m",       0x200000, 0xe5bfd0e7, ROMType::GRAPHICS, 0 },
+    { "smb.16m",       0x200000, 0xc56c0866, ROMType::GRAPHICS, 0 },
+    { "smb.18m",       0x200000, 0x4ded3910, ROMType::GRAPHICS, 0 },
+    { "smb.20m",       0x200000, 0x26ea1ec5, ROMType::GRAPHICS, 0 },
+    { "smb.21m",       0x080000, 0x0a08c5fc, ROMType::GRAPHICS, 0 },
+    { "smb.23m",       0x080000, 0x0911b6c4, ROMType::GRAPHICS, 0 },
+    { "smb.25m",       0x080000, 0x82d6c4ec, ROMType::GRAPHICS, 0 },
+    { "smb.27m",       0x080000, 0x9b48678b, ROMType::GRAPHICS, 0 },
+    { "smb.01",        0x020000, 0x0abc229a, ROMType::SOUND_PROGRAM, 0 },
+    { "smb.02",        0x020000, 0xd051679a, ROMType::SOUND_PROGRAM, 0 },
+    { "smb.11m",       0x200000, 0xc56935f9, ROMType::SOUND_SAMPLE, 0 },
+    { "smb.12m",       0x200000, 0x955b0782, ROMType::SOUND_SAMPLE, 0 },
+    { "ringdest.key",  0x000014, 0x17f9269c, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Street Fighter Zero 2 Alpha
+static const ROMEntry sfz2al_roms[] = {
+    { "szaa.03",       0x080000, 0x88e7023e, ROMType::PROGRAM, 0 },
+    { "szaa.04",       0x080000, 0xae8ec36e, ROMType::PROGRAM, 0 },
+    { "szaa.05",       0x080000, 0xf053a55e, ROMType::PROGRAM, 0 },
+    { "szaa.06",       0x080000, 0xcfc0e7a8, ROMType::PROGRAM, 0 },
+    { "szaa.07",       0x080000, 0x5feb8b20, ROMType::PROGRAM, 0 },
+    { "szaa.08",       0x080000, 0x6eb6d412, ROMType::PROGRAM, 0 },
+    { "sza.13m",       0x400000, 0x4d1f1f22, ROMType::GRAPHICS, 0 },
+    { "sza.15m",       0x400000, 0x19cea680, ROMType::GRAPHICS, 0 },
+    { "sza.17m",       0x400000, 0xe01b4588, ROMType::GRAPHICS, 0 },
+    { "sza.19m",       0x400000, 0x0feeda64, ROMType::GRAPHICS, 0 },
+    { "sza.14m",       0x100000, 0x0560c6aa, ROMType::GRAPHICS, 0 },
+    { "sza.16m",       0x100000, 0xae940f87, ROMType::GRAPHICS, 0 },
+    { "sza.18m",       0x100000, 0x4bc3c8bc, ROMType::GRAPHICS, 0 },
+    { "sza.20m",       0x100000, 0x39e674c0, ROMType::GRAPHICS, 0 },
+    { "sza.01",        0x020000, 0x1bc323cf, ROMType::SOUND_PROGRAM, 0 },
+    { "sza.02",        0x020000, 0xba6a5013, ROMType::SOUND_PROGRAM, 0 },
+    { "sza.11m",       0x200000, 0xaa47a601, ROMType::SOUND_SAMPLE, 0 },
+    { "sza.12m",       0x200000, 0x2237bc53, ROMType::SOUND_SAMPLE, 0 },
+    { "sfz2al.key",    0x000014, 0x2904963e, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Super Gem Fighter: Mini Mix
+static const ROMEntry sgemf_roms[] = {
+    { "pcfu.03",       0x080000, 0xac2e8566, ROMType::PROGRAM, 0 },
+    { "pcf.04",        0x080000, 0xf4314c96, ROMType::PROGRAM, 0 },
+    { "pcf.05",        0x080000, 0x215655f6, ROMType::PROGRAM, 0 },
+    { "pcf.06",        0x080000, 0xea6f13ea, ROMType::PROGRAM, 0 },
+    { "pcf.07",        0x080000, 0x5ac6d5ea, ROMType::PROGRAM, 0 },
+    { "pcf.13m",       0x400000, 0x22d72ab9, ROMType::GRAPHICS, 0 },
+    { "pcf.15m",       0x400000, 0x16a4813c, ROMType::GRAPHICS, 0 },
+    { "pcf.17m",       0x400000, 0x1097e035, ROMType::GRAPHICS, 0 },
+    { "pcf.19m",       0x400000, 0xd362d874, ROMType::GRAPHICS, 0 },
+    { "pcf.14m",       0x100000, 0x0383897c, ROMType::GRAPHICS, 0 },
+    { "pcf.16m",       0x100000, 0x76f91084, ROMType::GRAPHICS, 0 },
+    { "pcf.18m",       0x100000, 0x756c3754, ROMType::GRAPHICS, 0 },
+    { "pcf.20m",       0x100000, 0x9ec9277d, ROMType::GRAPHICS, 0 },
+    { "pcf.01",        0x020000, 0x254e5f33, ROMType::SOUND_PROGRAM, 0 },
+    { "pcf.02",        0x020000, 0x6902f4f9, ROMType::SOUND_PROGRAM, 0 },
+    { "pcf.11m",       0x400000, 0xa5dea005, ROMType::SOUND_SAMPLE, 0 },
+    { "pcf.12m",       0x400000, 0x4ce235fe, ROMType::SOUND_SAMPLE, 0 },
+    { "sgemf.key",     0x000014, 0x3d604021, ROMType::ENCRYPTION_KEY, 0 },
+};
+
+// Vampire Hunter 2: Darkstalkers Revenge
+static const ROMEntry vhunt2_roms[] = {
+    { "vh2j.03a",      0x080000, 0x9ae8f186, ROMType::PROGRAM, 0 },
+    { "vh2j.04a",      0x080000, 0xe2fabf53, ROMType::PROGRAM, 0 },
+    { "vh2j.05",       0x080000, 0xde34f624, ROMType::PROGRAM, 0 },
+    { "vh2j.06",       0x080000, 0x6a3b9897, ROMType::PROGRAM, 0 },
+    { "vh2j.07",       0x080000, 0xb021c029, ROMType::PROGRAM, 0 },
+    { "vh2j.08",       0x080000, 0xac873dff, ROMType::PROGRAM, 0 },
+    { "vh2j.09",       0x080000, 0xeaefce9c, ROMType::PROGRAM, 0 },
+    { "vh2j.10",       0x080000, 0x11730952, ROMType::PROGRAM, 0 },
+    { "vh2.13m",       0x400000, 0x3b02ddaa, ROMType::GRAPHICS, 0 },
+    { "vh2.15m",       0x400000, 0x4e40de66, ROMType::GRAPHICS, 0 },
+    { "vh2.17m",       0x400000, 0xb31d00c9, ROMType::GRAPHICS, 0 },
+    { "vh2.19m",       0x400000, 0x149be3ab, ROMType::GRAPHICS, 0 },
+    { "vh2.14m",       0x400000, 0xcd09bd63, ROMType::GRAPHICS, 0 },
+    { "vh2.16m",       0x400000, 0xe0182c15, ROMType::GRAPHICS, 0 },
+    { "vh2.18m",       0x400000, 0x778dc4f6, ROMType::GRAPHICS, 0 },
+    { "vh2.20m",       0x400000, 0x605d9d1d, ROMType::GRAPHICS, 0 },
+    { "vh2.01",        0x020000, 0x67b9f779, ROMType::SOUND_PROGRAM, 0 },
+    { "vh2.02",        0x020000, 0xaaf15fcb, ROMType::SOUND_PROGRAM, 0 },
+    { "vh2.11m",       0x400000, 0x38922efd, ROMType::SOUND_SAMPLE, 0 },
+    { "vh2.12m",       0x400000, 0x6e2430af, ROMType::SOUND_SAMPLE, 0 },
+    { "vhunt2.key",    0x000014, 0x61306b20, ROMType::ENCRYPTION_KEY, 0 },
+};
+
 // ============================================================================
 // Game Database
 // ============================================================================
@@ -471,83 +915,167 @@ static const ROMEntry game_xmvsf_roms[] = {
 const GameInfo GameDatabase::s_cps2_games[] = {
     {
         "19xx", "19XX: The War Against Destiny", 2, game_19xx_roms, sizeof(game_19xx_roms) / sizeof(ROMEntry),
-        GameFlags::GAME_FLAG_VERTICAL_SCREEN, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        GameFlags::GAME_FLAG_VERTICAL_SCREEN, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr
     },
     {
         "1944", "1944: The Loop Master", 2, game_1944_roms, sizeof(game_1944_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr
     },
     {
-        "avsp", "Alien vs. Predator", 2, game_avsp_roms, sizeof(game_avsp_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "armwar", "Armored Warriors", 2, armwar_roms, sizeof(armwar_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr
     },
     {
-        "ddsom", "Dungeons & Dragons: Shadow over Mystara", 2, game_ddsom_roms, sizeof(game_ddsom_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "avsp", "Alien vs. Predator", 2, avsp_roms, sizeof(avsp_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr
     },
     {
-        "ddtod", "Dungeons & Dragons: Tower of Doom", 2, game_ddtod_roms, sizeof(game_ddtod_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "batcir", "Battle Circuit", 2, batcir_roms, sizeof(batcir_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr
     },
     {
-        "hsf2", "Hyper Street Fighter II: The Anniversary Edition", 2, game_hsf2_roms, sizeof(game_hsf2_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "choko", "Janpai Puzzle Choukou", 2, choko_roms, sizeof(choko_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr
     },
     {
-        "msh", "Marvel Super Heroes", 2, game_msh_roms, sizeof(game_msh_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "csclub", "Capcom Sports Club", 2, csclub_roms, sizeof(csclub_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr
     },
     {
-        "mshvsf", "Marvel Super Heroes vs. Street Fighter", 2, game_mshvsf_roms, sizeof(game_mshvsf_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "cybots", "Cyberbots: Fullmetal Madness", 2, cybots_roms, sizeof(cybots_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
     },
     {
-        "mvsc", "Marvel vs. Capcom: Clash of Super Heroes", 2, game_mvsc_roms, sizeof(game_mvsc_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "ddsom", "Dungeons & Dragons: Shadow over Mystara", 2, ddsom_roms, sizeof(ddsom_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
     },
     {
-        "progear", "Progear", 2, game_progear_roms, sizeof(game_progear_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "ddtod", "Dungeons & Dragons: Tower of Doom", 2, ddtod_roms, sizeof(ddtod_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
     },
     {
-        "sfa", "Street Fighter Alpha: Warriors' Dreams", 2, game_sfa_roms, sizeof(game_sfa_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "dimahoo", "Dimahoo", 2, dimahoo_roms, sizeof(dimahoo_roms) / sizeof(ROMEntry),
+        GameFlags::GAME_FLAG_VERTICAL_SCREEN, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
     },
     {
-        "sfa2", "Street Fighter Alpha 2", 2, game_sfa2_roms, sizeof(game_sfa2_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "dstlk", "Darkstalkers: The Night Warriors", 2, dstlk_roms, sizeof(dstlk_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
     },
     {
-        "sfa3", "Street Fighter Alpha 3", 2, game_sfa3_roms, sizeof(game_sfa3_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "ecofghtr", "Eco Fighters", 2, ecofghtr_roms, sizeof(ecofghtr_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
     },
     {
-        "spf2t", "Super Puzzle Fighter II Turbo", 2, game_spf2t_roms, sizeof(game_spf2t_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "ffightaec2", "Final Fight: Anniversary Edition", 2, ffightaec2_roms, sizeof(ffightaec2_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
     },
     {
-        "ssf2", "Super Street Fighter II: The New Challengers", 2, game_ssf2_roms, sizeof(game_ssf2_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "gigawing", "Giga Wing", 2, gigawing_roms, sizeof(gigawing_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
     },
     {
-        "ssf2t", "Super Street Fighter II Turbo", 2, game_ssf2t_roms, sizeof(game_ssf2t_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "hsf2", "Hyper Street Fighter II: The Anniversary Edition", 2, hsf2_roms, sizeof(hsf2_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
     },
     {
-        "vsav", "Vampire Savior: The Lord of Vampire", 2, game_vsav_roms, sizeof(game_vsav_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "jyangoku", "Jyangokushi: Haoh no Saihai", 2, jyangoku_roms, sizeof(jyangoku_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
     },
     {
-        "vsav2", "Vampire Savior 2: The Lord of Vampire", 2, game_vsav2_roms, sizeof(game_vsav2_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "megaman2", "Mega Man 2: The Power Fighters", 2, megaman2_roms, sizeof(megaman2_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
     },
     {
-        "xmcota", "X-Men: Children of the Atom", 2, game_xmcota_roms, sizeof(game_xmcota_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "mmatrix", "Mars Matrix: Hyper Solid Shooting", 2, mmatrix_roms, sizeof(mmatrix_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
     },
     {
-        "xmvsf", "X-Men vs. Street Fighter", 2, game_xmvsf_roms, sizeof(game_xmvsf_roms) / sizeof(ROMEntry),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE
+        "mpang", "Mighty! Pang", 2, mpang_roms, sizeof(mpang_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "msh", "Marvel Super Heroes", 2, msh_roms, sizeof(msh_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "mshvsf", "Marvel Super Heroes vs. Street Fighter", 2, mshvsf_roms, sizeof(mshvsf_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "mvsc", "Marvel vs. Capcom: Clash of Super Heroes", 2, mvsc_roms, sizeof(mvsc_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "nwarr", "Night Warriors: Darkstalkers' Revenge", 2, nwarr_roms, sizeof(nwarr_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "progear", "Progear", 2, progear_roms, sizeof(progear_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "pzloop2", "Puzz Loop 2", 2, pzloop2_roms, sizeof(pzloop2_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "qndream", "Quiz Nanairo Dreams: Nijiirochou no Kiseki", 2, qndream_roms, sizeof(qndream_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "ringdest", "Ring of Destruction: Slammasters II", 2, ringdest_roms, sizeof(ringdest_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "sfa", "Street Fighter Alpha: Warriors' Dreams", 2, sfa_roms, sizeof(sfa_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "sfa2", "Street Fighter Alpha 2", 2, sfa2_roms, sizeof(sfa2_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "sfz2al", "Street Fighter Zero 2 Alpha", 2, sfz2al_roms, sizeof(sfz2al_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "sfa3", "Street Fighter Alpha 3", 2, sfa3_roms, sizeof(sfa3_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "sgemf", "Super Gem Fighter: Mini Mix", 2, sgemf_roms, sizeof(sgemf_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "spf2t", "Super Puzzle Fighter II Turbo", 2, spf2t_roms, sizeof(spf2t_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "ssf2", "Super Street Fighter II: The New Challengers", 2, ssf2_roms, sizeof(ssf2_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "ssf2t", "Super Street Fighter II Turbo", 2, ssf2t_roms, sizeof(ssf2t_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "vhunt2", "Vampire Hunter 2: Darkstalkers Revenge", 2, vhunt2_roms, sizeof(vhunt2_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "vsav", "Vampire Savior: The Lord of Vampire", 2, vsav_roms, sizeof(vsav_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "vsav2", "Vampire Savior 2: The Lord of Vampire", 2, vsav2_roms, sizeof(vsav2_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "xmcota", "X-Men: Children of the Atom", 2, xmcota_roms, sizeof(xmcota_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
+    },
+    {
+        "xmvsf", "X-Men vs. Street Fighter", 2, xmvsf_roms, sizeof(xmvsf_roms) / sizeof(ROMEntry),
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_NONE, nullptr 
     },
 };
 

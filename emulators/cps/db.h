@@ -20,9 +20,11 @@ enum class ROMType {
     PROGRAM,        // 68000 program ROM
     GRAPHICS,       // Graphics/tile ROM
     GRAPHICS_SIMM,  // Graphics/tile ROM (SIMM)
+    GRAPHICS_SPLIT4,  // Graphics/tile ROM (SPLIT4)
     SOUND_PROGRAM,  // Z80 sound program ROM
     SOUND_SAMPLE,   // ADPCM sample ROMs (CPS1) or QSound samples (CPS2)
     SOUND_SAMPLE_SIMM,  // ADPCM sample ROMs (SIMM)
+    SOUND_SAMPLE_SIMM_BYTESWAP,  // ADPCM sample ROMs (SIMM) byteswapped
     PLD,            // PLD files (optional, CPS1 only)
     ENCRYPTION_KEY, // Decryption key (CPS2 only)
     UNKNOWN
