@@ -145,6 +145,9 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     
     // Track graphics ROM sizes for CPS1 decoding (need to check if ROMs < 0x80000)
     std::vector<u32> graphicsRomSizes;
+    bool graphicsRomIsSimm = false;
+    std::vector<u32> soundSampleRomSizes;
+    bool soundSampleRomIsSimmInterleave = false;
     
     // Load ROMs in database order
     for (u32 i = 0; i < m_gameInfo->romCount; i++) {
@@ -221,6 +224,9 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                             m_programRomEncrypted.insert(m_programRomEncrypted.end(), pair.second.begin(), pair.second.end());
                         }
                         break;
+                    case ROMType::GRAPHICS_SIMM:
+                        graphicsRomIsSimm = true;
+                        // fall through
                     case ROMType::GRAPHICS:
                         std::cout << "Loading graphics: " << entry.filename << std::endl;
                         m_graphicsRom.insert(m_graphicsRom.end(), pair.second.begin(), pair.second.end());
@@ -230,9 +236,14 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                         std::cout << "Loading sound program: " << entry.filename << std::endl;
                         m_soundProgramRom.insert(m_soundProgramRom.end(), pair.second.begin(), pair.second.end());
                         break;
+                    case ROMType::SOUND_SAMPLE_SIMM_BYTESWAP:
+                        soundSampleRomIsSimmInterleave = true;
+                        // fall through
                     case ROMType::SOUND_SAMPLE:
+                    case ROMType::SOUND_SAMPLE_SIMM:
                         std::cout << "Loading sound sample: " << entry.filename << std::endl;
                         m_soundSampleRom.insert(m_soundSampleRom.end(), pair.second.begin(), pair.second.end());
+                        soundSampleRomSizes.push_back(entry.size);
                         break;
                     case ROMType::PLD:
                         // Skip PLD files
@@ -297,6 +308,57 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                 offset += static_cast<u32>(chip.size());
             }
         }
+    }
+
+    // CPS2-specific: Handle graphics SIMM ROM interleaving
+    if (graphicsRomIsSimm) {
+        // Create new graphics ROM and sizes
+        std::vector<u8> newGraphicsRom(m_graphicsRom.size());
+        // Rebuild graphics ROM sizes for decoding later
+        std::vector<u32> newGraphicsRomSizes(graphicsRomSizes.size() / 2);
+
+        // Check if we have an odd number of graphics ROMs
+        if (graphicsRomSizes.size() % 2 != 0) {
+            std::cerr << "Error: Odd number of graphics ROMs for SIMM" << std::endl;
+            return false;
+        }
+
+        // Interleave graphics ROMs
+        u32 offset = 0;
+        for (size_t i = 0; i < graphicsRomSizes.size(); i += 2) {
+            auto romPosition = m_graphicsRom.begin() + offset;
+            std::vector<u8> rom1(romPosition, romPosition + graphicsRomSizes[i]);
+            std::vector<u8> rom2(romPosition + graphicsRomSizes[i], romPosition + graphicsRomSizes[i] + graphicsRomSizes[i + 1]);
+            interleave(newGraphicsRom.data() + offset, rom1, rom2);
+
+            u32 size = rom1.size() + rom2.size();
+            offset += size;
+            newGraphicsRomSizes[i / 2] = size;
+        }
+
+        // Update graphics ROM and sizes
+        m_graphicsRom = newGraphicsRom;
+        graphicsRomSizes = newGraphicsRomSizes;
+    }
+
+    // CPS2-specific: Handle sound sample SIMM ROM interleaving
+    if (soundSampleRomIsSimmInterleave) {
+        // Create new sound sample ROM and sizes
+        std::vector<u8> newSoundSampleRom(m_soundSampleRom.size());
+
+        // Interleave sound sample ROMs
+        u32 offset = 0;
+        for (size_t i = 0; i < soundSampleRomSizes.size(); i += 2) {
+            auto romPosition = m_soundSampleRom.begin() + offset;
+            std::vector<u8> rom1(romPosition, romPosition + soundSampleRomSizes[i]);
+            std::vector<u8> rom2(romPosition + soundSampleRomSizes[i], romPosition + soundSampleRomSizes[i] + soundSampleRomSizes[i + 1]);
+            interleave(newSoundSampleRom.data() + offset, rom1, rom2);
+
+            offset += rom1.size() + rom2.size();
+        }
+
+        // Update sound sample ROM
+        m_soundSampleRom = newSoundSampleRom;
     }
     
     // Update sizes
