@@ -109,10 +109,8 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     bool swapvFlag = (m_gameInfo->flags & GAME_FLAG_SWAPV) != 0;
     u32 programRomIndex = 0;
 
-    // Temporary storage for sprite ROMs (need to interleave them)
-    std::vector<std::vector<u8>> spriteRomChips;
-    
     // Load ROMs in database order
+    bool interleaveInProgress = false;
     for (u32 i = 0; i < m_gameInfo->romCount; i++) {
         const ROMEntry& entry = m_gameInfo->roms[i];
         
@@ -149,7 +147,13 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                         break;
                     case ROMType::SPRITE:
                         std::cout << "Loading sprite: " << entry.filename << std::endl;
-                        spriteRomChips.push_back(pair.second);
+                        if (!interleaveInProgress) {
+                            m_spriteRom.resize(m_spriteRom.size() + pair.second.size() * 2);
+                            interleavedCopy(m_spriteRom.end().base() - pair.second.size() * 2, pair.second.data(), pair.second.size());
+                        } else {
+                            interleavedCopy(m_spriteRom.end().base() - pair.second.size() * 2 + 1, pair.second.data(), pair.second.size());
+                        }
+                        interleaveInProgress = !interleaveInProgress;
                         break;
                     case ROMType::SOUND_PROGRAM:
                         std::cout << "Loading sound program: " << entry.filename << std::endl;
@@ -185,10 +189,6 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
 
     // Process sprite ROMs
     std::cout << "Decoding sprite ROMs..." << std::endl;
-    if (!interleaveSpriteROMs(spriteRomChips)) {
-        return false;
-    }
-
     // If no text ROM was loaded, extract text data from sprites
     if (m_textRom.empty() && !m_spriteRom.empty() && m_spriteRom.size() > 0x80000) {
         // Extract 512KB of text data from the end of the sprite ROM
@@ -315,6 +315,12 @@ void Cartridge::byteswap(std::vector<u8>& rom) {
     }
 }
 
+void Cartridge::interleavedCopy(u8* dest, const u8* src, u32 size) {
+    for (u32 i = 0; i < size; i++) {
+        dest[i * 2] = src[i];
+    }
+}
+
 void Cartridge::decodeTextROM() {
     if (m_textRom.empty()) {
         return;
@@ -330,43 +336,6 @@ void Cartridge::decodeTextROM() {
         decodeTextTile(tileSrc, temp);
         std::memcpy(tileDst, temp, 32);
     }
-}
-
-bool Cartridge::interleaveSpriteROMs(const std::vector<std::vector<u8>>& spriteRomChips) {
-    u32 totalSize = 0;
-    for (const auto& chip : spriteRomChips) {
-        totalSize += static_cast<u32>(chip.size());
-    }
-    m_spriteRom.resize(totalSize);
-    
-    u32 offset = 0;
-    for (size_t i = 0; i < spriteRomChips.size(); i++) {
-        // Check if we have a pair (even/odd)
-        if (i + 1 >= spriteRomChips.size()) {
-            std::cerr << "Error: ROM chip at index " << i << " needs interleaving but has no pair" << std::endl;
-            return false;
-        }
-        
-        // Verify the pair also needs interleaving
-        const auto& evenChip = spriteRomChips[i];
-        const auto& oddChip = spriteRomChips[i + 1];
-        
-        if (evenChip.size() != oddChip.size()) {
-            std::cerr << "Error: ROM chip size mismatch in pair " << (i/2) << std::endl;
-            return false;
-        }
-        
-        // Interleave bytes: even byte from first chip, odd byte from second chip
-        for (size_t j = 0; j < evenChip.size(); j++) {
-            m_spriteRom[offset++] = evenChip[j];
-            m_spriteRom[offset++] = oddChip[j];
-        }
-        
-        // Skip the next chip since we've already processed it as part of the pair
-        i++;
-    }
-
-    return true;
 }
 
 void Cartridge::decodeSpriteROM() {

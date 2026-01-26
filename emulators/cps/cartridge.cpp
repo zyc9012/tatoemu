@@ -139,17 +139,11 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     std::vector<std::string> missingROMs;
     std::vector<std::string> invalidROMs;
     
-    // CPS1-specific: Temporary storage for program ROMs (need to interleave them)
-    std::vector<std::vector<u8>> programRomChips;
-    std::vector<bool> programRomNeedsInterleave;
-    
-    // Track graphics ROM sizes for CPS1 decoding (need to check if ROMs < 0x80000)
+    // Track graphics ROM sizes for decoding
     std::vector<u32> graphicsRomSizes;
-    bool graphicsRomIsSimm = false;
-    std::vector<u32> soundSampleRomSizes;
-    bool soundSampleRomIsSimmInterleave = false;
     
     // Load ROMs in database order
+    bool interleaveInProgress = false;
     for (u32 i = 0; i < m_gameInfo->romCount; i++) {
         const ROMEntry& entry = m_gameInfo->roms[i];
         
@@ -216,34 +210,57 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                     case ROMType::PROGRAM:
                         std::cout << "Loading program: " << entry.filename << std::endl;
                         if (m_cpsVer == 1) {
-                            // CPS1: Store program ROMs separately for interleaving
-                            programRomChips.push_back(pair.second);
-                            programRomNeedsInterleave.push_back(entry.flags & ROM_FLAG_INTERLEAVE);
+                            if (entry.flags & ROM_FLAG_INTERLEAVE) {
+                                if (!interleaveInProgress) {
+                                    // Even ROM second
+                                    m_programRom.resize(m_programRom.size() + pair.second.size() * 2);
+                                    interleavedCopy(m_programRom.end().base() - pair.second.size() * 2 + 1, pair.second.data(), pair.second.size());
+                                } else {
+                                    // Odd ROM first
+                                    interleavedCopy(m_programRom.end().base() - pair.second.size() * 2, pair.second.data(), pair.second.size());
+                                }
+                                interleaveInProgress = !interleaveInProgress;
+                            } else {
+                                m_programRom.insert(m_programRom.end(), pair.second.begin(), pair.second.end());
+                            }
                         } else {
                             // CPS2: Store encrypted program ROMs directly
                             m_programRomEncrypted.insert(m_programRomEncrypted.end(), pair.second.begin(), pair.second.end());
                         }
                         break;
-                    case ROMType::GRAPHICS_SIMM:
-                        graphicsRomIsSimm = true;
-                        // fall through
                     case ROMType::GRAPHICS:
                         std::cout << "Loading graphics: " << entry.filename << std::endl;
-                        m_graphicsRom.insert(m_graphicsRom.end(), pair.second.begin(), pair.second.end());
-                        graphicsRomSizes.push_back(entry.size);
+                        if (entry.flags & ROM_FLAG_INTERLEAVE) {
+                            if (!interleaveInProgress) {
+                                m_graphicsRom.resize(m_graphicsRom.size() + pair.second.size() * 2);
+                                interleavedCopy(m_graphicsRom.end().base() - pair.second.size() * 2, pair.second.data(), pair.second.size());
+                            } else {
+                                interleavedCopy(m_graphicsRom.end().base() - pair.second.size() * 2 + 1, pair.second.data(), pair.second.size());
+                                graphicsRomSizes.push_back(entry.size * 2);
+                            }
+                            interleaveInProgress = !interleaveInProgress;
+                        } else {
+                            m_graphicsRom.insert(m_graphicsRom.end(), pair.second.begin(), pair.second.end());
+                            graphicsRomSizes.push_back(entry.size);
+                        }
                         break;
                     case ROMType::SOUND_PROGRAM:
                         std::cout << "Loading sound program: " << entry.filename << std::endl;
                         m_soundProgramRom.insert(m_soundProgramRom.end(), pair.second.begin(), pair.second.end());
                         break;
-                    case ROMType::SOUND_SAMPLE_SIMM_BYTESWAP:
-                        soundSampleRomIsSimmInterleave = true;
-                        // fall through
                     case ROMType::SOUND_SAMPLE:
-                    case ROMType::SOUND_SAMPLE_SIMM:
                         std::cout << "Loading sound sample: " << entry.filename << std::endl;
-                        m_soundSampleRom.insert(m_soundSampleRom.end(), pair.second.begin(), pair.second.end());
-                        soundSampleRomSizes.push_back(entry.size);
+                        if (entry.flags & ROM_FLAG_INTERLEAVE) {
+                            if (!interleaveInProgress) {
+                                m_soundSampleRom.resize(m_soundSampleRom.size() + pair.second.size() * 2);
+                                interleavedCopy(m_soundSampleRom.end().base() - pair.second.size() * 2, pair.second.data(), pair.second.size());
+                            } else {
+                                interleavedCopy(m_soundSampleRom.end().base() - pair.second.size() * 2 + 1, pair.second.data(), pair.second.size());
+                            }
+                            interleaveInProgress = !interleaveInProgress;
+                        } else {
+                            m_soundSampleRom.insert(m_soundSampleRom.end(), pair.second.begin(), pair.second.end());
+                        }
                         break;
                     case ROMType::PLD:
                         // Skip PLD files
@@ -272,93 +289,6 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
             std::cerr << "  - " << filename << std::endl;
         }
         return false;
-    }
-    
-    // CPS1-specific: Handle program ROM interleaving
-    if (m_cpsVer == 1 && !programRomChips.empty()) {
-        // Calculate total size
-        u32 totalSize = 0;
-        for (const auto& chip : programRomChips) {
-            totalSize += static_cast<u32>(chip.size());
-        }
-        m_programRom.resize(totalSize);
-        
-        // Process each ROM chip based on its interleave flag
-        u32 offset = 0;
-        for (size_t i = 0; i < programRomChips.size(); i++) {
-            bool needsInterleaving = programRomNeedsInterleave[i];
-            
-            if (needsInterleaving) {
-                // This ROM needs interleaving - it should be part of a pair
-                // Check if we have a pair (even/odd)
-                if (i + 1 >= programRomChips.size()) {
-                    std::cerr << "Error: ROM chip at index " << i << " needs interleaving but has no pair" << std::endl;
-                    return false;
-                }
-                
-                interleave(m_programRom.data() + offset, programRomChips[i + 1], programRomChips[i]);
-                offset += programRomChips[i + 1].size() + programRomChips[i].size();
-                
-                // Skip the next chip since we've already processed it as part of the pair
-                i++;
-            } else {
-                // Simple concatenation
-                const auto& chip = programRomChips[i];
-                std::memcpy(&m_programRom[offset], chip.data(), chip.size());
-                offset += static_cast<u32>(chip.size());
-            }
-        }
-    }
-
-    // CPS2-specific: Handle graphics SIMM ROM interleaving
-    if (graphicsRomIsSimm) {
-        // Create new graphics ROM and sizes
-        std::vector<u8> newGraphicsRom(m_graphicsRom.size());
-        // Rebuild graphics ROM sizes for decoding later
-        std::vector<u32> newGraphicsRomSizes(graphicsRomSizes.size() / 2);
-
-        // Check if we have an odd number of graphics ROMs
-        if (graphicsRomSizes.size() % 2 != 0) {
-            std::cerr << "Error: Odd number of graphics ROMs for SIMM" << std::endl;
-            return false;
-        }
-
-        // Interleave graphics ROMs
-        u32 offset = 0;
-        for (size_t i = 0; i < graphicsRomSizes.size(); i += 2) {
-            auto romPosition = m_graphicsRom.begin() + offset;
-            std::vector<u8> rom1(romPosition, romPosition + graphicsRomSizes[i]);
-            std::vector<u8> rom2(romPosition + graphicsRomSizes[i], romPosition + graphicsRomSizes[i] + graphicsRomSizes[i + 1]);
-            interleave(newGraphicsRom.data() + offset, rom1, rom2);
-
-            u32 size = rom1.size() + rom2.size();
-            offset += size;
-            newGraphicsRomSizes[i / 2] = size;
-        }
-
-        // Update graphics ROM and sizes
-        m_graphicsRom = newGraphicsRom;
-        graphicsRomSizes = newGraphicsRomSizes;
-    }
-
-    // CPS2-specific: Handle sound sample SIMM ROM interleaving
-    if (soundSampleRomIsSimmInterleave) {
-        // Create new sound sample ROM and sizes
-        std::vector<u8> newSoundSampleRom(m_soundSampleRom.size());
-
-        // Interleave sound sample ROMs
-        u32 offset = 0;
-        for (size_t i = 0; i < soundSampleRomSizes.size(); i += 2) {
-            auto romPosition = m_soundSampleRom.begin() + offset;
-            std::vector<u8> rom1(romPosition, romPosition + soundSampleRomSizes[i]);
-            std::vector<u8> rom2(romPosition + soundSampleRomSizes[i], romPosition + soundSampleRomSizes[i] + soundSampleRomSizes[i + 1]);
-            interleave(newSoundSampleRom.data() + offset, rom1, rom2);
-
-            offset += rom1.size() + rom2.size();
-        }
-
-        // Update sound sample ROM
-        m_soundSampleRom = newSoundSampleRom;
     }
     
     // Update sizes
@@ -472,15 +402,9 @@ void Cartridge::byteswap(std::vector<u8>& rom) {
     }
 }
 
-void Cartridge::interleave(u8* romDest, std::vector<u8>& romSrc1, std::vector<u8>& romSrc2) {
-    if (romSrc1.size() != romSrc2.size()) {
-        std::cerr << "Error: ROM size mismatch for interleave" << std::endl;
-        return;
-    }
-    u32 offset = 0;
-    for (size_t i = 0; i < romSrc1.size(); i++) {
-        romDest[offset++] = romSrc1[i];
-        romDest[offset++] = romSrc2[i];
+void Cartridge::interleavedCopy(u8* dest, const u8* src, u32 size) {
+    for (u32 i = 0; i < size; i++) {
+        dest[i * 2] = src[i];
     }
 }
 

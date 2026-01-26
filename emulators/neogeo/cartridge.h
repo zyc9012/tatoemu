@@ -118,8 +118,8 @@ private:
     // ROM decoding functions
     void decodeTextROM();
     void decodeSpriteROM();
-    bool interleaveSpriteROMs(const std::vector<std::vector<u8>>& spriteRomChips);
     void byteswap(std::vector<u8>& rom);
+    void interleavedCopy(u8* dest, const u8* src, u32 size);
     void decodeBIOSTextROM();
     void processSWAPCRom();  // SWAPC: swap sprite ROM regions
     void buildVectorTables();  // Build vector table copies
