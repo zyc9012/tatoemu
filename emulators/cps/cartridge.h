@@ -117,6 +117,7 @@ private:
     void decryptCPS2ProgramROM();
     void byteswap(std::vector<u8>& rom);
     void interleavedCopy(u8* dest, const u8* src, u32 size);
+    u32 calcGraphicsROMSizeFix(const GameInfo* gameInfo);
     void decodeGraphicsROM(const std::vector<u32>& graphicsRomSizes = {});
     void decodeGraphicsROMCPS1(const std::vector<u32>& graphicsRomSizes);
     void decodeGraphicsROMCPS2(const std::vector<u32>& graphicsRomSizes);

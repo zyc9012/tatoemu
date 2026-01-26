@@ -142,6 +142,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     // Track graphics ROM sizes for decoding
     std::vector<u32> graphicsRomSizes;
     u8 graphicsRomGroupSize = 1;
+    u32 graphicsRomSizeFix = calcGraphicsROMSizeFix(m_gameInfo);
     
     // Load ROMs in database order
     bool interleaveInProgress = false;
@@ -245,7 +246,12 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                             interleaveInProgress = !interleaveInProgress;
                         } else {
                             m_graphicsRom.insert(m_graphicsRom.end(), pair.second.begin(), pair.second.end());
-                            graphicsRomSizes.push_back(entry.size);
+                            if (graphicsRomSizeFix > 0 && entry.size < graphicsRomSizeFix) {
+                                m_graphicsRom.resize(m_graphicsRom.size() + graphicsRomSizeFix - entry.size);
+                                graphicsRomSizes.push_back(graphicsRomSizeFix);
+                            } else {
+                                graphicsRomSizes.push_back(entry.size);
+                            }
                         }
                         break;
                     case ROMType::SOUND_PROGRAM:
@@ -515,6 +521,26 @@ void Cartridge::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_decryptKey), sizeof(m_decryptKey));
     file.read(reinterpret_cast<char*>(&m_decryptStart), sizeof(m_decryptStart));
     file.read(reinterpret_cast<char*>(&m_decryptEnd), sizeof(m_decryptEnd));
+}
+
+u32 Cartridge::calcGraphicsROMSizeFix(const GameInfo* gameInfo) {
+    if (gameInfo->cpsVer == 1) {
+        return 0;
+    }
+    u32 maxSize = 0;
+    // If graphics ROM size increases, use the largest ROM size
+    // Example game: 19xx
+    for (u32 i = 0; i < m_gameInfo->romCount; i++) {
+        const ROMEntry& entry = m_gameInfo->roms[i];
+        if (entry.type == ROMType::GRAPHICS) {
+            if (entry.size > maxSize) {
+                maxSize = entry.size;
+            } else if (entry.size < maxSize) {
+                maxSize = 0;
+            }
+        }
+    }
+    return maxSize;
 }
 
 void Cartridge::decodeGraphicsROM(const std::vector<u32>& graphicsRomSizes) {
