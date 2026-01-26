@@ -404,6 +404,11 @@ void Memory::write16(u32 address, u16 value) {
         if ((address & 0xFF8FFF) == (0x800100 + m_memProt[1])) {
             m_protCalc[1] = value;
         }
+        if (address == 0x804040) {
+            if ((value & 0x0008) == 0) {
+                m_soundCpu->reset();
+            }
+        }
         
         writePort(address & 0x1FF, (value >> 8) & 0xFF);
         writePort((address & 0x1FF) + 1, value & 0xFF);
