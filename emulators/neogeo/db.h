@@ -50,13 +50,13 @@ enum GameFlags {
 
 // Game database entry
 struct GameInfo {
-    const char* name;              // Game name
     const char* romSetName;        // MAME ROM set name
+    const char* name;              // Game name
     const ROMEntry* roms;          // Array of ROM entries
     u32 romCount;                  // Number of ROM entries
     u32 screenWidth;               // Screen width
     u32 screenHeight;              // Screen height
-    u8 flags;                      // Hardware flags (P32, SWAPP, etc.)
+    u16 flags;                     // Hardware flags (P32, SWAPP, etc.)
 };
 
 // Game database
