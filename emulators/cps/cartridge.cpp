@@ -141,6 +141,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     
     // Track graphics ROM sizes for decoding
     std::vector<u32> graphicsRomSizes;
+    u8 graphicsRomGroupSize = 1;
     
     // Load ROMs in database order
     bool interleaveInProgress = false;
@@ -228,6 +229,9 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                             m_programRomEncrypted.insert(m_programRomEncrypted.end(), pair.second.begin(), pair.second.end());
                         }
                         break;
+                    case ROMType::GRAPHICS_SPLIT4:
+                        graphicsRomGroupSize = 4;
+                        // fall through
                     case ROMType::GRAPHICS:
                         std::cout << "Loading graphics: " << entry.filename << std::endl;
                         if (entry.flags & ROM_FLAG_INTERLEAVE) {
@@ -327,6 +331,16 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
         byteswap(m_soundSampleRom);
     }
     
+    // Update graphics ROM sizes by group size
+    if (graphicsRomGroupSize > 1) {
+        std::vector<u32> newGraphicsRomSizes(graphicsRomSizes.size() / graphicsRomGroupSize);
+        for (u32 i = 0; i < graphicsRomSizes.size(); i += graphicsRomGroupSize) {
+            for (u8 j = 0; j < graphicsRomGroupSize; j++) {
+                newGraphicsRomSizes[i / graphicsRomGroupSize] += graphicsRomSizes[i + j];
+            }
+        }
+        graphicsRomSizes = newGraphicsRomSizes;
+    }
     // Decode graphics ROM (CPS1 and CPS2 use different decoding methods)
     decodeGraphicsROM(graphicsRomSizes);
     if (m_ppu) {
