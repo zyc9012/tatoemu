@@ -143,7 +143,10 @@ u8 Memory::read8(u32 address) {
     
     // Video controller (0x3C0000-0x3C000F)
     if (address >= 0x3C0000 && address <= 0x3C000F) {
-        return readVideoController(address) >> ((address & 1) ? 0 : 8);
+        if (address & 1) {
+            return 0xFF;
+        }
+        return readVideoController(address) >> 8;
     }
     
     // Palette RAM (0x400000-0x7FFFFF) - readable, mirrored every 0x2000 bytes
@@ -342,9 +345,10 @@ u16 Memory::readVideoController(u32 address) {
         case 0x06:
             // Display status (scanline + sprite frame)
             if (m_ppu) {
-                u32 scanline = m_ppu->getScanline();
+                constexpr u32 scanlineOffset = 0xF8;
+                u32 currentScanline = (m_ppu->getScanline() + 248) % 264;
                 u32 spriteFrame = m_ppu->getSpriteFrame();
-                return static_cast<u16>((scanline << 7) | (spriteFrame & 7));
+                return static_cast<u16>(((currentScanline + scanlineOffset) << 7) | (spriteFrame & 7));
             }
             return (0xF8 << 7);  // Fake VBlank
             
