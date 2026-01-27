@@ -23,8 +23,7 @@ public:
     void setPPU(PPU* ppu) { m_ppu = ppu; }
     void setAPU(APU* apu) { m_apu = apu; }
     void setCartridge(Cartridge* cartridge) { m_cartridge = cartridge; }
-    void setController1(Controller* controller) { m_controller1 = controller; }
-    void setController2(Controller* controller) { m_controller2 = controller; }
+    void setController(Controller* controller) { m_controller = controller; }
     
     void reset();
     
@@ -44,8 +43,7 @@ private:
     PPU* m_ppu;
     APU* m_apu;
     Cartridge* m_cartridge;
-    Controller* m_controller1;
-    Controller* m_controller2;
+    Controller* m_controller;
     
     // Internal RAM (2KB, mirrored 4 times to fill 8KB)
     std::array<u8, RAM_SIZE> m_ram;

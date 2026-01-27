@@ -27,7 +27,7 @@ public:
     void setVideoDevice(::VideoDevice* videoDevice) override;
     void setAudioDevice(::AudioDevice* audioDevice) override;
     bool loadROM(const fs::path& filename) override;
-    bool handleInput(SDL_Event& event) override;
+    bool handleInput(SDL_Event& event) override { return m_controller->handleInput(event); }
     void update() override;
     void updateGameSpeed(double gameSpeed) override;
     void setAudioSampleRate(u32 sampleRate) override;

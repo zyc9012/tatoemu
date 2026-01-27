@@ -13,8 +13,7 @@ Memory::Memory()
     , m_ppu(nullptr)
     , m_apu(nullptr)
     , m_cartridge(nullptr)
-    , m_controller1(nullptr)
-    , m_controller2(nullptr)
+    , m_controller(nullptr)
     , m_controllerStrobe(false) {
     reset();
 }
@@ -48,15 +47,15 @@ u8 Memory::cpuRead(u16 address) {
                 
             case 0x4016:
                 // Controller 1
-                if (m_controller1) {
-                    return m_controller1->read();
+                if (m_controller) {
+                    return m_controller->read(0);
                 }
                 return 0;
                 
             case 0x4017:
                 // Controller 2
-                if (m_controller2) {
-                    return m_controller2->read();
+                if (m_controller) {
+                    return m_controller->read(1);
                 }
                 return 0;
                 
@@ -111,11 +110,9 @@ void Memory::cpuWrite(u16 address, u8 value) {
                 
             case 0x4016:
                 // Controller strobe
-                if (m_controller1) {
-                    m_controller1->write(value);
-                }
-                if (m_controller2) {
-                    m_controller2->write(value);
+                if (m_controller) {
+                    m_controller->write(0, value);
+                    m_controller->write(1, value);
                 }
                 break;
                 

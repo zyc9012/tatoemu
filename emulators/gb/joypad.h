@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include <fstream>
+#include <SDL3/SDL.h>
 
 namespace gb {
 
@@ -25,8 +26,8 @@ public:
 
     void setCPU(CPU* cpu);
     
-    void pressButton(JoypadButton button);
-    void releaseButton(JoypadButton button);
+    bool handleInput(SDL_Event& event);
+    void handleButton(JoypadButton button, bool pressed);
     
     u8 read() const;
     void write(u8 value);

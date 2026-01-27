@@ -5,6 +5,7 @@
 #include <fstream>
 #include <array>
 #include <unordered_map>
+#include <SDL3/SDL.h>
 
 namespace cps {
 
@@ -43,8 +44,8 @@ public:
     void setCPSVersion(u8 cpsVersion);
     
     // Button input handlers
-    void pressButton(u8 player, ControllerButton button);
-    void releaseButton(u8 player, ControllerButton button);
+    bool handleInput(SDL_Event& event);
+    void handleButton(u8 player, ControllerButton button, bool pressed);
     
     // Read port register value
     u8 readPort(u16 port) const;

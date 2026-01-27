@@ -1,4 +1,5 @@
 #include "controller.h"
+#include "config.h"
 #include "../components/socd.h"
 #include <cstring>
 
@@ -117,19 +118,103 @@ void Controller::initCPS2Mappings() {
     m_buttonMappings[(0 << 8) | BUTTON_SERVICE] = {0x021, 2};
 }
 
-void Controller::pressButton(u8 player, ControllerButton button) {
-    u16 key = (player << 8) | button;
-    auto it = m_buttonMappings.find(key);
-    if (it != m_buttonMappings.end()) {
-        setPortBit(it->second.port, it->second.bit, true);
+bool Controller::handleInput(SDL_Event& event) {
+    switch (event.type) {
+        case SDL_EVENT_KEY_DOWN:
+        case SDL_EVENT_KEY_UP: {
+            bool pressed = event.type == SDL_EVENT_KEY_DOWN;
+            switch (event.key.key) {
+                case Config::Key::P1_UP:
+                    handleButton(1, BUTTON_UP, pressed);
+                    return true;
+                case Config::Key::P1_DOWN:
+                    handleButton(1, BUTTON_DOWN, pressed);
+                    return true;
+                case Config::Key::P1_LEFT:
+                    handleButton(1, BUTTON_LEFT, pressed);
+                    return true;
+                case Config::Key::P1_RIGHT:
+                    handleButton(1, BUTTON_RIGHT, pressed);
+                    return true;
+                case Config::Key::P1_PUNCH1:
+                    handleButton(1, BUTTON_PUNCH1, pressed);
+                    return true;
+                case Config::Key::P1_PUNCH2:
+                    handleButton(1, BUTTON_PUNCH2, pressed);
+                    return true;
+                case Config::Key::P1_PUNCH3:
+                    handleButton(1, BUTTON_PUNCH3, pressed);
+                    return true;
+                case Config::Key::P1_KICK1:
+                    handleButton(1, BUTTON_KICK1, pressed);
+                    return true;
+                case Config::Key::P1_KICK2:
+                    handleButton(1, BUTTON_KICK2, pressed);
+                    return true;
+                case Config::Key::P1_KICK3:
+                    handleButton(1, BUTTON_KICK3, pressed);
+                    return true;
+                case Config::Key::P2_UP:
+                    handleButton(2, BUTTON_UP, pressed);
+                    return true;
+                case Config::Key::P2_DOWN:
+                    handleButton(2, BUTTON_DOWN, pressed);
+                    return true;
+                case Config::Key::P2_LEFT:
+                    handleButton(2, BUTTON_LEFT, pressed);
+                    return true;
+                case Config::Key::P2_RIGHT:
+                    handleButton(2, BUTTON_RIGHT, pressed);
+                    return true;
+                case Config::Key::P2_PUNCH1:
+                    handleButton(2, BUTTON_PUNCH1, pressed);
+                    return true;
+                case Config::Key::P2_PUNCH2:
+                    handleButton(2, BUTTON_PUNCH2, pressed);
+                    return true;
+                case Config::Key::P2_PUNCH3:
+                    handleButton(2, BUTTON_PUNCH3, pressed);
+                    return true;
+                case Config::Key::P2_KICK1:
+                    handleButton(2, BUTTON_KICK1, pressed);
+                    return true;
+                case Config::Key::P2_KICK2:
+                    handleButton(2, BUTTON_KICK2, pressed);
+                    return true;
+                case Config::Key::P2_KICK3:
+                    handleButton(2, BUTTON_KICK3, pressed);
+                    return true;
+                case Config::Key::P1_COIN:
+                    handleButton(1, BUTTON_COIN, pressed);
+                    return true;
+                case Config::Key::P2_COIN:
+                    handleButton(2, BUTTON_COIN, pressed);
+                    return true;
+                case Config::Key::P1_START:
+                    handleButton(1, BUTTON_START, pressed);
+                    return true;
+                case Config::Key::P2_START:
+                    handleButton(2, BUTTON_START, pressed);
+                    return true;
+                case Config::Key::DIAG:
+                    handleButton(0, BUTTON_DIAG, pressed);
+                    return true;
+                case Config::Key::SERVICE:
+                    handleButton(0, BUTTON_SERVICE, pressed);
+                    return true;
+                default:
+                    return false;
+            }
+        }
     }
+    return false;
 }
 
-void Controller::releaseButton(u8 player, ControllerButton button) {
+void Controller::handleButton(u8 player, ControllerButton button, bool pressed) {
     u16 key = (player << 8) | button;
     auto it = m_buttonMappings.find(key);
     if (it != m_buttonMappings.end()) {
-        setPortBit(it->second.port, it->second.bit, false);
+        setPortBit(it->second.port, it->second.bit, pressed);
     }
 }
 

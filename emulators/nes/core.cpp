@@ -16,8 +16,7 @@ bool Core::initialize() {
     m_ppu = std::make_unique<PPU>();
     m_apu = std::make_unique<APU>();
     m_memory = std::make_unique<Memory>();
-    m_controller1 = std::make_unique<Controller>();
-    m_controller2 = std::make_unique<Controller>();
+    m_controller = std::make_unique<Controller>();
 
     // Wire up components
     m_cpu->setMemory(m_memory.get());
@@ -33,8 +32,7 @@ bool Core::initialize() {
     m_memory->setPPU(m_ppu.get());
     m_memory->setAPU(m_apu.get());
     m_memory->setCartridge(m_cartridge.get());
-    m_memory->setController1(m_controller1.get());
-    m_memory->setController2(m_controller2.get());
+    m_memory->setController(m_controller.get());
     
     m_cartridge->setCPU(m_cpu.get());
     m_cartridge->setPPU(m_ppu.get());
@@ -64,78 +62,10 @@ bool Core::loadROM(const fs::path& filename) {
     m_ppu->reset();
     m_apu->reset();
     m_memory->reset();
-    m_controller1->reset();
-    m_controller2->reset();
+    m_controller->reset();
     m_cartridge->reset();
 
     return true;
-}
-
-bool Core::handleInput(SDL_Event& event) {
-    switch (event.type) {
-        case SDL_EVENT_KEY_DOWN:
-            switch (event.key.key) {
-                case Config::Key::BUTTON_A:
-                    m_controller1->pressButton(BUTTON_A);
-                    return true;
-                case Config::Key::BUTTON_B:
-                    m_controller1->pressButton(BUTTON_B);
-                    return true;
-                case Config::Key::START:
-                    m_controller1->pressButton(BUTTON_START);
-                    return true;
-                case Config::Key::SELECT_PRIMARY:
-                case Config::Key::SELECT_SECONDARY:
-                    m_controller1->pressButton(BUTTON_SELECT);
-                    return true;
-                case Config::Key::DPAD_UP:
-                    m_controller1->pressButton(BUTTON_UP);
-                    return true;
-                case Config::Key::DPAD_DOWN:
-                    m_controller1->pressButton(BUTTON_DOWN);
-                    return true;
-                case Config::Key::DPAD_LEFT:
-                    m_controller1->pressButton(BUTTON_LEFT);
-                    return true;
-                case Config::Key::DPAD_RIGHT:
-                    m_controller1->pressButton(BUTTON_RIGHT);
-                    return true;
-                default:
-                    return false;
-            }
-
-        case SDL_EVENT_KEY_UP:
-            switch (event.key.key) {
-                case Config::Key::BUTTON_A:
-                    m_controller1->releaseButton(BUTTON_A);
-                    return true;
-                case Config::Key::BUTTON_B:
-                    m_controller1->releaseButton(BUTTON_B);
-                    return true;
-                case Config::Key::START:
-                    m_controller1->releaseButton(BUTTON_START);
-                    return true;
-                case Config::Key::SELECT_PRIMARY:
-                case Config::Key::SELECT_SECONDARY:
-                    m_controller1->releaseButton(BUTTON_SELECT);
-                    return true;
-                case Config::Key::DPAD_UP:
-                    m_controller1->releaseButton(BUTTON_UP);
-                    return true;
-                case Config::Key::DPAD_DOWN:
-                    m_controller1->releaseButton(BUTTON_DOWN);
-                    return true;
-                case Config::Key::DPAD_LEFT:
-                    m_controller1->releaseButton(BUTTON_LEFT);
-                    return true;
-                case Config::Key::DPAD_RIGHT:
-                    m_controller1->releaseButton(BUTTON_RIGHT);
-                    return true;
-                default:
-                    return false;
-            }
-    }
-    return false;
 }
 
 void Core::update() {
@@ -196,8 +126,7 @@ bool Core::saveState(const fs::path& filename) {
     m_apu->saveState(file);
     m_memory->saveState(file);
     m_cartridge->saveState(file);
-    m_controller1->saveState(file);
-    m_controller2->saveState(file);
+    m_controller->saveState(file);
     
     file.close();
     return true;
@@ -231,8 +160,7 @@ bool Core::loadState(const fs::path& filename) {
     m_apu->loadState(file);
     m_memory->loadState(file);
     m_cartridge->loadState(file);
-    m_controller1->loadState(file);
-    m_controller2->loadState(file);
+    m_controller->loadState(file);
     
     file.close();
     return true;

@@ -3,37 +3,37 @@
 #include "../types.h"
 #include "consts.h"
 #include <fstream>
+#include <SDL3/SDL.h>
 
 namespace nes {
 
 class Controller {
 public:
-    Controller();
+    Controller() = default;
     ~Controller() = default;
     
     void reset();
     
     // Button state
-    void pressButton(ControllerButton button);
-    void releaseButton(ControllerButton button);
-    bool isButtonPressed(ControllerButton button) const;
+    bool handleInput(SDL_Event& event);
+    void handleButton(u8 player, ControllerButton button, bool pressed);
     
     // Serial interface
-    void write(u8 value);
-    u8 read();
+    void write(u8 player, u8 value);
+    u8 read(u8 player);
     
     // Direct state access
-    u8 getState() const { return m_buttons; }
-    void setState(u8 state) { m_buttons = state; }
+    u8 getState(u8 player) const { return m_buttons[player]; }
+    void setState(u8 player, u8 state) { m_buttons[player] = state; }
     
     // Save/Load state
     void saveState(std::ofstream& file) const;
     void loadState(std::ifstream& file);
 
 private:
-    u8 m_buttons;       // Current button state (bit per button)
-    u8 m_shiftRegister; // Shift register for serial output
-    bool m_strobe;      // Strobe state
+    std::array<u8, 2> m_buttons;       // Current button state (bit per button)
+    std::array<u8, 2> m_shiftRegister; // Shift register for serial output
+    std::array<bool, 2> m_strobe;      // Strobe state
 };
 
 } // namespace nes

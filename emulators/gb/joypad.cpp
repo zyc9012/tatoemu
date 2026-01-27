@@ -1,5 +1,6 @@
 #include "joypad.h"
 #include "cpu.h"
+#include "config.h"
 
 namespace gb {
 
@@ -24,18 +25,57 @@ void Joypad::setCPU(CPU* cpu) {
     m_cpu = cpu;
 }
 
-void Joypad::pressButton(JoypadButton button) {
-    bool wasPressed = !(m_buttonState & (1 << button));
-    m_buttonState &= ~(1 << button);
-    
-    // Request joypad interrupt on button press
-    if (!wasPressed && m_cpu) {
-        m_cpu->requestInterrupt(INT_JOYPAD);
+bool Joypad::handleInput(SDL_Event& event) {
+    switch (event.type) {
+        case SDL_EVENT_KEY_DOWN:
+        case SDL_EVENT_KEY_UP: {
+            bool pressed = event.type == SDL_EVENT_KEY_DOWN;
+            switch (event.key.key) {
+                case Config::Key::BUTTON_A: // A button
+                    handleButton(BUTTON_A, pressed);
+                    return true;
+                case Config::Key::BUTTON_B: // B button
+                    handleButton(BUTTON_B, pressed);
+                    return true;
+                case Config::Key::START: // Start
+                    handleButton(BUTTON_START, pressed);
+                    return true;
+                case Config::Key::SELECT_PRIMARY: // Select
+                case Config::Key::SELECT_SECONDARY:
+                    handleButton(BUTTON_SELECT, pressed);
+                    return true;
+                case Config::Key::DPAD_UP:
+                    handleButton(BUTTON_UP, pressed);
+                    return true;
+                case Config::Key::DPAD_DOWN:
+                    handleButton(BUTTON_DOWN, pressed);
+                    return true;
+                case Config::Key::DPAD_LEFT:
+                    handleButton(BUTTON_LEFT, pressed);
+                    return true;
+                case Config::Key::DPAD_RIGHT:
+                    handleButton(BUTTON_RIGHT, pressed);
+                    return true;
+                default:
+                    return false;
+            }
+        }
     }
+    return false;
 }
 
-void Joypad::releaseButton(JoypadButton button) {
-    m_buttonState |= (1 << button);
+void Joypad::handleButton(JoypadButton button, bool pressed) {
+    if (pressed) {
+        bool wasPressed = !(m_buttonState & (1 << button));
+        m_buttonState &= ~(1 << button);
+        
+        // Request joypad interrupt on button press
+        if (!wasPressed && m_cpu) {
+            m_cpu->requestInterrupt(INT_JOYPAD);
+        }
+    } else {
+        m_buttonState |= (1 << button);
+    }
 }
 
 u8 Joypad::read() const {

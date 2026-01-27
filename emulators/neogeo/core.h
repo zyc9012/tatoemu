@@ -31,7 +31,7 @@ public:
     bool loadROM(const fs::path& filename) override;
 
     // NeoGeo-specific methods
-    bool handleInput(SDL_Event& event) override;
+    bool handleInput(SDL_Event& event) override { return m_controller->handleInput(event); }
     void update() override;
     void updateGameSpeed(double gameSpeed) override;
 

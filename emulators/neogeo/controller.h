@@ -6,6 +6,7 @@
 #include <fstream>
 #include <array>
 #include <unordered_map>
+#include <SDL3/SDL.h>
 
 namespace neogeo {
 
@@ -40,8 +41,8 @@ public:
     void reset();
 
     // Button input handlers
-    void pressButton(u8 player, ControllerButton button);
-    void releaseButton(u8 player, ControllerButton button);
+    bool handleInput(SDL_Event& event);
+    void handleButton(u8 player, ControllerButton button, bool pressed);
 
     // Read input value
     u8 readInput1(u8 offset) const;

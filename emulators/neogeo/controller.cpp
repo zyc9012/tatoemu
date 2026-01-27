@@ -66,19 +66,97 @@ void Controller::initButtonMappings() {
     m_buttonMappings[(0 << 8) | BUTTON_SERVICE] = {3, 2};
 }
 
-void Controller::pressButton(u8 player, ControllerButton button) {
-    u16 key = (player << 8) | button;
-    auto it = m_buttonMappings.find(key);
-    if (it != m_buttonMappings.end()) {
-        setBankBit(it->second.bank, it->second.bit, true);
+bool Controller::handleInput(SDL_Event& event) {
+    switch (event.type) {
+        case SDL_EVENT_KEY_DOWN:
+        case SDL_EVENT_KEY_UP: {
+            bool pressed = event.type == SDL_EVENT_KEY_DOWN;
+            switch (event.key.key) {
+                case Config::Key::P1_UP:
+                    handleButton(1, BUTTON_UP, pressed);
+                    return true;
+                case Config::Key::P1_DOWN:
+                    handleButton(1, BUTTON_DOWN, pressed);
+                    return true;
+                case Config::Key::P1_LEFT:
+                    handleButton(1, BUTTON_LEFT, pressed);
+                    return true;
+                case Config::Key::P1_RIGHT:
+                    handleButton(1, BUTTON_RIGHT, pressed);
+                    return true;
+                case Config::Key::P1_BUTTON_A:
+                    handleButton(1, BUTTON_A, pressed);
+                    return true;
+                case Config::Key::P1_BUTTON_B:
+                    handleButton(1, BUTTON_B, pressed);
+                    return true;
+                case Config::Key::P1_BUTTON_C:
+                    handleButton(1, BUTTON_C, pressed);
+                    return true;
+                case Config::Key::P1_BUTTON_D:
+                    handleButton(1, BUTTON_D, pressed);
+                    return true;
+                case Config::Key::P2_UP:
+                    handleButton(2, BUTTON_UP, pressed);
+                    return true;
+                case Config::Key::P2_DOWN:
+                    handleButton(2, BUTTON_DOWN, pressed);
+                    return true;
+                case Config::Key::P2_LEFT:
+                    handleButton(2, BUTTON_LEFT, pressed);
+                    return true;
+                case Config::Key::P2_RIGHT:
+                    handleButton(2, BUTTON_RIGHT, pressed);
+                    return true;
+                case Config::Key::P2_BUTTON_A:
+                    handleButton(2, BUTTON_A, pressed);
+                    return true;
+                case Config::Key::P2_BUTTON_B:
+                    handleButton(2, BUTTON_B, pressed);
+                    return true;
+                case Config::Key::P2_BUTTON_C:
+                    handleButton(2, BUTTON_C, pressed);
+                    return true;
+                case Config::Key::P2_BUTTON_D:
+                    handleButton(2, BUTTON_D, pressed);
+                    return true;
+                case Config::Key::P1_COIN:
+                    handleButton(1, BUTTON_COIN, pressed);
+                    return true;
+                case Config::Key::P2_COIN:
+                    handleButton(2, BUTTON_COIN, pressed);
+                    return true;
+                case Config::Key::P1_START:
+                    handleButton(1, BUTTON_START, pressed);
+                    return true;
+                case Config::Key::P2_START:
+                    handleButton(2, BUTTON_START, pressed);
+                    return true;
+                case Config::Key::P1_SELECT:
+                    handleButton(1, BUTTON_SELECT, pressed);
+                    return true;
+                case Config::Key::P2_SELECT:
+                    handleButton(2, BUTTON_SELECT, pressed);
+                    return true;
+                case Config::Key::TEST:
+                    handleButton(0, BUTTON_TEST, pressed);
+                    return true;
+                case Config::Key::SERVICE:
+                    handleButton(0, BUTTON_SERVICE, pressed);
+                    return true;
+                default:
+                    return false;
+            }
+        }
     }
+    return false;
 }
 
-void Controller::releaseButton(u8 player, ControllerButton button) {
+void Controller::handleButton(u8 player, ControllerButton button, bool pressed) {
     u16 key = (player << 8) | button;
     auto it = m_buttonMappings.find(key);
     if (it != m_buttonMappings.end()) {
-        setBankBit(it->second.bank, it->second.bit, false);
+        setBankBit(it->second.bank, it->second.bit, pressed);
     }
 }
 

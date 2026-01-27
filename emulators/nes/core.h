@@ -26,7 +26,7 @@ public:
     void setVideoDevice(VideoDevice* videoDevice) override;
     void setAudioDevice(AudioDevice* audioDevice) override;
     bool loadROM(const fs::path& filename) override;
-    bool handleInput(SDL_Event& event) override;
+    bool handleInput(SDL_Event& event) override { return m_controller->handleInput(event); }
     void update() override;
     void updateGameSpeed(double gameSpeed) override;
     void setAudioSampleRate(u32 sampleRate) override { m_apu->setSampleRate(sampleRate); }
@@ -50,8 +50,7 @@ private:
     std::unique_ptr<APU> m_apu;
     std::unique_ptr<Memory> m_memory;
     std::unique_ptr<Cartridge> m_cartridge;
-    std::unique_ptr<Controller> m_controller1;
-    std::unique_ptr<Controller> m_controller2;
+    std::unique_ptr<Controller> m_controller;
     
     // Frame timing
     double m_gameSpeed = 1.0;

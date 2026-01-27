@@ -28,7 +28,7 @@ public:
     void setAudioDevice(AudioDevice* audioDevice) override;
     bool loadBootrom(const fs::path& filename) override;
     bool loadROM(const fs::path& filename) override;
-    bool handleInput(SDL_Event& event) override;
+    bool handleInput(SDL_Event& event) override { return m_joypad->handleInput(event); }
     void update() override;
     void updateGameSpeed(double gameSpeed) override;
     void setAudioSampleRate(u32 sampleRate) override { m_apu->setSampleRate(sampleRate); }
