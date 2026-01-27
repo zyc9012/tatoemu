@@ -115,6 +115,12 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     bool swapcFlag = (m_gameInfo->flags & GAME_FLAG_SWAPC) != 0;
     u32 programRomIndex = 0;
 
+    // Calculate graphics ROM size fix
+    u32 spriteRomsCount = 0;
+    u32 spriteRomSizeFix = 0;
+    calcGraphicsROMSizeFix(m_gameInfo, spriteRomsCount, spriteRomSizeFix);
+    u32 spriteRomSizeFixCounter = spriteRomsCount - 2;
+
     // Load ROMs in database order
     bool interleaveInProgress = false;
     for (u32 i = 0; i < m_gameInfo->romCount; i++) {
@@ -151,16 +157,25 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                         std::cout << "Loading text: " << entry.filename << std::endl;
                         m_textRom.insert(m_textRom.end(), pair.second.begin(), pair.second.end());
                         break;
-                    case ROMType::SPRITE:
+                    case ROMType::SPRITE: {
                         std::cout << "Loading sprite: " << entry.filename << std::endl;
+                        u32 increment = pair.second.size() * 2;
+                        if (spriteRomSizeFixCounter > 0 && spriteRomSizeFix > pair.second.size()) {
+                            // Pad sprite ROM to the largest sprite ROM size except for the last two sprite ROMs. (Fixes kof95)
+                            increment = spriteRomSizeFix * 2;
+                        }
                         if (!interleaveInProgress) {
-                            m_spriteRom.resize(m_spriteRom.size() + pair.second.size() * 2);
-                            interleavedCopy(m_spriteRom.end().base() - pair.second.size() * 2, pair.second.data(), pair.second.size());
+                            m_spriteRom.resize(m_spriteRom.size() + increment);
+                            interleavedCopy(m_spriteRom.end().base() - increment, pair.second.data(), pair.second.size());
                         } else {
-                            interleavedCopy(m_spriteRom.end().base() - pair.second.size() * 2 + 1, pair.second.data(), pair.second.size());
+                            interleavedCopy(m_spriteRom.end().base() - increment + 1, pair.second.data(), pair.second.size());
                         }
                         interleaveInProgress = !interleaveInProgress;
+                        if (spriteRomSizeFixCounter > 0) {
+                            spriteRomSizeFixCounter--;
+                        }
                         break;
+                    }
                     case ROMType::SOUND_PROGRAM:
                         std::cout << "Loading sound program: " << entry.filename << std::endl;
                         m_soundRom.insert(m_soundRom.end(), pair.second.begin(), pair.second.end());
@@ -341,6 +356,30 @@ void Cartridge::decodeTextROM() {
         u8 temp[32];
         decodeTextTile(tileSrc, temp);
         std::memcpy(tileDst, temp, 32);
+    }
+}
+
+void Cartridge::calcGraphicsROMSizeFix(const GameInfo* gameInfo, u32& spriteRomsCount, u32& spriteRomSizeFix) {
+    // Get the largest sprite ROM size except for the last two sprite ROMs
+    std::vector<u32> spriteRomSizes;
+    for (u32 i = 0; i < gameInfo->romCount; i++) {
+        if (gameInfo->roms[i].type == ROMType::SPRITE) {
+            spriteRomSizes.push_back(gameInfo->roms[i].size);
+        }
+    }
+
+    spriteRomsCount = spriteRomSizes.size();
+
+    // Pop the last two sprite ROM sizes
+    spriteRomSizes.pop_back();
+    spriteRomSizes.pop_back();
+
+    // Get the largest sprite ROM size
+    spriteRomSizeFix = 0;
+    for (const auto& val : spriteRomSizes) {
+        if (val > spriteRomSizeFix) {
+            spriteRomSizeFix = val;
+        }
     }
 }
 

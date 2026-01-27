@@ -116,6 +116,7 @@ private:
     bool loadBIOSROMs(const std::map<std::string, std::vector<u8>>& romFiles, const fs::path& gameRomPath, u32 bios68kIndex);
     
     // ROM decoding functions
+    void calcGraphicsROMSizeFix(const GameInfo* gameInfo, u32& spriteRomsCount, u32& spriteRomSizeFix);
     void decodeTextROM();
     void decodeSpriteROM();
     void byteswap(std::vector<u8>& rom);
