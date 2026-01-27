@@ -163,7 +163,6 @@ private:
 
     // CPS2-specific rendering
     void renderLayersCPS2();
-    void renderSpritesCPS2();
     void renderSpritesCPS2ByPriority(s32 levelFrom, s32 levelTo);
     void initCPS2ZBuffer();
     

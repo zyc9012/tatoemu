@@ -1175,22 +1175,6 @@ void PPU::renderSpritesCPS1() {
 // Sprite Rendering - CPS2 Version
 // ============================================================================
 
-void PPU::renderSpritesCPS2() {
-    if (m_decodedGfx.empty()) return;
-    
-    // Initialize Z-buffer for this frame
-    initCPS2ZBuffer();
-    
-    // Render sprites by priority level (0-7)
-    // Level 0 is lowest, level 7 is highest
-    s32 prevPrio = -1;
-    for (s32 currPrio = 0; currPrio < 8; currPrio++) {
-        // Render sprites at this priority level
-        renderSpritesCPS2ByPriority(prevPrio + 1, currPrio);
-        prevPrio = currPrio;
-    }
-}
-
 void PPU::renderSpritesCPS2ByPriority(s32 levelFrom, s32 levelTo) {
     if (m_decodedGfx.empty()) return;
     
@@ -1215,8 +1199,8 @@ void PPU::renderSpritesCPS2ByPriority(s32 levelFrom, s32 levelTo) {
     }
     
     // Get sprite offsets from CPS2 Frg registers (use saved Frg for zone 0)
-    s16 sprXOffset = -(s8)m_rasterFrg[0][0x09];
-    s16 sprYOffset = -(s8)m_rasterFrg[0][0x0B];
+    s16 sprXOffset = -static_cast<s16>(m_rasterFrg[0][0x09]);
+    s16 sprYOffset = -static_cast<s16>(m_rasterFrg[0][0x0B]);
     
     // Iterate through sprites
     // Sprites are processed in order (not reversed like CPS1)
