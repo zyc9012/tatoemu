@@ -40,7 +40,14 @@ bool Cartridge::load(const fs::path& filename, u32 bios68kIndex) {
     m_gameInfo = GameDatabase::findGame(romSetNameLower);
     if (!m_gameInfo) {
         std::cerr << "Unsupported NeoGeo game: " << m_romSetName << std::endl;
-        std::cerr << "Only games in the database are supported." << std::endl;
+        return false;
+    }
+
+    if (m_gameInfo->flags & GAME_FLAG_CMC42 ||
+        m_gameInfo->flags & GAME_FLAG_CMC50 ||
+        m_gameInfo->flags & GAME_FLAG_SMA_PROTECTION ||
+        m_gameInfo->flags & GAME_FLAG_ENCRYPTED_M1) {
+        std::cerr << "Encrypted NeoGeo games are not supported yet." << std::endl;
         return false;
     }
     
