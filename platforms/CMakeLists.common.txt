@@ -143,9 +143,7 @@ function(apply_common_target_settings target_name)
         ${CMAKE_SOURCE_DIR}/utilities
     )
 
-    # Add miniz, m68k, Z80, and sound component source files and compile them as C
-    # Note: z80.cpp and z80daisy.cpp are C++ code, so they should be compiled as CXX
-    # Note: z80ctc.cpp and z80pio.cpp have been removed - not used by CPS/NeoGeo emulators
+    # Add C source files and compile them as C
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/utilities/miniz/miniz.c
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kcpu.c
@@ -158,11 +156,24 @@ function(apply_common_target_settings target_name)
         ${CMAKE_SOURCE_DIR}/emulators/components/buffer.c
         PROPERTIES LANGUAGE C
     )
+
+    # Suppress warnings for 3rd-party source
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kops.c
+        ${CMAKE_SOURCE_DIR}/emulators/components/sound/ym2151/ym2151.c
+        ${CMAKE_SOURCE_DIR}/emulators/components/sound/fm/fm.c
+        ${CMAKE_SOURCE_DIR}/emulators/components/sound/fm/ymdeltat.c
+        ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80.cpp
+        ${CMAKE_SOURCE_DIR}/emulators/components/sound/ay8910/ay8910.c
+        PROPERTIES COMPILE_OPTIONS "-Wno-unused-variable;-Wno-unused-const-variable;-Wno-unused-parameter;-Wno-unused-function;-Wno-sign-compare;-Wno-strict-prototypes"
+    )
     
     # Build minimal miniz
-    set_source_files_properties(
-        ${CMAKE_SOURCE_DIR}/utilities/miniz/miniz.c
-        PROPERTIES COMPILE_DEFINITIONS "MINIZ_NO_DEFLATE_APIS;MINIZ_NO_TIME;MINIZ_NO_ARCHIVE_WRITING_APIS;MINIZ_NO_ZLIB_APIS;MINIZ_NO_ZLIB_COMPATIBLE_NAMES"
+    add_compile_definitions(
+        MINIZ_NO_DEFLATE_APIS
+        MINIZ_NO_TIME
+        MINIZ_NO_ZLIB_APIS
+        MINIZ_NO_ZLIB_COMPATIBLE_NAMES
     )
 
     # Common compiler warnings

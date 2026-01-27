@@ -120,8 +120,6 @@ private:
     bool m_biosTextRomEnabled; // True when BIOS text ROM is enabled
     
     // Video controller registers
-    u16 m_graphicsRamPointer;  // Graphics RAM pointer
-    u16 m_graphicsRamModulo;   // Graphics RAM modulo
     u16 m_irqControl;          // IRQ control register
     u32 m_irqOffset;           // IRQ offset register
     

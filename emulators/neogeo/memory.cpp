@@ -26,8 +26,6 @@ Memory::Memory()
     , m_paletteBank(0)
     , m_darkenPalette(false)
     , m_biosTextRomEnabled(false)
-    , m_graphicsRamPointer(0)
-    , m_graphicsRamModulo(0)
     , m_irqControl(0)
     , m_irqOffset(0)
     , m_programRomBank(0x100000)
@@ -58,8 +56,6 @@ void Memory::reset() {
     m_biosTextRomEnabled = false;
     
     // Reset video controller registers
-    m_graphicsRamPointer = 0;
-    m_graphicsRamModulo = 0;
     m_irqControl = 0;
     m_irqOffset = 0;
     
@@ -741,8 +737,6 @@ void Memory::saveState(std::ofstream& file) {
     file.write(reinterpret_cast<const char*>(&m_paletteBank), sizeof(m_paletteBank));
     file.write(reinterpret_cast<const char*>(&m_darkenPalette), sizeof(m_darkenPalette));
     file.write(reinterpret_cast<const char*>(&m_biosTextRomEnabled), sizeof(m_biosTextRomEnabled));
-    file.write(reinterpret_cast<const char*>(&m_graphicsRamPointer), sizeof(m_graphicsRamPointer));
-    file.write(reinterpret_cast<const char*>(&m_graphicsRamModulo), sizeof(m_graphicsRamModulo));
     file.write(reinterpret_cast<const char*>(&m_irqControl), sizeof(m_irqControl));
     file.write(reinterpret_cast<const char*>(&m_irqOffset), sizeof(m_irqOffset));
     file.write(reinterpret_cast<const char*>(&m_z80Bank0), sizeof(m_z80Bank0));
@@ -764,8 +758,6 @@ void Memory::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_paletteBank), sizeof(m_paletteBank));
     file.read(reinterpret_cast<char*>(&m_darkenPalette), sizeof(m_darkenPalette));
     file.read(reinterpret_cast<char*>(&m_biosTextRomEnabled), sizeof(m_biosTextRomEnabled));
-    file.read(reinterpret_cast<char*>(&m_graphicsRamPointer), sizeof(m_graphicsRamPointer));
-    file.read(reinterpret_cast<char*>(&m_graphicsRamModulo), sizeof(m_graphicsRamModulo));
     file.read(reinterpret_cast<char*>(&m_irqControl), sizeof(m_irqControl));
     file.read(reinterpret_cast<char*>(&m_irqOffset), sizeof(m_irqOffset));
     file.read(reinterpret_cast<char*>(&m_z80Bank0), sizeof(m_z80Bank0));

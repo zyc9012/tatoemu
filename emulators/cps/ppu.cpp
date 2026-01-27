@@ -111,7 +111,7 @@ void PPU::reset() {
 
         const GameInfo* gameInfo = m_cartridge->getGameInfo();
         if (gameInfo) {
-            m_isVertical = gameInfo->flags & GameFlags::GAME_FLAG_VERTICAL_SCREEN != 0;
+            m_isVertical = (gameInfo->flags & GameFlags::GAME_FLAG_VERTICAL_SCREEN) != 0;
 
             m_is_xmcota = (strcmp(gameInfo->romSetName, "xmcota") == 0);
             bool is_hsf2 = (strcmp(gameInfo->romSetName, "hsf2") == 0);

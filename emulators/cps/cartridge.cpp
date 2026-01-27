@@ -28,8 +28,7 @@ Cartridge::Cartridge()
     , m_soundSampleRomSize(0)
     , m_decryptKey{0, 0, 0, 0}
     , m_decryptStart(0)
-    , m_decryptEnd(0)
-    , m_watchdogOpcode(0) {
+    , m_decryptEnd(0) {
     initSepTable();
 }
 

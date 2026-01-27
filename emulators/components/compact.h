@@ -88,9 +88,11 @@ typedef union {
 #define BurnFree(ptr) free(ptr)
 
 // Route definitions
-#define BURN_SND_ROUTE_LEFT    0x01
-#define BURN_SND_ROUTE_RIGHT   0x02
-#define BURN_SND_ROUTE_BOTH    (BURN_SND_ROUTE_LEFT | BURN_SND_ROUTE_RIGHT)
+#define BURN_SND_ROUTE_LEFT         0x01
+#define BURN_SND_ROUTE_RIGHT        0x02
+#define BURN_SND_ROUTE_BOTH         (BURN_SND_ROUTE_LEFT | BURN_SND_ROUTE_RIGHT)
+#define BURN_SND_ROUTE_PANLEFT      4
+#define BURN_SND_ROUTE_PANRIGHT     8
 
 // Clip function
 #define BURN_SND_CLIP(x) \

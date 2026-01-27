@@ -105,7 +105,6 @@ private:
     u32 m_decryptKey[4];  // Two 64-bit keys stored as 4x32-bit values
     u32 m_decryptStart;   // Start address for decryption
     u32 m_decryptEnd;     // End address for decryption
-    u32 m_watchdogOpcode; // Watchdog opcode (from encryption key file)
     
     // Separation table for graphics decoding
     // Converts a byte to spread-out bits: ABCDEFGH -> A00B00C00D00E00F00G00H00

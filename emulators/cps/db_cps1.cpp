@@ -851,27 +851,27 @@ static const CPS1DecryptKeys slammast_decKeys = { 0x54321076, 0x65432107, 0x3131
 const GameInfo GameDatabase::s_cps1_games[] = {
     {
         "1941", "1941: Counter Attack", 1, game1941_roms, static_cast<u32>(sizeof(game1941_roms) / sizeof(game1941_roms[0])),
-        GameFlags::GAME_FLAG_VERTICAL_SCREEN, CPSBoard::CPS_B_05, CPSMapper::MAPPER_YI24B,
+        GameFlags::GAME_FLAG_VERTICAL_SCREEN, CPSBoard::CPS_B_05, CPSMapper::MAPPER_YI24B, nullptr,
     },
     {
         "3wonders", "Three Wonders", 1, threewonders_roms, static_cast<u32>(sizeof(threewonders_roms) / sizeof(threewonders_roms[0])),
-        0, CPSBoard::CPS_B_21_BT1, CPSMapper::MAPPER_RT24B,
+        0, CPSBoard::CPS_B_21_BT1, CPSMapper::MAPPER_RT24B, nullptr,
     },
     {
         "area88", "Area 88", 1, area88_roms, static_cast<u32>(sizeof(area88_roms) / sizeof(area88_roms[0])),
-        0, CPSBoard::CPS_B_11, CPSMapper::MAPPER_AR22B,
+        0, CPSBoard::CPS_B_11, CPSMapper::MAPPER_AR22B, nullptr,
     },
     {
         "captcomm", "Captain Commando", 1, captcomm_roms, static_cast<u32>(sizeof(captcomm_roms) / sizeof(captcomm_roms[0])),
-        0, CPSBoard::CPS_B_21_BT3, CPSMapper::MAPPER_CC63B,
+        0, CPSBoard::CPS_B_21_BT3, CPSMapper::MAPPER_CC63B, nullptr,
     },
     {
         "cawing", "Carrier Air Wing", 1, cawing_roms, static_cast<u32>(sizeof(cawing_roms) / sizeof(cawing_roms[0])),
-        0, CPSBoard::CPS_B_16, CPSMapper::MAPPER_CA24B,
+        0, CPSBoard::CPS_B_16, CPSMapper::MAPPER_CA24B, nullptr,
     },
     {
         "cworld2j", "Adventure Quiz Capcom World 2", 1, cworld2j_roms, static_cast<u32>(sizeof(cworld2j_roms) / sizeof(cworld2j_roms[0])),
-        0, CPSBoard::CPS_B_21_BT6, CPSMapper::MAPPER_Q522B,
+        0, CPSBoard::CPS_B_21_BT6, CPSMapper::MAPPER_Q522B, nullptr,
     },
     {
         "dino", "Cadillacs and Dinosaurs", 1, dino_roms, static_cast<u32>(sizeof(dino_roms) / sizeof(dino_roms[0])),
@@ -879,75 +879,75 @@ const GameInfo GameDatabase::s_cps1_games[] = {
     },
     {
         "dynwar", "Dynasty Wars", 1, dynwar_roms, static_cast<u32>(sizeof(dynwar_roms) / sizeof(dynwar_roms[0])),
-        0, CPSBoard::CPS_B_02, CPSMapper::MAPPER_TK22B,
+        0, CPSBoard::CPS_B_02, CPSMapper::MAPPER_TK22B, nullptr,
     },
     {
         "ffight", "Final Fight", 1, ffight_roms, static_cast<u32>(sizeof(ffight_roms) / sizeof(ffight_roms[0])),
-        0, CPSBoard::CPS_B_04, CPSMapper::MAPPER_S224B,
+        0, CPSBoard::CPS_B_04, CPSMapper::MAPPER_S224B, nullptr,
     },
     {
         "forgottn", "Forgotten Worlds", 1, forgottn_roms, static_cast<u32>(sizeof(forgottn_roms) / sizeof(forgottn_roms[0])),
-        0, CPSBoard::CPS_B_01, CPSMapper::MAPPER_LW621,
+        0, CPSBoard::CPS_B_01, CPSMapper::MAPPER_LW621, nullptr,
     },
     {
         "ganbare", "Ganbare! Marine Kun", 1, ganbare_roms, static_cast<u32>(sizeof(ganbare_roms) / sizeof(ganbare_roms[0])),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_SFZCH,
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_SFZCH, nullptr,
     },
     {
         "ghouls", "Ghouls'n Ghosts", 1, ghouls_roms, static_cast<u32>(sizeof(ghouls_roms) / sizeof(ghouls_roms[0])),
-        0, CPSBoard::CPS_B_01, CPSMapper::MAPPER_DM620,
+        0, CPSBoard::CPS_B_01, CPSMapper::MAPPER_DM620, nullptr,
     },
     {
         "gulunpa", "Gulun.Pa!", 1, gulunpa_roms, static_cast<u32>(sizeof(gulunpa_roms) / sizeof(gulunpa_roms[0])),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_GULUN,
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_GULUN, nullptr,
     },
     {
         "knights", "Knights of the Round", 1, knights_roms, static_cast<u32>(sizeof(knights_roms) / sizeof(knights_roms[0])),
-        0, CPSBoard::CPS_B_21_BT4, CPSMapper::MAPPER_KR63B,
+        0, CPSBoard::CPS_B_21_BT4, CPSMapper::MAPPER_KR63B, nullptr,
     },
     {
         "kod", "The King of Dragons", 1, kod_roms, static_cast<u32>(sizeof(kod_roms) / sizeof(kod_roms[0])),
-        0, CPSBoard::CPS_B_21_BT2, CPSMapper::MAPPER_KD29B,
+        0, CPSBoard::CPS_B_21_BT2, CPSMapper::MAPPER_KD29B, nullptr,
     },
     {
         "mbombrd", "Muscle Bomber Duo: Ultimate Team Battle", 1, mbombrd_roms, static_cast<u32>(sizeof(mbombrd_roms) / sizeof(mbombrd_roms[0])),
-        GameFlags::GAME_FLAG_CPS1_QSOUND, CPSBoard::CPS_B_21_QS5, CPSMapper::MAPPER_MB63B,
+        GameFlags::GAME_FLAG_CPS1_QSOUND, CPSBoard::CPS_B_21_QS5, CPSMapper::MAPPER_MB63B, nullptr
     },
     {
         "megaman", "Mega Man: The Power Battle", 1, megaman_roms, static_cast<u32>(sizeof(megaman_roms) / sizeof(megaman_roms[0])),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_RCM63B,
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_RCM63B, nullptr,
     },
     {
         "mercs", "Mercs", 1, mercs_roms, static_cast<u32>(sizeof(mercs_roms) / sizeof(mercs_roms[0])),
-        GameFlags::GAME_FLAG_VERTICAL_SCREEN, CPSBoard::CPS_B_12, CPSMapper::MAPPER_O224B,
+        GameFlags::GAME_FLAG_VERTICAL_SCREEN, CPSBoard::CPS_B_12, CPSMapper::MAPPER_O224B, nullptr,
     },
     {
         "mpumpkin", "Magical Pumpkin: Puroland de Daibouken", 1, mpumpkin_roms, static_cast<u32>(sizeof(mpumpkin_roms) / sizeof(mpumpkin_roms[0])),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_SFZ63B,
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_SFZ63B, nullptr,
     },
     {
         "msword", "Magic Sword", 1, msword_roms, static_cast<u32>(sizeof(msword_roms) / sizeof(msword_roms[0])),
-        0, CPSBoard::CPS_B_13, CPSMapper::MAPPER_MS24B,
+        0, CPSBoard::CPS_B_13, CPSMapper::MAPPER_MS24B, nullptr,
     },
     {
         "mtwins", "Mega Twins", 1, mtwins_roms, static_cast<u32>(sizeof(mtwins_roms) / sizeof(mtwins_roms[0])),
-        0, CPSBoard::CPS_B_14, CPSMapper::MAPPER_CK24B,
+        0, CPSBoard::CPS_B_14, CPSMapper::MAPPER_CK24B, nullptr,
     },
     {
         "nemo", "Nemo", 1, nemo_roms, static_cast<u32>(sizeof(nemo_roms) / sizeof(nemo_roms[0])),
-        0, CPSBoard::CPS_B_15, CPSMapper::MAPPER_NM24B,
+        0, CPSBoard::CPS_B_15, CPSMapper::MAPPER_NM24B, nullptr,
     },
     {
         "pang3", "Pang! 3", 1, pang3_roms, static_cast<u32>(sizeof(pang3_roms) / sizeof(pang3_roms[0])),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_CP1B1F,
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_CP1B1F, nullptr,
     },
     {
         "pnickj", "Pnickies", 1, pnickj_roms, static_cast<u32>(sizeof(pnickj_roms) / sizeof(pnickj_roms[0])),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_PKB10B,
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_PKB10B, nullptr,
     },
     {
         "pokonyan", "Pokonyan! Balloon", 1, pokonyan_roms, static_cast<u32>(sizeof(pokonyan_roms) / sizeof(pokonyan_roms[0])),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_POKONYAN,
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_POKONYAN, nullptr,
     },
     {
         "punisher", "The Punisher", 1, punisher_roms, static_cast<u32>(sizeof(punisher_roms) / sizeof(punisher_roms[0])),
@@ -955,27 +955,27 @@ const GameInfo GameDatabase::s_cps1_games[] = {
     },
     {
         "qad", "Quiz & Dragons: Capcom Quiz Game", 1, qad_roms, static_cast<u32>(sizeof(qad_roms) / sizeof(qad_roms[0])),
-        0, CPSBoard::CPS_B_21_BT7, CPSMapper::MAPPER_QD22B,
+        0, CPSBoard::CPS_B_21_BT7, CPSMapper::MAPPER_QD22B, nullptr,
     },
     {
         "qtono2j", "Quiz Tonosama no Yabou 2: Zenkoku-ban", 1, qtono2j_roms, static_cast<u32>(sizeof(qtono2j_roms) / sizeof(qtono2j_roms[0])),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_TN2292,
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_TN2292, nullptr,
     },
     {
         "sf2", "Street Fighter II: The World Warrior", 1, sf2_roms, static_cast<u32>(sizeof(sf2_roms) / sizeof(sf2_roms[0])),
-        0, CPSBoard::CPS_B_11, CPSMapper::MAPPER_STF29
+        0, CPSBoard::CPS_B_11, CPSMapper::MAPPER_STF29, nullptr,
     },
     {
         "sf2ce", "Street Fighter II: Champion Edition", 1, sf2ce_roms, static_cast<u32>(sizeof(sf2ce_roms) / sizeof(sf2ce_roms[0])),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_S9263B
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_S9263B, nullptr,
     },
     {
         "sf2hf", "Street Fighter II: Hyper Fighting", 1, sf2hf_roms, static_cast<u32>(sizeof(sf2hf_roms) / sizeof(sf2hf_roms[0])),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_S9263B,
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_S9263B, nullptr,
     },
     {
         "sfzch", "Street Fighter Zero (CPS Changer, Japan 951020)", 1, sfzch_roms, static_cast<u32>(sizeof(sfzch_roms) / sizeof(sfzch_roms[0])),
-        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_SFZ63B,
+        0, CPSBoard::CPS_B_21_DEF, CPSMapper::MAPPER_SFZ63B, nullptr,
     },
     {
         "slammast", "Saturday Night Slam Masters", 1, slammast_roms, static_cast<u32>(sizeof(slammast_roms) / sizeof(slammast_roms[0])),
@@ -983,19 +983,19 @@ const GameInfo GameDatabase::s_cps1_games[] = {
     },
     {
         "strider", "Strider", 1, strider_roms, static_cast<u32>(sizeof(strider_roms) / sizeof(strider_roms[0])),
-        0, CPSBoard::CPS_B_01, CPSMapper::MAPPER_ST24M1,
+        0, CPSBoard::CPS_B_01, CPSMapper::MAPPER_ST24M1, nullptr,
     },
     {
         "unsquad", "U.N. Squadron", 1, unsquad_roms, static_cast<u32>(sizeof(unsquad_roms) / sizeof(unsquad_roms[0])),
-        0, CPSBoard::CPS_B_11, CPSMapper::MAPPER_AR24B,
+        0, CPSBoard::CPS_B_11, CPSMapper::MAPPER_AR24B, nullptr,
     },
     {
         "varth", "Varth: Operation Thunderstorm", 1, varth_roms, static_cast<u32>(sizeof(varth_roms) / sizeof(varth_roms[0])),
-        GameFlags::GAME_FLAG_VERTICAL_SCREEN, CPSBoard::CPS_B_04, CPSMapper::MAPPER_VA63B,
+        GameFlags::GAME_FLAG_VERTICAL_SCREEN, CPSBoard::CPS_B_04, CPSMapper::MAPPER_VA63B, nullptr,
     },
     {
         "willow", "Willow", 1, willow_roms, static_cast<u32>(sizeof(willow_roms) / sizeof(willow_roms[0])),
-        0, CPSBoard::CPS_B_03, CPSMapper::MAPPER_WL24B,
+        0, CPSBoard::CPS_B_03, CPSMapper::MAPPER_WL24B, nullptr,
     },
     {
         "wof", "Warriors of Fate", 1, wof_roms, static_cast<u32>(sizeof(wof_roms) / sizeof(wof_roms[0])),

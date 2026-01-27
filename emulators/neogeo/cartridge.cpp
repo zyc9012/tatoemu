@@ -106,7 +106,6 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     // Handle SWAPP flag: swap first half/second half of first program ROM
     bool swappFlag = (m_gameInfo->flags & GAME_FLAG_SWAPP) != 0;
     bool swapcFlag = (m_gameInfo->flags & GAME_FLAG_SWAPC) != 0;
-    bool swapvFlag = (m_gameInfo->flags & GAME_FLAG_SWAPV) != 0;
     u32 programRomIndex = 0;
 
     // Load ROMs in database order
