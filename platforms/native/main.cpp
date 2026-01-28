@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
     if (argc < 2) {
         std::cout << "Usage: " << argv_narrow[0] << " <rom_file> [bootrom_file] [options]" << std::endl;
         std::cout << "\nOptions:" << std::endl;
-        std::cout << "  --scale <n>           Window scale factor (default: " << Config::Window::Scale << ")" << std::endl;
+        std::cout << "  --scale <n>           Window scale factor (default: 0, auto)" << std::endl;
         std::cout << "  --scale-mode <mode>   Scale mode: linear, nearest (default: linear)" << std::endl;
         std::cout << "  --sample-rate <hz>    Audio sample rate (default: " << Config::Audio::SampleRate << ")" << std::endl;
         std::cout << "  --volume <0.0-1.0>    Audio volume (default: " << Config::Audio::Volume << ")" << std::endl;

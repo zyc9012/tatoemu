@@ -5,7 +5,7 @@
 
 namespace Config {
 namespace Window {
-    inline u32 Scale = 2;
+    inline u32 Scale = 0; // Auto
     inline SDL_ScaleMode ScaleMode = SDL_SCALEMODE_LINEAR;
 }
 

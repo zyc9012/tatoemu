@@ -72,7 +72,7 @@ python3 -m http.server 8080
 
 ### Command-Line Options
 
-- `--scale <n>` - Window scale factor (default: 2)
+- `--scale <n>` - Window scale factor (default: 0, auto)
 - `--scale-mode <mode>` - Scale mode: `linear` or `nearest` (default: linear)
 - `--sample-rate <hz>` - Audio sample rate in Hz (default: 44100)
 - `--volume <0.0-1.0>` - Audio volume level (default: 0.3)

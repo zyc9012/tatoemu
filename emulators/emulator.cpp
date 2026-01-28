@@ -253,8 +253,18 @@ bool Emulator::initialize() {
 
     // Calculate window size respecting display aspect ratio
     // Scale the height, then calculate width from aspect ratio
-    int windowHeight = screenHeight * Config::Window::Scale;
-    int windowWidth = static_cast<int>(windowHeight * displayAspectRatio + 0.5);  // Round to nearest
+    int windowHeight;
+    int windowWidth;
+
+    if (Config::Window::Scale == 0) {
+        SDL_DisplayID displayID = SDL_GetPrimaryDisplay();
+        const SDL_DisplayMode* displayMode = SDL_GetCurrentDisplayMode(displayID);
+        windowHeight = displayMode->h / 2;
+        windowWidth = static_cast<int>(windowHeight * displayAspectRatio + 0.5);  // Round to nearest
+    } else {
+        windowHeight = screenHeight * Config::Window::Scale;
+        windowWidth = static_cast<int>(windowHeight * displayAspectRatio + 0.5);  // Round to nearest
+    }
 
     // Create window
     m_window = SDL_CreateWindow(
