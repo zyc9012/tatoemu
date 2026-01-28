@@ -732,7 +732,7 @@ void PPU::renderLayersCPS2() {
                 if (layerNum >= 0 && prio[nSlice][layerNum] == currPrio) {
                     // Render sprites between previous layer and this one
                     if ((drawMask[0] & 1) && (prevPrio < currPrio)) {
-                        renderSpritesCPS2ByPriority(prevPrio + 1, currPrio);
+                        renderSpritesCPS2(prevPrio + 1, currPrio);
                         prevPrio = currPrio;
                     }
                     
@@ -812,7 +812,7 @@ void PPU::renderLayersCPS2() {
     
     // Render highest priority sprites
     if ((drawMask[0] & 1) && (prevPrio < 7)) {
-        renderSpritesCPS2ByPriority(prevPrio + 1, 7);
+        renderSpritesCPS2(prevPrio + 1, 7);
     }
 }
 
@@ -1175,7 +1175,7 @@ void PPU::renderSpritesCPS1() {
 // Sprite Rendering - CPS2 Version
 // ============================================================================
 
-void PPU::renderSpritesCPS2ByPriority(s32 levelFrom, s32 levelTo) {
+void PPU::renderSpritesCPS2(s32 levelFrom, s32 levelTo) {
     if (m_decodedGfx.empty()) return;
     
     // CPS2 supports up to 1024 sprites (8 bytes each = 8KB max)
@@ -1294,7 +1294,7 @@ void PPU::renderSpritesCPS2ByPriority(s32 levelFrom, s32 levelTo) {
                                   py + 16 > SCREEN_HEIGHT);
                 
                 // Draw with Z-buffer support
-                drawTile16x16WithZ(px, py, tileAddr, palette, flip, clipCheck);
+                drawTile16x16(px, py, tileAddr, palette, flip, clipCheck, true);
             }
         }
         
@@ -1401,7 +1401,7 @@ void PPU::drawTile8x8(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool cl
     }
 }
 
-void PPU::drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck) {
+void PPU::drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, bool useZ) {
     tileAddr &= m_gfxMask;
     if (tileAddr >= m_gfxLen) return;
     
@@ -1415,7 +1415,15 @@ void PPU::drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool 
         tileData += 15 * tileAdd;
         tileAdd = -tileAdd;
     }
-    
+
+    auto plotFunc = [useZ, this](s32 x, s32 y, u32 color) {
+        if (useZ) {
+            plotPixelWithZ(x, y, color);
+        } else {
+            plotPixel(x, y, color);
+        }
+    };
+
     for (s32 ty = 0; ty < 16; ty++, tileData += tileAdd) {
         s32 py = y + ty;
         
@@ -1435,7 +1443,7 @@ void PPU::drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool 
                 u8 c = (pix1 >> (tx * 4)) & 0x0F;
                 
                 if (c && (!clipCheck || isPixelVisible(px, py))) {
-                    plotPixel(px, py, pal[c]);
+                    plotFunc(px, py, pal[c]);
                 }
             }
             // Draw first word's pixels reversed
@@ -1444,7 +1452,7 @@ void PPU::drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool 
                 u8 c = (pix0 >> (tx * 4)) & 0x0F;
                 
                 if (c && (!clipCheck || isPixelVisible(px, py))) {
-                    plotPixel(px, py, pal[c]);
+                    plotFunc(px, py, pal[c]);
                 }
             }
         } else {
@@ -1458,7 +1466,7 @@ void PPU::drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool 
                 u8 c = (pix0 >> ((7 - tx) * 4)) & 0x0F;
                 
                 if (c && (!clipCheck || isPixelVisible(px, py))) {
-                    plotPixel(px, py, pal[c]);
+                    plotFunc(px, py, pal[c]);
                 }
             }
             // Draw second word (pixels 8-15)
@@ -1467,73 +1475,7 @@ void PPU::drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool 
                 u8 c = (pix1 >> ((7 - tx) * 4)) & 0x0F;
                 
                 if (c && (!clipCheck || isPixelVisible(px, py))) {
-                    plotPixel(px, py, pal[c]);
-                }
-            }
-        }
-    }
-}
-
-void PPU::drawTile16x16WithZ(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck) {
-    // Same as drawTile16x16 but uses Z-buffer for depth testing
-    tileAddr &= m_gfxMask;
-    if (tileAddr >= m_gfxLen) return;
-    
-    const u8* tileData = m_decodedGfx.data() + tileAddr;
-    const u32* pal = m_palette.data() + (palette << 4);
-    
-    s32 tileAdd = 8;
-    
-    if (flip & 2) {
-        tileData += 15 * tileAdd;
-        tileAdd = -tileAdd;
-    }
-    
-    for (s32 ty = 0; ty < 16; ty++, tileData += tileAdd) {
-        s32 py = y + ty;
-        
-        if (clipCheck && (py < 0 || py >= SCREEN_HEIGHT)) continue;
-        
-        const u32* pixData = reinterpret_cast<const u32*>(tileData);
-        
-        if (flip & 1) {
-            u32 pix1 = pixData[1];
-            u32 pix0 = pixData[0];
-            
-            for (s32 tx = 0; tx < 8; tx++) {
-                s32 px = x + tx;
-                u8 c = (pix1 >> (tx * 4)) & 0x0F;
-                
-                if (c && (!clipCheck || isPixelVisible(px, py))) {
-                    plotPixelWithZ(px, py, pal[c]);
-                }
-            }
-            for (s32 tx = 0; tx < 8; tx++) {
-                s32 px = x + 8 + tx;
-                u8 c = (pix0 >> (tx * 4)) & 0x0F;
-                
-                if (c && (!clipCheck || isPixelVisible(px, py))) {
-                    plotPixelWithZ(px, py, pal[c]);
-                }
-            }
-        } else {
-            u32 pix0 = pixData[0];
-            u32 pix1 = pixData[1];
-            
-            for (s32 tx = 0; tx < 8; tx++) {
-                s32 px = x + tx;
-                u8 c = (pix0 >> ((7 - tx) * 4)) & 0x0F;
-                
-                if (c && (!clipCheck || isPixelVisible(px, py))) {
-                    plotPixelWithZ(px, py, pal[c]);
-                }
-            }
-            for (s32 tx = 0; tx < 8; tx++) {
-                s32 px = x + 8 + tx;
-                u8 c = (pix1 >> ((7 - tx) * 4)) & 0x0F;
-                
-                if (c && (!clipCheck || isPixelVisible(px, py))) {
-                    plotPixelWithZ(px, py, pal[c]);
+                    plotFunc(px, py, pal[c]);
                 }
             }
         }

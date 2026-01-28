@@ -163,7 +163,7 @@ private:
 
     // CPS2-specific rendering
     void renderLayersCPS2();
-    void renderSpritesCPS2ByPriority(s32 levelFrom, s32 levelTo);
+    void renderSpritesCPS2(s32 levelFrom, s32 levelTo);
     void initCPS2ZBuffer();
     
     // Common (Scroll 2 is same for both CPS1 and CPS2)
@@ -173,8 +173,7 @@ private:
     
     // Tile rendering (internal)
     void drawTile8x8(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, u16 mask = 0);
-    void drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck);
-    void drawTile16x16WithZ(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck);
+    void drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, bool useZ = false);
     void drawTile32x32(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, u16 mask = 0);
     
     // Pixel plotting
