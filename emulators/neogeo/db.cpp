@@ -895,40 +895,6 @@ static const ROMEntry mslug3_roms[] = {
     { "256-v4.v4",     0x00400000, 0x9b4b22d4, ROMType::SOUND_SAMPLE, 0 },
 };
 
-// Metal Slug 3X - Complete Collection (Hack)
-static const ROMEntry mslug3x_roms[] = {
-    { "ms3x-p1.p1",      0x00200000, 0x0d327ddb, ROMType::PROGRAM, 0 },
-    { "ms3x-s1.s1",      0x00020000, 0xd2af5597, ROMType::TEXT, 0 },
-    { "ms3x-c1.c1",      0x00800000, 0x7eb33146, ROMType::SPRITE, 0 },
-    { "ms3x-c2.c2",      0x00800000, 0xa193a88a, ROMType::SPRITE, 0 },
-    { "ms3x-m1.m1",      0x00020000, 0x0e339fdf, ROMType::SOUND_PROGRAM, 0 },
-    { "ms3x-v1.v1",      0x01000000, 0x67cc9264, ROMType::SOUND_SAMPLE, 0 },
-    { "ms3x-p1pb.p1",    0x00200000, 0x64f596c5, ROMType::PROGRAM, 0 },
-    { "ms3x-c1pb.c1",    0x00800000, 0x4a895201, ROMType::SPRITE, 0 },
-    { "ms3x-c2pb.c2",    0x00800000, 0x47c53b38, ROMType::SPRITE, 0 },
-    { "ms3x-p1d0.p1",    0x00200000, 0x06967c7f, ROMType::PROGRAM, 0 },
-    { "ms3x-s1d0.s1",    0x00020000, 0x87094760, ROMType::TEXT, 0 },
-    { "ms3x-c1d0.c1",    0x00800000, 0xe245ad45, ROMType::SPRITE, 0 },
-    { "ms3x-c2d0.c2",    0x00800000, 0x96bf1209, ROMType::SPRITE, 0 },
-    { "ms3x-m1d0.m1",    0x00020000, 0x3d9feec6, ROMType::SOUND_PROGRAM, 0 },
-    { "ms3x-v1d0.v1",    0x00800000, 0x3fdaec62, ROMType::SOUND_SAMPLE, 0 },
-    { "ms3x-p1d1.p1",    0x00200000, 0x8cfeada7, ROMType::PROGRAM, 0 },
-    { "ms3x-c1d1.c1",    0x00800000, 0x4f64aecb, ROMType::SPRITE, 0 },
-    { "ms3x-c2d1.c2",    0x00800000, 0xc02b2cbb, ROMType::SPRITE, 0 },
-    { "ms3x-m1d1.m1",    0x00020000, 0xd603fc58, ROMType::SOUND_PROGRAM, 0 },
-    { "ms3x-v1d1.v1",    0x00800000, 0x3fe95bc8, ROMType::SOUND_SAMPLE, 0 },
-    { "ms3x-p1d2.p1",    0x00200000, 0x17510972, ROMType::PROGRAM, 0 },
-    { "ms3x-c1d2.c1",    0x00400000, 0x9d497f06, ROMType::SPRITE, 0 },
-    { "ms3x-c2d2.c2",    0x00400000, 0x00482d5f, ROMType::SPRITE, 0 },
-    { "ms3x-m1d2.m1",    0x00020000, 0xc6eace68, ROMType::SOUND_PROGRAM, 0 },
-    { "ms3x-v1d2.v1",    0x00800000, 0x95a64a9d, ROMType::SOUND_SAMPLE, 0 },
-    { "ms3x-p1d3.p1",    0x00200000, 0x0f7700d7, ROMType::PROGRAM, 0 },
-    { "ms3x-c1d3.c1",    0x00800000, 0x9be2f993, ROMType::SPRITE, 0 },
-    { "ms3x-c2d3.c2",    0x00800000, 0x9f261733, ROMType::SPRITE, 0 },
-    { "ms3x-m1d3.m1",    0x00020000, 0xc5579de4, ROMType::SOUND_PROGRAM, 0 },
-    { "ms3x-v1d3.v1",    0x00800000, 0x17934969, ROMType::SOUND_SAMPLE, 0 },
-};
-
 // Metal Slug 4 (Fully Decrypted)
 static const ROMEntry mslug4fd_roms[] = {
     { "263-p1.p1",     0x00100000, 0x27e4def3, ROMType::PROGRAM, 0 },
@@ -2884,10 +2850,6 @@ const GameInfo GameDatabase::s_games[] = {
     {
         "mslug3", "Metal Slug 3 (NGM-2560)", mslug3_roms, sizeof(mslug3_roms) / sizeof(ROMEntry),
         304, 224, GAME_FLAG_CMC42 | GAME_FLAG_SMA_PROTECTION
-    },
-    {
-        "mslug3x", "Metal Slug 3X - Complete Collection (Hack)", mslug3x_roms, sizeof(mslug3x_roms) / sizeof(ROMEntry),
-        304, 224, 0
     },
     {
         "mslug4fd", "Metal Slug 4 (Fully Decrypted)", mslug4fd_roms, sizeof(mslug4fd_roms) / sizeof(ROMEntry),
