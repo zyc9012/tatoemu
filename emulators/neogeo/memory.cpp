@@ -22,7 +22,7 @@ Memory::Memory()
     , m_core(nullptr)
     , m_nvramLoaded(false)
     , m_inputSelect(0)
-    , m_sramWritable(false)
+    , m_nvramWritable(false)
     , m_paletteBank(0)
     , m_darkenPalette(false)
     , m_biosTextRomEnabled(false)
@@ -44,13 +44,12 @@ Memory::~Memory() {
 void Memory::reset() {
     // Clear RAM
     m_workRam.fill(0);
-    m_sram.fill(0);
     m_paletteRam.fill(0);
     m_z80Ram.fill(0);
     
     // Reset I/O registers
     m_inputSelect = 0;
-    m_sramWritable = false;
+    m_nvramWritable = false;
     m_paletteBank = 0;
     m_darkenPalette = false;
     m_biosTextRomEnabled = false;
@@ -159,17 +158,6 @@ u8 Memory::read8(u32 address) {
     // Note: Sprite ROM (0x400000-0x4FFFFF) and Text ROM (0x500000-0x5FFFFF) are NOT
     // directly readable through the CPU address space on the NeoGeo.
     // The sprite and text data are accessed by the PPU through dedicated buses.
-    
-    // Memory card area (0x800000-0xBFFFFF)
-    // Only odd bytes are valid for memory card, returns 0xFF for even bytes
-    if (address >= 0x800000 && address < 0xC00000) {
-        if (address & 1) {
-            // Odd address - memory card data
-            u32 cardOffset = (address >> 1) & 0xFFFF;  // 64KB memory card
-            return m_sram[cardOffset];
-        }
-        return 0xFF;  // Even addresses return open bus
-    }
     
     // BIOS ROM (0xC00000-0xCFFFFF) - first 0x400 bytes are vector table
     if (address >= 0xC00000 && address <= 0xCFFFFF) {
@@ -289,19 +277,9 @@ void Memory::write8(u32 address, u8 value) {
         return;
     }
     
-    // Memory card area (0x800000-0xBFFFFF)
-    // Only odd bytes are writable for memory card
-    if (address >= 0x800000 && address < 0xC00000) {
-        if ((address & 1) && m_sramWritable) {
-            u32 cardOffset = (address >> 1) & 0xFFFF;  // 64KB memory card
-            m_sram[cardOffset] = value;
-        }
-        return;
-    }
-    
     // NVRAM (0xD00000-0xDFFFFF) - MVS only, 64KB mirrored
     if (address >= 0xD00000 && address < 0xE00000) {
-        if (Config::System == SystemType::MVS) {
+        if (Config::System == SystemType::MVS && m_nvramWritable) {
             m_nvram[address & 0xFFFF] = value;
         }
         return;
@@ -563,8 +541,8 @@ void Memory::writeIO2(u8 offset, u8 /* value */) {
             break;
             
         case 0x0D:
-            // Write-protect SRAM
-            m_sramWritable = false;
+            // Write-protect NVRAM
+            m_nvramWritable = false;
             break;
             
         case 0x0F:
@@ -588,8 +566,8 @@ void Memory::writeIO2(u8 offset, u8 /* value */) {
             break;
             
         case 0x1D:
-            // Write-enable SRAM
-            m_sramWritable = true;
+            // Write-enable NVRAM
+            m_nvramWritable = true;
             break;
             
         case 0x1F:
@@ -732,12 +710,11 @@ void Memory::writeZ80IO(u16 port, u8 value) {
 
 void Memory::saveState(std::ofstream& file) {
     file.write(reinterpret_cast<const char*>(m_workRam.data()), m_workRam.size());
-    file.write(reinterpret_cast<const char*>(m_sram.data()), m_sram.size());
     file.write(reinterpret_cast<const char*>(m_nvram.data()), m_nvram.size());
     file.write(reinterpret_cast<const char*>(m_paletteRam.data()), m_paletteRam.size() * sizeof(u16));
     file.write(reinterpret_cast<const char*>(m_z80Ram.data()), m_z80Ram.size());
     file.write(reinterpret_cast<const char*>(&m_inputSelect), sizeof(m_inputSelect));
-    file.write(reinterpret_cast<const char*>(&m_sramWritable), sizeof(m_sramWritable));
+    file.write(reinterpret_cast<const char*>(&m_nvramWritable), sizeof(m_nvramWritable));
     file.write(reinterpret_cast<const char*>(&m_paletteBank), sizeof(m_paletteBank));
     file.write(reinterpret_cast<const char*>(&m_darkenPalette), sizeof(m_darkenPalette));
     file.write(reinterpret_cast<const char*>(&m_biosTextRomEnabled), sizeof(m_biosTextRomEnabled));
@@ -753,12 +730,11 @@ void Memory::saveState(std::ofstream& file) {
 
 void Memory::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(m_workRam.data()), m_workRam.size());
-    file.read(reinterpret_cast<char*>(m_sram.data()), m_sram.size());
     file.read(reinterpret_cast<char*>(m_nvram.data()), m_nvram.size());
     file.read(reinterpret_cast<char*>(m_paletteRam.data()), m_paletteRam.size() * sizeof(u16));
     file.read(reinterpret_cast<char*>(m_z80Ram.data()), m_z80Ram.size());
     file.read(reinterpret_cast<char*>(&m_inputSelect), sizeof(m_inputSelect));
-    file.read(reinterpret_cast<char*>(&m_sramWritable), sizeof(m_sramWritable));
+    file.read(reinterpret_cast<char*>(&m_nvramWritable), sizeof(m_nvramWritable));
     file.read(reinterpret_cast<char*>(&m_paletteBank), sizeof(m_paletteBank));
     file.read(reinterpret_cast<char*>(&m_darkenPalette), sizeof(m_darkenPalette));
     file.read(reinterpret_cast<char*>(&m_biosTextRomEnabled), sizeof(m_biosTextRomEnabled));
