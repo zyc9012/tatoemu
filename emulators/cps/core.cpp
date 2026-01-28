@@ -101,14 +101,8 @@ void Core::update() {
     s32 soundCpuSyncOffset = 0;
     
     while (!m_ppu->isFrameComplete()) {
-        // Track cycles before instruction
-        u32 cyclesBefore = m_cpu->getCycles();
-        
-        // Execute one CPU instruction (takes multiple cycles)
-        m_cpu->step();
-        
-        // Calculate how many CPU cycles the instruction took
-        u32 cpuCycles = m_cpu->getCycles() - cyclesBefore;
+        // Execute CPU cycles)
+        u32 cpuCycles = m_cpu->step(50);
         
         // Run sound CPU proportionally
         float soundCyclesRatio;

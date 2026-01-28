@@ -380,7 +380,7 @@ void Memory::writeVideoController(u32 address, u16 value) {
         case 0x0C:
             // IRQ acknowledge
             if (m_cpu) {
-                m_cpu->resetInterrupt();
+                m_cpu->irq(0);
             }
             break;
     }

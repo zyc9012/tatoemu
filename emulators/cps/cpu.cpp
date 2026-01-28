@@ -79,8 +79,7 @@ static void write32_pd_callback(unsigned int address, unsigned int value) {
 }
 
 CPU::CPU()
-    : m_memory(nullptr)
-    , m_cycles(0) {
+    : m_memory(nullptr) {
     // Initialize Musashi emulator (safe to call multiple times)
     static bool initialized = false;
     if (!initialized) {
@@ -119,35 +118,20 @@ void CPU::reset() {
     
     // Reset the Musashi emulator
     m68k_pulse_reset();
-    
-    // Reset cycle counter
-    m_cycles = 0;
 }
 
-void CPU::step() {
+u32 CPU::step(u32 cycles) {
     // Set global memory pointer for callbacks
     g_memory = m_memory;
     
-    // Execute cycles - Musashi executes by cycles, not by instruction
-    // Most 68000 instructions take 4-20 cycles. We execute 10 cycles which should
-    // typically result in one instruction per call. Occasionally we may execute
-    // multiple very short instructions (e.g., two 4-cycle instructions), but this
-    // is acceptable and maintains cycle accuracy for the emulator.
-    int cyclesUsed = m68k_execute(50);
-    m_cycles += cyclesUsed;
+    // Execute cycles
+    return m68k_execute(cycles);
 }
-
-// getCycles() and setMemory() are defined inline in cpu.h
 
 void CPU::irq(u8 level) {
     // Set interrupt level (0-7, where 0 = no interrupt, 7 = NMI)
     if (level > 7) level = 7;
     m68k_set_irq(level);
-}
-
-void CPU::resetInterrupt() {
-    // Clear interrupt by setting level to 0
-    m68k_set_irq(0);
 }
 
 void CPU::saveState(std::ofstream& file) {
@@ -159,7 +143,6 @@ void CPU::saveState(std::ofstream& file) {
     
     file.write(reinterpret_cast<const char*>(&contextSizeNoPointers), sizeof(contextSizeNoPointers));
     file.write(context.data(), contextSizeNoPointers);
-    file.write(reinterpret_cast<const char*>(&m_cycles), sizeof(m_cycles));
 }
 
 void CPU::loadState(std::ifstream& file) {
@@ -186,8 +169,6 @@ void CPU::loadState(std::ifstream& file) {
 
     // Set current context back
     m68k_set_context(currentContext.data());
-    
-    file.read(reinterpret_cast<char*>(&m_cycles), sizeof(m_cycles));
     
     // Ensure memory pointer is set
     g_memory = m_memory;

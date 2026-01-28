@@ -103,17 +103,15 @@ void CPU::reset() {
     m_cycles = 0;
 }
 
-void CPU::step() {
+u32 CPU::step(u32 cycles) {
     // Set global memory pointer for callbacks
     g_memory = m_memory;
     
-    // Execute cycles - Musashi executes by cycles, not by instruction
-    // Most 68000 instructions take 4-20 cycles. We execute 10 cycles which should
-    // typically result in one instruction per call. Occasionally we may execute
-    // multiple very short instructions (e.g., two 4-cycle instructions), but this
-    // is acceptable and maintains cycle accuracy for the emulator.
-    int cyclesUsed = m68k_execute(50);
+    // Execute cycles
+    u32 cyclesUsed = m68k_execute(cycles);
     m_cycles += cyclesUsed;
+
+    return cyclesUsed;
 }
 
 // getCycles() and setMemory() are defined inline in cpu.h
@@ -122,11 +120,6 @@ void CPU::irq(u8 level) {
     // Set interrupt level (0-7, where 0 = no interrupt, 7 = NMI)
     if (level > 7) level = 7;
     m68k_set_irq(level);
-}
-
-void CPU::resetInterrupt() {
-    // Clear interrupt by setting level to 0
-    m68k_set_irq(0);
 }
 
 void CPU::saveState(std::ofstream& file) {

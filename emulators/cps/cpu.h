@@ -16,14 +16,12 @@ public:
     ~CPU();
 
     void reset();
-    void step();
+    u32 step(u32 cycles);
     
-    u32 getCycles() const { return m_cycles; }
     void setMemory(Memory* memory) { m_memory = memory; }
     
     // Interrupt handling
     void irq(u8 level);  // IRQ with priority level (1-7)
-    void resetInterrupt();
     
     // Save/Load state
     void saveState(std::ofstream& file);
@@ -31,7 +29,6 @@ public:
 
 private:
     Memory* m_memory;
-    u32 m_cycles;
 };
 
 } // namespace cps

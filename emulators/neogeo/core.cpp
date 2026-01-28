@@ -80,10 +80,9 @@ void Core::reset() {
     m_memory->reset();
     m_controller->reset();
     m_cartridge->reset();
-    m_upd4990a->initialize(CPU_FREQUENCY, [this]() { return m_totalCycles; });
+    m_upd4990a->initialize(CPU_FREQUENCY, [this]() { return m_cpu->getCycles(); });
 
     m_watchdogTimer = 0;
-    m_totalCycles = 0;
 }
 
 void Core::update() {
@@ -95,17 +94,10 @@ void Core::update() {
     u32 cyclesThisFrame = 0;
     
     while (!m_ppu->isFrameComplete()) {
-        // Track cycles before instruction
-        u32 cyclesBefore = m_cpu->getCycles();
-        
-        // Execute one CPU instruction (takes multiple cycles)
-        m_cpu->step();
-        
-        // Calculate how many CPU cycles the instruction took
-        u32 cpuCycles = m_cpu->getCycles() - cyclesBefore;
+        // Execute CPU cycles
+        u32 cpuCycles = m_cpu->step(50);
 
         // Update cycle counter
-        m_totalCycles += cpuCycles;
         cyclesThisFrame += cpuCycles;
 
         // Run sound CPU proportionally

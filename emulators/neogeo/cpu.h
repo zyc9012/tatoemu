@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../types.h"
+#include "../../components/cpu/m68k/m68k.h"
 #include <fstream>
 
 namespace neogeo {
@@ -15,14 +16,13 @@ public:
     ~CPU();
 
     void reset();
-    void step();
+    u32 step(u32 cycles);
     
-    u32 getCycles() const { return m_cycles; }
+    u32 getCycles() const { return m_cycles + m68k_cycles_run(); }
     void setMemory(Memory* memory) { m_memory = memory; }
     
     // Interrupt handling
     void irq(u8 level);  // IRQ with priority level (1-7)
-    void resetInterrupt();
     
     // Save/Load state
     void saveState(std::ofstream& file);

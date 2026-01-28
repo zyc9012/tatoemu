@@ -69,9 +69,6 @@ private:
     // Frame timing
     double m_gameSpeed = 1.0;
 
-    // Total cycle counter
-    u32 m_totalCycles = 0;
-
     // Watchdog timer (for system reset)
     s32 m_watchdogTimer = 0;
 };
