@@ -49,7 +49,6 @@ typedef int64_t     INT64;
 #ifdef __cplusplus
 // C++ has bool, true, false built-in
 #else
-typedef int bool;
 #define true 1
 #define false 0
 #endif

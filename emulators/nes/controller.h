@@ -3,6 +3,7 @@
 #include "../types.h"
 #include "consts.h"
 #include <fstream>
+#include <array>
 #include <SDL3/SDL.h>
 
 namespace nes {
