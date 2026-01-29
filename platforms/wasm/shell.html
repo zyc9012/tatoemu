@@ -545,6 +545,10 @@
             border-radius: 8px;
         }
 
+        .file-manager-content.dragover {
+            outline: 3px solid #e67e22;
+        }
+
         .file-manager-upload-btn {
             background: #e67e22;
             border: none;
@@ -1159,6 +1163,52 @@
             romInput.click();
         });
 
+        // Drag and drop functionality for entire file manager
+        const fileManagerContent = document.querySelector('.file-manager-content');
+        let dragCounter = 0;
+
+        // Function to handle drag events
+        function handleDragEnter(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter++;
+            if (e.dataTransfer.types.includes('Files')) {
+                fileManagerContent.classList.add('dragover');
+            }
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter--;
+            if (dragCounter === 0) {
+                fileManagerContent.classList.remove('dragover');
+            }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        async function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            fileManagerContent.classList.remove('dragover');
+            dragCounter = 0;
+
+            const files = e.dataTransfer.files;
+            if (files.length === 0) return;
+            
+            await uploadFileAndLoadGame(files[0]);
+        }
+
+        // Add drag and drop listeners to the entire file manager content
+        fileManagerContent.addEventListener('dragenter', handleDragEnter);
+        fileManagerContent.addEventListener('dragleave', handleDragLeave);
+        fileManagerContent.addEventListener('dragover', handleDragOver);
+        fileManagerContent.addEventListener('drop', handleDrop);
+
         // ESC key handler for file manager
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape' && fileManagerModal.classList.contains('show')) {
@@ -1258,22 +1308,28 @@
                 const file = e.target.files[0];
                 if (!file) return;
 
-                try {
-                    // Read file
-                    const arrayBuffer = await file.arrayBuffer();
-                    const uint8Array = new Uint8Array(arrayBuffer);
-                    
-                    // Write file to virtual filesystem
-                    const filename = '/roms/' + file.name;
-                    Module.FS.writeFile(filename, uint8Array);
-                    
-                    // Load game
-                    loadGameFile(filename, file.name, true);
-                } catch (error) {
-                    console.error('Error uploading ROM:', error);
-                    showLog('Error uploading ROM: ' + error.message, true);
-                }
+                await uploadFileAndLoadGame(file);
             });
+        }
+
+        async function uploadFileAndLoadGame(file) {
+            if (!file) return;
+
+            try {
+                // Read file
+                const arrayBuffer = await file.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+                
+                // Write file to virtual filesystem
+                const filename = '/roms/' + file.name;
+                Module.FS.writeFile(filename, uint8Array);
+                
+                // Load game
+                loadGameFile(filename, file.name, true);
+            } catch (error) {
+                console.error('Error uploading ROM:', error);
+                showLog('Error uploading ROM: ' + error.message, true);
+            }
         }
 
         // File Manager functions
@@ -1390,7 +1446,7 @@
         async function loadGameFile(filepath, filename, isUpload = false) {
             try {
                 const ext = filename.split('.').pop().toLowerCase();
-                if (ext === 'sav' || ext === 'state') {
+                if (ext === 'sav' || ext === 'state' || filename === 'neogeo.zip') {
                     if (isUpload) {
                         refreshFileList();
                     } else {
