@@ -304,10 +304,11 @@ void APU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_timerA), sizeof(m_timerA));
     file.read(reinterpret_cast<char*>(&m_timerB), sizeof(m_timerB));
 
-    Buffer* buf = buffer_create(1);
-    file.read(reinterpret_cast<char*>(&buf->size), sizeof(buf->size));
-    buffer_resize(buf, buf->size);
-    file.read(reinterpret_cast<char*>(buf->data), buf->size);
+    u32 buf_size;
+    file.read(reinterpret_cast<char*>(&buf_size), sizeof(buf_size));
+    Buffer* buf = buffer_create(buf_size);
+    file.read(reinterpret_cast<char*>(buf->data), buf_size);
+    buf->size = buf_size;
     AY8910LoadContext(buf);
     YM2610LoadContext(buf);
     buffer_destroy(buf);

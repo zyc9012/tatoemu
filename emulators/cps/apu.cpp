@@ -264,7 +264,7 @@ void APU::saveState(std::ofstream& file) {
     file.write(reinterpret_cast<const char*>(&m_cyclesPerSample), sizeof(m_cyclesPerSample));
     file.write(reinterpret_cast<const char*>(&m_ym2151RegSelect), sizeof(m_ym2151RegSelect));
 
-    Buffer* buf = buffer_create(1);
+    Buffer* buf = buffer_create(1920);
     if (m_cartridge->getCPSVersion() == 1) {
         // Save YM2151 state
         YM2151SaveContext(buf);
@@ -286,10 +286,11 @@ void APU::loadState(std::ifstream& file) {
     file.read(reinterpret_cast<char*>(&m_cyclesPerSample), sizeof(m_cyclesPerSample));
     file.read(reinterpret_cast<char*>(&m_ym2151RegSelect), sizeof(m_ym2151RegSelect));
 
-    Buffer* buf = buffer_create(1);
-    file.read(reinterpret_cast<char*>(&buf->size), sizeof(buf->size));
-    buffer_resize(buf, buf->size);
-    file.read(reinterpret_cast<char*>(buf->data), buf->size);
+    u32 buf_size;
+    file.read(reinterpret_cast<char*>(&buf_size), sizeof(buf_size));
+    Buffer* buf = buffer_create(buf_size);
+    file.read(reinterpret_cast<char*>(buf->data), buf_size);
+    buf->size = buf_size;
     if (m_cartridge->getCPSVersion() == 1) {
         // Load YM2151 state
         YM2151LoadContext(buf);
