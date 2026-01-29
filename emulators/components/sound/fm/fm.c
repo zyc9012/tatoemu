@@ -3811,8 +3811,6 @@ static void YM2610_postload(void)
 			FM_ADPCMAWrite(F2610,r+0x20,F2610->REGS[r+0x120]);
 			FM_ADPCMAWrite(F2610,r+0x28,F2610->REGS[r+0x128]);
 		}
-		/* Delta-T ADPCM unit */
-		YM_DELTAT_postload(&F2610->deltaT , &F2610->REGS[0x010] );
 	}
 
 	FM_IS_POSTLOADING = 0;
