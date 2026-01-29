@@ -1,3 +1,5 @@
+![logo](/tatoemu.png)
+
 # TatoEmu - Multi-System Retro Game Emulator
 
 TatoEmu is a multi-system retro game emulator written in C++ with SDL3 and WebAssembly targets. It currently supports GB/GBC, NES, CPS1, CPS2, and NeoGeo ROMs.

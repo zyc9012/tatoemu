@@ -92,4 +92,14 @@ set_target_properties(tatoemu PROPERTIES
     OUTPUT_NAME "index"
 )
 
+# Define a custom target to copy assets
+add_custom_target(
+    copy_assets
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../tatoemu.png
+            ${CMAKE_BINARY_DIR}/dist/tatoemu.png
+    COMMENT "Copying assets to the build directory"
+)
+
+add_dependencies(tatoemu copy_assets)
 
