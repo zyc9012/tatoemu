@@ -845,12 +845,12 @@ void AY8910SaveContext(Buffer* buf)
 	if (!buf) return;
 
 	// Write number of chips
-	buffer_write_data(buf, &num, sizeof(num));
+	buffer_write(buf, &num, sizeof(num));
 
 	// Write each AY8910 struct (up to RNG field)
 	for (INT32 i = 0; i < num; i++) {
 		size_t struct_size = STRUCT_SIZE_HELPER(struct AY8910, RNG);
-		buffer_write_data(buf, &AYPSG[i], struct_size);
+		buffer_write(buf, &AYPSG[i], struct_size);
 	}
 
 }
@@ -860,14 +860,14 @@ void AY8910LoadContext(Buffer* buf)
 	if (!buf) return;
 
 	// Read number of chips
-	buffer_read_data(buf, &num, sizeof(num));
+	buffer_read(buf, &num, sizeof(num));
 
 	if (num > MAX_8910) num = MAX_8910; // Safety check
 
 	// Read each AY8910 struct (up to RNG field)
 	for (INT32 i = 0; i < num; i++) {
 		size_t struct_size = STRUCT_SIZE_HELPER(struct AY8910, RNG);
-		buffer_read_data(buf, &AYPSG[i], struct_size);
+		buffer_read(buf, &AYPSG[i], struct_size);
 	}
 }
 

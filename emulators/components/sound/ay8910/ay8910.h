@@ -1,4 +1,5 @@
 #include "../compact.h"
+#include "../buffer.h"
 
 #ifndef AY8910_CORE
 extern "C" {

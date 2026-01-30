@@ -1,5 +1,4 @@
 #include "zip_reader.h"
-#include <fstream>
 #include <iostream>
 #include <algorithm>
 #include <cstring>
@@ -20,18 +19,19 @@ bool ZipReader::open(const fs::path& filename) {
     close();
     
     // Read ZIP file into memory
-    std::ifstream file(filename, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
+    FILE* file = fopen(filename.c_str(), "rb");
+    if (!file) {
         std::cerr << "Failed to open ZIP file: " << filename << std::endl;
         return false;
     }
     
-    u32 fileSize = static_cast<u32>(file.tellg());
-    file.seekg(0, std::ios::beg);
+    fseek(file, 0, SEEK_END);
+    size_t fileSize = ftell(file);
+    fseek(file, 0, SEEK_SET);
     
     m_zipData.resize(fileSize);
-    file.read(reinterpret_cast<char*>(m_zipData.data()), fileSize);
-    file.close();
+    fread(m_zipData.data(), 1, fileSize, file);
+    fclose(file);
     
     // Initialize miniz ZIP reader with memory buffer
     if (!mz_zip_reader_init_mem(&m_zipArchive, m_zipData.data(), m_zipData.size(), 0)) {

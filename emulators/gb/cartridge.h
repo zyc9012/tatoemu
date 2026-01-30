@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <string>
 #include <vector>
-#include <fstream>
+#include "../../components/buffer.h"
 #include <ctime>
 
 namespace gb {
@@ -73,8 +73,8 @@ public:
     bool isGBCOnly() const { return m_isGBCOnly; }
     
     // Save/Load state
-    void saveState(std::ofstream& file) const;
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
     
     // Battery save/load
     void saveBattery() const;

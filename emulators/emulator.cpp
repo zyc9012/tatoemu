@@ -8,7 +8,6 @@
 #include "../utilities/zip_reader.h"
 #include <SDL3/SDL.h>
 #include <iostream>
-#include <fstream>
 #include <sstream>
 #include <algorithm>
 

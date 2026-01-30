@@ -2,7 +2,7 @@
 
 #include "types.h"
 #include <memory>
-#include <fstream>
+#include "../components/buffer.h"
 
 namespace gb {
 
@@ -82,8 +82,8 @@ public:
     Registers& getRegisters() { return m_regs; }
     
     // Save/Load state
-    void saveState(std::ofstream& file) const;
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
 
 private:
     u32 executeInstruction(u8 opcode);

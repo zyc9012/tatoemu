@@ -1,7 +1,7 @@
 #include "core.h"
+#include "../components/buffer.h"
 #include <SDL3/SDL.h>
 #include <iostream>
-#include <fstream>
 #include <sstream>
 
 namespace nes {
@@ -108,61 +108,31 @@ void Core::update() {
 }
 
 bool Core::saveState(const fs::path& filename) {
-    std::ofstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open save state file: " << filename << std::endl;
-        return false;
-    }
-    
-    // Write header
-    const char* header = "NESEMU";
-    file.write(header, 6);
-    u32 version = 1;
-    file.write(reinterpret_cast<const char*>(&version), sizeof(version));
+    Buffer buf = {};
     
     // Save all component states
-    m_cpu->saveState(file);
-    m_ppu->saveState(file);
-    m_apu->saveState(file);
-    m_memory->saveState(file);
-    m_cartridge->saveState(file);
-    m_controller->saveState(file);
+    m_cpu->saveState(&buf);
+    m_ppu->saveState(&buf);
+    m_apu->saveState(&buf);
+    m_memory->saveState(&buf);
+    m_cartridge->saveState(&buf);
+    m_controller->saveState(&buf);
     
-    file.close();
-    return true;
+    return buffer_save_to_file(&buf, filename);
 }
 
 bool Core::loadState(const fs::path& filename) {
-    std::ifstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open save state file: " << filename << std::endl;
-        return false;
-    }
-    
-    // Read and verify header
-    char header[7] = {0};
-    file.read(header, 6);
-    if (std::string(header) != "NESEMU") {
-        std::cerr << "Invalid save state file format" << std::endl;
-        return false;
-    }
-    
-    u32 version;
-    file.read(reinterpret_cast<char*>(&version), sizeof(version));
-    if (version != 1) {
-        std::cerr << "Unsupported save state version" << std::endl;
-        return false;
-    }
+    Buffer buf = {};
+    buffer_load_from_file(&buf, filename);
     
     // Load all component states
-    m_cpu->loadState(file);
-    m_ppu->loadState(file);
-    m_apu->loadState(file);
-    m_memory->loadState(file);
-    m_cartridge->loadState(file);
-    m_controller->loadState(file);
+    m_cpu->loadState(&buf);
+    m_ppu->loadState(&buf);
+    m_apu->loadState(&buf);
+    m_memory->loadState(&buf);
+    m_cartridge->loadState(&buf);
+    m_controller->loadState(&buf);
     
-    file.close();
     return true;
 }
 

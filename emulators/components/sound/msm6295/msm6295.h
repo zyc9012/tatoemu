@@ -4,6 +4,7 @@
 #define _H_MSM6295_
 
 #include "../../compact.h"
+#include "../../buffer.h"
 
 #define MAX_MSM6295 (4)
 #define MSM6295_PIN7_HIGH (132)

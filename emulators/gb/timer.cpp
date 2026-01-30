@@ -160,26 +160,26 @@ void Timer::write(u16 address, u8 value) {
     }
 }
 
-void Timer::saveState(std::ofstream& file) const {
-    file.write(reinterpret_cast<const char*>(&m_dividerCounter), sizeof(m_dividerCounter));
-    file.write(reinterpret_cast<const char*>(&m_div), sizeof(m_div));
-    file.write(reinterpret_cast<const char*>(&m_tima), sizeof(m_tima));
-    file.write(reinterpret_cast<const char*>(&m_tma), sizeof(m_tma));
-    file.write(reinterpret_cast<const char*>(&m_tac), sizeof(m_tac));
-    file.write(reinterpret_cast<const char*>(&m_timerCounter), sizeof(m_timerCounter));
-    file.write(reinterpret_cast<const char*>(&m_timerOverflow), sizeof(m_timerOverflow));
-    file.write(reinterpret_cast<const char*>(&m_overflowDelay), sizeof(m_overflowDelay));
+void Timer::saveState(Buffer* buf) {
+    buffer_write(buf, &m_dividerCounter, sizeof(m_dividerCounter));
+    buffer_write(buf, &m_div, sizeof(m_div));
+    buffer_write(buf, &m_tima, sizeof(m_tima));
+    buffer_write(buf, &m_tma, sizeof(m_tma));
+    buffer_write(buf, &m_tac, sizeof(m_tac));
+    buffer_write(buf, &m_timerCounter, sizeof(m_timerCounter));
+    buffer_write(buf, &m_timerOverflow, sizeof(m_timerOverflow));
+    buffer_write(buf, &m_overflowDelay, sizeof(m_overflowDelay));
 }
 
-void Timer::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(&m_dividerCounter), sizeof(m_dividerCounter));
-    file.read(reinterpret_cast<char*>(&m_div), sizeof(m_div));
-    file.read(reinterpret_cast<char*>(&m_tima), sizeof(m_tima));
-    file.read(reinterpret_cast<char*>(&m_tma), sizeof(m_tma));
-    file.read(reinterpret_cast<char*>(&m_tac), sizeof(m_tac));
-    file.read(reinterpret_cast<char*>(&m_timerCounter), sizeof(m_timerCounter));
-    file.read(reinterpret_cast<char*>(&m_timerOverflow), sizeof(m_timerOverflow));
-    file.read(reinterpret_cast<char*>(&m_overflowDelay), sizeof(m_overflowDelay));
+void Timer::loadState(Buffer* buf) {
+    buffer_read(buf, &m_dividerCounter, sizeof(m_dividerCounter));
+    buffer_read(buf, &m_div, sizeof(m_div));
+    buffer_read(buf, &m_tima, sizeof(m_tima));
+    buffer_read(buf, &m_tma, sizeof(m_tma));
+    buffer_read(buf, &m_tac, sizeof(m_tac));
+    buffer_read(buf, &m_timerCounter, sizeof(m_timerCounter));
+    buffer_read(buf, &m_timerOverflow, sizeof(m_timerOverflow));
+    buffer_read(buf, &m_overflowDelay, sizeof(m_overflowDelay));
 }
 
 } // namespace gb

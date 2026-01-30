@@ -33,6 +33,7 @@
 #define _H_YM2151_
 
 #include "../../compact.h"
+#include "../../buffer.h"
 
 /* 16- and 8-bit samples (signed) are supported*/
 #define SAMPLE_BITS 16

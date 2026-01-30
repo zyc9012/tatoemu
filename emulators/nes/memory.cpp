@@ -147,14 +147,14 @@ void Memory::cpuWrite(u16 address, u8 value) {
     }
 }
 
-void Memory::saveState(std::ofstream& file) const {
-    file.write(reinterpret_cast<const char*>(m_ram.data()), m_ram.size());
-    file.write(reinterpret_cast<const char*>(&m_controllerStrobe), sizeof(m_controllerStrobe));
+void Memory::saveState(Buffer* buf) {
+    buffer_write(buf, m_ram.data(), m_ram.size());
+    buffer_write(buf, &m_controllerStrobe, sizeof(m_controllerStrobe));
 }
 
-void Memory::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(m_ram.data()), m_ram.size());
-    file.read(reinterpret_cast<char*>(&m_controllerStrobe), sizeof(m_controllerStrobe));
+void Memory::loadState(Buffer* buf) {
+    buffer_read(buf, m_ram.data(), m_ram.size());
+    buffer_read(buf, &m_controllerStrobe, sizeof(m_controllerStrobe));
 }
 
 } // namespace nes

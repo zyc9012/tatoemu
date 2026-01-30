@@ -9,7 +9,7 @@ extern "C" {
 #include "../components/sound/msm6295/msm6295.h"
 #include "../components/sound/qsound/qsound.h"
 #include "../components/compact.h"
-#include <fstream>
+#include "../components/buffer.h"
 #include <memory>
 #include <vector>
 
@@ -40,8 +40,8 @@ public:
     void writeQSound(u16 port, u16 value);
     
     // Save/Load state
-    void saveState(std::ofstream& file);
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
 
 private:
     SoundCPU* m_soundCpu;

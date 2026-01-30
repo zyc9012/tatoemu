@@ -5,7 +5,6 @@
 #include "decrypt.h"
 #include "zip_reader.h"
 #include <cstring>
-#include <fstream>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -482,44 +481,44 @@ u8 Cartridge::readEncryptedSoundROM8(u32 address) const {
     return 0;
 }
 
-void Cartridge::saveState(std::ofstream& file) {
+void Cartridge::saveState(Buffer* buf) {
     // Save CPS version
-    file.write(reinterpret_cast<const char*>(&m_cpsVer), sizeof(m_cpsVer));
+    buffer_write(buf, &m_cpsVer, sizeof(m_cpsVer));
     
     // Save title and ROM set name for verification
     u32 titleLen = static_cast<u32>(m_title.length());
-    file.write(reinterpret_cast<const char*>(&titleLen), sizeof(titleLen));
-    file.write(m_title.c_str(), titleLen);
+    buffer_write(buf, &titleLen, sizeof(titleLen));
+    buffer_write(buf, m_title.c_str(), titleLen);
     
     u32 romSetNameLen = static_cast<u32>(m_romSetName.length());
-    file.write(reinterpret_cast<const char*>(&romSetNameLen), sizeof(romSetNameLen));
-    file.write(m_romSetName.c_str(), romSetNameLen);
+    buffer_write(buf, &romSetNameLen, sizeof(romSetNameLen));
+    buffer_write(buf, m_romSetName.c_str(), romSetNameLen);
     
     // Save decryption keys (CPS2 only, but save for both for compatibility)
-    file.write(reinterpret_cast<const char*>(&m_decryptKey), sizeof(m_decryptKey));
-    file.write(reinterpret_cast<const char*>(&m_decryptStart), sizeof(m_decryptStart));
-    file.write(reinterpret_cast<const char*>(&m_decryptEnd), sizeof(m_decryptEnd));
+    buffer_write(buf, &m_decryptKey, sizeof(m_decryptKey));
+    buffer_write(buf, &m_decryptStart, sizeof(m_decryptStart));
+    buffer_write(buf, &m_decryptEnd, sizeof(m_decryptEnd));
 }
 
-void Cartridge::loadState(std::ifstream& file) {
+void Cartridge::loadState(Buffer* buf) {
     // Load CPS version
-    file.read(reinterpret_cast<char*>(&m_cpsVer), sizeof(m_cpsVer));
+    buffer_read(buf, &m_cpsVer, sizeof(m_cpsVer));
     
     // Load title and ROM set name for verification
     u32 titleLen;
-    file.read(reinterpret_cast<char*>(&titleLen), sizeof(titleLen));
+    buffer_read(buf, &titleLen, sizeof(titleLen));
     m_title.resize(titleLen);
-    file.read(&m_title[0], titleLen);
+    buffer_read(buf, &m_title[0], titleLen);
     
     u32 romSetNameLen;
-    file.read(reinterpret_cast<char*>(&romSetNameLen), sizeof(romSetNameLen));
+    buffer_read(buf, &romSetNameLen, sizeof(romSetNameLen));
     m_romSetName.resize(romSetNameLen);
-    file.read(&m_romSetName[0], romSetNameLen);
+    buffer_read(buf, &m_romSetName[0], romSetNameLen);
     
     // Load decryption keys
-    file.read(reinterpret_cast<char*>(&m_decryptKey), sizeof(m_decryptKey));
-    file.read(reinterpret_cast<char*>(&m_decryptStart), sizeof(m_decryptStart));
-    file.read(reinterpret_cast<char*>(&m_decryptEnd), sizeof(m_decryptEnd));
+    buffer_read(buf, &m_decryptKey, sizeof(m_decryptKey));
+    buffer_read(buf, &m_decryptStart, sizeof(m_decryptStart));
+    buffer_read(buf, &m_decryptEnd, sizeof(m_decryptEnd));
 }
 
 u32 Cartridge::calcGraphicsROMSizeFix(const GameInfo* gameInfo) {

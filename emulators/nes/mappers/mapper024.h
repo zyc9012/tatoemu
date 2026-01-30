@@ -14,8 +14,8 @@ public:
     u8 getVolume() const;
     
     // State save/load
-    void saveState(std::ofstream& file) const;
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
     
 private:
     u8 m_volume = 0;           // Volume (0-15)
@@ -39,8 +39,8 @@ public:
     u8 getVolume() const;
     
     // State save/load
-    void saveState(std::ofstream& file) const;
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
     
 private:
     u8 m_accumulatorRate = 0;  // Rate added to accumulator
@@ -62,8 +62,8 @@ public:
     float getOutput() const;
     
     // State save/load
-    void saveState(std::ofstream& file) const;
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
     
 private:
     VRC6Pulse m_pulse1;
@@ -92,8 +92,8 @@ public:
     float getAudioOutput() const override;
     bool hasExpansionAudio() const override { return true; }
     
-    void saveState(std::ofstream& file) const override;
-    void loadState(std::ifstream& file) override;
+    void saveState(Buffer* buf) override;
+    void loadState(Buffer* buf) override;
     
 private:
     void updateBanks();

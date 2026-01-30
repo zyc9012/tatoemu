@@ -320,48 +320,48 @@ void EEPROM::writeByte(UINT32 offset, UINT8 data)
     m_eepromData[offset] = data;
 }
 
-void EEPROM::saveState(std::ofstream& file) const
+void EEPROM::saveState(Buffer* buf)
 {
     if (!m_initialized) return;
 
     // Save EEPROM data
-    file.write(reinterpret_cast<const char*>(m_eepromData), MEMORY_SIZE);
+    buffer_write(buf, m_eepromData, MEMORY_SIZE);
 
     // Save serial buffer
-    file.write(reinterpret_cast<const char*>(m_serialBuffer), SERIAL_BUFFER_LENGTH);
+    buffer_write(buf, m_serialBuffer, SERIAL_BUFFER_LENGTH);
 
     // Save state variables
-    file.write(reinterpret_cast<const char*>(&m_serialCount), sizeof(m_serialCount));
-    file.write(reinterpret_cast<const char*>(&m_eepromDataBits), sizeof(m_eepromDataBits));
-    file.write(reinterpret_cast<const char*>(&m_eepromReadAddress), sizeof(m_eepromReadAddress));
-    file.write(reinterpret_cast<const char*>(&m_eepromClockCount), sizeof(m_eepromClockCount));
-    file.write(reinterpret_cast<const char*>(&m_latch), sizeof(m_latch));
-    file.write(reinterpret_cast<const char*>(&m_resetLine), sizeof(m_resetLine));
-    file.write(reinterpret_cast<const char*>(&m_clockLine), sizeof(m_clockLine));
-    file.write(reinterpret_cast<const char*>(&m_sending), sizeof(m_sending));
-    file.write(reinterpret_cast<const char*>(&m_locked), sizeof(m_locked));
-    file.write(reinterpret_cast<const char*>(&m_resetDelay), sizeof(m_resetDelay));
+    buffer_write(buf, &m_serialCount, sizeof(m_serialCount));
+    buffer_write(buf, &m_eepromDataBits, sizeof(m_eepromDataBits));
+    buffer_write(buf, &m_eepromReadAddress, sizeof(m_eepromReadAddress));
+    buffer_write(buf, &m_eepromClockCount, sizeof(m_eepromClockCount));
+    buffer_write(buf, &m_latch, sizeof(m_latch));
+    buffer_write(buf, &m_resetLine, sizeof(m_resetLine));
+    buffer_write(buf, &m_clockLine, sizeof(m_clockLine));
+    buffer_write(buf, &m_sending, sizeof(m_sending));
+    buffer_write(buf, &m_locked, sizeof(m_locked));
+    buffer_write(buf, &m_resetDelay, sizeof(m_resetDelay));
 }
 
-void EEPROM::loadState(std::ifstream& file)
+void EEPROM::loadState(Buffer* buf)
 {
     if (!m_initialized) return;
 
     // Load EEPROM data
-    file.read(reinterpret_cast<char*>(m_eepromData), MEMORY_SIZE);
+    buffer_read(buf, m_eepromData, MEMORY_SIZE);
 
     // Load serial buffer
-    file.read(reinterpret_cast<char*>(m_serialBuffer), SERIAL_BUFFER_LENGTH);
+    buffer_read(buf, m_serialBuffer, SERIAL_BUFFER_LENGTH);
 
     // Load state variables
-    file.read(reinterpret_cast<char*>(&m_serialCount), sizeof(m_serialCount));
-    file.read(reinterpret_cast<char*>(&m_eepromDataBits), sizeof(m_eepromDataBits));
-    file.read(reinterpret_cast<char*>(&m_eepromReadAddress), sizeof(m_eepromReadAddress));
-    file.read(reinterpret_cast<char*>(&m_eepromClockCount), sizeof(m_eepromClockCount));
-    file.read(reinterpret_cast<char*>(&m_latch), sizeof(m_latch));
-    file.read(reinterpret_cast<char*>(&m_resetLine), sizeof(m_resetLine));
-    file.read(reinterpret_cast<char*>(&m_clockLine), sizeof(m_clockLine));
-    file.read(reinterpret_cast<char*>(&m_sending), sizeof(m_sending));
-    file.read(reinterpret_cast<char*>(&m_locked), sizeof(m_locked));
-    file.read(reinterpret_cast<char*>(&m_resetDelay), sizeof(m_resetDelay));
+    buffer_read(buf, &m_serialCount, sizeof(m_serialCount));
+    buffer_read(buf, &m_eepromDataBits, sizeof(m_eepromDataBits));
+    buffer_read(buf, &m_eepromReadAddress, sizeof(m_eepromReadAddress));
+    buffer_read(buf, &m_eepromClockCount, sizeof(m_eepromClockCount));
+    buffer_read(buf, &m_latch, sizeof(m_latch));
+    buffer_read(buf, &m_resetLine, sizeof(m_resetLine));
+    buffer_read(buf, &m_clockLine, sizeof(m_clockLine));
+    buffer_read(buf, &m_sending, sizeof(m_sending));
+    buffer_read(buf, &m_locked, sizeof(m_locked));
+    buffer_read(buf, &m_resetDelay, sizeof(m_resetDelay));
 }

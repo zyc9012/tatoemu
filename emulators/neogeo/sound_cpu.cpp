@@ -133,7 +133,7 @@ void SoundCPU::nmi() {
     Z80SetIrqLine(Z80_INPUT_LINE_NMI, Z80_CLEAR_LINE);
 }
 
-void SoundCPU::saveState(std::ofstream& file) {
+void SoundCPU::saveState(Buffer* buf) {
     // Save Z80 state
     Z80_Regs regs;
     Z80GetContext(&regs);
@@ -141,15 +141,15 @@ void SoundCPU::saveState(std::ofstream& file) {
     // Calculate size without function pointers
     size_t sizeNoPointers = offsetof(Z80_Regs, irq_callback);
     
-    file.write(reinterpret_cast<const char*>(&sizeNoPointers), sizeof(sizeNoPointers));
-    file.write(reinterpret_cast<const char*>(&regs), sizeNoPointers);
-    file.write(reinterpret_cast<const char*>(&m_cycles), sizeof(m_cycles));
+    buffer_write(buf, &sizeNoPointers, sizeof(sizeNoPointers));
+    buffer_write(buf, &regs, sizeNoPointers);
+    buffer_write(buf, &m_cycles, sizeof(m_cycles));
 }
 
-void SoundCPU::loadState(std::ifstream& file) {
+void SoundCPU::loadState(Buffer* buf) {
     // Load Z80 state
     size_t sizeNoPointers;
-    file.read(reinterpret_cast<char*>(&sizeNoPointers), sizeof(sizeNoPointers));
+    buffer_read(buf, &sizeNoPointers, sizeof(sizeNoPointers));
     
     if (sizeNoPointers != offsetof(Z80_Regs, irq_callback)) {
         std::cerr << "Error: Saved Z80 context size mismatch" << std::endl;
@@ -158,7 +158,7 @@ void SoundCPU::loadState(std::ifstream& file) {
     
     // Load saved context (without pointers)
     std::vector<char> savedContext(sizeNoPointers);
-    file.read(savedContext.data(), sizeNoPointers);
+    buffer_read(buf, savedContext.data(), sizeNoPointers);
     
     // Get current context
     Z80_Regs currentRegs;
@@ -170,7 +170,7 @@ void SoundCPU::loadState(std::ifstream& file) {
     // Set current context back
     Z80SetContext(&currentRegs);
     
-    file.read(reinterpret_cast<char*>(&m_cycles), sizeof(m_cycles));
+    buffer_read(buf, &m_cycles, sizeof(m_cycles));
 }
 
 } // namespace neogeo

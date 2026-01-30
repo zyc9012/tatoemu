@@ -153,22 +153,22 @@ void Mapper019::clockAudio() {
     }
 }
 
-void Mapper019::saveState(std::ofstream& file) const {
-    Mapper::saveState(file);
-    file.write(reinterpret_cast<const char*>(m_prgBank), sizeof(m_prgBank));
-    file.write(reinterpret_cast<const char*>(m_chrBank), sizeof(m_chrBank));
-    file.write(reinterpret_cast<const char*>(m_chrUseCiram), sizeof(m_chrUseCiram));
-    file.write(reinterpret_cast<const char*>(&m_irqCounter), sizeof(m_irqCounter));
-    file.write(reinterpret_cast<const char*>(&m_irqEnable), sizeof(m_irqEnable));
+void Mapper019::saveState(Buffer* buf) {
+    Mapper::saveState(buf);
+    buffer_write(buf, m_prgBank, sizeof(m_prgBank));
+    buffer_write(buf, m_chrBank, sizeof(m_chrBank));
+    buffer_write(buf, m_chrUseCiram, sizeof(m_chrUseCiram));
+    buffer_write(buf, &m_irqCounter, sizeof(m_irqCounter));
+    buffer_write(buf, &m_irqEnable, sizeof(m_irqEnable));
 }
 
-void Mapper019::loadState(std::ifstream& file) {
-    Mapper::loadState(file);
-    file.read(reinterpret_cast<char*>(m_prgBank), sizeof(m_prgBank));
-    file.read(reinterpret_cast<char*>(m_chrBank), sizeof(m_chrBank));
-    file.read(reinterpret_cast<char*>(m_chrUseCiram), sizeof(m_chrUseCiram));
-    file.read(reinterpret_cast<char*>(&m_irqCounter), sizeof(m_irqCounter));
-    file.read(reinterpret_cast<char*>(&m_irqEnable), sizeof(m_irqEnable));
+void Mapper019::loadState(Buffer* buf) {
+    Mapper::loadState(buf);
+    buffer_read(buf, m_prgBank, sizeof(m_prgBank));
+    buffer_read(buf, m_chrBank, sizeof(m_chrBank));
+    buffer_read(buf, m_chrUseCiram, sizeof(m_chrUseCiram));
+    buffer_read(buf, &m_irqCounter, sizeof(m_irqCounter));
+    buffer_read(buf, &m_irqEnable, sizeof(m_irqEnable));
 }
 
 void Mapper019::updateChrMapping(u8 bankIndex, u8 value) {

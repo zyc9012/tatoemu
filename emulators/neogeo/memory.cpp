@@ -708,44 +708,44 @@ void Memory::writeZ80IO(u16 port, u8 value) {
     }
 }
 
-void Memory::saveState(std::ofstream& file) {
-    file.write(reinterpret_cast<const char*>(m_workRam.data()), m_workRam.size());
-    file.write(reinterpret_cast<const char*>(m_nvram.data()), m_nvram.size());
-    file.write(reinterpret_cast<const char*>(m_paletteRam.data()), m_paletteRam.size() * sizeof(u16));
-    file.write(reinterpret_cast<const char*>(m_z80Ram.data()), m_z80Ram.size());
-    file.write(reinterpret_cast<const char*>(&m_inputSelect), sizeof(m_inputSelect));
-    file.write(reinterpret_cast<const char*>(&m_nvramWritable), sizeof(m_nvramWritable));
-    file.write(reinterpret_cast<const char*>(&m_paletteBank), sizeof(m_paletteBank));
-    file.write(reinterpret_cast<const char*>(&m_darkenPalette), sizeof(m_darkenPalette));
-    file.write(reinterpret_cast<const char*>(&m_biosTextRomEnabled), sizeof(m_biosTextRomEnabled));
-    file.write(reinterpret_cast<const char*>(&m_irqControl), sizeof(m_irqControl));
-    file.write(reinterpret_cast<const char*>(&m_irqOffset), sizeof(m_irqOffset));
-    file.write(reinterpret_cast<const char*>(&m_z80Bank0), sizeof(m_z80Bank0));
-    file.write(reinterpret_cast<const char*>(&m_z80Bank1), sizeof(m_z80Bank1));
-    file.write(reinterpret_cast<const char*>(&m_z80Bank2), sizeof(m_z80Bank2));
-    file.write(reinterpret_cast<const char*>(&m_z80Bank3), sizeof(m_z80Bank3));
-    file.write(reinterpret_cast<const char*>(&m_z80BiosRomMapped), sizeof(m_z80BiosRomMapped));
-    file.write(reinterpret_cast<const char*>(&m_programRomBank), sizeof(m_programRomBank));
+void Memory::saveState(Buffer* buf) {
+    buffer_write(buf, m_workRam.data(), m_workRam.size());
+    buffer_write(buf, m_nvram.data(), m_nvram.size());
+    buffer_write(buf, m_paletteRam.data(), m_paletteRam.size() * sizeof(u16));
+    buffer_write(buf, m_z80Ram.data(), m_z80Ram.size());
+    buffer_write(buf, &m_inputSelect, sizeof(m_inputSelect));
+    buffer_write(buf, &m_nvramWritable, sizeof(m_nvramWritable));
+    buffer_write(buf, &m_paletteBank, sizeof(m_paletteBank));
+    buffer_write(buf, &m_darkenPalette, sizeof(m_darkenPalette));
+    buffer_write(buf, &m_biosTextRomEnabled, sizeof(m_biosTextRomEnabled));
+    buffer_write(buf, &m_irqControl, sizeof(m_irqControl));
+    buffer_write(buf, &m_irqOffset, sizeof(m_irqOffset));
+    buffer_write(buf, &m_z80Bank0, sizeof(m_z80Bank0));
+    buffer_write(buf, &m_z80Bank1, sizeof(m_z80Bank1));
+    buffer_write(buf, &m_z80Bank2, sizeof(m_z80Bank2));
+    buffer_write(buf, &m_z80Bank3, sizeof(m_z80Bank3));
+    buffer_write(buf, &m_z80BiosRomMapped, sizeof(m_z80BiosRomMapped));
+    buffer_write(buf, &m_programRomBank, sizeof(m_programRomBank));
 }
 
-void Memory::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(m_workRam.data()), m_workRam.size());
-    file.read(reinterpret_cast<char*>(m_nvram.data()), m_nvram.size());
-    file.read(reinterpret_cast<char*>(m_paletteRam.data()), m_paletteRam.size() * sizeof(u16));
-    file.read(reinterpret_cast<char*>(m_z80Ram.data()), m_z80Ram.size());
-    file.read(reinterpret_cast<char*>(&m_inputSelect), sizeof(m_inputSelect));
-    file.read(reinterpret_cast<char*>(&m_nvramWritable), sizeof(m_nvramWritable));
-    file.read(reinterpret_cast<char*>(&m_paletteBank), sizeof(m_paletteBank));
-    file.read(reinterpret_cast<char*>(&m_darkenPalette), sizeof(m_darkenPalette));
-    file.read(reinterpret_cast<char*>(&m_biosTextRomEnabled), sizeof(m_biosTextRomEnabled));
-    file.read(reinterpret_cast<char*>(&m_irqControl), sizeof(m_irqControl));
-    file.read(reinterpret_cast<char*>(&m_irqOffset), sizeof(m_irqOffset));
-    file.read(reinterpret_cast<char*>(&m_z80Bank0), sizeof(m_z80Bank0));
-    file.read(reinterpret_cast<char*>(&m_z80Bank1), sizeof(m_z80Bank1));
-    file.read(reinterpret_cast<char*>(&m_z80Bank2), sizeof(m_z80Bank2));
-    file.read(reinterpret_cast<char*>(&m_z80Bank3), sizeof(m_z80Bank3));
-    file.read(reinterpret_cast<char*>(&m_z80BiosRomMapped), sizeof(m_z80BiosRomMapped));
-    file.read(reinterpret_cast<char*>(&m_programRomBank), sizeof(m_programRomBank));
+void Memory::loadState(Buffer* buf) {
+    buffer_read(buf, m_workRam.data(), m_workRam.size());
+    buffer_read(buf, m_nvram.data(), m_nvram.size());
+    buffer_read(buf, m_paletteRam.data(), m_paletteRam.size() * sizeof(u16));
+    buffer_read(buf, m_z80Ram.data(), m_z80Ram.size());
+    buffer_read(buf, &m_inputSelect, sizeof(m_inputSelect));
+    buffer_read(buf, &m_nvramWritable, sizeof(m_nvramWritable));
+    buffer_read(buf, &m_paletteBank, sizeof(m_paletteBank));
+    buffer_read(buf, &m_darkenPalette, sizeof(m_darkenPalette));
+    buffer_read(buf, &m_biosTextRomEnabled, sizeof(m_biosTextRomEnabled));
+    buffer_read(buf, &m_irqControl, sizeof(m_irqControl));
+    buffer_read(buf, &m_irqOffset, sizeof(m_irqOffset));
+    buffer_read(buf, &m_z80Bank0, sizeof(m_z80Bank0));
+    buffer_read(buf, &m_z80Bank1, sizeof(m_z80Bank1));
+    buffer_read(buf, &m_z80Bank2, sizeof(m_z80Bank2));
+    buffer_read(buf, &m_z80Bank3, sizeof(m_z80Bank3));
+    buffer_read(buf, &m_z80BiosRomMapped, sizeof(m_z80BiosRomMapped));
+    buffer_read(buf, &m_programRomBank, sizeof(m_programRomBank));
 }
 
 void Memory::saveNVRAM() {
@@ -756,16 +756,16 @@ void Memory::saveNVRAM() {
     fs::path nvramPath = m_romFilename;
     nvramPath.replace_extension(".sav");
 
-    std::ofstream file(nvramPath, std::ios::binary);
-    if (!file.is_open()) {
+    FILE* file = fopen(nvramPath.c_str(), "wb");
+    if (!file) {
         std::cerr << "Failed to create NVRAM file: " << nvramPath.string() << std::endl;
         return;
     }
 
     // Write NVRAM data
-    file.write(reinterpret_cast<const char*>(m_nvram.data()), m_nvram.size());
+    fwrite(m_nvram.data(), 1, m_nvram.size(), file);
 
-    file.close();
+    fclose(file);
     std::cout << "NVRAM saved to: " << nvramPath.string() << std::endl;
 }
 
@@ -773,24 +773,25 @@ void Memory::loadNVRAM() {
     fs::path nvramPath = m_romFilename;
     nvramPath.replace_extension(".sav");
 
-    std::ifstream file(nvramPath, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
+    FILE* file = fopen(nvramPath.c_str(), "rb");
+    if (!file) {
         return;
     }
 
-    std::streamsize fileSize = file.tellg();
-    file.seekg(0, std::ios::beg);
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
+    fseek(file, 0, SEEK_SET);
 
     // Read NVRAM data
     size_t nvramSize = m_nvram.size();
-    if (fileSize >= static_cast<std::streamsize>(nvramSize)) {
-        file.read(reinterpret_cast<char*>(m_nvram.data()), nvramSize);
+    if (fileSize >= static_cast<long>(nvramSize)) {
+        fread(m_nvram.data(), 1, nvramSize, file);
         std::cout << "NVRAM loaded from: " << nvramPath.string() << std::endl;
     } else {
         std::cerr << "NVRAM file size mismatch, expected " << nvramSize << " bytes, got " << fileSize << " bytes" << std::endl;
     }
 
-    file.close();
+    fclose(file);
 }
 
 } // namespace neogeo

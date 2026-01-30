@@ -224,12 +224,12 @@ u8 Controller::getInputBank(u8 index) const {
     return m_inputBanks[index];
 }
 
-void Controller::saveState(std::ofstream& file) {
-    (void)file;
+void Controller::saveState(Buffer* buf) {
+    (void)buf;
 }
 
-void Controller::loadState(std::ifstream& file) {
-    (void)file;
+void Controller::loadState(Buffer* buf) {
+    (void)buf;
 }
 
 } // namespace neogeo

@@ -280,38 +280,28 @@ void APU::setSoundCommand(u8 command) {
     }
 }
 
-void APU::saveState(std::ofstream& file) {
-    file.write(reinterpret_cast<const char*>(&m_soundCommand), sizeof(m_soundCommand));
-    file.write(reinterpret_cast<const char*>(&m_soundReply), sizeof(m_soundReply));
-    file.write(reinterpret_cast<const char*>(&m_soundStatus), sizeof(m_soundStatus));
-    file.write(reinterpret_cast<const char*>(&m_nmiEnabled), sizeof(m_nmiEnabled));
-    file.write(reinterpret_cast<const char*>(&m_timerA), sizeof(m_timerA));
-    file.write(reinterpret_cast<const char*>(&m_timerB), sizeof(m_timerB));
-    
-    Buffer* buf = buffer_create(1920);
+void APU::saveState(Buffer* buf) {
+    buffer_write(buf, &m_soundCommand, sizeof(m_soundCommand));
+    buffer_write(buf, &m_soundReply, sizeof(m_soundReply));
+    buffer_write(buf, &m_soundStatus, sizeof(m_soundStatus));
+    buffer_write(buf, &m_nmiEnabled, sizeof(m_nmiEnabled));
+    buffer_write(buf, &m_timerA, sizeof(m_timerA));
+    buffer_write(buf, &m_timerB, sizeof(m_timerB));
+
     AY8910SaveContext(buf);
     YM2610SaveContext(buf);
-    file.write(reinterpret_cast<const char*>(&buf->size), sizeof(buf->size));
-    file.write(reinterpret_cast<const char*>(buf->data), buf->size);
-    buffer_destroy(buf);
 }
 
-void APU::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(&m_soundCommand), sizeof(m_soundCommand));
-    file.read(reinterpret_cast<char*>(&m_soundReply), sizeof(m_soundReply));
-    file.read(reinterpret_cast<char*>(&m_soundStatus), sizeof(m_soundStatus));
-    file.read(reinterpret_cast<char*>(&m_nmiEnabled), sizeof(m_nmiEnabled));
-    file.read(reinterpret_cast<char*>(&m_timerA), sizeof(m_timerA));
-    file.read(reinterpret_cast<char*>(&m_timerB), sizeof(m_timerB));
+void APU::loadState(Buffer* buf) {
+    buffer_read(buf, &m_soundCommand, sizeof(m_soundCommand));
+    buffer_read(buf, &m_soundReply, sizeof(m_soundReply));
+    buffer_read(buf, &m_soundStatus, sizeof(m_soundStatus));
+    buffer_read(buf, &m_nmiEnabled, sizeof(m_nmiEnabled));
+    buffer_read(buf, &m_timerA, sizeof(m_timerA));
+    buffer_read(buf, &m_timerB, sizeof(m_timerB));
 
-    u32 buf_size;
-    file.read(reinterpret_cast<char*>(&buf_size), sizeof(buf_size));
-    Buffer* buf = buffer_create(buf_size);
-    file.read(reinterpret_cast<char*>(buf->data), buf_size);
-    buf->size = buf_size;
     AY8910LoadContext(buf);
     YM2610LoadContext(buf);
-    buffer_destroy(buf);
 }
 
 } // namespace neogeo

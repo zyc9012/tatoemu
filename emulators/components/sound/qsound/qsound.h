@@ -5,6 +5,7 @@
 #define _H_QSOUND_
 
 #include "../../compact.h"
+#include "../../buffer.h"
 
 #define MAX_QSOUND (1)
 

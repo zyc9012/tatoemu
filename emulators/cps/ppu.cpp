@@ -1548,54 +1548,54 @@ void PPU::drawTile32x32(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool 
 // Save/Load State
 // ============================================================================
 
-void PPU::saveState(std::ofstream& file) {
+void PPU::saveState(Buffer* buf) {
     // Save VRAM
-    file.write(reinterpret_cast<const char*>(m_vram.data()), m_vram.size());
+    buffer_write(buf, m_vram.data(), m_vram.size());
     
     // Save registers
-    file.write(reinterpret_cast<const char*>(m_cpsRegs.data()), m_cpsRegs.size());
+    buffer_write(buf, m_cpsRegs.data(), m_cpsRegs.size());
     
     // Save scroll offsets
-    file.write(reinterpret_cast<const char*>(&m_layer1XOffs), sizeof(m_layer1XOffs));
-    file.write(reinterpret_cast<const char*>(&m_layer1YOffs), sizeof(m_layer1YOffs));
-    file.write(reinterpret_cast<const char*>(&m_layer2XOffs), sizeof(m_layer2XOffs));
-    file.write(reinterpret_cast<const char*>(&m_layer2YOffs), sizeof(m_layer2YOffs));
-    file.write(reinterpret_cast<const char*>(&m_layer3XOffs), sizeof(m_layer3XOffs));
-    file.write(reinterpret_cast<const char*>(&m_layer3YOffs), sizeof(m_layer3YOffs));
+    buffer_write(buf, &m_layer1XOffs, sizeof(m_layer1XOffs));
+    buffer_write(buf, &m_layer1YOffs, sizeof(m_layer1YOffs));
+    buffer_write(buf, &m_layer2XOffs, sizeof(m_layer2XOffs));
+    buffer_write(buf, &m_layer2YOffs, sizeof(m_layer2YOffs));
+    buffer_write(buf, &m_layer3XOffs, sizeof(m_layer3XOffs));
+    buffer_write(buf, &m_layer3YOffs, sizeof(m_layer3YOffs));
     
     // Save graphics scroll offsets
-    file.write(reinterpret_cast<const char*>(m_gfxScroll), sizeof(m_gfxScroll));
+    buffer_write(buf, m_gfxScroll, sizeof(m_gfxScroll));
     
     // Save state flags
-    file.write(reinterpret_cast<const char*>(&m_frameComplete), sizeof(m_frameComplete));
-    file.write(reinterpret_cast<const char*>(&m_scanline), sizeof(m_scanline));
-    file.write(reinterpret_cast<const char*>(&m_cycles), sizeof(m_cycles));
-    file.write(reinterpret_cast<const char*>(&m_paletteNeedsUpdate), sizeof(m_paletteNeedsUpdate));
+    buffer_write(buf, &m_frameComplete, sizeof(m_frameComplete));
+    buffer_write(buf, &m_scanline, sizeof(m_scanline));
+    buffer_write(buf, &m_cycles, sizeof(m_cycles));
+    buffer_write(buf, &m_paletteNeedsUpdate, sizeof(m_paletteNeedsUpdate));
 }
 
-void PPU::loadState(std::ifstream& file) {
+void PPU::loadState(Buffer* buf) {
     // Load VRAM
-    file.read(reinterpret_cast<char*>(m_vram.data()), m_vram.size());
+    buffer_read(buf, m_vram.data(), m_vram.size());
     
     // Load registers
-    file.read(reinterpret_cast<char*>(m_cpsRegs.data()), m_cpsRegs.size());
+    buffer_read(buf, m_cpsRegs.data(), m_cpsRegs.size());
     
     // Load scroll offsets
-    file.read(reinterpret_cast<char*>(&m_layer1XOffs), sizeof(m_layer1XOffs));
-    file.read(reinterpret_cast<char*>(&m_layer1YOffs), sizeof(m_layer1YOffs));
-    file.read(reinterpret_cast<char*>(&m_layer2XOffs), sizeof(m_layer2XOffs));
-    file.read(reinterpret_cast<char*>(&m_layer2YOffs), sizeof(m_layer2YOffs));
-    file.read(reinterpret_cast<char*>(&m_layer3XOffs), sizeof(m_layer3XOffs));
-    file.read(reinterpret_cast<char*>(&m_layer3YOffs), sizeof(m_layer3YOffs));
+    buffer_read(buf, &m_layer1XOffs, sizeof(m_layer1XOffs));
+    buffer_read(buf, &m_layer1YOffs, sizeof(m_layer1YOffs));
+    buffer_read(buf, &m_layer2XOffs, sizeof(m_layer2XOffs));
+    buffer_read(buf, &m_layer2YOffs, sizeof(m_layer2YOffs));
+    buffer_read(buf, &m_layer3XOffs, sizeof(m_layer3XOffs));
+    buffer_read(buf, &m_layer3YOffs, sizeof(m_layer3YOffs));
     
     // Load graphics scroll offsets
-    file.read(reinterpret_cast<char*>(m_gfxScroll), sizeof(m_gfxScroll));
+    buffer_read(buf, m_gfxScroll, sizeof(m_gfxScroll));
     
     // Load state flags
-    file.read(reinterpret_cast<char*>(&m_frameComplete), sizeof(m_frameComplete));
-    file.read(reinterpret_cast<char*>(&m_scanline), sizeof(m_scanline));
-    file.read(reinterpret_cast<char*>(&m_cycles), sizeof(m_cycles));
-    file.read(reinterpret_cast<char*>(&m_paletteNeedsUpdate), sizeof(m_paletteNeedsUpdate));
+    buffer_read(buf, &m_frameComplete, sizeof(m_frameComplete));
+    buffer_read(buf, &m_scanline, sizeof(m_scanline));
+    buffer_read(buf, &m_cycles, sizeof(m_cycles));
+    buffer_read(buf, &m_paletteNeedsUpdate, sizeof(m_paletteNeedsUpdate));
     
     // Force palette update after loading state
     m_paletteNeedsUpdate = true;

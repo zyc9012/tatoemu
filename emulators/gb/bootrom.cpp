@@ -1,5 +1,4 @@
 #include "bootrom.h"
-#include <fstream>
 #include <iostream>
 #include <algorithm>
 
@@ -17,15 +16,16 @@ Bootrom::~Bootrom() {
 }
 
 bool Bootrom::load(const fs::path& filename) {
-    std::ifstream file(filename, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
+    FILE* file = fopen(filename.c_str(), "rb");
+    if (!file) {
         std::cerr << "Failed to open bootrom file: " << filename << std::endl;
         return false;
     }
     
     // Get file size
-    std::streamsize size = file.tellg();
-    file.seekg(0, std::ios::beg);
+    fseek(file, 0, SEEK_END);
+    size_t size = ftell(file);
+    fseek(file, 0, SEEK_SET);
     
     // Determine bootrom type based on size
     if (size == DMG_BOOTROM_SIZE) {
@@ -43,11 +43,13 @@ bool Bootrom::load(const fs::path& filename) {
     }
     
     // Read bootrom data
-    if (!file.read(reinterpret_cast<char*>(m_data.data()), m_size)) {
+    if (!fread(m_data.data(), 1, m_size, file)) {
         std::cerr << "Failed to read bootrom data" << std::endl;
+        fclose(file);
         return false;
     }
-    
+
+    fclose(file);
     m_loaded = true;
     m_enabled = true;
     

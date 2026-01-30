@@ -55,18 +55,18 @@ void Mapper178::writeCHR(u16 address, u8 value) {
     m_cartridge->getCHR()[address & 0x1FFF] = value;
 }
 
-void Mapper178::saveState(std::ofstream& file) const {
-    Mapper::saveState(file);
-    file.write(reinterpret_cast<const char*>(&m_prgBank), sizeof(m_prgBank));
-    file.write(reinterpret_cast<const char*>(&m_prgLow), sizeof(m_prgLow));
-    file.write(reinterpret_cast<const char*>(&m_prgHigh), sizeof(m_prgHigh));
+void Mapper178::saveState(Buffer* buf) {
+    Mapper::saveState(buf);
+    buffer_write(buf, &m_prgBank, sizeof(m_prgBank));
+    buffer_write(buf, &m_prgLow, sizeof(m_prgLow));
+    buffer_write(buf, &m_prgHigh, sizeof(m_prgHigh));
 }
 
-void Mapper178::loadState(std::ifstream& file) {
-    Mapper::loadState(file);
-    file.read(reinterpret_cast<char*>(&m_prgBank), sizeof(m_prgBank));
-    file.read(reinterpret_cast<char*>(&m_prgLow), sizeof(m_prgLow));
-    file.read(reinterpret_cast<char*>(&m_prgHigh), sizeof(m_prgHigh));
+void Mapper178::loadState(Buffer* buf) {
+    Mapper::loadState(buf);
+    buffer_read(buf, &m_prgBank, sizeof(m_prgBank));
+    buffer_read(buf, &m_prgLow, sizeof(m_prgLow));
+    buffer_read(buf, &m_prgHigh, sizeof(m_prgHigh));
 }
 
 } // namespace nes

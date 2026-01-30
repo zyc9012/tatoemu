@@ -1,8 +1,8 @@
 #include "upd4990a.h"
 #include "../../types.h"
+#include "../../components/buffer.h"
 #include <ctime>
 #include <iostream>
-#include <fstream>
 
 namespace neogeo {
 
@@ -237,52 +237,44 @@ u8 UPD4990A::read() {
     return (out << 1) | m_tp;
 }
 
-void UPD4990A::saveState(std::ofstream& file) {
-    file.write(reinterpret_cast<const char*>(&m_seconds), sizeof(m_seconds));
-    file.write(reinterpret_cast<const char*>(&m_minutes), sizeof(m_minutes));
-    file.write(reinterpret_cast<const char*>(&m_hours), sizeof(m_hours));
-    file.write(reinterpret_cast<const char*>(&m_day), sizeof(m_day));
-    file.write(reinterpret_cast<const char*>(&m_month), sizeof(m_month));
-    file.write(reinterpret_cast<const char*>(&m_year), sizeof(m_year));
-    file.write(reinterpret_cast<const char*>(&m_weekDay), sizeof(m_weekDay));
-
-    file.write(reinterpret_cast<const char*>(&m_mode), sizeof(m_mode));
-    file.write(reinterpret_cast<const char*>(&m_tpMode), sizeof(m_tpMode));
-
-    file.write(reinterpret_cast<const char*>(&m_register), sizeof(m_register));
-    file.write(reinterpret_cast<const char*>(&m_command), sizeof(m_command));
-
-    file.write(reinterpret_cast<const char*>(&m_count), sizeof(m_count));
-    file.write(reinterpret_cast<const char*>(&m_tpCount), sizeof(m_tpCount));
-    file.write(reinterpret_cast<const char*>(&m_interval), sizeof(m_interval));
-
-    file.write(reinterpret_cast<const char*>(&m_tp), sizeof(m_tp));
-    file.write(reinterpret_cast<const char*>(&m_prevCLK), sizeof(m_prevCLK));
-    file.write(reinterpret_cast<const char*>(&m_prevSTB), sizeof(m_prevSTB));
+void UPD4990A::saveState(Buffer* buf) {
+    buffer_write(buf, &m_seconds, sizeof(m_seconds));
+    buffer_write(buf, &m_minutes, sizeof(m_minutes));
+    buffer_write(buf, &m_hours, sizeof(m_hours));
+    buffer_write(buf, &m_day, sizeof(m_day));
+    buffer_write(buf, &m_month, sizeof(m_month));
+    buffer_write(buf, &m_year, sizeof(m_year));
+    buffer_write(buf, &m_weekDay, sizeof(m_weekDay));
+    buffer_write(buf, &m_mode, sizeof(m_mode));
+    buffer_write(buf, &m_tpMode, sizeof(m_tpMode));
+    buffer_write(buf, &m_register, sizeof(m_register));
+    buffer_write(buf, &m_command, sizeof(m_command));
+    buffer_write(buf, &m_count, sizeof(m_count));
+    buffer_write(buf, &m_tpCount, sizeof(m_tpCount));
+    buffer_write(buf, &m_interval, sizeof(m_interval));
+    buffer_write(buf, &m_tp, sizeof(m_tp));
+    buffer_write(buf, &m_prevCLK, sizeof(m_prevCLK));
+    buffer_write(buf, &m_prevSTB, sizeof(m_prevSTB));
 }
 
-void UPD4990A::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(&m_seconds), sizeof(m_seconds));
-    file.read(reinterpret_cast<char*>(&m_minutes), sizeof(m_minutes));
-    file.read(reinterpret_cast<char*>(&m_hours), sizeof(m_hours));
-    file.read(reinterpret_cast<char*>(&m_day), sizeof(m_day));
-    file.read(reinterpret_cast<char*>(&m_month), sizeof(m_month));
-    file.read(reinterpret_cast<char*>(&m_year), sizeof(m_year));
-    file.read(reinterpret_cast<char*>(&m_weekDay), sizeof(m_weekDay));
-
-    file.read(reinterpret_cast<char*>(&m_mode), sizeof(m_mode));
-    file.read(reinterpret_cast<char*>(&m_tpMode), sizeof(m_tpMode));
-
-    file.read(reinterpret_cast<char*>(&m_register), sizeof(m_register));
-    file.read(reinterpret_cast<char*>(&m_command), sizeof(m_command));
-
-    file.read(reinterpret_cast<char*>(&m_count), sizeof(m_count));
-    file.read(reinterpret_cast<char*>(&m_tpCount), sizeof(m_tpCount));
-    file.read(reinterpret_cast<char*>(&m_interval), sizeof(m_interval));
-
-    file.read(reinterpret_cast<char*>(&m_tp), sizeof(m_tp));
-    file.read(reinterpret_cast<char*>(&m_prevCLK), sizeof(m_prevCLK));
-    file.read(reinterpret_cast<char*>(&m_prevSTB), sizeof(m_prevSTB));
+void UPD4990A::loadState(Buffer* buf) {
+    buffer_read(buf, &m_seconds, sizeof(m_seconds));
+    buffer_read(buf, &m_minutes, sizeof(m_minutes));
+    buffer_read(buf, &m_hours, sizeof(m_hours));
+    buffer_read(buf, &m_day, sizeof(m_day));
+    buffer_read(buf, &m_month, sizeof(m_month));
+    buffer_read(buf, &m_year, sizeof(m_year));
+    buffer_read(buf, &m_weekDay, sizeof(m_weekDay));
+    buffer_read(buf, &m_mode, sizeof(m_mode));
+    buffer_read(buf, &m_tpMode, sizeof(m_tpMode));
+    buffer_read(buf, &m_register, sizeof(m_register));
+    buffer_read(buf, &m_command, sizeof(m_command));
+    buffer_read(buf, &m_count, sizeof(m_count));
+    buffer_read(buf, &m_tpCount, sizeof(m_tpCount));
+    buffer_read(buf, &m_interval, sizeof(m_interval));
+    buffer_read(buf, &m_tp, sizeof(m_tp));
+    buffer_read(buf, &m_prevCLK, sizeof(m_prevCLK));
+    buffer_read(buf, &m_prevSTB, sizeof(m_prevSTB));
 }
 
 } // namespace neogeo

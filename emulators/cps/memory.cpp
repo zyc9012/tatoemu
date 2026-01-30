@@ -1085,68 +1085,68 @@ void Memory::writeZ80(u32 address, u8 value) {
 // Save/Load State
 // ============================================================================
 
-void Memory::saveState(std::ofstream& file) {
+void Memory::saveState(Buffer* buf) {
     u8 cpsVer = getCPSVersion();
     
     // Save RAM (common)
-    file.write(reinterpret_cast<const char*>(m_workRam.data()), m_workRam.size());
-    file.write(reinterpret_cast<const char*>(m_soundRam.data()), m_soundRam.size());
+    buffer_write(buf, m_workRam.data(), m_workRam.size());
+    buffer_write(buf, m_soundRam.data(), m_soundRam.size());
     
     // Save CPS1-specific state
     if (cpsVer == 1) {
-        file.write(reinterpret_cast<const char*>(&m_protCalc), sizeof(m_protCalc));
-        file.write(reinterpret_cast<const char*>(&m_memProt), sizeof(m_memProt));
-        file.write(reinterpret_cast<const char*>(&m_boardId), sizeof(m_boardId));
+        buffer_write(buf, &m_protCalc, sizeof(m_protCalc));
+        buffer_write(buf, &m_memProt, sizeof(m_memProt));
+        buffer_write(buf, &m_boardId, sizeof(m_boardId));
     }
     
     // Save CPS2-specific state
     if (cpsVer == 2) {
-        file.write(reinterpret_cast<const char*>(m_extraRam.data()), m_extraRam.size());
-        file.write(reinterpret_cast<const char*>(m_objRam.data()), m_objRam.size());
-        file.write(reinterpret_cast<const char*>(m_frgRegs.data()), m_frgRegs.size());
-        file.write(reinterpret_cast<const char*>(&m_n664001), sizeof(m_n664001));
-        file.write(reinterpret_cast<const char*>(m_qscCmd), sizeof(m_qscCmd));
+        buffer_write(buf, m_extraRam.data(), m_extraRam.size());
+        buffer_write(buf, m_objRam.data(), m_objRam.size());
+        buffer_write(buf, m_frgRegs.data(), m_frgRegs.size());
+        buffer_write(buf, &m_n664001, sizeof(m_n664001));
+        buffer_write(buf, m_qscCmd, sizeof(m_qscCmd));
     }
     
     // Save Z80 state (common)
-    file.write(reinterpret_cast<const char*>(&m_z80Bank), sizeof(m_z80Bank));
-    file.write(reinterpret_cast<const char*>(&m_soundCommand), sizeof(m_soundCommand));
-    file.write(reinterpret_cast<const char*>(&m_soundFade), sizeof(m_soundFade));
+    buffer_write(buf, &m_z80Bank, sizeof(m_z80Bank));
+    buffer_write(buf, &m_soundCommand, sizeof(m_soundCommand));
+    buffer_write(buf, &m_soundFade, sizeof(m_soundFade));
 
     // Save EEPROM state
-    m_eeprom.saveState(file);
+    m_eeprom.saveState(buf);
 }
 
-void Memory::loadState(std::ifstream& file) {
+void Memory::loadState(Buffer* buf) {
     u8 cpsVer = getCPSVersion();
     
     // Load RAM (common)
-    file.read(reinterpret_cast<char*>(m_workRam.data()), m_workRam.size());
-    file.read(reinterpret_cast<char*>(m_soundRam.data()), m_soundRam.size());
+    buffer_read(buf, m_workRam.data(), m_workRam.size());
+    buffer_read(buf, m_soundRam.data(), m_soundRam.size());
     
     // Load CPS1-specific state
     if (cpsVer == 1) {
-        file.read(reinterpret_cast<char*>(&m_protCalc), sizeof(m_protCalc));
-        file.read(reinterpret_cast<char*>(&m_memProt), sizeof(m_memProt));
-        file.read(reinterpret_cast<char*>(&m_boardId), sizeof(m_boardId));
+        buffer_read(buf, &m_protCalc, sizeof(m_protCalc));
+        buffer_read(buf, &m_memProt, sizeof(m_memProt));
+        buffer_read(buf, &m_boardId, sizeof(m_boardId));
     }
     
     // Load CPS2-specific state
     if (cpsVer == 2) {
-        file.read(reinterpret_cast<char*>(m_extraRam.data()), m_extraRam.size());
-        file.read(reinterpret_cast<char*>(m_objRam.data()), m_objRam.size());
-        file.read(reinterpret_cast<char*>(m_frgRegs.data()), m_frgRegs.size());
-        file.read(reinterpret_cast<char*>(&m_n664001), sizeof(m_n664001));
-        file.read(reinterpret_cast<char*>(m_qscCmd), sizeof(m_qscCmd));
+        buffer_read(buf, m_extraRam.data(), m_extraRam.size());
+        buffer_read(buf, m_objRam.data(), m_objRam.size());
+        buffer_read(buf, m_frgRegs.data(), m_frgRegs.size());
+        buffer_read(buf, &m_n664001, sizeof(m_n664001));
+        buffer_read(buf, m_qscCmd, sizeof(m_qscCmd));
     }
     
     // Load Z80 state (common)
-    file.read(reinterpret_cast<char*>(&m_z80Bank), sizeof(m_z80Bank));
-    file.read(reinterpret_cast<char*>(&m_soundCommand), sizeof(m_soundCommand));
-    file.read(reinterpret_cast<char*>(&m_soundFade), sizeof(m_soundFade));
+    buffer_read(buf, &m_z80Bank, sizeof(m_z80Bank));
+    buffer_read(buf, &m_soundCommand, sizeof(m_soundCommand));
+    buffer_read(buf, &m_soundFade, sizeof(m_soundFade));
 
     // Load EEPROM state
-    m_eeprom.loadState(file);
+    m_eeprom.loadState(buf);
 }
 
 } // namespace cps

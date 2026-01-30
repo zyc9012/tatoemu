@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include <fstream>
+#include "../components/buffer.h"
 
 namespace nes {
 
@@ -98,8 +98,8 @@ public:
     PPU* getPPU() const { return m_ppu; }
     
     // Save/Load state
-    void saveState(std::ofstream& file) const;
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
     
     // Battery save/load
     void saveBattery() const;
@@ -172,15 +172,15 @@ public:
     virtual bool hasExpansionAudio() const { return false; }
     
     // Save/Load state
-    virtual void saveState(std::ofstream& file) const {
-        file.write(reinterpret_cast<const char*>(&m_irqActive), sizeof(m_irqActive));
-        file.write(reinterpret_cast<const char*>(&m_baseMirrorMode), sizeof(m_baseMirrorMode));
-        file.write(reinterpret_cast<const char*>(&m_mirrorMode), sizeof(m_mirrorMode));
+    virtual void saveState(Buffer* buf) {
+        buffer_write(buf, &m_irqActive, sizeof(m_irqActive));
+        buffer_write(buf, &m_baseMirrorMode, sizeof(m_baseMirrorMode));
+        buffer_write(buf, &m_mirrorMode, sizeof(m_mirrorMode));
     }
-    virtual void loadState(std::ifstream& file) {
-        file.read(reinterpret_cast<char*>(&m_irqActive), sizeof(m_irqActive));
-        file.read(reinterpret_cast<char*>(&m_baseMirrorMode), sizeof(m_baseMirrorMode));
-        file.read(reinterpret_cast<char*>(&m_mirrorMode), sizeof(m_mirrorMode));
+    virtual void loadState(Buffer* buf) {
+        buffer_read(buf, &m_irqActive, sizeof(m_irqActive));
+        buffer_read(buf, &m_baseMirrorMode, sizeof(m_baseMirrorMode));
+        buffer_read(buf, &m_mirrorMode, sizeof(m_mirrorMode));
     }
     
 protected:

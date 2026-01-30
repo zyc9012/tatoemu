@@ -521,58 +521,58 @@ void APU::writeRegister(u16 address, u8 value) {
     }
 }
 
-void APU::saveState(std::ofstream& file) const {
+void APU::saveState(Buffer* buf) {
     // Save square channel 1
-    file.write(reinterpret_cast<const char*>(&m_square1), sizeof(m_square1));
-    file.write(reinterpret_cast<const char*>(&m_square2), sizeof(m_square2));
-    file.write(reinterpret_cast<const char*>(&m_wave), sizeof(m_wave));
-    file.write(reinterpret_cast<const char*>(&m_noise), sizeof(m_noise));
+    buffer_write(buf, &m_square1, sizeof(m_square1));
+    buffer_write(buf, &m_square2, sizeof(m_square2));
+    buffer_write(buf, &m_wave, sizeof(m_wave));
+    buffer_write(buf, &m_noise, sizeof(m_noise));
     
     // Save master control
-    file.write(reinterpret_cast<const char*>(&m_leftVolume), sizeof(m_leftVolume));
-    file.write(reinterpret_cast<const char*>(&m_rightVolume), sizeof(m_rightVolume));
-    file.write(reinterpret_cast<const char*>(&m_leftVinEnable), sizeof(m_leftVinEnable));
-    file.write(reinterpret_cast<const char*>(&m_rightVinEnable), sizeof(m_rightVinEnable));
-    file.write(reinterpret_cast<const char*>(&m_leftEnable), sizeof(m_leftEnable));
-    file.write(reinterpret_cast<const char*>(&m_rightEnable), sizeof(m_rightEnable));
-    file.write(reinterpret_cast<const char*>(&m_enabled), sizeof(m_enabled));
+    buffer_write(buf, &m_leftVolume, sizeof(m_leftVolume));
+    buffer_write(buf, &m_rightVolume, sizeof(m_rightVolume));
+    buffer_write(buf, &m_leftVinEnable, sizeof(m_leftVinEnable));
+    buffer_write(buf, &m_rightVinEnable, sizeof(m_rightVinEnable));
+    buffer_write(buf, &m_leftEnable, sizeof(m_leftEnable));
+    buffer_write(buf, &m_rightEnable, sizeof(m_rightEnable));
+    buffer_write(buf, &m_enabled, sizeof(m_enabled));
     
     // Save frame sequencer state
-    file.write(reinterpret_cast<const char*>(&m_frameSequencerTimer), sizeof(m_frameSequencerTimer));
-    file.write(reinterpret_cast<const char*>(&m_frameSequencerStep), sizeof(m_frameSequencerStep));
+    buffer_write(buf, &m_frameSequencerTimer, sizeof(m_frameSequencerTimer));
+    buffer_write(buf, &m_frameSequencerStep, sizeof(m_frameSequencerStep));
     
     // Save sample generation state
-    file.write(reinterpret_cast<const char*>(&m_sampleTimer), sizeof(m_sampleTimer));
-    file.write(reinterpret_cast<const char*>(&m_cycleAccumulator), sizeof(m_cycleAccumulator));
-    file.write(reinterpret_cast<const char*>(&m_capacitorLeft), sizeof(m_capacitorLeft));
-    file.write(reinterpret_cast<const char*>(&m_capacitorRight), sizeof(m_capacitorRight));
+    buffer_write(buf, &m_sampleTimer, sizeof(m_sampleTimer));
+    buffer_write(buf, &m_cycleAccumulator, sizeof(m_cycleAccumulator));
+    buffer_write(buf, &m_capacitorLeft, sizeof(m_capacitorLeft));
+    buffer_write(buf, &m_capacitorRight, sizeof(m_capacitorRight));
 }
 
-void APU::loadState(std::ifstream& file) {
+void APU::loadState(Buffer* buf) {
     // Load square channel 1
-    file.read(reinterpret_cast<char*>(&m_square1), sizeof(m_square1));
-    file.read(reinterpret_cast<char*>(&m_square2), sizeof(m_square2));
-    file.read(reinterpret_cast<char*>(&m_wave), sizeof(m_wave));
-    file.read(reinterpret_cast<char*>(&m_noise), sizeof(m_noise));
+    buffer_read(buf, &m_square1, sizeof(m_square1));
+    buffer_read(buf, &m_square2, sizeof(m_square2));
+    buffer_read(buf, &m_wave, sizeof(m_wave));
+    buffer_read(buf, &m_noise, sizeof(m_noise));
     
     // Load master control
-    file.read(reinterpret_cast<char*>(&m_leftVolume), sizeof(m_leftVolume));
-    file.read(reinterpret_cast<char*>(&m_rightVolume), sizeof(m_rightVolume));
-    file.read(reinterpret_cast<char*>(&m_leftVinEnable), sizeof(m_leftVinEnable));
-    file.read(reinterpret_cast<char*>(&m_rightVinEnable), sizeof(m_rightVinEnable));
-    file.read(reinterpret_cast<char*>(&m_leftEnable), sizeof(m_leftEnable));
-    file.read(reinterpret_cast<char*>(&m_rightEnable), sizeof(m_rightEnable));
-    file.read(reinterpret_cast<char*>(&m_enabled), sizeof(m_enabled));
+    buffer_read(buf, &m_leftVolume, sizeof(m_leftVolume));
+    buffer_read(buf, &m_rightVolume, sizeof(m_rightVolume));
+    buffer_read(buf, &m_leftVinEnable, sizeof(m_leftVinEnable));
+    buffer_read(buf, &m_rightVinEnable, sizeof(m_rightVinEnable));
+    buffer_read(buf, &m_leftEnable, sizeof(m_leftEnable));
+    buffer_read(buf, &m_rightEnable, sizeof(m_rightEnable));
+    buffer_read(buf, &m_enabled, sizeof(m_enabled));
     
     // Load frame sequencer state
-    file.read(reinterpret_cast<char*>(&m_frameSequencerTimer), sizeof(m_frameSequencerTimer));
-    file.read(reinterpret_cast<char*>(&m_frameSequencerStep), sizeof(m_frameSequencerStep));
+    buffer_read(buf, &m_frameSequencerTimer, sizeof(m_frameSequencerTimer));
+    buffer_read(buf, &m_frameSequencerStep, sizeof(m_frameSequencerStep));
     
     // Load sample generation state
-    file.read(reinterpret_cast<char*>(&m_sampleTimer), sizeof(m_sampleTimer));
-    file.read(reinterpret_cast<char*>(&m_cycleAccumulator), sizeof(m_cycleAccumulator));
-    file.read(reinterpret_cast<char*>(&m_capacitorLeft), sizeof(m_capacitorLeft));
-    file.read(reinterpret_cast<char*>(&m_capacitorRight), sizeof(m_capacitorRight));
+    buffer_read(buf, &m_sampleTimer, sizeof(m_sampleTimer));
+    buffer_read(buf, &m_cycleAccumulator, sizeof(m_cycleAccumulator));
+    buffer_read(buf, &m_capacitorLeft, sizeof(m_capacitorLeft));
+    buffer_read(buf, &m_capacitorRight, sizeof(m_capacitorRight));
 }
 
 // SquareChannel implementation

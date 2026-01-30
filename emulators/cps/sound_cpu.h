@@ -2,7 +2,7 @@
 
 #include "../types.h"
 #include "../components/compact.h"
-#include <fstream>
+#include "../components/buffer.h"
 
 namespace cps {
 
@@ -33,8 +33,8 @@ public:
     void nmi();
     
     // Save/Load state
-    void saveState(std::ofstream& file);
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
     
     // Set CPS version for timer configuration
     void setCPSVersion(u8 version);

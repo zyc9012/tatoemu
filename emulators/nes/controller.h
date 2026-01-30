@@ -2,7 +2,7 @@
 
 #include "../types.h"
 #include "consts.h"
-#include <fstream>
+#include "../components/buffer.h"
 #include <array>
 #include <SDL3/SDL.h>
 
@@ -28,8 +28,8 @@ public:
     void setState(u8 player, u8 state) { m_buttons[player] = state; }
     
     // Save/Load state
-    void saveState(std::ofstream& file) const;
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
 
 private:
     std::array<u8, 2> m_buttons;       // Current button state (bit per button)

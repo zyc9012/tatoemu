@@ -944,104 +944,104 @@ void PPU::step() {
 // Save/Load State
 // ============================================================================
 
-void PPU::saveState(std::ofstream& file) const {
+void PPU::saveState(Buffer* buf) {
     // Timing
-    file.write(reinterpret_cast<const char*>(&m_cycle), sizeof(m_cycle));
-    file.write(reinterpret_cast<const char*>(&m_scanline), sizeof(m_scanline));
-    file.write(reinterpret_cast<const char*>(&m_frameComplete), sizeof(m_frameComplete));
-    file.write(reinterpret_cast<const char*>(&m_oddFrame), sizeof(m_oddFrame));
+    buffer_write(buf, &m_cycle, sizeof(m_cycle));
+    buffer_write(buf, &m_scanline, sizeof(m_scanline));
+    buffer_write(buf, &m_frameComplete, sizeof(m_frameComplete));
+    buffer_write(buf, &m_oddFrame, sizeof(m_oddFrame));
     
     // Registers
-    file.write(reinterpret_cast<const char*>(&m_ppuCtrl), sizeof(m_ppuCtrl));
-    file.write(reinterpret_cast<const char*>(&m_ppuMask), sizeof(m_ppuMask));
-    file.write(reinterpret_cast<const char*>(&m_ppuStatus), sizeof(m_ppuStatus));
-    file.write(reinterpret_cast<const char*>(&m_oamAddr), sizeof(m_oamAddr));
+    buffer_write(buf, &m_ppuCtrl, sizeof(m_ppuCtrl));
+    buffer_write(buf, &m_ppuMask, sizeof(m_ppuMask));
+    buffer_write(buf, &m_ppuStatus, sizeof(m_ppuStatus));
+    buffer_write(buf, &m_oamAddr, sizeof(m_oamAddr));
     
     // Internal registers
-    file.write(reinterpret_cast<const char*>(&m_vramAddr), sizeof(m_vramAddr));
-    file.write(reinterpret_cast<const char*>(&m_tempAddr), sizeof(m_tempAddr));
-    file.write(reinterpret_cast<const char*>(&m_fineX), sizeof(m_fineX));
-    file.write(reinterpret_cast<const char*>(&m_writeToggle), sizeof(m_writeToggle));
-    file.write(reinterpret_cast<const char*>(&m_dataBuffer), sizeof(m_dataBuffer));
+    buffer_write(buf, &m_vramAddr, sizeof(m_vramAddr));
+    buffer_write(buf, &m_tempAddr, sizeof(m_tempAddr));
+    buffer_write(buf, &m_fineX, sizeof(m_fineX));
+    buffer_write(buf, &m_writeToggle, sizeof(m_writeToggle));
+    buffer_write(buf, &m_dataBuffer, sizeof(m_dataBuffer));
     
     // Background shift registers
-    file.write(reinterpret_cast<const char*>(&m_bgShiftPatternLow), sizeof(m_bgShiftPatternLow));
-    file.write(reinterpret_cast<const char*>(&m_bgShiftPatternHigh), sizeof(m_bgShiftPatternHigh));
-    file.write(reinterpret_cast<const char*>(&m_bgShiftAttrLow), sizeof(m_bgShiftAttrLow));
-    file.write(reinterpret_cast<const char*>(&m_bgShiftAttrHigh), sizeof(m_bgShiftAttrHigh));
+    buffer_write(buf, &m_bgShiftPatternLow, sizeof(m_bgShiftPatternLow));
+    buffer_write(buf, &m_bgShiftPatternHigh, sizeof(m_bgShiftPatternHigh));
+    buffer_write(buf, &m_bgShiftAttrLow, sizeof(m_bgShiftAttrLow));
+    buffer_write(buf, &m_bgShiftAttrHigh, sizeof(m_bgShiftAttrHigh));
     
     // Background latches
-    file.write(reinterpret_cast<const char*>(&m_bgNextTileId), sizeof(m_bgNextTileId));
-    file.write(reinterpret_cast<const char*>(&m_bgNextTileAttr), sizeof(m_bgNextTileAttr));
-    file.write(reinterpret_cast<const char*>(&m_bgNextTileLow), sizeof(m_bgNextTileLow));
-    file.write(reinterpret_cast<const char*>(&m_bgNextTileHigh), sizeof(m_bgNextTileHigh));
+    buffer_write(buf, &m_bgNextTileId, sizeof(m_bgNextTileId));
+    buffer_write(buf, &m_bgNextTileAttr, sizeof(m_bgNextTileAttr));
+    buffer_write(buf, &m_bgNextTileLow, sizeof(m_bgNextTileLow));
+    buffer_write(buf, &m_bgNextTileHigh, sizeof(m_bgNextTileHigh));
     
     // Memory
-    file.write(reinterpret_cast<const char*>(m_vram.data()), m_vram.size());
-    file.write(reinterpret_cast<const char*>(m_palette.data()), m_palette.size());
-    file.write(reinterpret_cast<const char*>(m_oam.data()), m_oam.size());
-    file.write(reinterpret_cast<const char*>(m_secondaryOam.data()), m_secondaryOam.size());
+    buffer_write(buf, m_vram.data(), m_vram.size());
+    buffer_write(buf, m_palette.data(), m_palette.size());
+    buffer_write(buf, m_oam.data(), m_oam.size());
+    buffer_write(buf, m_secondaryOam.data(), m_secondaryOam.size());
     
     // Sprite state
-    file.write(reinterpret_cast<const char*>(&m_spriteCount), sizeof(m_spriteCount));
-    file.write(reinterpret_cast<const char*>(&m_sprite0OnScanline), sizeof(m_sprite0OnScanline));
-    file.write(reinterpret_cast<const char*>(&m_sprite0HitPossible), sizeof(m_sprite0HitPossible));
+    buffer_write(buf, &m_spriteCount, sizeof(m_spriteCount));
+    buffer_write(buf, &m_sprite0OnScanline, sizeof(m_sprite0OnScanline));
+    buffer_write(buf, &m_sprite0HitPossible, sizeof(m_sprite0HitPossible));
     
     // NMI state
-    file.write(reinterpret_cast<const char*>(&m_nmiOccurred), sizeof(m_nmiOccurred));
-    file.write(reinterpret_cast<const char*>(&m_nmiOutput), sizeof(m_nmiOutput));
+    buffer_write(buf, &m_nmiOccurred, sizeof(m_nmiOccurred));
+    buffer_write(buf, &m_nmiOutput, sizeof(m_nmiOutput));
     
-    file.write(reinterpret_cast<const char*>(&m_openBus), sizeof(m_openBus));
+    buffer_write(buf, &m_openBus, sizeof(m_openBus));
 }
 
-void PPU::loadState(std::ifstream& file) {
+void PPU::loadState(Buffer* buf) {
     // Timing
-    file.read(reinterpret_cast<char*>(&m_cycle), sizeof(m_cycle));
-    file.read(reinterpret_cast<char*>(&m_scanline), sizeof(m_scanline));
-    file.read(reinterpret_cast<char*>(&m_frameComplete), sizeof(m_frameComplete));
-    file.read(reinterpret_cast<char*>(&m_oddFrame), sizeof(m_oddFrame));
+    buffer_read(buf, &m_cycle, sizeof(m_cycle));
+    buffer_read(buf, &m_scanline, sizeof(m_scanline));
+    buffer_read(buf, &m_frameComplete, sizeof(m_frameComplete));
+    buffer_read(buf, &m_oddFrame, sizeof(m_oddFrame));
     
     // Registers
-    file.read(reinterpret_cast<char*>(&m_ppuCtrl), sizeof(m_ppuCtrl));
-    file.read(reinterpret_cast<char*>(&m_ppuMask), sizeof(m_ppuMask));
-    file.read(reinterpret_cast<char*>(&m_ppuStatus), sizeof(m_ppuStatus));
-    file.read(reinterpret_cast<char*>(&m_oamAddr), sizeof(m_oamAddr));
+    buffer_read(buf, &m_ppuCtrl, sizeof(m_ppuCtrl));
+    buffer_read(buf, &m_ppuMask, sizeof(m_ppuMask));
+    buffer_read(buf, &m_ppuStatus, sizeof(m_ppuStatus));
+    buffer_read(buf, &m_oamAddr, sizeof(m_oamAddr));
     
     // Internal registers
-    file.read(reinterpret_cast<char*>(&m_vramAddr), sizeof(m_vramAddr));
-    file.read(reinterpret_cast<char*>(&m_tempAddr), sizeof(m_tempAddr));
-    file.read(reinterpret_cast<char*>(&m_fineX), sizeof(m_fineX));
-    file.read(reinterpret_cast<char*>(&m_writeToggle), sizeof(m_writeToggle));
-    file.read(reinterpret_cast<char*>(&m_dataBuffer), sizeof(m_dataBuffer));
+    buffer_read(buf, &m_vramAddr, sizeof(m_vramAddr));
+    buffer_read(buf, &m_tempAddr, sizeof(m_tempAddr));
+    buffer_read(buf, &m_fineX, sizeof(m_fineX));
+    buffer_read(buf, &m_writeToggle, sizeof(m_writeToggle));
+    buffer_read(buf, &m_dataBuffer, sizeof(m_dataBuffer));
     
     // Background shift registers
-    file.read(reinterpret_cast<char*>(&m_bgShiftPatternLow), sizeof(m_bgShiftPatternLow));
-    file.read(reinterpret_cast<char*>(&m_bgShiftPatternHigh), sizeof(m_bgShiftPatternHigh));
-    file.read(reinterpret_cast<char*>(&m_bgShiftAttrLow), sizeof(m_bgShiftAttrLow));
-    file.read(reinterpret_cast<char*>(&m_bgShiftAttrHigh), sizeof(m_bgShiftAttrHigh));
+    buffer_read(buf, &m_bgShiftPatternLow, sizeof(m_bgShiftPatternLow));
+    buffer_read(buf, &m_bgShiftPatternHigh, sizeof(m_bgShiftPatternHigh));
+    buffer_read(buf, &m_bgShiftAttrLow, sizeof(m_bgShiftAttrLow));
+    buffer_read(buf, &m_bgShiftAttrHigh, sizeof(m_bgShiftAttrHigh));
     
     // Background latches
-    file.read(reinterpret_cast<char*>(&m_bgNextTileId), sizeof(m_bgNextTileId));
-    file.read(reinterpret_cast<char*>(&m_bgNextTileAttr), sizeof(m_bgNextTileAttr));
-    file.read(reinterpret_cast<char*>(&m_bgNextTileLow), sizeof(m_bgNextTileLow));
-    file.read(reinterpret_cast<char*>(&m_bgNextTileHigh), sizeof(m_bgNextTileHigh));
+    buffer_read(buf, &m_bgNextTileId, sizeof(m_bgNextTileId));
+    buffer_read(buf, &m_bgNextTileAttr, sizeof(m_bgNextTileAttr));
+    buffer_read(buf, &m_bgNextTileLow, sizeof(m_bgNextTileLow));
+    buffer_read(buf, &m_bgNextTileHigh, sizeof(m_bgNextTileHigh));
     
     // Memory
-    file.read(reinterpret_cast<char*>(m_vram.data()), m_vram.size());
-    file.read(reinterpret_cast<char*>(m_palette.data()), m_palette.size());
-    file.read(reinterpret_cast<char*>(m_oam.data()), m_oam.size());
-    file.read(reinterpret_cast<char*>(m_secondaryOam.data()), m_secondaryOam.size());
+    buffer_read(buf, m_vram.data(), m_vram.size());
+    buffer_read(buf, m_palette.data(), m_palette.size());
+    buffer_read(buf, m_oam.data(), m_oam.size());
+    buffer_read(buf, m_secondaryOam.data(), m_secondaryOam.size());
     
     // Sprite state
-    file.read(reinterpret_cast<char*>(&m_spriteCount), sizeof(m_spriteCount));
-    file.read(reinterpret_cast<char*>(&m_sprite0OnScanline), sizeof(m_sprite0OnScanline));
-    file.read(reinterpret_cast<char*>(&m_sprite0HitPossible), sizeof(m_sprite0HitPossible));
+    buffer_read(buf, &m_spriteCount, sizeof(m_spriteCount));
+    buffer_read(buf, &m_sprite0OnScanline, sizeof(m_sprite0OnScanline));
+    buffer_read(buf, &m_sprite0HitPossible, sizeof(m_sprite0HitPossible));
     
     // NMI state
-    file.read(reinterpret_cast<char*>(&m_nmiOccurred), sizeof(m_nmiOccurred));
-    file.read(reinterpret_cast<char*>(&m_nmiOutput), sizeof(m_nmiOutput));
+    buffer_read(buf, &m_nmiOccurred, sizeof(m_nmiOccurred));
+    buffer_read(buf, &m_nmiOutput, sizeof(m_nmiOutput));
     
-    file.read(reinterpret_cast<char*>(&m_openBus), sizeof(m_openBus));
+    buffer_read(buf, &m_openBus, sizeof(m_openBus));
 }
 
 } // namespace nes

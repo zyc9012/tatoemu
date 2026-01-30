@@ -202,24 +202,24 @@ void Mapper163::writeCHR(u16 address, u8 value) {
     }
 }
 
-void Mapper163::saveState(std::ofstream& file) const {
-    Mapper::saveState(file);
-    file.write(reinterpret_cast<const char*>(m_registers), sizeof(m_registers));
-    file.write(reinterpret_cast<const char*>(&m_toggle), sizeof(m_toggle));
-    file.write(reinterpret_cast<const char*>(&m_autoSwitchCHR), sizeof(m_autoSwitchCHR));
-    file.write(reinterpret_cast<const char*>(&m_prgBank), sizeof(m_prgBank));
-    file.write(reinterpret_cast<const char*>(&m_chrBank0), sizeof(m_chrBank0));
-    file.write(reinterpret_cast<const char*>(&m_chrBank1), sizeof(m_chrBank1));
+void Mapper163::saveState(Buffer* buf) {
+    Mapper::saveState(buf);
+    buffer_write(buf, m_registers, sizeof(m_registers));
+    buffer_write(buf, &m_toggle, sizeof(m_toggle));
+    buffer_write(buf, &m_autoSwitchCHR, sizeof(m_autoSwitchCHR));
+    buffer_write(buf, &m_prgBank, sizeof(m_prgBank));
+    buffer_write(buf, &m_chrBank0, sizeof(m_chrBank0));
+    buffer_write(buf, &m_chrBank1, sizeof(m_chrBank1));
 }
 
-void Mapper163::loadState(std::ifstream& file) {
-    Mapper::loadState(file);
-    file.read(reinterpret_cast<char*>(m_registers), sizeof(m_registers));
-    file.read(reinterpret_cast<char*>(&m_toggle), sizeof(m_toggle));
-    file.read(reinterpret_cast<char*>(&m_autoSwitchCHR), sizeof(m_autoSwitchCHR));
-    file.read(reinterpret_cast<char*>(&m_prgBank), sizeof(m_prgBank));
-    file.read(reinterpret_cast<char*>(&m_chrBank0), sizeof(m_chrBank0));
-    file.read(reinterpret_cast<char*>(&m_chrBank1), sizeof(m_chrBank1));
+void Mapper163::loadState(Buffer* buf) {
+    Mapper::loadState(buf);
+    buffer_read(buf, m_registers, sizeof(m_registers));
+    buffer_read(buf, &m_toggle, sizeof(m_toggle));
+    buffer_read(buf, &m_autoSwitchCHR, sizeof(m_autoSwitchCHR));
+    buffer_read(buf, &m_prgBank, sizeof(m_prgBank));
+    buffer_read(buf, &m_chrBank0, sizeof(m_chrBank0));
+    buffer_read(buf, &m_chrBank1, sizeof(m_chrBank1));
 }
 
 } // namespace nes

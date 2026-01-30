@@ -3,7 +3,7 @@
 #include "types.h"
 #include <memory>
 #include <array>
-#include <fstream>
+#include "../components/buffer.h"
 
 namespace gb {
 
@@ -39,8 +39,8 @@ public:
     bool isDoubleSpeed() const { return m_doubleSpeed; }
     
     // Save/Load state
-    void saveState(std::ofstream& file) const;
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
 
 private:
     Cartridge* m_cartridge;

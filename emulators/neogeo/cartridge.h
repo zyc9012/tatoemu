@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <fstream>
+#include "../../components/buffer.h"
 
 namespace neogeo {
 
@@ -76,8 +76,8 @@ public:
     void setPPU(PPU* ppu) { m_ppu = ppu; }
 
     // Save/Load state
-    void saveState(std::ofstream& file);
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
 
 private:
     CPU* m_cpu;

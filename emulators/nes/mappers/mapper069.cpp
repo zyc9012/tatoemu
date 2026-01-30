@@ -189,39 +189,39 @@ void Mapper069::clockAudio() {
     }
 }
 
-void Mapper069::saveState(std::ofstream& file) const {
-    Mapper::saveState(file);
-    file.write(reinterpret_cast<const char*>(&m_command), sizeof(m_command));
-    file.write(reinterpret_cast<const char*>(m_chrBanks), sizeof(m_chrBanks));
-    file.write(reinterpret_cast<const char*>(m_prgBanks), sizeof(m_prgBanks));
-    file.write(reinterpret_cast<const char*>(&m_workRamValue), sizeof(m_workRamValue));
-    file.write(reinterpret_cast<const char*>(&m_irqEnabled), sizeof(m_irqEnabled));
-    file.write(reinterpret_cast<const char*>(&m_irqCounterEnabled), sizeof(m_irqCounterEnabled));
-    file.write(reinterpret_cast<const char*>(&m_irqCounter), sizeof(m_irqCounter));
+void Mapper069::saveState(Buffer* buf) {
+    Mapper::saveState(buf);
+    buffer_write(buf, &m_command, sizeof(m_command));
+    buffer_write(buf, m_chrBanks, sizeof(m_chrBanks));
+    buffer_write(buf, m_prgBanks, sizeof(m_prgBanks));
+    buffer_write(buf, &m_workRamValue, sizeof(m_workRamValue));
+    buffer_write(buf, &m_irqEnabled, sizeof(m_irqEnabled));
+    buffer_write(buf, &m_irqCounterEnabled, sizeof(m_irqCounterEnabled));
+    buffer_write(buf, &m_irqCounter, sizeof(m_irqCounter));
     
     // Save work RAM
     u32 workRamSize = static_cast<u32>(m_workRam.size());
-    file.write(reinterpret_cast<const char*>(&workRamSize), sizeof(workRamSize));
-    file.write(reinterpret_cast<const char*>(m_workRam.data()), workRamSize);
+    buffer_write(buf, &workRamSize, sizeof(workRamSize));
+    buffer_write(buf, m_workRam.data(), workRamSize);
 }
 
-void Mapper069::loadState(std::ifstream& file) {
-    Mapper::loadState(file);
-    file.read(reinterpret_cast<char*>(&m_command), sizeof(m_command));
-    file.read(reinterpret_cast<char*>(m_chrBanks), sizeof(m_chrBanks));
-    file.read(reinterpret_cast<char*>(m_prgBanks), sizeof(m_prgBanks));
-    file.read(reinterpret_cast<char*>(&m_workRamValue), sizeof(m_workRamValue));
-    file.read(reinterpret_cast<char*>(&m_irqEnabled), sizeof(m_irqEnabled));
-    file.read(reinterpret_cast<char*>(&m_irqCounterEnabled), sizeof(m_irqCounterEnabled));
-    file.read(reinterpret_cast<char*>(&m_irqCounter), sizeof(m_irqCounter));
+void Mapper069::loadState(Buffer* buf) {
+    Mapper::loadState(buf);
+    buffer_read(buf, &m_command, sizeof(m_command));
+    buffer_read(buf, m_chrBanks, sizeof(m_chrBanks));
+    buffer_read(buf, m_prgBanks, sizeof(m_prgBanks));
+    buffer_read(buf, &m_workRamValue, sizeof(m_workRamValue));
+    buffer_read(buf, &m_irqEnabled, sizeof(m_irqEnabled));
+    buffer_read(buf, &m_irqCounterEnabled, sizeof(m_irqCounterEnabled));
+    buffer_read(buf, &m_irqCounter, sizeof(m_irqCounter));
     
     // Load work RAM
     u32 workRamSize;
-    file.read(reinterpret_cast<char*>(&workRamSize), sizeof(workRamSize));
+    buffer_read(buf, &workRamSize, sizeof(workRamSize));
     if (workRamSize != m_workRam.size()) {
         m_workRam.resize(workRamSize);
     }
-    file.read(reinterpret_cast<char*>(m_workRam.data()), workRamSize);
+    buffer_read(buf, m_workRam.data(), workRamSize);
     
     updateBanks();
     updateWorkRam();

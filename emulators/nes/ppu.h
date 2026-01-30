@@ -3,7 +3,7 @@
 #include "../types.h"
 #include "consts.h"
 #include <array>
-#include <fstream>
+#include "../components/buffer.h"
 
 namespace nes {
 
@@ -108,8 +108,8 @@ public:
     void writeCIRAM(u16 address, u8 value) { m_vram[address & 0x07FF] = value; }
 
     // Save/Load state
-    void saveState(std::ofstream& file) const;
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
 
 private:
     // PPU internal memory access

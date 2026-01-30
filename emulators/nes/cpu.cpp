@@ -1178,22 +1178,22 @@ void CPU::SHX(AddressMode mode) {
     write(addr, value);
 }
 
-void CPU::saveState(std::ofstream& file) const {
-    file.write(reinterpret_cast<const char*>(&m_regs), sizeof(m_regs));
-    file.write(reinterpret_cast<const char*>(&m_cycles), sizeof(m_cycles));
-    file.write(reinterpret_cast<const char*>(&m_stallCycles), sizeof(m_stallCycles));
-    file.write(reinterpret_cast<const char*>(&m_nmiPending), sizeof(m_nmiPending));
-    file.write(reinterpret_cast<const char*>(&m_nmiDelay), sizeof(m_nmiDelay));
-    file.write(reinterpret_cast<const char*>(&m_irqPending), sizeof(m_irqPending));
+void CPU::saveState(Buffer* buf) {
+    buffer_write(buf, &m_regs, sizeof(m_regs));
+    buffer_write(buf, &m_cycles, sizeof(m_cycles));
+    buffer_write(buf, &m_stallCycles, sizeof(m_stallCycles));
+    buffer_write(buf, &m_nmiPending, sizeof(m_nmiPending));
+    buffer_write(buf, &m_nmiDelay, sizeof(m_nmiDelay));
+    buffer_write(buf, &m_irqPending, sizeof(m_irqPending));
 }
 
-void CPU::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(&m_regs), sizeof(m_regs));
-    file.read(reinterpret_cast<char*>(&m_cycles), sizeof(m_cycles));
-    file.read(reinterpret_cast<char*>(&m_stallCycles), sizeof(m_stallCycles));
-    file.read(reinterpret_cast<char*>(&m_nmiPending), sizeof(m_nmiPending));
-    file.read(reinterpret_cast<char*>(&m_nmiDelay), sizeof(m_nmiDelay));
-    file.read(reinterpret_cast<char*>(&m_irqPending), sizeof(m_irqPending));
+void CPU::loadState(Buffer* buf) {
+    buffer_read(buf, &m_regs, sizeof(m_regs));
+    buffer_read(buf, &m_cycles, sizeof(m_cycles));
+    buffer_read(buf, &m_stallCycles, sizeof(m_stallCycles));
+    buffer_read(buf, &m_nmiPending, sizeof(m_nmiPending));
+    buffer_read(buf, &m_nmiDelay, sizeof(m_nmiDelay));
+    buffer_read(buf, &m_irqPending, sizeof(m_irqPending));
 }
 
 } // namespace nes

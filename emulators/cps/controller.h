@@ -2,7 +2,7 @@
 
 #include "../types.h"
 #include "../components/socd.h"
-#include <fstream>
+#include "../components/buffer.h"
 #include <array>
 #include <unordered_map>
 #include <SDL3/SDL.h>
@@ -51,8 +51,8 @@ public:
     u8 readPort(u16 port) const;
     
     // Save/Load state
-    void saveState(std::ofstream& file);
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
 
 private:
     // Port registers (indexed by port address)

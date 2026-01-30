@@ -173,28 +173,28 @@ void Mapper004::scanlineCounter() {
     }
 }
 
-void Mapper004::saveState(std::ofstream& file) const {
-    Mapper::saveState(file);
-    file.write(reinterpret_cast<const char*>(&m_bankSelect), sizeof(m_bankSelect));
-    file.write(reinterpret_cast<const char*>(m_bankData), sizeof(m_bankData));
-    file.write(reinterpret_cast<const char*>(&m_irqLatch), sizeof(m_irqLatch));
-    file.write(reinterpret_cast<const char*>(&m_irqCounter), sizeof(m_irqCounter));
-    file.write(reinterpret_cast<const char*>(&m_irqEnable), sizeof(m_irqEnable));
-    file.write(reinterpret_cast<const char*>(&m_irqReload), sizeof(m_irqReload));
-    file.write(reinterpret_cast<const char*>(&m_irqActive), sizeof(m_irqActive));
-    file.write(reinterpret_cast<const char*>(&m_prgRamEnable), sizeof(m_prgRamEnable));
+void Mapper004::saveState(Buffer* buf) {
+    Mapper::saveState(buf);
+    buffer_write(buf, &m_bankSelect, sizeof(m_bankSelect));
+    buffer_write(buf, m_bankData, sizeof(m_bankData));
+    buffer_write(buf, &m_irqLatch, sizeof(m_irqLatch));
+    buffer_write(buf, &m_irqCounter, sizeof(m_irqCounter));
+    buffer_write(buf, &m_irqEnable, sizeof(m_irqEnable));
+    buffer_write(buf, &m_irqReload, sizeof(m_irqReload));
+    buffer_write(buf, &m_irqActive, sizeof(m_irqActive));
+    buffer_write(buf, &m_prgRamEnable, sizeof(m_prgRamEnable));
 }
 
-void Mapper004::loadState(std::ifstream& file) {
-    Mapper::loadState(file);
-    file.read(reinterpret_cast<char*>(&m_bankSelect), sizeof(m_bankSelect));
-    file.read(reinterpret_cast<char*>(m_bankData), sizeof(m_bankData));
-    file.read(reinterpret_cast<char*>(&m_irqLatch), sizeof(m_irqLatch));
-    file.read(reinterpret_cast<char*>(&m_irqCounter), sizeof(m_irqCounter));
-    file.read(reinterpret_cast<char*>(&m_irqEnable), sizeof(m_irqEnable));
-    file.read(reinterpret_cast<char*>(&m_irqReload), sizeof(m_irqReload));
-    file.read(reinterpret_cast<char*>(&m_irqActive), sizeof(m_irqActive));
-    file.read(reinterpret_cast<char*>(&m_prgRamEnable), sizeof(m_prgRamEnable));
+void Mapper004::loadState(Buffer* buf) {
+    Mapper::loadState(buf);
+    buffer_read(buf, &m_bankSelect, sizeof(m_bankSelect));
+    buffer_read(buf, m_bankData, sizeof(m_bankData));
+    buffer_read(buf, &m_irqLatch, sizeof(m_irqLatch));
+    buffer_read(buf, &m_irqCounter, sizeof(m_irqCounter));
+    buffer_read(buf, &m_irqEnable, sizeof(m_irqEnable));
+    buffer_read(buf, &m_irqReload, sizeof(m_irqReload));
+    buffer_read(buf, &m_irqActive, sizeof(m_irqActive));
+    buffer_read(buf, &m_prgRamEnable, sizeof(m_prgRamEnable));
     updateBanks();
 }
 

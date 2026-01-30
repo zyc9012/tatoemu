@@ -1,6 +1,5 @@
 #include "cartridge.h"
 #include "../../utilities/zip_reader.h"
-#include <fstream>
 #include <iostream>
 #include <cmath>
 #include <filesystem>
@@ -37,62 +36,62 @@ Cartridge::~Cartridge() {
     }
 }
 
-void Cartridge::saveState(std::ofstream& file) const {
+void Cartridge::saveState(Buffer* buf) {
     // Save RAM (if present)
     size_t ramSize = m_ram.size();
-    file.write(reinterpret_cast<const char*>(&ramSize), sizeof(ramSize));
+    buffer_write(buf, &ramSize, sizeof(ramSize));
     if (ramSize > 0) {
-        file.write(reinterpret_cast<const char*>(m_ram.data()), ramSize);
+        buffer_write(buf, m_ram.data(), ramSize);
     }
     
     // Save MBC state
-    file.write(reinterpret_cast<const char*>(&m_currentRomBank), sizeof(m_currentRomBank));
-    file.write(reinterpret_cast<const char*>(&m_currentRamBank), sizeof(m_currentRamBank));
-    file.write(reinterpret_cast<const char*>(&m_ramEnabled), sizeof(m_ramEnabled));
-    file.write(reinterpret_cast<const char*>(&m_bankingMode), sizeof(m_bankingMode));
+    buffer_write(buf, &m_currentRomBank, sizeof(m_currentRomBank));
+    buffer_write(buf, &m_currentRamBank, sizeof(m_currentRamBank));
+    buffer_write(buf, &m_ramEnabled, sizeof(m_ramEnabled));
+    buffer_write(buf, &m_bankingMode, sizeof(m_bankingMode));
     
     // Save MBC-specific state
-    file.write(reinterpret_cast<const char*>(&m_romBankHigh), sizeof(m_romBankHigh));
-    file.write(reinterpret_cast<const char*>(&m_rtcRegister), sizeof(m_rtcRegister));
-    file.write(reinterpret_cast<const char*>(&m_rtcLatched), sizeof(m_rtcLatched));
-    file.write(reinterpret_cast<const char*>(&m_romBankHighBits), sizeof(m_romBankHighBits));
-    file.write(reinterpret_cast<const char*>(&m_accelX), sizeof(m_accelX));
-    file.write(reinterpret_cast<const char*>(&m_accelY), sizeof(m_accelY));
-    file.write(reinterpret_cast<const char*>(&m_accelZ), sizeof(m_accelZ));
-    file.write(reinterpret_cast<const char*>(&m_accelRegister), sizeof(m_accelRegister));
-    file.write(reinterpret_cast<const char*>(&m_accelEnabled), sizeof(m_accelEnabled));
+    buffer_write(buf, &m_romBankHigh, sizeof(m_romBankHigh));
+    buffer_write(buf, &m_rtcRegister, sizeof(m_rtcRegister));
+    buffer_write(buf, &m_rtcLatched, sizeof(m_rtcLatched));
+    buffer_write(buf, &m_romBankHighBits, sizeof(m_romBankHighBits));
+    buffer_write(buf, &m_accelX, sizeof(m_accelX));
+    buffer_write(buf, &m_accelY, sizeof(m_accelY));
+    buffer_write(buf, &m_accelZ, sizeof(m_accelZ));
+    buffer_write(buf, &m_accelRegister, sizeof(m_accelRegister));
+    buffer_write(buf, &m_accelEnabled, sizeof(m_accelEnabled));
     
     // Save RTC state
-    file.write(reinterpret_cast<const char*>(&m_rtc), sizeof(m_rtc));
+    buffer_write(buf, &m_rtc, sizeof(m_rtc));
 }
 
-void Cartridge::loadState(std::ifstream& file) {
+void Cartridge::loadState(Buffer* buf) {
     // Load RAM
     size_t ramSize;
-    file.read(reinterpret_cast<char*>(&ramSize), sizeof(ramSize));
+    buffer_read(buf, &ramSize, sizeof(ramSize));
     if (ramSize > 0 && ramSize == m_ram.size()) {
-        file.read(reinterpret_cast<char*>(m_ram.data()), ramSize);
+        buffer_read(buf, m_ram.data(), ramSize);
     }
     
     // Load MBC state
-    file.read(reinterpret_cast<char*>(&m_currentRomBank), sizeof(m_currentRomBank));
-    file.read(reinterpret_cast<char*>(&m_currentRamBank), sizeof(m_currentRamBank));
-    file.read(reinterpret_cast<char*>(&m_ramEnabled), sizeof(m_ramEnabled));
-    file.read(reinterpret_cast<char*>(&m_bankingMode), sizeof(m_bankingMode));
+    buffer_read(buf, &m_currentRomBank, sizeof(m_currentRomBank));
+    buffer_read(buf, &m_currentRamBank, sizeof(m_currentRamBank));
+    buffer_read(buf, &m_ramEnabled, sizeof(m_ramEnabled));
+    buffer_read(buf, &m_bankingMode, sizeof(m_bankingMode));
     
     // Load MBC-specific state
-    file.read(reinterpret_cast<char*>(&m_romBankHigh), sizeof(m_romBankHigh));
-    file.read(reinterpret_cast<char*>(&m_rtcRegister), sizeof(m_rtcRegister));
-    file.read(reinterpret_cast<char*>(&m_rtcLatched), sizeof(m_rtcLatched));
-    file.read(reinterpret_cast<char*>(&m_romBankHighBits), sizeof(m_romBankHighBits));
-    file.read(reinterpret_cast<char*>(&m_accelX), sizeof(m_accelX));
-    file.read(reinterpret_cast<char*>(&m_accelY), sizeof(m_accelY));
-    file.read(reinterpret_cast<char*>(&m_accelZ), sizeof(m_accelZ));
-    file.read(reinterpret_cast<char*>(&m_accelRegister), sizeof(m_accelRegister));
-    file.read(reinterpret_cast<char*>(&m_accelEnabled), sizeof(m_accelEnabled));
+    buffer_read(buf, &m_romBankHigh, sizeof(m_romBankHigh));
+    buffer_read(buf, &m_rtcRegister, sizeof(m_rtcRegister));
+    buffer_read(buf, &m_rtcLatched, sizeof(m_rtcLatched));
+    buffer_read(buf, &m_romBankHighBits, sizeof(m_romBankHighBits));
+    buffer_read(buf, &m_accelX, sizeof(m_accelX));
+    buffer_read(buf, &m_accelY, sizeof(m_accelY));
+    buffer_read(buf, &m_accelZ, sizeof(m_accelZ));
+    buffer_read(buf, &m_accelRegister, sizeof(m_accelRegister));
+    buffer_read(buf, &m_accelEnabled, sizeof(m_accelEnabled));
     
     // Load RTC state
-    file.read(reinterpret_cast<char*>(&m_rtc), sizeof(m_rtc));
+    buffer_read(buf, &m_rtc, sizeof(m_rtc));
 }
 
 bool Cartridge::load(const fs::path& filename) {
@@ -119,16 +118,19 @@ bool Cartridge::load(const fs::path& filename) {
         zip.close();
     } else {
         // Handle regular files
-        std::ifstream file(filename, std::ios::binary);
-        if (!file.is_open()) {
+        FILE* file = fopen(filename.c_str(), "rb");
+        if (!file) {
             std::cerr << "Failed to open ROM file: " << filename << std::endl;
             return false;
         }
 
         // Read entire file
-        romData = std::vector<u8>((std::istreambuf_iterator<char>(file)),
-                               std::istreambuf_iterator<char>());
-        file.close();
+        fseek(file, 0, SEEK_END);
+        size_t file_size = ftell(file);
+        fseek(file, 0, SEEK_SET);
+        romData.resize(file_size);
+        fread(romData.data(), 1, file_size, file);
+        fclose(file);
     }
 
     // Copy ROM data to member variable
@@ -794,16 +796,16 @@ void Cartridge::saveBattery() const {
     fs::path savPath = m_romFilename;
     savPath.replace_extension(".sav");
     
-    std::ofstream file(savPath, std::ios::binary);
-    if (!file.is_open()) {
+    FILE* file = fopen(savPath.c_str(), "wb");
+    if (!file) {
         std::cerr << "Failed to create save file: " << savPath.string() << std::endl;
         return;
     }
     
     // Write RAM data
-    file.write(reinterpret_cast<const char*>(m_ram.data()), m_ram.size());
+    fwrite(m_ram.data(), 1, m_ram.size(), file);
     
-    file.close();
+    fclose(file);
     std::cout << "Battery data saved to: " << savPath.string() << std::endl;
 }
 
@@ -815,26 +817,27 @@ void Cartridge::loadBattery() {
     fs::path savPath = m_romFilename;
     savPath.replace_extension(".sav");
     
-    std::ifstream file(savPath, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
+    FILE* file = fopen(savPath.c_str(), "rb");
+    if (!file) {
         std::cout << "No save file found: " << savPath.string() << std::endl;
         return;
     }
     
-    std::streamsize fileSize = file.tellg();
-    file.seekg(0, std::ios::beg);
+    fseek(file, 0, SEEK_END);
+    size_t fileSize = ftell(file);
+    fseek(file, 0, SEEK_SET);
     
     // Read RAM data
     size_t ramSize = m_ram.size();
-    if (fileSize >= static_cast<std::streamsize>(ramSize)) {
-        file.read(reinterpret_cast<char*>(m_ram.data()), ramSize);
+    if (fileSize >= ramSize) {
+        fread(m_ram.data(), 1, ramSize, file);
         std::cout << "Battery data loaded from: " << savPath.string() << std::endl;
     } else {
         std::cerr << "Save file size mismatch (expected " << ramSize << " bytes, got " 
                   << fileSize << " bytes)" << std::endl;
     }
     
-    file.close();
+    fclose(file);
 }
 
 } // namespace gb

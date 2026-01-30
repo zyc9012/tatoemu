@@ -140,22 +140,22 @@ void Mapper009::writeCHR(u16 address, u8 value) {
     // CHR ROM - ignore writes
 }
 
-void Mapper009::saveState(std::ofstream& file) const {
-    Mapper::saveState(file);
-    file.write(reinterpret_cast<const char*>(&m_prgBank), sizeof(m_prgBank));
-    file.write(reinterpret_cast<const char*>(m_leftChrPage), sizeof(m_leftChrPage));
-    file.write(reinterpret_cast<const char*>(m_rightChrPage), sizeof(m_rightChrPage));
-    file.write(reinterpret_cast<const char*>(&m_leftLatch), sizeof(m_leftLatch));
-    file.write(reinterpret_cast<const char*>(&m_rightLatch), sizeof(m_rightLatch));
+void Mapper009::saveState(Buffer* buf) {
+    Mapper::saveState(buf);
+    buffer_write(buf, &m_prgBank, sizeof(m_prgBank));
+    buffer_write(buf, m_leftChrPage, sizeof(m_leftChrPage));
+    buffer_write(buf, m_rightChrPage, sizeof(m_rightChrPage));
+    buffer_write(buf, &m_leftLatch, sizeof(m_leftLatch));
+    buffer_write(buf, &m_rightLatch, sizeof(m_rightLatch));
 }
 
-void Mapper009::loadState(std::ifstream& file) {
-    Mapper::loadState(file);
-    file.read(reinterpret_cast<char*>(&m_prgBank), sizeof(m_prgBank));
-    file.read(reinterpret_cast<char*>(m_leftChrPage), sizeof(m_leftChrPage));
-    file.read(reinterpret_cast<char*>(m_rightChrPage), sizeof(m_rightChrPage));
-    file.read(reinterpret_cast<char*>(&m_leftLatch), sizeof(m_leftLatch));
-    file.read(reinterpret_cast<char*>(&m_rightLatch), sizeof(m_rightLatch));
+void Mapper009::loadState(Buffer* buf) {
+    Mapper::loadState(buf);
+    buffer_read(buf, &m_prgBank, sizeof(m_prgBank));
+    buffer_read(buf, m_leftChrPage, sizeof(m_leftChrPage));
+    buffer_read(buf, m_rightChrPage, sizeof(m_rightChrPage));
+    buffer_read(buf, &m_leftLatch, sizeof(m_leftLatch));
+    buffer_read(buf, &m_rightLatch, sizeof(m_rightLatch));
     updateBanks();
 }
 

@@ -22,24 +22,24 @@ void CPU::setMMU(MMU* mmu) {
     m_mmu = mmu;
 }
 
-void CPU::saveState(std::ofstream& file) const {
-    file.write(reinterpret_cast<const char*>(&m_regs), sizeof(m_regs));
-    file.write(reinterpret_cast<const char*>(&m_halted), sizeof(m_halted));
-    file.write(reinterpret_cast<const char*>(&m_haltBug), sizeof(m_haltBug));
-    file.write(reinterpret_cast<const char*>(&m_ime), sizeof(m_ime));
-    file.write(reinterpret_cast<const char*>(&m_enableIMENextInstruction), sizeof(m_enableIMENextInstruction));
-    file.write(reinterpret_cast<const char*>(&m_if), sizeof(m_if));
-    file.write(reinterpret_cast<const char*>(&m_gbcMode), sizeof(m_gbcMode));
+void CPU::saveState(Buffer* buf) {
+    buffer_write(buf, &m_regs, sizeof(m_regs));
+    buffer_write(buf, &m_halted, sizeof(m_halted));
+    buffer_write(buf, &m_haltBug, sizeof(m_haltBug));
+    buffer_write(buf, &m_ime, sizeof(m_ime));
+    buffer_write(buf, &m_enableIMENextInstruction, sizeof(m_enableIMENextInstruction));
+    buffer_write(buf, &m_if, sizeof(m_if));
+    buffer_write(buf, &m_gbcMode, sizeof(m_gbcMode));
 }
 
-void CPU::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(&m_regs), sizeof(m_regs));
-    file.read(reinterpret_cast<char*>(&m_halted), sizeof(m_halted));
-    file.read(reinterpret_cast<char*>(&m_haltBug), sizeof(m_haltBug));
-    file.read(reinterpret_cast<char*>(&m_ime), sizeof(m_ime));
-    file.read(reinterpret_cast<char*>(&m_enableIMENextInstruction), sizeof(m_enableIMENextInstruction));
-    file.read(reinterpret_cast<char*>(&m_if), sizeof(m_if));
-    file.read(reinterpret_cast<char*>(&m_gbcMode), sizeof(m_gbcMode));
+void CPU::loadState(Buffer* buf) {
+    buffer_read(buf, &m_regs, sizeof(m_regs));
+    buffer_read(buf, &m_halted, sizeof(m_halted));
+    buffer_read(buf, &m_haltBug, sizeof(m_haltBug));
+    buffer_read(buf, &m_ime, sizeof(m_ime));
+    buffer_read(buf, &m_enableIMENextInstruction, sizeof(m_enableIMENextInstruction));
+    buffer_read(buf, &m_if, sizeof(m_if));
+    buffer_read(buf, &m_gbcMode, sizeof(m_gbcMode));
 }
 
 void CPU::reset(bool useBootrom) {

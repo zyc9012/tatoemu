@@ -257,14 +257,13 @@ void APU::generateSamples(u32 cycles, double gameSpeed) {
     m_audioDevice->writeSamples(samples, sizeof(samples));
 }
 
-void APU::saveState(std::ofstream& file) {
-    file.write(reinterpret_cast<const char*>(&m_sampleRate), sizeof(m_sampleRate));
-    file.write(reinterpret_cast<const char*>(&m_volume), sizeof(m_volume));
-    file.write(reinterpret_cast<const char*>(&m_cycleAccumulator), sizeof(m_cycleAccumulator));
-    file.write(reinterpret_cast<const char*>(&m_cyclesPerSample), sizeof(m_cyclesPerSample));
-    file.write(reinterpret_cast<const char*>(&m_ym2151RegSelect), sizeof(m_ym2151RegSelect));
+void APU::saveState(Buffer* buf) {
+    buffer_write(buf, &m_sampleRate, sizeof(m_sampleRate));
+    buffer_write(buf, &m_volume, sizeof(m_volume));
+    buffer_write(buf, &m_cycleAccumulator, sizeof(m_cycleAccumulator));
+    buffer_write(buf, &m_cyclesPerSample, sizeof(m_cyclesPerSample));
+    buffer_write(buf, &m_ym2151RegSelect, sizeof(m_ym2151RegSelect));
 
-    Buffer* buf = buffer_create(1920);
     if (m_cartridge->getCPSVersion() == 1) {
         // Save YM2151 state
         YM2151SaveContext(buf);
@@ -274,23 +273,15 @@ void APU::saveState(std::ofstream& file) {
         // Save QSound state
         QscSaveContext(buf);
     }
-    file.write(reinterpret_cast<const char*>(&buf->size), sizeof(buf->size));
-    file.write(reinterpret_cast<const char*>(buf->data), buf->size);
-    buffer_destroy(buf);
 }
 
-void APU::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(&m_sampleRate), sizeof(m_sampleRate));
-    file.read(reinterpret_cast<char*>(&m_volume), sizeof(m_volume));
-    file.read(reinterpret_cast<char*>(&m_cycleAccumulator), sizeof(m_cycleAccumulator));
-    file.read(reinterpret_cast<char*>(&m_cyclesPerSample), sizeof(m_cyclesPerSample));
-    file.read(reinterpret_cast<char*>(&m_ym2151RegSelect), sizeof(m_ym2151RegSelect));
+void APU::loadState(Buffer* buf) {
+    buffer_read(buf, &m_sampleRate, sizeof(m_sampleRate));
+    buffer_read(buf, &m_volume, sizeof(m_volume));
+    buffer_read(buf, &m_cycleAccumulator, sizeof(m_cycleAccumulator));
+    buffer_read(buf, &m_cyclesPerSample, sizeof(m_cyclesPerSample));
+    buffer_read(buf, &m_ym2151RegSelect, sizeof(m_ym2151RegSelect));
 
-    u32 buf_size;
-    file.read(reinterpret_cast<char*>(&buf_size), sizeof(buf_size));
-    Buffer* buf = buffer_create(buf_size);
-    file.read(reinterpret_cast<char*>(buf->data), buf_size);
-    buf->size = buf_size;
     if (m_cartridge->getCPSVersion() == 1) {
         // Load YM2151 state
         YM2151LoadContext(buf);
@@ -300,7 +291,6 @@ void APU::loadState(std::ifstream& file) {
         // Load QSound state
         QscLoadContext(buf);
     }
-    buffer_destroy(buf);
 }
 
 } // namespace cps

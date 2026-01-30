@@ -923,135 +923,135 @@ void APU::writeRegister(u16 address, u8 value) {
     }
 }
 
-void APU::saveState(std::ofstream& file) const {
+void APU::saveState(Buffer* buf) {
     // Save pulse 1
-    file.write(reinterpret_cast<const char*>(&m_pulse1.timerPeriod), sizeof(m_pulse1.timerPeriod));
-    file.write(reinterpret_cast<const char*>(&m_pulse1.timerCounter), sizeof(m_pulse1.timerCounter));
-    file.write(reinterpret_cast<const char*>(&m_pulse1.dutyMode), sizeof(m_pulse1.dutyMode));
-    file.write(reinterpret_cast<const char*>(&m_pulse1.sequencerStep), sizeof(m_pulse1.sequencerStep));
-    file.write(reinterpret_cast<const char*>(&m_pulse1.envelope), sizeof(m_pulse1.envelope));
-    file.write(reinterpret_cast<const char*>(&m_pulse1.sweep), sizeof(m_pulse1.sweep));
-    file.write(reinterpret_cast<const char*>(&m_pulse1.lengthCounter), sizeof(m_pulse1.lengthCounter));
+    buffer_write(buf, &m_pulse1.timerPeriod, sizeof(m_pulse1.timerPeriod));
+    buffer_write(buf, &m_pulse1.timerCounter, sizeof(m_pulse1.timerCounter));
+    buffer_write(buf, &m_pulse1.dutyMode, sizeof(m_pulse1.dutyMode));
+    buffer_write(buf, &m_pulse1.sequencerStep, sizeof(m_pulse1.sequencerStep));
+    buffer_write(buf, &m_pulse1.envelope, sizeof(m_pulse1.envelope));
+    buffer_write(buf, &m_pulse1.sweep, sizeof(m_pulse1.sweep));
+    buffer_write(buf, &m_pulse1.lengthCounter, sizeof(m_pulse1.lengthCounter));
     
     // Save pulse 2
-    file.write(reinterpret_cast<const char*>(&m_pulse2.timerPeriod), sizeof(m_pulse2.timerPeriod));
-    file.write(reinterpret_cast<const char*>(&m_pulse2.timerCounter), sizeof(m_pulse2.timerCounter));
-    file.write(reinterpret_cast<const char*>(&m_pulse2.dutyMode), sizeof(m_pulse2.dutyMode));
-    file.write(reinterpret_cast<const char*>(&m_pulse2.sequencerStep), sizeof(m_pulse2.sequencerStep));
-    file.write(reinterpret_cast<const char*>(&m_pulse2.envelope), sizeof(m_pulse2.envelope));
-    file.write(reinterpret_cast<const char*>(&m_pulse2.sweep), sizeof(m_pulse2.sweep));
-    file.write(reinterpret_cast<const char*>(&m_pulse2.lengthCounter), sizeof(m_pulse2.lengthCounter));
+    buffer_write(buf, &m_pulse2.timerPeriod, sizeof(m_pulse2.timerPeriod));
+    buffer_write(buf, &m_pulse2.timerCounter, sizeof(m_pulse2.timerCounter));
+    buffer_write(buf, &m_pulse2.dutyMode, sizeof(m_pulse2.dutyMode));
+    buffer_write(buf, &m_pulse2.sequencerStep, sizeof(m_pulse2.sequencerStep));
+    buffer_write(buf, &m_pulse2.envelope, sizeof(m_pulse2.envelope));
+    buffer_write(buf, &m_pulse2.sweep, sizeof(m_pulse2.sweep));
+    buffer_write(buf, &m_pulse2.lengthCounter, sizeof(m_pulse2.lengthCounter));
     
     // Save triangle
-    file.write(reinterpret_cast<const char*>(&m_triangle.timerPeriod), sizeof(m_triangle.timerPeriod));
-    file.write(reinterpret_cast<const char*>(&m_triangle.timerCounter), sizeof(m_triangle.timerCounter));
-    file.write(reinterpret_cast<const char*>(&m_triangle.sequencerStep), sizeof(m_triangle.sequencerStep));
-    file.write(reinterpret_cast<const char*>(&m_triangle.linearCounterReload), sizeof(m_triangle.linearCounterReload));
-    file.write(reinterpret_cast<const char*>(&m_triangle.linearCounterPeriod), sizeof(m_triangle.linearCounterPeriod));
-    file.write(reinterpret_cast<const char*>(&m_triangle.linearCounter), sizeof(m_triangle.linearCounter));
-    file.write(reinterpret_cast<const char*>(&m_triangle.controlFlag), sizeof(m_triangle.controlFlag));
-    file.write(reinterpret_cast<const char*>(&m_triangle.lengthCounter), sizeof(m_triangle.lengthCounter));
+    buffer_write(buf, &m_triangle.timerPeriod, sizeof(m_triangle.timerPeriod));
+    buffer_write(buf, &m_triangle.timerCounter, sizeof(m_triangle.timerCounter));
+    buffer_write(buf, &m_triangle.sequencerStep, sizeof(m_triangle.sequencerStep));
+    buffer_write(buf, &m_triangle.linearCounterReload, sizeof(m_triangle.linearCounterReload));
+    buffer_write(buf, &m_triangle.linearCounterPeriod, sizeof(m_triangle.linearCounterPeriod));
+    buffer_write(buf, &m_triangle.linearCounter, sizeof(m_triangle.linearCounter));
+    buffer_write(buf, &m_triangle.controlFlag, sizeof(m_triangle.controlFlag));
+    buffer_write(buf, &m_triangle.lengthCounter, sizeof(m_triangle.lengthCounter));
     
     // Save noise
-    file.write(reinterpret_cast<const char*>(&m_noise.timerPeriod), sizeof(m_noise.timerPeriod));
-    file.write(reinterpret_cast<const char*>(&m_noise.timerCounter), sizeof(m_noise.timerCounter));
-    file.write(reinterpret_cast<const char*>(&m_noise.shiftRegister), sizeof(m_noise.shiftRegister));
-    file.write(reinterpret_cast<const char*>(&m_noise.mode), sizeof(m_noise.mode));
-    file.write(reinterpret_cast<const char*>(&m_noise.envelope), sizeof(m_noise.envelope));
-    file.write(reinterpret_cast<const char*>(&m_noise.lengthCounter), sizeof(m_noise.lengthCounter));
+    buffer_write(buf, &m_noise.timerPeriod, sizeof(m_noise.timerPeriod));
+    buffer_write(buf, &m_noise.timerCounter, sizeof(m_noise.timerCounter));
+    buffer_write(buf, &m_noise.shiftRegister, sizeof(m_noise.shiftRegister));
+    buffer_write(buf, &m_noise.mode, sizeof(m_noise.mode));
+    buffer_write(buf, &m_noise.envelope, sizeof(m_noise.envelope));
+    buffer_write(buf, &m_noise.lengthCounter, sizeof(m_noise.lengthCounter));
     
     // Save DMC
-    file.write(reinterpret_cast<const char*>(&m_dmc.timerPeriod), sizeof(m_dmc.timerPeriod));
-    file.write(reinterpret_cast<const char*>(&m_dmc.timerCounter), sizeof(m_dmc.timerCounter));
-    file.write(reinterpret_cast<const char*>(&m_dmc.sampleAddress), sizeof(m_dmc.sampleAddress));
-    file.write(reinterpret_cast<const char*>(&m_dmc.sampleLength), sizeof(m_dmc.sampleLength));
-    file.write(reinterpret_cast<const char*>(&m_dmc.addressStart), sizeof(m_dmc.addressStart));
-    file.write(reinterpret_cast<const char*>(&m_dmc.lengthStart), sizeof(m_dmc.lengthStart));
-    file.write(reinterpret_cast<const char*>(&m_dmc.sampleBuffer), sizeof(m_dmc.sampleBuffer));
-    file.write(reinterpret_cast<const char*>(&m_dmc.sampleBufferEmpty), sizeof(m_dmc.sampleBufferEmpty));
-    file.write(reinterpret_cast<const char*>(&m_dmc.shiftRegister), sizeof(m_dmc.shiftRegister));
-    file.write(reinterpret_cast<const char*>(&m_dmc.bitsRemaining), sizeof(m_dmc.bitsRemaining));
-    file.write(reinterpret_cast<const char*>(&m_dmc.outputLevel), sizeof(m_dmc.outputLevel));
-    file.write(reinterpret_cast<const char*>(&m_dmc.silenceFlag), sizeof(m_dmc.silenceFlag));
-    file.write(reinterpret_cast<const char*>(&m_dmc.irqEnabled), sizeof(m_dmc.irqEnabled));
-    file.write(reinterpret_cast<const char*>(&m_dmc.loopFlag), sizeof(m_dmc.loopFlag));
-    file.write(reinterpret_cast<const char*>(&m_dmc.irqFlag), sizeof(m_dmc.irqFlag));
+    buffer_write(buf, &m_dmc.timerPeriod, sizeof(m_dmc.timerPeriod));
+    buffer_write(buf, &m_dmc.timerCounter, sizeof(m_dmc.timerCounter));
+    buffer_write(buf, &m_dmc.sampleAddress, sizeof(m_dmc.sampleAddress));
+    buffer_write(buf, &m_dmc.sampleLength, sizeof(m_dmc.sampleLength));
+    buffer_write(buf, &m_dmc.addressStart, sizeof(m_dmc.addressStart));
+    buffer_write(buf, &m_dmc.lengthStart, sizeof(m_dmc.lengthStart));
+    buffer_write(buf, &m_dmc.sampleBuffer, sizeof(m_dmc.sampleBuffer));
+    buffer_write(buf, &m_dmc.sampleBufferEmpty, sizeof(m_dmc.sampleBufferEmpty));
+    buffer_write(buf, &m_dmc.shiftRegister, sizeof(m_dmc.shiftRegister));
+    buffer_write(buf, &m_dmc.bitsRemaining, sizeof(m_dmc.bitsRemaining));
+    buffer_write(buf, &m_dmc.outputLevel, sizeof(m_dmc.outputLevel));
+    buffer_write(buf, &m_dmc.silenceFlag, sizeof(m_dmc.silenceFlag));
+    buffer_write(buf, &m_dmc.irqEnabled, sizeof(m_dmc.irqEnabled));
+    buffer_write(buf, &m_dmc.loopFlag, sizeof(m_dmc.loopFlag));
+    buffer_write(buf, &m_dmc.irqFlag, sizeof(m_dmc.irqFlag));
     
     // Save frame counter
-    file.write(reinterpret_cast<const char*>(&m_frameCounter), sizeof(m_frameCounter));
+    buffer_write(buf, &m_frameCounter, sizeof(m_frameCounter));
     
     // Save timing state
-    file.write(reinterpret_cast<const char*>(&m_totalCycles), sizeof(m_totalCycles));
-    file.write(reinterpret_cast<const char*>(&m_lastFrameCycle), sizeof(m_lastFrameCycle));
-    file.write(reinterpret_cast<const char*>(&m_oddCycle), sizeof(m_oddCycle));
+    buffer_write(buf, &m_totalCycles, sizeof(m_totalCycles));
+    buffer_write(buf, &m_lastFrameCycle, sizeof(m_lastFrameCycle));
+    buffer_write(buf, &m_oddCycle, sizeof(m_oddCycle));
 }
 
-void APU::loadState(std::ifstream& file) {
+void APU::loadState(Buffer* buf) {
     // Load pulse 1
-    file.read(reinterpret_cast<char*>(&m_pulse1.timerPeriod), sizeof(m_pulse1.timerPeriod));
-    file.read(reinterpret_cast<char*>(&m_pulse1.timerCounter), sizeof(m_pulse1.timerCounter));
-    file.read(reinterpret_cast<char*>(&m_pulse1.dutyMode), sizeof(m_pulse1.dutyMode));
-    file.read(reinterpret_cast<char*>(&m_pulse1.sequencerStep), sizeof(m_pulse1.sequencerStep));
-    file.read(reinterpret_cast<char*>(&m_pulse1.envelope), sizeof(m_pulse1.envelope));
-    file.read(reinterpret_cast<char*>(&m_pulse1.sweep), sizeof(m_pulse1.sweep));
-    file.read(reinterpret_cast<char*>(&m_pulse1.lengthCounter), sizeof(m_pulse1.lengthCounter));
+    buffer_read(buf, &m_pulse1.timerPeriod, sizeof(m_pulse1.timerPeriod));
+    buffer_read(buf, &m_pulse1.timerCounter, sizeof(m_pulse1.timerCounter));
+    buffer_read(buf, &m_pulse1.dutyMode, sizeof(m_pulse1.dutyMode));
+    buffer_read(buf, &m_pulse1.sequencerStep, sizeof(m_pulse1.sequencerStep));
+    buffer_read(buf, &m_pulse1.envelope, sizeof(m_pulse1.envelope));
+    buffer_read(buf, &m_pulse1.sweep, sizeof(m_pulse1.sweep));
+    buffer_read(buf, &m_pulse1.lengthCounter, sizeof(m_pulse1.lengthCounter));
     m_pulse1.isPulse1 = true;
     m_pulse1.sweep.pulseChannel = true;
     
     // Load pulse 2
-    file.read(reinterpret_cast<char*>(&m_pulse2.timerPeriod), sizeof(m_pulse2.timerPeriod));
-    file.read(reinterpret_cast<char*>(&m_pulse2.timerCounter), sizeof(m_pulse2.timerCounter));
-    file.read(reinterpret_cast<char*>(&m_pulse2.dutyMode), sizeof(m_pulse2.dutyMode));
-    file.read(reinterpret_cast<char*>(&m_pulse2.sequencerStep), sizeof(m_pulse2.sequencerStep));
-    file.read(reinterpret_cast<char*>(&m_pulse2.envelope), sizeof(m_pulse2.envelope));
-    file.read(reinterpret_cast<char*>(&m_pulse2.sweep), sizeof(m_pulse2.sweep));
-    file.read(reinterpret_cast<char*>(&m_pulse2.lengthCounter), sizeof(m_pulse2.lengthCounter));
+    buffer_read(buf, &m_pulse2.timerPeriod, sizeof(m_pulse2.timerPeriod));
+    buffer_read(buf, &m_pulse2.timerCounter, sizeof(m_pulse2.timerCounter));
+    buffer_read(buf, &m_pulse2.dutyMode, sizeof(m_pulse2.dutyMode));
+    buffer_read(buf, &m_pulse2.sequencerStep, sizeof(m_pulse2.sequencerStep));
+    buffer_read(buf, &m_pulse2.envelope, sizeof(m_pulse2.envelope));
+    buffer_read(buf, &m_pulse2.sweep, sizeof(m_pulse2.sweep));
+    buffer_read(buf, &m_pulse2.lengthCounter, sizeof(m_pulse2.lengthCounter));
     m_pulse2.isPulse1 = false;
     m_pulse2.sweep.pulseChannel = false;
     
     // Load triangle
-    file.read(reinterpret_cast<char*>(&m_triangle.timerPeriod), sizeof(m_triangle.timerPeriod));
-    file.read(reinterpret_cast<char*>(&m_triangle.timerCounter), sizeof(m_triangle.timerCounter));
-    file.read(reinterpret_cast<char*>(&m_triangle.sequencerStep), sizeof(m_triangle.sequencerStep));
-    file.read(reinterpret_cast<char*>(&m_triangle.linearCounterReload), sizeof(m_triangle.linearCounterReload));
-    file.read(reinterpret_cast<char*>(&m_triangle.linearCounterPeriod), sizeof(m_triangle.linearCounterPeriod));
-    file.read(reinterpret_cast<char*>(&m_triangle.linearCounter), sizeof(m_triangle.linearCounter));
-    file.read(reinterpret_cast<char*>(&m_triangle.controlFlag), sizeof(m_triangle.controlFlag));
-    file.read(reinterpret_cast<char*>(&m_triangle.lengthCounter), sizeof(m_triangle.lengthCounter));
+    buffer_read(buf, &m_triangle.timerPeriod, sizeof(m_triangle.timerPeriod));
+    buffer_read(buf, &m_triangle.timerCounter, sizeof(m_triangle.timerCounter));
+    buffer_read(buf, &m_triangle.sequencerStep, sizeof(m_triangle.sequencerStep));
+    buffer_read(buf, &m_triangle.linearCounterReload, sizeof(m_triangle.linearCounterReload));
+    buffer_read(buf, &m_triangle.linearCounterPeriod, sizeof(m_triangle.linearCounterPeriod));
+    buffer_read(buf, &m_triangle.linearCounter, sizeof(m_triangle.linearCounter));
+    buffer_read(buf, &m_triangle.controlFlag, sizeof(m_triangle.controlFlag));
+    buffer_read(buf, &m_triangle.lengthCounter, sizeof(m_triangle.lengthCounter));
     
     // Load noise
-    file.read(reinterpret_cast<char*>(&m_noise.timerPeriod), sizeof(m_noise.timerPeriod));
-    file.read(reinterpret_cast<char*>(&m_noise.timerCounter), sizeof(m_noise.timerCounter));
-    file.read(reinterpret_cast<char*>(&m_noise.shiftRegister), sizeof(m_noise.shiftRegister));
-    file.read(reinterpret_cast<char*>(&m_noise.mode), sizeof(m_noise.mode));
-    file.read(reinterpret_cast<char*>(&m_noise.envelope), sizeof(m_noise.envelope));
-    file.read(reinterpret_cast<char*>(&m_noise.lengthCounter), sizeof(m_noise.lengthCounter));
+    buffer_read(buf, &m_noise.timerPeriod, sizeof(m_noise.timerPeriod));
+    buffer_read(buf, &m_noise.timerCounter, sizeof(m_noise.timerCounter));
+    buffer_read(buf, &m_noise.shiftRegister, sizeof(m_noise.shiftRegister));
+    buffer_read(buf, &m_noise.mode, sizeof(m_noise.mode));
+    buffer_read(buf, &m_noise.envelope, sizeof(m_noise.envelope));
+    buffer_read(buf, &m_noise.lengthCounter, sizeof(m_noise.lengthCounter));
     
     // Load DMC
-    file.read(reinterpret_cast<char*>(&m_dmc.timerPeriod), sizeof(m_dmc.timerPeriod));
-    file.read(reinterpret_cast<char*>(&m_dmc.timerCounter), sizeof(m_dmc.timerCounter));
-    file.read(reinterpret_cast<char*>(&m_dmc.sampleAddress), sizeof(m_dmc.sampleAddress));
-    file.read(reinterpret_cast<char*>(&m_dmc.sampleLength), sizeof(m_dmc.sampleLength));
-    file.read(reinterpret_cast<char*>(&m_dmc.addressStart), sizeof(m_dmc.addressStart));
-    file.read(reinterpret_cast<char*>(&m_dmc.lengthStart), sizeof(m_dmc.lengthStart));
-    file.read(reinterpret_cast<char*>(&m_dmc.sampleBuffer), sizeof(m_dmc.sampleBuffer));
-    file.read(reinterpret_cast<char*>(&m_dmc.sampleBufferEmpty), sizeof(m_dmc.sampleBufferEmpty));
-    file.read(reinterpret_cast<char*>(&m_dmc.shiftRegister), sizeof(m_dmc.shiftRegister));
-    file.read(reinterpret_cast<char*>(&m_dmc.bitsRemaining), sizeof(m_dmc.bitsRemaining));
-    file.read(reinterpret_cast<char*>(&m_dmc.outputLevel), sizeof(m_dmc.outputLevel));
-    file.read(reinterpret_cast<char*>(&m_dmc.silenceFlag), sizeof(m_dmc.silenceFlag));
-    file.read(reinterpret_cast<char*>(&m_dmc.irqEnabled), sizeof(m_dmc.irqEnabled));
-    file.read(reinterpret_cast<char*>(&m_dmc.loopFlag), sizeof(m_dmc.loopFlag));
-    file.read(reinterpret_cast<char*>(&m_dmc.irqFlag), sizeof(m_dmc.irqFlag));
+    buffer_read(buf, &m_dmc.timerPeriod, sizeof(m_dmc.timerPeriod));
+    buffer_read(buf, &m_dmc.timerCounter, sizeof(m_dmc.timerCounter));
+    buffer_read(buf, &m_dmc.sampleAddress, sizeof(m_dmc.sampleAddress));
+    buffer_read(buf, &m_dmc.sampleLength, sizeof(m_dmc.sampleLength));
+    buffer_read(buf, &m_dmc.addressStart, sizeof(m_dmc.addressStart));
+    buffer_read(buf, &m_dmc.lengthStart, sizeof(m_dmc.lengthStart));
+    buffer_read(buf, &m_dmc.sampleBuffer, sizeof(m_dmc.sampleBuffer));
+    buffer_read(buf, &m_dmc.sampleBufferEmpty, sizeof(m_dmc.sampleBufferEmpty));
+    buffer_read(buf, &m_dmc.shiftRegister, sizeof(m_dmc.shiftRegister));
+    buffer_read(buf, &m_dmc.bitsRemaining, sizeof(m_dmc.bitsRemaining));
+    buffer_read(buf, &m_dmc.outputLevel, sizeof(m_dmc.outputLevel));
+    buffer_read(buf, &m_dmc.silenceFlag, sizeof(m_dmc.silenceFlag));
+    buffer_read(buf, &m_dmc.irqEnabled, sizeof(m_dmc.irqEnabled));
+    buffer_read(buf, &m_dmc.loopFlag, sizeof(m_dmc.loopFlag));
+    buffer_read(buf, &m_dmc.irqFlag, sizeof(m_dmc.irqFlag));
     m_dmc.memory = m_memory;
     
     // Load frame counter
-    file.read(reinterpret_cast<char*>(&m_frameCounter), sizeof(m_frameCounter));
+    buffer_read(buf, &m_frameCounter, sizeof(m_frameCounter));
     
     // Load timing state
-    file.read(reinterpret_cast<char*>(&m_totalCycles), sizeof(m_totalCycles));
-    file.read(reinterpret_cast<char*>(&m_lastFrameCycle), sizeof(m_lastFrameCycle));
-    file.read(reinterpret_cast<char*>(&m_oddCycle), sizeof(m_oddCycle));
+    buffer_read(buf, &m_totalCycles, sizeof(m_totalCycles));
+    buffer_read(buf, &m_lastFrameCycle, sizeof(m_lastFrameCycle));
+    buffer_read(buf, &m_oddCycle, sizeof(m_oddCycle));
     
     // Reset audio state
     m_sampleCounter = 0;

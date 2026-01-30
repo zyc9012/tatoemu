@@ -18,8 +18,8 @@ public:
     void scanlineCounter() override;
     void clockAudio() override;
     
-    void saveState(std::ofstream& file) const override;
-    void loadState(std::ifstream& file) override;
+    void saveState(Buffer* buf) override;
+    void loadState(Buffer* buf) override;
     
 private:
     void updateBanks();

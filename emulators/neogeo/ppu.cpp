@@ -858,40 +858,40 @@ void PPU::writeGraphicsRAM16(u32 address, u16 value) {
     m_graphicsRam[address + 1] = value & 0xFF;
 }
 
-void PPU::saveState(std::ofstream& file) {
+void PPU::saveState(Buffer* buf) {
     // Write graphics RAM
-    file.write(reinterpret_cast<const char*>(m_graphicsRam.data()), m_graphicsRam.size());
+    buffer_write(buf, m_graphicsRam.data(), m_graphicsRam.size());
 
     // Write screen dimensions (for compatibility with different game resolutions)
-    file.write(reinterpret_cast<const char*>(&m_screenWidth), sizeof(m_screenWidth));
-    file.write(reinterpret_cast<const char*>(&m_screenHeight), sizeof(m_screenHeight));
+    buffer_write(buf, &m_screenWidth, sizeof(m_screenWidth));
+    buffer_write(buf, &m_screenHeight, sizeof(m_screenHeight));
 
     // Write frame state
-    file.write(reinterpret_cast<const char*>(&m_scanline), sizeof(m_scanline));
-    file.write(reinterpret_cast<const char*>(&m_cycles), sizeof(m_cycles));
-    file.write(reinterpret_cast<const char*>(&m_spriteFrameSpeed), sizeof(m_spriteFrameSpeed));
-    file.write(reinterpret_cast<const char*>(&m_spriteFrameTimer), sizeof(m_spriteFrameTimer));
-    file.write(reinterpret_cast<const char*>(&m_spriteFrame), sizeof(m_spriteFrame));
-    file.write(reinterpret_cast<const char*>(&m_graphicsRamPointer), sizeof(m_graphicsRamPointer));
-    file.write(reinterpret_cast<const char*>(&m_graphicsRamModulo), sizeof(m_graphicsRamModulo));
+    buffer_write(buf, &m_scanline, sizeof(m_scanline));
+    buffer_write(buf, &m_cycles, sizeof(m_cycles));
+    buffer_write(buf, &m_spriteFrameSpeed, sizeof(m_spriteFrameSpeed));
+    buffer_write(buf, &m_spriteFrameTimer, sizeof(m_spriteFrameTimer));
+    buffer_write(buf, &m_spriteFrame, sizeof(m_spriteFrame));
+    buffer_write(buf, &m_graphicsRamPointer, sizeof(m_graphicsRamPointer));
+    buffer_write(buf, &m_graphicsRamModulo, sizeof(m_graphicsRamModulo));
 }
 
-void PPU::loadState(std::ifstream& file) {
+void PPU::loadState(Buffer* buf) {
     // Read graphics RAM
-    file.read(reinterpret_cast<char*>(m_graphicsRam.data()), m_graphicsRam.size());
+    buffer_read(buf, m_graphicsRam.data(), m_graphicsRam.size());
 
     // Read screen dimensions
-    file.read(reinterpret_cast<char*>(&m_screenWidth), sizeof(m_screenWidth));
-    file.read(reinterpret_cast<char*>(&m_screenHeight), sizeof(m_screenHeight));
+    buffer_read(buf, &m_screenWidth, sizeof(m_screenWidth));
+    buffer_read(buf, &m_screenHeight, sizeof(m_screenHeight));
 
     // Read frame state
-    file.read(reinterpret_cast<char*>(&m_scanline), sizeof(m_scanline));
-    file.read(reinterpret_cast<char*>(&m_cycles), sizeof(m_cycles));
-    file.read(reinterpret_cast<char*>(&m_spriteFrameSpeed), sizeof(m_spriteFrameSpeed));
-    file.read(reinterpret_cast<char*>(&m_spriteFrameTimer), sizeof(m_spriteFrameTimer));
-    file.read(reinterpret_cast<char*>(&m_spriteFrame), sizeof(m_spriteFrame));
-    file.read(reinterpret_cast<char*>(&m_graphicsRamPointer), sizeof(m_graphicsRamPointer));
-    file.read(reinterpret_cast<char*>(&m_graphicsRamModulo), sizeof(m_graphicsRamModulo));
+    buffer_read(buf, &m_scanline, sizeof(m_scanline));
+    buffer_read(buf, &m_cycles, sizeof(m_cycles));
+    buffer_read(buf, &m_spriteFrameSpeed, sizeof(m_spriteFrameSpeed));
+    buffer_read(buf, &m_spriteFrameTimer, sizeof(m_spriteFrameTimer));
+    buffer_read(buf, &m_spriteFrame, sizeof(m_spriteFrame));
+    buffer_read(buf, &m_graphicsRamPointer, sizeof(m_graphicsRamPointer));
+    buffer_read(buf, &m_graphicsRamModulo, sizeof(m_graphicsRamModulo));
     
     // Update palette
     updatePalette();

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../compact.h"
+#include "../buffer.h"
 #include <cstring>
 #include <string>
-#include <fstream>
 
 // EEPROM Interface Configuration
 struct EEPROMInterface
@@ -54,8 +54,8 @@ public:
     void writeByte(UINT32 offset, UINT8 data);
 
     // Save/Load state
-    void saveState(std::ofstream& file) const;
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
 
     // Check if EEPROM file is available (loaded)
     bool isAvailable() const { return m_available; }

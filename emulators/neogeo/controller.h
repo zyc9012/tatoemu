@@ -3,7 +3,7 @@
 #include "../types.h"
 #include "cartridge.h"
 #include "../components/socd.h"
-#include <fstream>
+#include "../components/buffer.h"
 #include <array>
 #include <unordered_map>
 #include <SDL3/SDL.h>
@@ -53,8 +53,8 @@ public:
     u8 getInputBank(u8 index) const;
 
     // Save/Load state
-    void saveState(std::ofstream& file);
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
 
     // Component connections
     void setCartridge(Cartridge* cartridge) { m_cartridge = cartridge; }

@@ -2,7 +2,7 @@
 
 #include "../types.h"
 #include "../../components/cpu/m68k/m68k.h"
-#include <fstream>
+#include "../../components/buffer.h"
 
 namespace neogeo {
 
@@ -25,8 +25,8 @@ public:
     void irq(u8 level);  // IRQ with priority level (1-7)
     
     // Save/Load state
-    void saveState(std::ofstream& file);
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
 
 private:
     Memory* m_memory;

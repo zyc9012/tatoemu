@@ -126,13 +126,13 @@ void MSM6295SaveContext(Buffer* buf)
 {
 	// Save number of chips
 	INT32 numChips = nLastMSM6295Chip + 1;
-	buffer_write_data(buf, &numChips, sizeof(numChips));
+	buffer_write(buf, &numChips, sizeof(numChips));
 	
 	// Save each chip's state and status
 	for (INT32 nChip = 0; nChip <= nLastMSM6295Chip; nChip++)
 	{
-		buffer_write_data(buf, &MSM6295[nChip], sizeof(MSM6295Struct));
-		buffer_write_data(buf, &nMSM6295Status[nChip], sizeof(UINT32));
+		buffer_write(buf, &MSM6295[nChip], sizeof(MSM6295Struct));
+		buffer_write(buf, &nMSM6295Status[nChip], sizeof(UINT32));
 	}
 }
 
@@ -140,15 +140,15 @@ void MSM6295LoadContext(Buffer* buf)
 {
 	// Load number of chips
 	INT32 numChips;
-	buffer_read_data(buf, &numChips, sizeof(numChips));
+	buffer_read(buf, &numChips, sizeof(numChips));
 	
 	nLastMSM6295Chip = numChips - 1;
 	
 	// Load each chip's state and status
 	for (INT32 nChip = 0; nChip < numChips; nChip++)
 	{
-		buffer_read_data(buf, &MSM6295[nChip], sizeof(MSM6295Struct));
-		buffer_read_data(buf, &nMSM6295Status[nChip], sizeof(UINT32));
+		buffer_read(buf, &MSM6295[nChip], sizeof(MSM6295Struct));
+		buffer_read(buf, &nMSM6295Status[nChip], sizeof(UINT32));
 	}
 }
 

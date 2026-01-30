@@ -2,7 +2,7 @@
 
 #include "types.h"
 #include "config.h"
-#include <fstream>
+#include "../components/buffer.h"
 #include <array>
 
 namespace gb {
@@ -27,8 +27,8 @@ public:
     void writeRegister(u16 address, u8 value);
     
     // Save/Load state
-    void saveState(std::ofstream& file) const;
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
 
     // Global configuration
     void setSampleRate(u32 sampleRate) { m_sampleRate = sampleRate; }

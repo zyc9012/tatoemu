@@ -24,7 +24,6 @@
 #include "mappers/mapper164.h"
 #include "mappers/mapper178.h"
 #include <iostream>
-#include <fstream>
 #include <algorithm>
 #include <cstring>
 
@@ -75,16 +74,19 @@ bool Cartridge::load(const fs::path& filename) {
         std::cout << "Extracted " << romFilename << " from ZIP" << std::endl;
     } else {
         // Handle regular files
-        std::ifstream file(filename, std::ios::binary);
-        if (!file.is_open()) {
+        FILE* file = fopen(filename.c_str(), "rb");
+        if (!file) {
             std::cerr << "Failed to open ROM file: " << filename << std::endl;
             return false;
         }
 
         // Read entire file
-        romData = std::vector<u8>((std::istreambuf_iterator<char>(file)),
-                               std::istreambuf_iterator<char>());
-        file.close();
+        fseek(file, 0, SEEK_END);
+        size_t file_size = ftell(file);
+        fseek(file, 0, SEEK_SET);
+        romData.resize(file_size);
+        fread(romData.data(), 1, file_size, file);
+        fclose(file);
     }
     
     if (romData.size() < INES_HEADER_SIZE) {
@@ -572,10 +574,10 @@ void Cartridge::saveBattery() const {
     fs::path savePath = m_romFilename;
     savePath.replace_extension(".sav");
     
-    std::ofstream file(savePath, std::ios::binary);
-    if (file.is_open()) {
-        file.write(reinterpret_cast<const char*>(m_prgRam.data()), m_prgRam.size());
-        file.close();
+    FILE* file = fopen(savePath.c_str(), "wb");
+    if (file) {
+        fwrite(m_prgRam.data(), 1, m_prgRam.size(), file);
+        fclose(file);
         std::cout << "Battery data saved to: " << savePath << std::endl;
     }
 }
@@ -588,49 +590,49 @@ void Cartridge::loadBattery() {
     fs::path savePath = m_romFilename;
     savePath.replace_extension(".sav");
     
-    std::ifstream file(savePath, std::ios::binary);
-    if (file.is_open()) {
-        file.read(reinterpret_cast<char*>(m_prgRam.data()), m_prgRam.size());
-        file.close();
+    FILE* file = fopen(savePath.c_str(), "rb");
+    if (file) {
+        fread(m_prgRam.data(), 1, m_prgRam.size(), file);
+        fclose(file);
         std::cout << "Battery data loaded from: " << savePath << std::endl;
     }
 }
 
-void Cartridge::saveState(std::ofstream& file) const {
-    file.write(reinterpret_cast<const char*>(&m_mirrorMode), sizeof(m_mirrorMode));
+void Cartridge::saveState(Buffer* buf) {
+    buffer_write(buf, &m_mirrorMode, sizeof(m_mirrorMode));
     
     u32 prgRamSize = static_cast<u32>(m_prgRam.size());
-    file.write(reinterpret_cast<const char*>(&prgRamSize), sizeof(prgRamSize));
-    file.write(reinterpret_cast<const char*>(m_prgRam.data()), m_prgRam.size());
+    buffer_write(buf, &prgRamSize, sizeof(prgRamSize));
+    buffer_write(buf, m_prgRam.data(), m_prgRam.size());
     
-    u32 chrSize = static_cast<u32>(m_chrRom.size());
-    file.write(reinterpret_cast<const char*>(&chrSize), sizeof(chrSize));
-    file.write(reinterpret_cast<const char*>(m_chrRom.data()), m_chrRom.size());
+    if (m_chrBanks == 0) {  // Only save CHR RAM, not ROM
+        u32 chrSize = static_cast<u32>(m_chrRom.size());
+        buffer_write(buf, &chrSize, sizeof(chrSize));
+        buffer_write(buf, m_chrRom.data(), m_chrRom.size());
+    }
     
     if (m_mapper) {
-        m_mapper->saveState(file);
+        m_mapper->saveState(buf);
     }
 }
 
-void Cartridge::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(&m_mirrorMode), sizeof(m_mirrorMode));
+void Cartridge::loadState(Buffer* buf) {
+    buffer_read(buf, &m_mirrorMode, sizeof(m_mirrorMode));
     
     u32 prgRamSize;
-    file.read(reinterpret_cast<char*>(&prgRamSize), sizeof(prgRamSize));
+    buffer_read(buf, &prgRamSize, sizeof(prgRamSize));
     m_prgRam.resize(prgRamSize);
-    file.read(reinterpret_cast<char*>(m_prgRam.data()), m_prgRam.size());
+    buffer_read(buf, m_prgRam.data(), m_prgRam.size());
     
-    u32 chrSize;
-    file.read(reinterpret_cast<char*>(&chrSize), sizeof(chrSize));
     if (m_chrBanks == 0) {  // Only restore CHR RAM, not ROM
+        u32 chrSize;
+        buffer_read(buf, &chrSize, sizeof(chrSize));
         m_chrRom.resize(chrSize);
-        file.read(reinterpret_cast<char*>(m_chrRom.data()), m_chrRom.size());
-    } else {
-        file.seekg(chrSize, std::ios::cur);  // Skip CHR ROM in save state
+        buffer_read(buf, m_chrRom.data(), m_chrRom.size());
     }
     
     if (m_mapper) {
-        m_mapper->loadState(file);
+        m_mapper->loadState(buf);
     }
 }
 

@@ -3,7 +3,7 @@
 #include "../types.h"
 #include "consts.h"
 #include <array>
-#include <fstream>
+#include "../components/buffer.h"
 
 namespace nes {
 
@@ -35,8 +35,8 @@ public:
     u8* getRAM() { return m_ram.data(); }
     
     // Save/Load state
-    void saveState(std::ofstream& file) const;
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
 
 private:
     CPU* m_cpu;

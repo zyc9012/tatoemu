@@ -15,8 +15,8 @@ public:
     u8 readCHR(u16 address) override;
     void writeCHR(u16 address, u8 value) override;
     
-    void saveState(std::ofstream& file) const override;
-    void loadState(std::ifstream& file) override;
+    void saveState(Buffer* buf) override;
+    void loadState(Buffer* buf) override;
     
 private:
     u8 m_chrBank;

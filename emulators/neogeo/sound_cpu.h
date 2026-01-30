@@ -2,7 +2,7 @@
 
 #include "../types.h"
 #include "../components/compact.h"
-#include <fstream>
+#include "../components/buffer.h"
 
 namespace neogeo {
 
@@ -31,8 +31,8 @@ public:
     void nmi();
     
     // Save/Load state
-    void saveState(std::ofstream& file);
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
 
 protected:
     // Protected so Z80 callback functions can access them

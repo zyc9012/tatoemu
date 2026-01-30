@@ -122,23 +122,23 @@ void CPU::irq(u8 level) {
     m68k_set_irq(level);
 }
 
-void CPU::saveState(std::ofstream& file) {
+void CPU::saveState(Buffer* buf) {
     // Save Musashi CPU context
     unsigned int contextSize = m68k_context_size();
     unsigned int contextSizeNoPointers = m68k_context_size_no_pointers();
     std::vector<char> context(contextSize);
     m68k_get_context(context.data());
     
-    file.write(reinterpret_cast<const char*>(&contextSizeNoPointers), sizeof(contextSizeNoPointers));
-    file.write(context.data(), contextSizeNoPointers);
-    file.write(reinterpret_cast<const char*>(&m_cycles), sizeof(m_cycles));
+    buffer_write(buf, &contextSizeNoPointers, sizeof(contextSizeNoPointers));
+    buffer_write(buf, context.data(), contextSizeNoPointers);
+    buffer_write(buf, &m_cycles, sizeof(m_cycles));
 }
 
-void CPU::loadState(std::ifstream& file) {
+void CPU::loadState(Buffer* buf) {
     // Load Musashi CPU context
     unsigned int contextSizeNoPointers;
     unsigned int contextSize = m68k_context_size();
-    file.read(reinterpret_cast<char*>(&contextSizeNoPointers), sizeof(contextSizeNoPointers));
+    buffer_read(buf, &contextSizeNoPointers, sizeof(contextSizeNoPointers));
 
     if (contextSizeNoPointers != m68k_context_size_no_pointers()) {
         std::cerr << "Error: Saved CPU context size mismatch" << std::endl;
@@ -147,7 +147,7 @@ void CPU::loadState(std::ifstream& file) {
     
     // Load saved context (without pointers)
     std::vector<char> savedContext(contextSizeNoPointers);
-    file.read(savedContext.data(), contextSizeNoPointers);
+    buffer_read(buf, savedContext.data(), contextSizeNoPointers);
 
     // Get current context
     std::vector<char> currentContext(contextSize);
@@ -159,7 +159,7 @@ void CPU::loadState(std::ifstream& file) {
     // Set current context back
     m68k_set_context(currentContext.data());
     
-    file.read(reinterpret_cast<char*>(&m_cycles), sizeof(m_cycles));
+    buffer_read(buf, &m_cycles, sizeof(m_cycles));
     
     // Ensure memory pointer is set
     g_memory = m_memory;

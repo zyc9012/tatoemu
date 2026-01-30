@@ -168,28 +168,28 @@ MirrorMode Mapper001::getMirrorMode() const {
     }
 }
 
-void Mapper001::saveState(std::ofstream& file) const {
-    Mapper::saveState(file);
-    file.write(reinterpret_cast<const char*>(&m_shiftRegister), sizeof(m_shiftRegister));
-    file.write(reinterpret_cast<const char*>(&m_shiftCount), sizeof(m_shiftCount));
-    file.write(reinterpret_cast<const char*>(&m_lastWriteCycle), sizeof(m_lastWriteCycle));
-    file.write(reinterpret_cast<const char*>(&m_control), sizeof(m_control));
-    file.write(reinterpret_cast<const char*>(&m_chrBank0), sizeof(m_chrBank0));
-    file.write(reinterpret_cast<const char*>(&m_chrBank1), sizeof(m_chrBank1));
-    file.write(reinterpret_cast<const char*>(&m_prgBank), sizeof(m_prgBank));
-    file.write(reinterpret_cast<const char*>(&m_lastChrReg), sizeof(m_lastChrReg));
+void Mapper001::saveState(Buffer* buf) {
+    Mapper::saveState(buf);
+    buffer_write(buf, &m_shiftRegister, sizeof(m_shiftRegister));
+    buffer_write(buf, &m_shiftCount, sizeof(m_shiftCount));
+    buffer_write(buf, &m_lastWriteCycle, sizeof(m_lastWriteCycle));
+    buffer_write(buf, &m_control, sizeof(m_control));
+    buffer_write(buf, &m_chrBank0, sizeof(m_chrBank0));
+    buffer_write(buf, &m_chrBank1, sizeof(m_chrBank1));
+    buffer_write(buf, &m_prgBank, sizeof(m_prgBank));
+    buffer_write(buf, &m_lastChrReg, sizeof(m_lastChrReg));
 }
 
-void Mapper001::loadState(std::ifstream& file) {
-    Mapper::loadState(file);
-    file.read(reinterpret_cast<char*>(&m_shiftRegister), sizeof(m_shiftRegister));
-    file.read(reinterpret_cast<char*>(&m_shiftCount), sizeof(m_shiftCount));
-    file.read(reinterpret_cast<char*>(&m_lastWriteCycle), sizeof(m_lastWriteCycle));
-    file.read(reinterpret_cast<char*>(&m_control), sizeof(m_control));
-    file.read(reinterpret_cast<char*>(&m_chrBank0), sizeof(m_chrBank0));
-    file.read(reinterpret_cast<char*>(&m_chrBank1), sizeof(m_chrBank1));
-    file.read(reinterpret_cast<char*>(&m_prgBank), sizeof(m_prgBank));
-    file.read(reinterpret_cast<char*>(&m_lastChrReg), sizeof(m_lastChrReg));
+void Mapper001::loadState(Buffer* buf) {
+    Mapper::loadState(buf);
+    buffer_read(buf, &m_shiftRegister, sizeof(m_shiftRegister));
+    buffer_read(buf, &m_shiftCount, sizeof(m_shiftCount));
+    buffer_read(buf, &m_lastWriteCycle, sizeof(m_lastWriteCycle));
+    buffer_read(buf, &m_control, sizeof(m_control));
+    buffer_read(buf, &m_chrBank0, sizeof(m_chrBank0));
+    buffer_read(buf, &m_chrBank1, sizeof(m_chrBank1));
+    buffer_read(buf, &m_prgBank, sizeof(m_prgBank));
+    buffer_read(buf, &m_lastChrReg, sizeof(m_lastChrReg));
     updateBanks();
 }
 

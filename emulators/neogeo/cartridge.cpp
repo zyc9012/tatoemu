@@ -300,12 +300,12 @@ u8 Cartridge::readZoomROM8(u32 address) const {
     return m_zoomRom[address];
 }
 
-void Cartridge::saveState(std::ofstream& file) {
-    file.write(reinterpret_cast<const char*>(&m_biosVectorTableActive), sizeof(m_biosVectorTableActive));
+void Cartridge::saveState(Buffer* buf) {
+    buffer_write(buf, &m_biosVectorTableActive, sizeof(m_biosVectorTableActive));
 }
 
-void Cartridge::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(&m_biosVectorTableActive), sizeof(m_biosVectorTableActive));
+void Cartridge::loadState(Buffer* buf) {
+    buffer_read(buf, &m_biosVectorTableActive, sizeof(m_biosVectorTableActive));
 }
 
 // Decode text ROM: reorganize 32-byte tiles for text layer rendering

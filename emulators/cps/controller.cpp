@@ -247,12 +247,12 @@ u8 Controller::readPort(u16 port) const {
     return value;
 }
 
-void Controller::saveState(std::ofstream& file) {
-    file.write(reinterpret_cast<const char*>(m_portRegisters.data()), m_portRegisters.size());
+void Controller::saveState(Buffer* buf) {
+    buffer_write(buf, m_portRegisters.data(), m_portRegisters.size());
 }
 
-void Controller::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(m_portRegisters.data()), m_portRegisters.size());
+void Controller::loadState(Buffer* buf) {
+    buffer_read(buf, m_portRegisters.data(), m_portRegisters.size());
 }
 
 } // namespace cps

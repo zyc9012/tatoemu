@@ -4,7 +4,7 @@
 #include "db.h"
 #include "../components/eeprom/eeprom.h"
 #include <array>
-#include <fstream>
+#include "../components/buffer.h"
 
 namespace cps {
 
@@ -59,8 +59,8 @@ public:
     void setController(Controller* controller) { m_controller = controller; }
     
     // Save/Load state
-    void saveState(std::ofstream& file);
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
     
     // CPS2 raster IRQ accessors
     u16 getRasterIRQ50() const { return m_rasterIRQ50; }

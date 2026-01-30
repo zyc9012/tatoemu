@@ -82,14 +82,14 @@ u8 Controller::read(u8 player) {
     return result;
 }
 
-void Controller::saveState(std::ofstream& file) const {
-    file.write(reinterpret_cast<const char*>(m_shiftRegister.data()), m_shiftRegister.size());
-    file.write(reinterpret_cast<const char*>(m_strobe.data()), m_strobe.size());
+void Controller::saveState(Buffer* buf) {
+    buffer_write(buf, m_shiftRegister.data(), m_shiftRegister.size());
+    buffer_write(buf, m_strobe.data(), m_strobe.size());
 }
 
-void Controller::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(m_shiftRegister.data()), m_shiftRegister.size());
-    file.read(reinterpret_cast<char*>(m_strobe.data()), m_strobe.size());
+void Controller::loadState(Buffer* buf) {
+    buffer_read(buf, m_shiftRegister.data(), m_shiftRegister.size());
+    buffer_read(buf, m_strobe.data(), m_strobe.size());
 }
 
 } // namespace nes

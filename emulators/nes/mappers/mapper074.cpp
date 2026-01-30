@@ -162,22 +162,22 @@ void Mapper074::writeCHR(u16 address, u8 value) {
     }
 }
 
-void Mapper074::saveState(std::ofstream& file) const {
+void Mapper074::saveState(Buffer* buf) {
     // Save base class state
-    Mapper004::saveState(file);
+    Mapper004::saveState(buf);
     // Save additional CHR RAM state
-    file.write(reinterpret_cast<const char*>(m_chrRamBank), sizeof(m_chrRamBank));
-    file.write(reinterpret_cast<const char*>(m_chrBankValue), sizeof(m_chrBankValue));
-    file.write(reinterpret_cast<const char*>(m_chrRam), sizeof(m_chrRam));
+    buffer_write(buf, m_chrRamBank, sizeof(m_chrRamBank));
+    buffer_write(buf, m_chrBankValue, sizeof(m_chrBankValue));
+    buffer_write(buf, m_chrRam, sizeof(m_chrRam));
 }
 
-void Mapper074::loadState(std::ifstream& file) {
+void Mapper074::loadState(Buffer* buf) {
     // Load base class state
-    Mapper004::loadState(file);
+    Mapper004::loadState(buf);
     // Load additional CHR RAM state
-    file.read(reinterpret_cast<char*>(m_chrRamBank), sizeof(m_chrRamBank));
-    file.read(reinterpret_cast<char*>(m_chrBankValue), sizeof(m_chrBankValue));
-    file.read(reinterpret_cast<char*>(m_chrRam), sizeof(m_chrRam));
+    buffer_read(buf, m_chrRamBank, sizeof(m_chrRamBank));
+    buffer_read(buf, m_chrBankValue, sizeof(m_chrBankValue));
+    buffer_read(buf, m_chrRam, sizeof(m_chrRam));
     updateBanks();
 }
 

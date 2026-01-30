@@ -69,7 +69,7 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/components/sound/fm/fm.c
     ${CMAKE_SOURCE_DIR}/emulators/components/sound/fm/ymdeltat.c
     ${CMAKE_SOURCE_DIR}/emulators/components/sound/ay8910/ay8910.c
-    ${CMAKE_SOURCE_DIR}/emulators/components/buffer.c
+    ${CMAKE_SOURCE_DIR}/emulators/components/buffer.cpp
     ${CMAKE_SOURCE_DIR}/emulators/emulator.cpp
     ${CMAKE_SOURCE_DIR}/utilities/zip_reader.cpp
     ${CMAKE_SOURCE_DIR}/utilities/miniz/miniz.c
@@ -153,7 +153,6 @@ function(apply_common_target_settings target_name)
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/fm/fm.c
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/fm/ymdeltat.c
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/ay8910/ay8910.c
-        ${CMAKE_SOURCE_DIR}/emulators/components/buffer.c
         PROPERTIES LANGUAGE C
     )
 

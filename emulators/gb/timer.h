@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.h"
-#include <fstream>
+#include "../components/buffer.h"
 
 namespace gb {
 
@@ -20,8 +20,8 @@ public:
     void write(u16 address, u8 value);
     
     // Save/Load state
-    void saveState(std::ofstream& file) const;
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
 
 private:
     void updateDivider(u32 cycles);

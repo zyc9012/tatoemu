@@ -42,14 +42,14 @@ void Mapper003::writeCHR(u16 address, u8 value) {
     // CHR ROM - ignore writes
 }
 
-void Mapper003::saveState(std::ofstream& file) const {
-    Mapper::saveState(file);
-    file.write(reinterpret_cast<const char*>(&m_chrBank), sizeof(m_chrBank));
+void Mapper003::saveState(Buffer* buf) {
+    Mapper::saveState(buf);
+    buffer_write(buf, &m_chrBank, sizeof(m_chrBank));
 }
 
-void Mapper003::loadState(std::ifstream& file) {
-    Mapper::loadState(file);
-    file.read(reinterpret_cast<char*>(&m_chrBank), sizeof(m_chrBank));
+void Mapper003::loadState(Buffer* buf) {
+    Mapper::loadState(buf);
+    buffer_read(buf, &m_chrBank, sizeof(m_chrBank));
 }
 
 } // namespace nes

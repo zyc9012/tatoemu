@@ -946,93 +946,93 @@ void PPU::writeRegister(u16 address, u8 value) {
     }
 }
 
-void PPU::saveState(std::ofstream& file) const {
-    file.write(reinterpret_cast<const char*>(m_vram.data()), m_vram.size());
-    file.write(reinterpret_cast<const char*>(m_oam.data()), m_oam.size());
+void PPU::saveState(Buffer* buf) {
+    buffer_write(buf, m_vram.data(), m_vram.size());
+    buffer_write(buf, m_oam.data(), m_oam.size());
     
-    file.write(reinterpret_cast<const char*>(&m_vramBank), sizeof(m_vramBank));
-    file.write(reinterpret_cast<const char*>(&m_lcdc), sizeof(m_lcdc));
-    file.write(reinterpret_cast<const char*>(&m_stat), sizeof(m_stat));
-    file.write(reinterpret_cast<const char*>(&m_scy), sizeof(m_scy));
-    file.write(reinterpret_cast<const char*>(&m_scx), sizeof(m_scx));
-    file.write(reinterpret_cast<const char*>(&m_ly), sizeof(m_ly));
-    file.write(reinterpret_cast<const char*>(&m_lyc), sizeof(m_lyc));
-    file.write(reinterpret_cast<const char*>(&m_dma), sizeof(m_dma));
-    file.write(reinterpret_cast<const char*>(&m_bgp), sizeof(m_bgp));
-    file.write(reinterpret_cast<const char*>(&m_obp0), sizeof(m_obp0));
-    file.write(reinterpret_cast<const char*>(&m_obp1), sizeof(m_obp1));
-    file.write(reinterpret_cast<const char*>(&m_wy), sizeof(m_wy));
-    file.write(reinterpret_cast<const char*>(&m_wx), sizeof(m_wx));
+    buffer_write(buf, &m_vramBank, sizeof(m_vramBank));
+    buffer_write(buf, &m_lcdc, sizeof(m_lcdc));
+    buffer_write(buf, &m_stat, sizeof(m_stat));
+    buffer_write(buf, &m_scy, sizeof(m_scy));
+    buffer_write(buf, &m_scx, sizeof(m_scx));
+    buffer_write(buf, &m_ly, sizeof(m_ly));
+    buffer_write(buf, &m_lyc, sizeof(m_lyc));
+    buffer_write(buf, &m_dma, sizeof(m_dma));
+    buffer_write(buf, &m_bgp, sizeof(m_bgp));
+    buffer_write(buf, &m_obp0, sizeof(m_obp0));
+    buffer_write(buf, &m_obp1, sizeof(m_obp1));
+    buffer_write(buf, &m_wy, sizeof(m_wy));
+    buffer_write(buf, &m_wx, sizeof(m_wx));
     
-    file.write(reinterpret_cast<const char*>(&m_bgpi), sizeof(m_bgpi));
-    file.write(reinterpret_cast<const char*>(&m_obpi), sizeof(m_obpi));
-    file.write(reinterpret_cast<const char*>(m_bgPaletteData.data()), m_bgPaletteData.size());
-    file.write(reinterpret_cast<const char*>(m_objPaletteData.data()), m_objPaletteData.size());
+    buffer_write(buf, &m_bgpi, sizeof(m_bgpi));
+    buffer_write(buf, &m_obpi, sizeof(m_obpi));
+    buffer_write(buf, m_bgPaletteData.data(), m_bgPaletteData.size());
+    buffer_write(buf, m_objPaletteData.data(), m_objPaletteData.size());
     
-    file.write(reinterpret_cast<const char*>(&m_hdma1), sizeof(m_hdma1));
-    file.write(reinterpret_cast<const char*>(&m_hdma2), sizeof(m_hdma2));
-    file.write(reinterpret_cast<const char*>(&m_hdma3), sizeof(m_hdma3));
-    file.write(reinterpret_cast<const char*>(&m_hdma4), sizeof(m_hdma4));
-    file.write(reinterpret_cast<const char*>(&m_hdma5), sizeof(m_hdma5));
-    file.write(reinterpret_cast<const char*>(&m_hdmaActive), sizeof(m_hdmaActive));
-    file.write(reinterpret_cast<const char*>(&m_hdmaSource), sizeof(m_hdmaSource));
-    file.write(reinterpret_cast<const char*>(&m_hdmaDest), sizeof(m_hdmaDest));
-    file.write(reinterpret_cast<const char*>(&m_hdmaRemaining), sizeof(m_hdmaRemaining));
+    buffer_write(buf, &m_hdma1, sizeof(m_hdma1));
+    buffer_write(buf, &m_hdma2, sizeof(m_hdma2));
+    buffer_write(buf, &m_hdma3, sizeof(m_hdma3));
+    buffer_write(buf, &m_hdma4, sizeof(m_hdma4));
+    buffer_write(buf, &m_hdma5, sizeof(m_hdma5));
+    buffer_write(buf, &m_hdmaActive, sizeof(m_hdmaActive));
+    buffer_write(buf, &m_hdmaSource, sizeof(m_hdmaSource));
+    buffer_write(buf, &m_hdmaDest, sizeof(m_hdmaDest));
+    buffer_write(buf, &m_hdmaRemaining, sizeof(m_hdmaRemaining));
     
     u8 modeValue = static_cast<u8>(m_mode);
-    file.write(reinterpret_cast<const char*>(&modeValue), sizeof(modeValue));
-    file.write(reinterpret_cast<const char*>(&m_modeCycles), sizeof(m_modeCycles));
-    file.write(reinterpret_cast<const char*>(&m_windowLineCounter), sizeof(m_windowLineCounter));
-    file.write(reinterpret_cast<const char*>(&m_windowRenderedThisFrame), sizeof(m_windowRenderedThisFrame));
-    file.write(reinterpret_cast<const char*>(&m_gbcMode), sizeof(m_gbcMode));
-    file.write(reinterpret_cast<const char*>(&m_statInterruptLine), sizeof(m_statInterruptLine));
-    file.write(reinterpret_cast<const char*>(&m_modeChangeDelay), sizeof(m_modeChangeDelay));
-    file.write(reinterpret_cast<const char*>(&m_dmaCycles), sizeof(m_dmaCycles));
+    buffer_write(buf, &modeValue, sizeof(modeValue));
+    buffer_write(buf, &m_modeCycles, sizeof(m_modeCycles));
+    buffer_write(buf, &m_windowLineCounter, sizeof(m_windowLineCounter));
+    buffer_write(buf, &m_windowRenderedThisFrame, sizeof(m_windowRenderedThisFrame));
+    buffer_write(buf, &m_gbcMode, sizeof(m_gbcMode));
+    buffer_write(buf, &m_statInterruptLine, sizeof(m_statInterruptLine));
+    buffer_write(buf, &m_modeChangeDelay, sizeof(m_modeChangeDelay));
+    buffer_write(buf, &m_dmaCycles, sizeof(m_dmaCycles));
 }
 
-void PPU::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(m_vram.data()), m_vram.size());
-    file.read(reinterpret_cast<char*>(m_oam.data()), m_oam.size());
+void PPU::loadState(Buffer* buf) {
+    buffer_read(buf, m_vram.data(), m_vram.size());
+    buffer_read(buf, m_oam.data(), m_oam.size());
     
-    file.read(reinterpret_cast<char*>(&m_vramBank), sizeof(m_vramBank));
-    file.read(reinterpret_cast<char*>(&m_lcdc), sizeof(m_lcdc));
-    file.read(reinterpret_cast<char*>(&m_stat), sizeof(m_stat));
-    file.read(reinterpret_cast<char*>(&m_scy), sizeof(m_scy));
-    file.read(reinterpret_cast<char*>(&m_scx), sizeof(m_scx));
-    file.read(reinterpret_cast<char*>(&m_ly), sizeof(m_ly));
-    file.read(reinterpret_cast<char*>(&m_lyc), sizeof(m_lyc));
-    file.read(reinterpret_cast<char*>(&m_dma), sizeof(m_dma));
-    file.read(reinterpret_cast<char*>(&m_bgp), sizeof(m_bgp));
-    file.read(reinterpret_cast<char*>(&m_obp0), sizeof(m_obp0));
-    file.read(reinterpret_cast<char*>(&m_obp1), sizeof(m_obp1));
-    file.read(reinterpret_cast<char*>(&m_wy), sizeof(m_wy));
-    file.read(reinterpret_cast<char*>(&m_wx), sizeof(m_wx));
+    buffer_read(buf, &m_vramBank, sizeof(m_vramBank));
+    buffer_read(buf, &m_lcdc, sizeof(m_lcdc));
+    buffer_read(buf, &m_stat, sizeof(m_stat));
+    buffer_read(buf, &m_scy, sizeof(m_scy));
+    buffer_read(buf, &m_scx, sizeof(m_scx));
+    buffer_read(buf, &m_ly, sizeof(m_ly));
+    buffer_read(buf, &m_lyc, sizeof(m_lyc));
+    buffer_read(buf, &m_dma, sizeof(m_dma));
+    buffer_read(buf, &m_bgp, sizeof(m_bgp));
+    buffer_read(buf, &m_obp0, sizeof(m_obp0));
+    buffer_read(buf, &m_obp1, sizeof(m_obp1));
+    buffer_read(buf, &m_wy, sizeof(m_wy));
+    buffer_read(buf, &m_wx, sizeof(m_wx));
+
+    buffer_read(buf, &m_bgpi, sizeof(m_bgpi));
+    buffer_read(buf, &m_obpi, sizeof(m_obpi));
+    buffer_read(buf, m_bgPaletteData.data(), m_bgPaletteData.size());
+    buffer_read(buf, m_objPaletteData.data(), m_objPaletteData.size());
     
-    file.read(reinterpret_cast<char*>(&m_bgpi), sizeof(m_bgpi));
-    file.read(reinterpret_cast<char*>(&m_obpi), sizeof(m_obpi));
-    file.read(reinterpret_cast<char*>(m_bgPaletteData.data()), m_bgPaletteData.size());
-    file.read(reinterpret_cast<char*>(m_objPaletteData.data()), m_objPaletteData.size());
-    
-    file.read(reinterpret_cast<char*>(&m_hdma1), sizeof(m_hdma1));
-    file.read(reinterpret_cast<char*>(&m_hdma2), sizeof(m_hdma2));
-    file.read(reinterpret_cast<char*>(&m_hdma3), sizeof(m_hdma3));
-    file.read(reinterpret_cast<char*>(&m_hdma4), sizeof(m_hdma4));
-    file.read(reinterpret_cast<char*>(&m_hdma5), sizeof(m_hdma5));
-    file.read(reinterpret_cast<char*>(&m_hdmaActive), sizeof(m_hdmaActive));
-    file.read(reinterpret_cast<char*>(&m_hdmaSource), sizeof(m_hdmaSource));
-    file.read(reinterpret_cast<char*>(&m_hdmaDest), sizeof(m_hdmaDest));
-    file.read(reinterpret_cast<char*>(&m_hdmaRemaining), sizeof(m_hdmaRemaining));
+    buffer_read(buf, &m_hdma1, sizeof(m_hdma1));
+    buffer_read(buf, &m_hdma2, sizeof(m_hdma2));
+    buffer_read(buf, &m_hdma3, sizeof(m_hdma3));
+    buffer_read(buf, &m_hdma4, sizeof(m_hdma4));
+    buffer_read(buf, &m_hdma5, sizeof(m_hdma5));
+    buffer_read(buf, &m_hdmaActive, sizeof(m_hdmaActive));
+    buffer_read(buf, &m_hdmaSource, sizeof(m_hdmaSource));
+    buffer_read(buf, &m_hdmaDest, sizeof(m_hdmaDest));
+    buffer_read(buf, &m_hdmaRemaining, sizeof(m_hdmaRemaining));
     
     u8 modeValue;
-    file.read(reinterpret_cast<char*>(&modeValue), sizeof(modeValue));
+    buffer_read(buf, &modeValue, sizeof(modeValue));
     m_mode = static_cast<PPUMode>(modeValue);
-    file.read(reinterpret_cast<char*>(&m_modeCycles), sizeof(m_modeCycles));
-    file.read(reinterpret_cast<char*>(&m_windowLineCounter), sizeof(m_windowLineCounter));
-    file.read(reinterpret_cast<char*>(&m_windowRenderedThisFrame), sizeof(m_windowRenderedThisFrame));
-    file.read(reinterpret_cast<char*>(&m_gbcMode), sizeof(m_gbcMode));
-    file.read(reinterpret_cast<char*>(&m_statInterruptLine), sizeof(m_statInterruptLine));
-    file.read(reinterpret_cast<char*>(&m_modeChangeDelay), sizeof(m_modeChangeDelay));
-    file.read(reinterpret_cast<char*>(&m_dmaCycles), sizeof(m_dmaCycles));
+    buffer_read(buf, &m_modeCycles, sizeof(m_modeCycles));
+    buffer_read(buf, &m_windowLineCounter, sizeof(m_windowLineCounter));
+    buffer_read(buf, &m_windowRenderedThisFrame, sizeof(m_windowRenderedThisFrame));
+    buffer_read(buf, &m_gbcMode, sizeof(m_gbcMode));
+    buffer_read(buf, &m_statInterruptLine, sizeof(m_statInterruptLine));
+    buffer_read(buf, &m_modeChangeDelay, sizeof(m_modeChangeDelay));
+    buffer_read(buf, &m_dmaCycles, sizeof(m_dmaCycles));
 }
 
 } // namespace gb

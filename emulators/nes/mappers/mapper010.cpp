@@ -96,26 +96,26 @@ void Mapper010::writeCHR(u16 address, u8 value) {
     // CHR ROM - ignore writes
 }
 
-void Mapper010::saveState(std::ofstream& file) const {
-    Mapper::saveState(file);
-    file.write(reinterpret_cast<const char*>(&m_prgBank), sizeof(m_prgBank));
-    file.write(reinterpret_cast<const char*>(&m_chrBank0FD), sizeof(m_chrBank0FD));
-    file.write(reinterpret_cast<const char*>(&m_chrBank0FE), sizeof(m_chrBank0FE));
-    file.write(reinterpret_cast<const char*>(&m_chrBank1FD), sizeof(m_chrBank1FD));
-    file.write(reinterpret_cast<const char*>(&m_chrBank1FE), sizeof(m_chrBank1FE));
-    file.write(reinterpret_cast<const char*>(&m_latch0), sizeof(m_latch0));
-    file.write(reinterpret_cast<const char*>(&m_latch1), sizeof(m_latch1));
+void Mapper010::saveState(Buffer* buf) {
+    Mapper::saveState(buf);
+    buffer_write(buf, &m_prgBank, sizeof(m_prgBank));
+    buffer_write(buf, &m_chrBank0FD, sizeof(m_chrBank0FD));
+    buffer_write(buf, &m_chrBank0FE, sizeof(m_chrBank0FE));
+    buffer_write(buf, &m_chrBank1FD, sizeof(m_chrBank1FD));
+    buffer_write(buf, &m_chrBank1FE, sizeof(m_chrBank1FE));
+    buffer_write(buf, &m_latch0, sizeof(m_latch0));
+    buffer_write(buf, &m_latch1, sizeof(m_latch1));
 }
 
-void Mapper010::loadState(std::ifstream& file) {
-    Mapper::loadState(file);
-    file.read(reinterpret_cast<char*>(&m_prgBank), sizeof(m_prgBank));
-    file.read(reinterpret_cast<char*>(&m_chrBank0FD), sizeof(m_chrBank0FD));
-    file.read(reinterpret_cast<char*>(&m_chrBank0FE), sizeof(m_chrBank0FE));
-    file.read(reinterpret_cast<char*>(&m_chrBank1FD), sizeof(m_chrBank1FD));
-    file.read(reinterpret_cast<char*>(&m_chrBank1FE), sizeof(m_chrBank1FE));
-    file.read(reinterpret_cast<char*>(&m_latch0), sizeof(m_latch0));
-    file.read(reinterpret_cast<char*>(&m_latch1), sizeof(m_latch1));
+void Mapper010::loadState(Buffer* buf) {
+    Mapper::loadState(buf);
+    buffer_read(buf, &m_prgBank, sizeof(m_prgBank));
+    buffer_read(buf, &m_chrBank0FD, sizeof(m_chrBank0FD));
+    buffer_read(buf, &m_chrBank0FE, sizeof(m_chrBank0FE));
+    buffer_read(buf, &m_chrBank1FD, sizeof(m_chrBank1FD));
+    buffer_read(buf, &m_chrBank1FE, sizeof(m_chrBank1FE));
+    buffer_read(buf, &m_latch0, sizeof(m_latch0));
+    buffer_read(buf, &m_latch1, sizeof(m_latch1));
 }
 
 } // namespace nes

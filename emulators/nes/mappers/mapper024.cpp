@@ -75,26 +75,26 @@ u8 VRC6Pulse::getVolume() const {
     return (m_step <= m_dutyCycle) ? m_volume : 0;
 }
 
-void VRC6Pulse::saveState(std::ofstream& file) const {
-    file.write(reinterpret_cast<const char*>(&m_volume), sizeof(m_volume));
-    file.write(reinterpret_cast<const char*>(&m_dutyCycle), sizeof(m_dutyCycle));
-    file.write(reinterpret_cast<const char*>(&m_ignoreDuty), sizeof(m_ignoreDuty));
-    file.write(reinterpret_cast<const char*>(&m_frequency), sizeof(m_frequency));
-    file.write(reinterpret_cast<const char*>(&m_enabled), sizeof(m_enabled));
-    file.write(reinterpret_cast<const char*>(&m_timer), sizeof(m_timer));
-    file.write(reinterpret_cast<const char*>(&m_step), sizeof(m_step));
-    file.write(reinterpret_cast<const char*>(&m_frequencyShift), sizeof(m_frequencyShift));
+void VRC6Pulse::saveState(Buffer* buf) {
+    buffer_write(buf, &m_volume, sizeof(m_volume));
+    buffer_write(buf, &m_dutyCycle, sizeof(m_dutyCycle));
+    buffer_write(buf, &m_ignoreDuty, sizeof(m_ignoreDuty));
+    buffer_write(buf, &m_frequency, sizeof(m_frequency));
+    buffer_write(buf, &m_enabled, sizeof(m_enabled));
+    buffer_write(buf, &m_timer, sizeof(m_timer));
+    buffer_write(buf, &m_step, sizeof(m_step));
+    buffer_write(buf, &m_frequencyShift, sizeof(m_frequencyShift));
 }
 
-void VRC6Pulse::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(&m_volume), sizeof(m_volume));
-    file.read(reinterpret_cast<char*>(&m_dutyCycle), sizeof(m_dutyCycle));
-    file.read(reinterpret_cast<char*>(&m_ignoreDuty), sizeof(m_ignoreDuty));
-    file.read(reinterpret_cast<char*>(&m_frequency), sizeof(m_frequency));
-    file.read(reinterpret_cast<char*>(&m_enabled), sizeof(m_enabled));
-    file.read(reinterpret_cast<char*>(&m_timer), sizeof(m_timer));
-    file.read(reinterpret_cast<char*>(&m_step), sizeof(m_step));
-    file.read(reinterpret_cast<char*>(&m_frequencyShift), sizeof(m_frequencyShift));
+void VRC6Pulse::loadState(Buffer* buf) {
+    buffer_read(buf, &m_volume, sizeof(m_volume));
+    buffer_read(buf, &m_dutyCycle, sizeof(m_dutyCycle));
+    buffer_read(buf, &m_ignoreDuty, sizeof(m_ignoreDuty));
+    buffer_read(buf, &m_frequency, sizeof(m_frequency));
+    buffer_read(buf, &m_enabled, sizeof(m_enabled));
+    buffer_read(buf, &m_timer, sizeof(m_timer));
+    buffer_read(buf, &m_step, sizeof(m_step));
+    buffer_read(buf, &m_frequencyShift, sizeof(m_frequencyShift));
 }
 
 // ============================================================
@@ -167,24 +167,24 @@ u8 VRC6Saw::getVolume() const {
     return m_accumulator >> 3;
 }
 
-void VRC6Saw::saveState(std::ofstream& file) const {
-    file.write(reinterpret_cast<const char*>(&m_accumulatorRate), sizeof(m_accumulatorRate));
-    file.write(reinterpret_cast<const char*>(&m_accumulator), sizeof(m_accumulator));
-    file.write(reinterpret_cast<const char*>(&m_frequency), sizeof(m_frequency));
-    file.write(reinterpret_cast<const char*>(&m_enabled), sizeof(m_enabled));
-    file.write(reinterpret_cast<const char*>(&m_timer), sizeof(m_timer));
-    file.write(reinterpret_cast<const char*>(&m_step), sizeof(m_step));
-    file.write(reinterpret_cast<const char*>(&m_frequencyShift), sizeof(m_frequencyShift));
+void VRC6Saw::saveState(Buffer* buf) {
+    buffer_write(buf, &m_accumulatorRate, sizeof(m_accumulatorRate));
+    buffer_write(buf, &m_accumulator, sizeof(m_accumulator));
+    buffer_write(buf, &m_frequency, sizeof(m_frequency));
+    buffer_write(buf, &m_enabled, sizeof(m_enabled));
+    buffer_write(buf, &m_timer, sizeof(m_timer));
+    buffer_write(buf, &m_step, sizeof(m_step));
+    buffer_write(buf, &m_frequencyShift, sizeof(m_frequencyShift));
 }
 
-void VRC6Saw::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(&m_accumulatorRate), sizeof(m_accumulatorRate));
-    file.read(reinterpret_cast<char*>(&m_accumulator), sizeof(m_accumulator));
-    file.read(reinterpret_cast<char*>(&m_frequency), sizeof(m_frequency));
-    file.read(reinterpret_cast<char*>(&m_enabled), sizeof(m_enabled));
-    file.read(reinterpret_cast<char*>(&m_timer), sizeof(m_timer));
-    file.read(reinterpret_cast<char*>(&m_step), sizeof(m_step));
-    file.read(reinterpret_cast<char*>(&m_frequencyShift), sizeof(m_frequencyShift));
+void VRC6Saw::loadState(Buffer* buf) {
+    buffer_read(buf, &m_accumulatorRate, sizeof(m_accumulatorRate));
+    buffer_read(buf, &m_accumulator, sizeof(m_accumulator));
+    buffer_read(buf, &m_frequency, sizeof(m_frequency));
+    buffer_read(buf, &m_enabled, sizeof(m_enabled));
+    buffer_read(buf, &m_timer, sizeof(m_timer));
+    buffer_read(buf, &m_step, sizeof(m_step));
+    buffer_read(buf, &m_frequencyShift, sizeof(m_frequencyShift));
 }
 
 // ============================================================
@@ -253,20 +253,20 @@ float VRC6Audio::getOutput() const {
     return static_cast<float>(outputLevel) / 61.0f * 0.5f;
 }
 
-void VRC6Audio::saveState(std::ofstream& file) const {
-    m_pulse1.saveState(file);
-    m_pulse2.saveState(file);
-    m_saw.saveState(file);
-    file.write(reinterpret_cast<const char*>(&m_haltAudio), sizeof(m_haltAudio));
-    file.write(reinterpret_cast<const char*>(&m_lastOutput), sizeof(m_lastOutput));
+void VRC6Audio::saveState(Buffer* buf) {
+    m_pulse1.saveState(buf);
+    m_pulse2.saveState(buf);
+    m_saw.saveState(buf);
+    buffer_write(buf, &m_haltAudio, sizeof(m_haltAudio));
+    buffer_write(buf, &m_lastOutput, sizeof(m_lastOutput));
 }
 
-void VRC6Audio::loadState(std::ifstream& file) {
-    m_pulse1.loadState(file);
-    m_pulse2.loadState(file);
-    m_saw.loadState(file);
-    file.read(reinterpret_cast<char*>(&m_haltAudio), sizeof(m_haltAudio));
-    file.read(reinterpret_cast<char*>(&m_lastOutput), sizeof(m_lastOutput));
+void VRC6Audio::loadState(Buffer* buf) {
+    m_pulse1.loadState(buf);
+    m_pulse2.loadState(buf);
+    m_saw.loadState(buf);
+    buffer_read(buf, &m_haltAudio, sizeof(m_haltAudio));
+    buffer_read(buf, &m_lastOutput, sizeof(m_lastOutput));
 }
 
 // ============================================================
@@ -612,34 +612,34 @@ float Mapper024::getAudioOutput() const {
     return m_audio.getOutput();
 }
 
-void Mapper024::saveState(std::ofstream& file) const {
-    Mapper::saveState(file);
-    file.write(reinterpret_cast<const char*>(&m_prgBank16k), sizeof(m_prgBank16k));
-    file.write(reinterpret_cast<const char*>(&m_prgBank8k), sizeof(m_prgBank8k));
-    file.write(reinterpret_cast<const char*>(m_chrBank), sizeof(m_chrBank));
-    file.write(reinterpret_cast<const char*>(&m_bankingMode), sizeof(m_bankingMode));
-    file.write(reinterpret_cast<const char*>(&m_irqLatch), sizeof(m_irqLatch));
-    file.write(reinterpret_cast<const char*>(&m_irqCounter), sizeof(m_irqCounter));
-    file.write(reinterpret_cast<const char*>(&m_irqEnable), sizeof(m_irqEnable));
-    file.write(reinterpret_cast<const char*>(&m_irqEnableOnAck), sizeof(m_irqEnableOnAck));
-    file.write(reinterpret_cast<const char*>(&m_irqCycleMode), sizeof(m_irqCycleMode));
-    file.write(reinterpret_cast<const char*>(&m_irqPrescaler), sizeof(m_irqPrescaler));
-    m_audio.saveState(file);
+void Mapper024::saveState(Buffer* buf) {
+    Mapper::saveState(buf);
+    buffer_write(buf, &m_prgBank16k, sizeof(m_prgBank16k));
+    buffer_write(buf, &m_prgBank8k, sizeof(m_prgBank8k));
+    buffer_write(buf, m_chrBank, sizeof(m_chrBank));
+    buffer_write(buf, &m_bankingMode, sizeof(m_bankingMode));
+    buffer_write(buf, &m_irqLatch, sizeof(m_irqLatch));
+    buffer_write(buf, &m_irqCounter, sizeof(m_irqCounter));
+    buffer_write(buf, &m_irqEnable, sizeof(m_irqEnable));
+    buffer_write(buf, &m_irqEnableOnAck, sizeof(m_irqEnableOnAck));
+    buffer_write(buf, &m_irqCycleMode, sizeof(m_irqCycleMode));
+    buffer_write(buf, &m_irqPrescaler, sizeof(m_irqPrescaler));
+    m_audio.saveState(buf);
 }
 
-void Mapper024::loadState(std::ifstream& file) {
-    Mapper::loadState(file);
-    file.read(reinterpret_cast<char*>(&m_prgBank16k), sizeof(m_prgBank16k));
-    file.read(reinterpret_cast<char*>(&m_prgBank8k), sizeof(m_prgBank8k));
-    file.read(reinterpret_cast<char*>(m_chrBank), sizeof(m_chrBank));
-    file.read(reinterpret_cast<char*>(&m_bankingMode), sizeof(m_bankingMode));
-    file.read(reinterpret_cast<char*>(&m_irqLatch), sizeof(m_irqLatch));
-    file.read(reinterpret_cast<char*>(&m_irqCounter), sizeof(m_irqCounter));
-    file.read(reinterpret_cast<char*>(&m_irqEnable), sizeof(m_irqEnable));
-    file.read(reinterpret_cast<char*>(&m_irqEnableOnAck), sizeof(m_irqEnableOnAck));
-    file.read(reinterpret_cast<char*>(&m_irqCycleMode), sizeof(m_irqCycleMode));
-    file.read(reinterpret_cast<char*>(&m_irqPrescaler), sizeof(m_irqPrescaler));
-    m_audio.loadState(file);
+void Mapper024::loadState(Buffer* buf) {
+    Mapper::loadState(buf);
+    buffer_read(buf, &m_prgBank16k, sizeof(m_prgBank16k));
+    buffer_read(buf, &m_prgBank8k, sizeof(m_prgBank8k));
+    buffer_read(buf, m_chrBank, sizeof(m_chrBank));
+    buffer_read(buf, &m_bankingMode, sizeof(m_bankingMode));
+    buffer_read(buf, &m_irqLatch, sizeof(m_irqLatch));
+    buffer_read(buf, &m_irqCounter, sizeof(m_irqCounter));
+    buffer_read(buf, &m_irqEnable, sizeof(m_irqEnable));
+    buffer_read(buf, &m_irqEnableOnAck, sizeof(m_irqEnableOnAck));
+    buffer_read(buf, &m_irqCycleMode, sizeof(m_irqCycleMode));
+    buffer_read(buf, &m_irqPrescaler, sizeof(m_irqPrescaler));
+    m_audio.loadState(buf);
     updateBanks();
 }
 

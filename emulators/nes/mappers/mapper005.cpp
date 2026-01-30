@@ -45,28 +45,28 @@ u8 MMC5Square::getOutput() const {
     return m_channel.envelope.volume();
 }
 
-void MMC5Square::saveState(std::ofstream& file) const {
+void MMC5Square::saveState(Buffer* buf) {
     // Save the entire PulseChannel state
-    file.write(reinterpret_cast<const char*>(&m_channel.timerPeriod), sizeof(m_channel.timerPeriod));
-    file.write(reinterpret_cast<const char*>(&m_channel.timerCounter), sizeof(m_channel.timerCounter));
-    file.write(reinterpret_cast<const char*>(&m_channel.dutyMode), sizeof(m_channel.dutyMode));
-    file.write(reinterpret_cast<const char*>(&m_channel.sequencerStep), sizeof(m_channel.sequencerStep));
-    file.write(reinterpret_cast<const char*>(&m_channel.envelope), sizeof(m_channel.envelope));
-    file.write(reinterpret_cast<const char*>(&m_channel.sweep), sizeof(m_channel.sweep));
-    file.write(reinterpret_cast<const char*>(&m_channel.lengthCounter), sizeof(m_channel.lengthCounter));
-    file.write(reinterpret_cast<const char*>(&m_channel.isPulse1), sizeof(m_channel.isPulse1));
+    buffer_write(buf, &m_channel.timerPeriod, sizeof(m_channel.timerPeriod));
+    buffer_write(buf, &m_channel.timerCounter, sizeof(m_channel.timerCounter));
+    buffer_write(buf, &m_channel.dutyMode, sizeof(m_channel.dutyMode));
+    buffer_write(buf, &m_channel.sequencerStep, sizeof(m_channel.sequencerStep));
+    buffer_write(buf, &m_channel.envelope, sizeof(m_channel.envelope));
+    buffer_write(buf, &m_channel.sweep, sizeof(m_channel.sweep));
+    buffer_write(buf, &m_channel.lengthCounter, sizeof(m_channel.lengthCounter));
+    buffer_write(buf, &m_channel.isPulse1, sizeof(m_channel.isPulse1));
 }
 
-void MMC5Square::loadState(std::ifstream& file) {
+void MMC5Square::loadState(Buffer* buf) {
     // Load the entire PulseChannel state
-    file.read(reinterpret_cast<char*>(&m_channel.timerPeriod), sizeof(m_channel.timerPeriod));
-    file.read(reinterpret_cast<char*>(&m_channel.timerCounter), sizeof(m_channel.timerCounter));
-    file.read(reinterpret_cast<char*>(&m_channel.dutyMode), sizeof(m_channel.dutyMode));
-    file.read(reinterpret_cast<char*>(&m_channel.sequencerStep), sizeof(m_channel.sequencerStep));
-    file.read(reinterpret_cast<char*>(&m_channel.envelope), sizeof(m_channel.envelope));
-    file.read(reinterpret_cast<char*>(&m_channel.sweep), sizeof(m_channel.sweep));
-    file.read(reinterpret_cast<char*>(&m_channel.lengthCounter), sizeof(m_channel.lengthCounter));
-    file.read(reinterpret_cast<char*>(&m_channel.isPulse1), sizeof(m_channel.isPulse1));
+    buffer_read(buf, &m_channel.timerPeriod, sizeof(m_channel.timerPeriod));
+    buffer_read(buf, &m_channel.timerCounter, sizeof(m_channel.timerCounter));
+    buffer_read(buf, &m_channel.dutyMode, sizeof(m_channel.dutyMode));
+    buffer_read(buf, &m_channel.sequencerStep, sizeof(m_channel.sequencerStep));
+    buffer_read(buf, &m_channel.envelope, sizeof(m_channel.envelope));
+    buffer_read(buf, &m_channel.sweep, sizeof(m_channel.sweep));
+    buffer_read(buf, &m_channel.lengthCounter, sizeof(m_channel.lengthCounter));
+    buffer_read(buf, &m_channel.isPulse1, sizeof(m_channel.isPulse1));
     // Ensure sweep stays disabled
     m_channel.sweep.enabled = false;
 }
@@ -198,24 +198,24 @@ float MMC5Audio::getOutput() const {
     return normalized;
 }
 
-void MMC5Audio::saveState(std::ofstream& file) const {
-    m_square1.saveState(file);
-    m_square2.saveState(file);
-    file.write(reinterpret_cast<const char*>(&m_pcmReadMode), sizeof(m_pcmReadMode));
-    file.write(reinterpret_cast<const char*>(&m_pcmIrqEnabled), sizeof(m_pcmIrqEnabled));
-    file.write(reinterpret_cast<const char*>(&m_pcmOutput), sizeof(m_pcmOutput));
-    file.write(reinterpret_cast<const char*>(&m_frameCounter), sizeof(m_frameCounter));
-    file.write(reinterpret_cast<const char*>(&m_oddCycle), sizeof(m_oddCycle));
+void MMC5Audio::saveState(Buffer* buf) {
+    m_square1.saveState(buf);
+    m_square2.saveState(buf);
+    buffer_write(buf, &m_pcmReadMode, sizeof(m_pcmReadMode));
+    buffer_write(buf, &m_pcmIrqEnabled, sizeof(m_pcmIrqEnabled));
+    buffer_write(buf, &m_pcmOutput, sizeof(m_pcmOutput));
+    buffer_write(buf, &m_frameCounter, sizeof(m_frameCounter));
+    buffer_write(buf, &m_oddCycle, sizeof(m_oddCycle));
 }
 
-void MMC5Audio::loadState(std::ifstream& file) {
-    m_square1.loadState(file);
-    m_square2.loadState(file);
-    file.read(reinterpret_cast<char*>(&m_pcmReadMode), sizeof(m_pcmReadMode));
-    file.read(reinterpret_cast<char*>(&m_pcmIrqEnabled), sizeof(m_pcmIrqEnabled));
-    file.read(reinterpret_cast<char*>(&m_pcmOutput), sizeof(m_pcmOutput));
-    file.read(reinterpret_cast<char*>(&m_frameCounter), sizeof(m_frameCounter));
-    file.read(reinterpret_cast<char*>(&m_oddCycle), sizeof(m_oddCycle));
+void MMC5Audio::loadState(Buffer* buf) {
+    m_square1.loadState(buf);
+    m_square2.loadState(buf);
+    buffer_read(buf, &m_pcmReadMode, sizeof(m_pcmReadMode));
+    buffer_read(buf, &m_pcmIrqEnabled, sizeof(m_pcmIrqEnabled));
+    buffer_read(buf, &m_pcmOutput, sizeof(m_pcmOutput));
+    buffer_read(buf, &m_frameCounter, sizeof(m_frameCounter));
+    buffer_read(buf, &m_oddCycle, sizeof(m_oddCycle));
 }
 
 // ============================================================
@@ -871,72 +871,72 @@ float Mapper005::getAudioOutput() const {
     return m_audio.getOutput();
 }
 
-void Mapper005::saveState(std::ofstream& file) const {
-    Mapper::saveState(file);
-    file.write(reinterpret_cast<const char*>(&m_prgMode), sizeof(m_prgMode));
-    file.write(reinterpret_cast<const char*>(m_prgBankRegs), sizeof(m_prgBankRegs));
-    file.write(reinterpret_cast<const char*>(&m_prgRamProtect1), sizeof(m_prgRamProtect1));
-    file.write(reinterpret_cast<const char*>(&m_prgRamProtect2), sizeof(m_prgRamProtect2));
-    file.write(reinterpret_cast<const char*>(&m_chrMode), sizeof(m_chrMode));
-    file.write(reinterpret_cast<const char*>(&m_chrUpperBits), sizeof(m_chrUpperBits));
-    file.write(reinterpret_cast<const char*>(m_chrBankRegs), sizeof(m_chrBankRegs));
-    file.write(reinterpret_cast<const char*>(&m_lastChrReg), sizeof(m_lastChrReg));
-    file.write(reinterpret_cast<const char*>(&m_nametableMapping), sizeof(m_nametableMapping));
-    file.write(reinterpret_cast<const char*>(&m_fillModeTile), sizeof(m_fillModeTile));
-    file.write(reinterpret_cast<const char*>(&m_fillModeAttr), sizeof(m_fillModeAttr));
-    file.write(reinterpret_cast<const char*>(m_exRam.data()), m_exRam.size());
-    file.write(reinterpret_cast<const char*>(&m_exRamMode), sizeof(m_exRamMode));
-    file.write(reinterpret_cast<const char*>(&m_irqScanline), sizeof(m_irqScanline));
-    file.write(reinterpret_cast<const char*>(&m_irqStatus), sizeof(m_irqStatus));
-    file.write(reinterpret_cast<const char*>(&m_irqEnable), sizeof(m_irqEnable));
-    file.write(reinterpret_cast<const char*>(&m_inFrame), sizeof(m_inFrame));
-    file.write(reinterpret_cast<const char*>(&m_scanlineCounter), sizeof(m_scanlineCounter));
-    file.write(reinterpret_cast<const char*>(&m_multiplicand), sizeof(m_multiplicand));
-    file.write(reinterpret_cast<const char*>(&m_multiplier), sizeof(m_multiplier));
-    file.write(reinterpret_cast<const char*>(m_prgRamExt.data()), m_prgRamExt.size());
-    file.write(reinterpret_cast<const char*>(&m_capturedExRam), sizeof(m_capturedExRam));
-    file.write(reinterpret_cast<const char*>(&m_ppuFetchState), sizeof(m_ppuFetchState));
-    file.write(reinterpret_cast<const char*>(&m_splitMode), sizeof(m_splitMode));
-    file.write(reinterpret_cast<const char*>(&m_splitScroll), sizeof(m_splitScroll));
-    file.write(reinterpret_cast<const char*>(&m_splitBank), sizeof(m_splitBank));
-    file.write(reinterpret_cast<const char*>(&m_lastScanline), sizeof(m_lastScanline));
+void Mapper005::saveState(Buffer* buf) {
+    Mapper::saveState(buf);
+    buffer_write(buf, &m_prgMode, sizeof(m_prgMode));
+    buffer_write(buf, m_prgBankRegs, sizeof(m_prgBankRegs));
+    buffer_write(buf, &m_prgRamProtect1, sizeof(m_prgRamProtect1));
+    buffer_write(buf, &m_prgRamProtect2, sizeof(m_prgRamProtect2));
+    buffer_write(buf, &m_chrMode, sizeof(m_chrMode));
+    buffer_write(buf, &m_chrUpperBits, sizeof(m_chrUpperBits));
+    buffer_write(buf, m_chrBankRegs, sizeof(m_chrBankRegs));
+    buffer_write(buf, &m_lastChrReg, sizeof(m_lastChrReg));
+    buffer_write(buf, &m_nametableMapping, sizeof(m_nametableMapping));
+    buffer_write(buf, &m_fillModeTile, sizeof(m_fillModeTile));
+    buffer_write(buf, &m_fillModeAttr, sizeof(m_fillModeAttr));
+    buffer_write(buf, m_exRam.data(), m_exRam.size());
+    buffer_write(buf, &m_exRamMode, sizeof(m_exRamMode));
+    buffer_write(buf, &m_irqScanline, sizeof(m_irqScanline));
+    buffer_write(buf, &m_irqStatus, sizeof(m_irqStatus));
+    buffer_write(buf, &m_irqEnable, sizeof(m_irqEnable));
+    buffer_write(buf, &m_inFrame, sizeof(m_inFrame));
+    buffer_write(buf, &m_scanlineCounter, sizeof(m_scanlineCounter));
+    buffer_write(buf, &m_multiplicand, sizeof(m_multiplicand));
+    buffer_write(buf, &m_multiplier, sizeof(m_multiplier));
+    buffer_write(buf, m_prgRamExt.data(), m_prgRamExt.size());
+    buffer_write(buf, &m_capturedExRam, sizeof(m_capturedExRam));
+    buffer_write(buf, &m_ppuFetchState, sizeof(m_ppuFetchState));
+    buffer_write(buf, &m_splitMode, sizeof(m_splitMode));
+    buffer_write(buf, &m_splitScroll, sizeof(m_splitScroll));
+    buffer_write(buf, &m_splitBank, sizeof(m_splitBank));
+    buffer_write(buf, &m_lastScanline, sizeof(m_lastScanline));
     
     // Save audio state
-    m_audio.saveState(file);
+    m_audio.saveState(buf);
 }
 
-void Mapper005::loadState(std::ifstream& file) {
-    Mapper::loadState(file);
-    file.read(reinterpret_cast<char*>(&m_prgMode), sizeof(m_prgMode));
-    file.read(reinterpret_cast<char*>(m_prgBankRegs), sizeof(m_prgBankRegs));
-    file.read(reinterpret_cast<char*>(&m_prgRamProtect1), sizeof(m_prgRamProtect1));
-    file.read(reinterpret_cast<char*>(&m_prgRamProtect2), sizeof(m_prgRamProtect2));
-    file.read(reinterpret_cast<char*>(&m_chrMode), sizeof(m_chrMode));
-    file.read(reinterpret_cast<char*>(&m_chrUpperBits), sizeof(m_chrUpperBits));
-    file.read(reinterpret_cast<char*>(m_chrBankRegs), sizeof(m_chrBankRegs));
-    file.read(reinterpret_cast<char*>(&m_lastChrReg), sizeof(m_lastChrReg));
-    file.read(reinterpret_cast<char*>(&m_nametableMapping), sizeof(m_nametableMapping));
-    file.read(reinterpret_cast<char*>(&m_fillModeTile), sizeof(m_fillModeTile));
-    file.read(reinterpret_cast<char*>(&m_fillModeAttr), sizeof(m_fillModeAttr));
-    file.read(reinterpret_cast<char*>(m_exRam.data()), m_exRam.size());
-    file.read(reinterpret_cast<char*>(&m_exRamMode), sizeof(m_exRamMode));
-    file.read(reinterpret_cast<char*>(&m_irqScanline), sizeof(m_irqScanline));
-    file.read(reinterpret_cast<char*>(&m_irqStatus), sizeof(m_irqStatus));
-    file.read(reinterpret_cast<char*>(&m_irqEnable), sizeof(m_irqEnable));
-    file.read(reinterpret_cast<char*>(&m_inFrame), sizeof(m_inFrame));
-    file.read(reinterpret_cast<char*>(&m_scanlineCounter), sizeof(m_scanlineCounter));
-    file.read(reinterpret_cast<char*>(&m_multiplicand), sizeof(m_multiplicand));
-    file.read(reinterpret_cast<char*>(&m_multiplier), sizeof(m_multiplier));
-    file.read(reinterpret_cast<char*>(m_prgRamExt.data()), m_prgRamExt.size());
-    file.read(reinterpret_cast<char*>(&m_capturedExRam), sizeof(m_capturedExRam));
-    file.read(reinterpret_cast<char*>(&m_ppuFetchState), sizeof(m_ppuFetchState));
-    file.read(reinterpret_cast<char*>(&m_splitMode), sizeof(m_splitMode));
-    file.read(reinterpret_cast<char*>(&m_splitScroll), sizeof(m_splitScroll));
-    file.read(reinterpret_cast<char*>(&m_splitBank), sizeof(m_splitBank));
-    file.read(reinterpret_cast<char*>(&m_lastScanline), sizeof(m_lastScanline));
+void Mapper005::loadState(Buffer* buf) {
+    Mapper::loadState(buf);
+    buffer_read(buf, &m_prgMode, sizeof(m_prgMode));
+    buffer_read(buf, m_prgBankRegs, sizeof(m_prgBankRegs));
+    buffer_read(buf, &m_prgRamProtect1, sizeof(m_prgRamProtect1));
+    buffer_read(buf, &m_prgRamProtect2, sizeof(m_prgRamProtect2));
+    buffer_read(buf, &m_chrMode, sizeof(m_chrMode));
+    buffer_read(buf, &m_chrUpperBits, sizeof(m_chrUpperBits));
+    buffer_read(buf, m_chrBankRegs, sizeof(m_chrBankRegs));
+    buffer_read(buf, &m_lastChrReg, sizeof(m_lastChrReg));
+    buffer_read(buf, &m_nametableMapping, sizeof(m_nametableMapping));
+    buffer_read(buf, &m_fillModeTile, sizeof(m_fillModeTile));
+    buffer_read(buf, &m_fillModeAttr, sizeof(m_fillModeAttr));
+    buffer_read(buf, m_exRam.data(), m_exRam.size());
+    buffer_read(buf, &m_exRamMode, sizeof(m_exRamMode));
+    buffer_read(buf, &m_irqScanline, sizeof(m_irqScanline));
+    buffer_read(buf, &m_irqStatus, sizeof(m_irqStatus));
+    buffer_read(buf, &m_irqEnable, sizeof(m_irqEnable));
+    buffer_read(buf, &m_inFrame, sizeof(m_inFrame));
+    buffer_read(buf, &m_scanlineCounter, sizeof(m_scanlineCounter));
+    buffer_read(buf, &m_multiplicand, sizeof(m_multiplicand));
+    buffer_read(buf, &m_multiplier, sizeof(m_multiplier));
+    buffer_read(buf, m_prgRamExt.data(), m_prgRamExt.size());
+    buffer_read(buf, &m_capturedExRam, sizeof(m_capturedExRam));
+    buffer_read(buf, &m_ppuFetchState, sizeof(m_ppuFetchState));
+    buffer_read(buf, &m_splitMode, sizeof(m_splitMode));
+    buffer_read(buf, &m_splitScroll, sizeof(m_splitScroll));
+    buffer_read(buf, &m_splitBank, sizeof(m_splitBank));
+    buffer_read(buf, &m_lastScanline, sizeof(m_lastScanline));
     
     // Load audio state
-    m_audio.loadState(file);
+    m_audio.loadState(buf);
     
     updatePRGBanks();
     updateCHRBanks();

@@ -120,24 +120,24 @@ void Mapper073::clockAudio() {
     }
 }
 
-void Mapper073::saveState(std::ofstream& file) const {
-    Mapper::saveState(file);
-    file.write(reinterpret_cast<const char*>(&m_prgBank), sizeof(m_prgBank));
-    file.write(reinterpret_cast<const char*>(&m_irqLatch), sizeof(m_irqLatch));
-    file.write(reinterpret_cast<const char*>(&m_irqCounter), sizeof(m_irqCounter));
-    file.write(reinterpret_cast<const char*>(&m_irqEnable), sizeof(m_irqEnable));
-    file.write(reinterpret_cast<const char*>(&m_irqEnableOnAck), sizeof(m_irqEnableOnAck));
-    file.write(reinterpret_cast<const char*>(&m_irqMode), sizeof(m_irqMode));
+void Mapper073::saveState(Buffer* buf) {
+    Mapper::saveState(buf);
+    buffer_write(buf, &m_prgBank, sizeof(m_prgBank));
+    buffer_write(buf, &m_irqLatch, sizeof(m_irqLatch));
+    buffer_write(buf, &m_irqCounter, sizeof(m_irqCounter));
+    buffer_write(buf, &m_irqEnable, sizeof(m_irqEnable));
+    buffer_write(buf, &m_irqEnableOnAck, sizeof(m_irqEnableOnAck));
+    buffer_write(buf, &m_irqMode, sizeof(m_irqMode));
 }
 
-void Mapper073::loadState(std::ifstream& file) {
-    Mapper::loadState(file);
-    file.read(reinterpret_cast<char*>(&m_prgBank), sizeof(m_prgBank));
-    file.read(reinterpret_cast<char*>(&m_irqLatch), sizeof(m_irqLatch));
-    file.read(reinterpret_cast<char*>(&m_irqCounter), sizeof(m_irqCounter));
-    file.read(reinterpret_cast<char*>(&m_irqEnable), sizeof(m_irqEnable));
-    file.read(reinterpret_cast<char*>(&m_irqEnableOnAck), sizeof(m_irqEnableOnAck));
-    file.read(reinterpret_cast<char*>(&m_irqMode), sizeof(m_irqMode));
+void Mapper073::loadState(Buffer* buf) {
+    Mapper::loadState(buf);
+    buffer_read(buf, &m_prgBank, sizeof(m_prgBank));
+    buffer_read(buf, &m_irqLatch, sizeof(m_irqLatch));
+    buffer_read(buf, &m_irqCounter, sizeof(m_irqCounter));
+    buffer_read(buf, &m_irqEnable, sizeof(m_irqEnable));
+    buffer_read(buf, &m_irqEnableOnAck, sizeof(m_irqEnableOnAck));
+    buffer_read(buf, &m_irqMode, sizeof(m_irqMode));
 }
 
 } // namespace nes

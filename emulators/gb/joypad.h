@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.h"
-#include <fstream>
+#include "../components/buffer.h"
 #include <SDL3/SDL.h>
 
 namespace gb {
@@ -33,8 +33,8 @@ public:
     void write(u8 value);
     
     // Save/Load state
-    void saveState(std::ofstream& file) const;
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
 
 private:
     CPU* m_cpu;

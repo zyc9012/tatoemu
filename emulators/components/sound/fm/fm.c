@@ -1848,30 +1848,30 @@ static void FMsave_state_channel(Buffer* buf, FM_CH *CH,int num_ch)
 	for(ch=0;ch<num_ch;ch++,CH++)
 	{
 		/* channel */
-		buffer_write_data(buf, &CH->op1_out, 2 * sizeof(INT32));
-		buffer_write_data(buf, &CH->fc, sizeof(UINT32));
+		buffer_write(buf, &CH->op1_out, 2 * sizeof(INT32));
+		buffer_write(buf, &CH->fc, sizeof(UINT32));
 		/* slots */
 		for(slot=0;slot<4;slot++)
 		{
 			FM_SLOT *SLOT = &CH->SLOT[slot];
 
-			buffer_write_data(buf, &SLOT->phase, sizeof(UINT32));
-			buffer_write_data(buf, &SLOT->state, sizeof(UINT8));
-			buffer_write_data(buf, &SLOT->volume, sizeof(INT32));
+			buffer_write(buf, &SLOT->phase, sizeof(UINT32));
+			buffer_write(buf, &SLOT->state, sizeof(UINT8));
+			buffer_write(buf, &SLOT->volume, sizeof(INT32));
 
 			// must scan all dynamic registers of the channel - dink (July 20, 2020)
-			buffer_write_data(buf, &SLOT->vol_out, sizeof(UINT32));
-			buffer_write_data(buf, &SLOT->eg_sh_ar, sizeof(UINT8));
-			buffer_write_data(buf, &SLOT->eg_sel_ar, sizeof(UINT8));
-			buffer_write_data(buf, &SLOT->eg_sh_d1r, sizeof(UINT8));
-			buffer_write_data(buf, &SLOT->eg_sel_d1r, sizeof(UINT8));
-			buffer_write_data(buf, &SLOT->eg_sh_d2r, sizeof(UINT8));
-			buffer_write_data(buf, &SLOT->eg_sel_d2r, sizeof(UINT8));
-			buffer_write_data(buf, &SLOT->eg_sh_rr, sizeof(UINT8));
-			buffer_write_data(buf, &SLOT->eg_sel_rr, sizeof(UINT8));
-			buffer_write_data(buf, &SLOT->ssg, sizeof(UINT8)); // note: also set in postload
-			buffer_write_data(buf, &SLOT->ssgn, sizeof(UINT8));
-			buffer_write_data(buf, &SLOT->key, sizeof(UINT32));
+			buffer_write(buf, &SLOT->vol_out, sizeof(UINT32));
+			buffer_write(buf, &SLOT->eg_sh_ar, sizeof(UINT8));
+			buffer_write(buf, &SLOT->eg_sel_ar, sizeof(UINT8));
+			buffer_write(buf, &SLOT->eg_sh_d1r, sizeof(UINT8));
+			buffer_write(buf, &SLOT->eg_sel_d1r, sizeof(UINT8));
+			buffer_write(buf, &SLOT->eg_sh_d2r, sizeof(UINT8));
+			buffer_write(buf, &SLOT->eg_sel_d2r, sizeof(UINT8));
+			buffer_write(buf, &SLOT->eg_sh_rr, sizeof(UINT8));
+			buffer_write(buf, &SLOT->eg_sel_rr, sizeof(UINT8));
+			buffer_write(buf, &SLOT->ssg, sizeof(UINT8)); // note: also set in postload
+			buffer_write(buf, &SLOT->ssgn, sizeof(UINT8));
+			buffer_write(buf, &SLOT->key, sizeof(UINT32));
 		}
 	}
 }
@@ -1883,30 +1883,30 @@ static void FMload_state_channel(Buffer* buf, FM_CH *CH,int num_ch)
 	for(ch=0;ch<num_ch;ch++,CH++)
 	{
 		/* channel */
-		buffer_read_data(buf, &CH->op1_out, 2 * sizeof(INT32));
-		buffer_read_data(buf, &CH->fc, sizeof(UINT32));
+		buffer_read(buf, &CH->op1_out, 2 * sizeof(INT32));
+		buffer_read(buf, &CH->fc, sizeof(UINT32));
 		/* slots */
 		for(slot=0;slot<4;slot++)
 		{
 			FM_SLOT *SLOT = &CH->SLOT[slot];
 
-			buffer_read_data(buf, &SLOT->phase, sizeof(UINT32));
-			buffer_read_data(buf, &SLOT->state, sizeof(UINT8));
-			buffer_read_data(buf, &SLOT->volume, sizeof(INT32));
+			buffer_read(buf, &SLOT->phase, sizeof(UINT32));
+			buffer_read(buf, &SLOT->state, sizeof(UINT8));
+			buffer_read(buf, &SLOT->volume, sizeof(INT32));
 
 			// must scan all dynamic registers of the channel - dink (July 20, 2020)
-			buffer_read_data(buf, &SLOT->vol_out, sizeof(UINT32));
-			buffer_read_data(buf, &SLOT->eg_sh_ar, sizeof(UINT8));
-			buffer_read_data(buf, &SLOT->eg_sel_ar, sizeof(UINT8));
-			buffer_read_data(buf, &SLOT->eg_sh_d1r, sizeof(UINT8));
-			buffer_read_data(buf, &SLOT->eg_sel_d1r, sizeof(UINT8));
-			buffer_read_data(buf, &SLOT->eg_sh_d2r, sizeof(UINT8));
-			buffer_read_data(buf, &SLOT->eg_sel_d2r, sizeof(UINT8));
-			buffer_read_data(buf, &SLOT->eg_sh_rr, sizeof(UINT8));
-			buffer_read_data(buf, &SLOT->eg_sel_rr, sizeof(UINT8));
-			buffer_read_data(buf, &SLOT->ssg, sizeof(UINT8)); // note: also set in postload
-			buffer_read_data(buf, &SLOT->ssgn, sizeof(UINT8));
-			buffer_read_data(buf, &SLOT->key, sizeof(UINT32));
+			buffer_read(buf, &SLOT->vol_out, sizeof(UINT32));
+			buffer_read(buf, &SLOT->eg_sh_ar, sizeof(UINT8));
+			buffer_read(buf, &SLOT->eg_sel_ar, sizeof(UINT8));
+			buffer_read(buf, &SLOT->eg_sh_d1r, sizeof(UINT8));
+			buffer_read(buf, &SLOT->eg_sel_d1r, sizeof(UINT8));
+			buffer_read(buf, &SLOT->eg_sh_d2r, sizeof(UINT8));
+			buffer_read(buf, &SLOT->eg_sel_d2r, sizeof(UINT8));
+			buffer_read(buf, &SLOT->eg_sh_rr, sizeof(UINT8));
+			buffer_read(buf, &SLOT->eg_sel_rr, sizeof(UINT8));
+			buffer_read(buf, &SLOT->ssg, sizeof(UINT8)); // note: also set in postload
+			buffer_read(buf, &SLOT->ssgn, sizeof(UINT8));
+			buffer_read(buf, &SLOT->key, sizeof(UINT32));
 		}
 	}
 }
@@ -1914,53 +1914,53 @@ static void FMload_state_channel(Buffer* buf, FM_CH *CH,int num_ch)
 static void FMsave_state_st(Buffer* buf, FM_ST *ST)
 {
 #if FM_BUSY_FLAG_SUPPORT
-	buffer_write_data(buf, &ST->BusyExpire, sizeof(double));
+	buffer_write(buf, &ST->BusyExpire, sizeof(double));
 #endif
 	// experi-dink-mental
-	buffer_write_data(buf, &ST->index, sizeof(UINT8));
-	buffer_write_data(buf, &ST->clock, sizeof(int));
-	buffer_write_data(buf, &ST->rate, sizeof(int));
-	buffer_write_data(buf, &ST->freqbase, sizeof(double));
-	buffer_write_data(buf, &ST->TimerBase, sizeof(double));
+	buffer_write(buf, &ST->index, sizeof(UINT8));
+	buffer_write(buf, &ST->clock, sizeof(int));
+	buffer_write(buf, &ST->rate, sizeof(int));
+	buffer_write(buf, &ST->freqbase, sizeof(double));
+	buffer_write(buf, &ST->TimerBase, sizeof(double));
 
 	// end experimental
-	buffer_write_data(buf, &ST->address, sizeof(UINT8));
-	buffer_write_data(buf, &ST->irq, sizeof(UINT8));
-	buffer_write_data(buf, &ST->irqmask, sizeof(UINT8));
-	buffer_write_data(buf, &ST->status, sizeof(UINT8));
-	buffer_write_data(buf, &ST->mode, sizeof(UINT32));
-	buffer_write_data(buf, &ST->prescaler_sel, sizeof(UINT8));
-	buffer_write_data(buf, &ST->fn_h, sizeof(UINT8));
-	buffer_write_data(buf, &ST->TA, sizeof(int));
-	buffer_write_data(buf, &ST->TAC, sizeof(int));
-	buffer_write_data(buf, &ST->TB, sizeof(UINT8));
-	buffer_write_data(buf, &ST->TBC, sizeof(int));
+	buffer_write(buf, &ST->address, sizeof(UINT8));
+	buffer_write(buf, &ST->irq, sizeof(UINT8));
+	buffer_write(buf, &ST->irqmask, sizeof(UINT8));
+	buffer_write(buf, &ST->status, sizeof(UINT8));
+	buffer_write(buf, &ST->mode, sizeof(UINT32));
+	buffer_write(buf, &ST->prescaler_sel, sizeof(UINT8));
+	buffer_write(buf, &ST->fn_h, sizeof(UINT8));
+	buffer_write(buf, &ST->TA, sizeof(int));
+	buffer_write(buf, &ST->TAC, sizeof(int));
+	buffer_write(buf, &ST->TB, sizeof(UINT8));
+	buffer_write(buf, &ST->TBC, sizeof(int));
 }
 
 static void FMload_state_st(Buffer* buf, FM_ST *ST)
 {
 #if FM_BUSY_FLAG_SUPPORT
-	buffer_read_data(buf, &ST->BusyExpire, sizeof(double));
+	buffer_read(buf, &ST->BusyExpire, sizeof(double));
 #endif
 	// experi-dink-mental
-	buffer_read_data(buf, &ST->index, sizeof(UINT8));
-	buffer_read_data(buf, &ST->clock, sizeof(int));
-	buffer_read_data(buf, &ST->rate, sizeof(int));
-	buffer_read_data(buf, &ST->freqbase, sizeof(double));
-	buffer_read_data(buf, &ST->TimerBase, sizeof(double));
+	buffer_read(buf, &ST->index, sizeof(UINT8));
+	buffer_read(buf, &ST->clock, sizeof(int));
+	buffer_read(buf, &ST->rate, sizeof(int));
+	buffer_read(buf, &ST->freqbase, sizeof(double));
+	buffer_read(buf, &ST->TimerBase, sizeof(double));
 
 	// end experimental
-	buffer_read_data(buf, &ST->address, sizeof(UINT8));
-	buffer_read_data(buf, &ST->irq, sizeof(UINT8));
-	buffer_read_data(buf, &ST->irqmask, sizeof(UINT8));
-	buffer_read_data(buf, &ST->status, sizeof(UINT8));
-	buffer_read_data(buf, &ST->mode, sizeof(UINT32));
-	buffer_read_data(buf, &ST->prescaler_sel, sizeof(UINT8));
-	buffer_read_data(buf, &ST->fn_h, sizeof(UINT8));
-	buffer_read_data(buf, &ST->TA, sizeof(int));
-	buffer_read_data(buf, &ST->TAC, sizeof(int));
-	buffer_read_data(buf, &ST->TB, sizeof(UINT8));
-	buffer_read_data(buf, &ST->TBC, sizeof(int));
+	buffer_read(buf, &ST->address, sizeof(UINT8));
+	buffer_read(buf, &ST->irq, sizeof(UINT8));
+	buffer_read(buf, &ST->irqmask, sizeof(UINT8));
+	buffer_read(buf, &ST->status, sizeof(UINT8));
+	buffer_read(buf, &ST->mode, sizeof(UINT32));
+	buffer_read(buf, &ST->prescaler_sel, sizeof(UINT8));
+	buffer_read(buf, &ST->fn_h, sizeof(UINT8));
+	buffer_read(buf, &ST->TA, sizeof(int));
+	buffer_read(buf, &ST->TAC, sizeof(int));
+	buffer_read(buf, &ST->TB, sizeof(UINT8));
+	buffer_read(buf, &ST->TBC, sizeof(int));
 }
 
 #if BUILD_OPN
@@ -2877,20 +2877,20 @@ static void FMsave_state_adpcma(Buffer* buf, ADPCM_CH *adpcm)
 
 	for(ch=0;ch<6;ch++,adpcm++)
 	{
-		buffer_write_data(buf, &adpcm->flag, sizeof(UINT8));
-		buffer_write_data(buf, &adpcm->flagMask, sizeof(UINT8));
-		buffer_write_data(buf, &adpcm->now_data, sizeof(UINT8));
-		buffer_write_data(buf, &adpcm->now_addr, sizeof(UINT32));
-		buffer_write_data(buf, &adpcm->now_step, sizeof(UINT32));
-		buffer_write_data(buf, &adpcm->start, sizeof(UINT32));
-		buffer_write_data(buf, &adpcm->end, sizeof(UINT32));
-		buffer_write_data(buf, &adpcm->IL, sizeof(UINT8));
-		buffer_write_data(buf, &adpcm->adpcm_acc, sizeof(INT32));
-		buffer_write_data(buf, &adpcm->adpcm_step, sizeof(INT32));
-		buffer_write_data(buf, &adpcm->adpcm_out, sizeof(INT32));
-		buffer_write_data(buf, &adpcm->vol_mul, sizeof(INT8));
-		buffer_write_data(buf, &adpcm->vol_shift, sizeof(UINT8));
-		buffer_write_data(buf, &adpcm->pan_raw, sizeof(UINT8));
+		buffer_write(buf, &adpcm->flag, sizeof(UINT8));
+		buffer_write(buf, &adpcm->flagMask, sizeof(UINT8));
+		buffer_write(buf, &adpcm->now_data, sizeof(UINT8));
+		buffer_write(buf, &adpcm->now_addr, sizeof(UINT32));
+		buffer_write(buf, &adpcm->now_step, sizeof(UINT32));
+		buffer_write(buf, &adpcm->start, sizeof(UINT32));
+		buffer_write(buf, &adpcm->end, sizeof(UINT32));
+		buffer_write(buf, &adpcm->IL, sizeof(UINT8));
+		buffer_write(buf, &adpcm->adpcm_acc, sizeof(INT32));
+		buffer_write(buf, &adpcm->adpcm_step, sizeof(INT32));
+		buffer_write(buf, &adpcm->adpcm_out, sizeof(INT32));
+		buffer_write(buf, &adpcm->vol_mul, sizeof(INT8));
+		buffer_write(buf, &adpcm->vol_shift, sizeof(UINT8));
+		buffer_write(buf, &adpcm->pan_raw, sizeof(UINT8));
 	}
 }
 
@@ -2900,20 +2900,20 @@ static void FMload_state_adpcma(Buffer* buf, ADPCM_CH *adpcm)
 
 	for(ch=0;ch<6;ch++,adpcm++)
 	{
-		buffer_read_data(buf, &adpcm->flag, sizeof(UINT8));
-		buffer_read_data(buf, &adpcm->flagMask, sizeof(UINT8));
-		buffer_read_data(buf, &adpcm->now_data, sizeof(UINT8));
-		buffer_read_data(buf, &adpcm->now_addr, sizeof(UINT32));
-		buffer_read_data(buf, &adpcm->now_step, sizeof(UINT32));
-		buffer_read_data(buf, &adpcm->start, sizeof(UINT32));
-		buffer_read_data(buf, &adpcm->end, sizeof(UINT32));
-		buffer_read_data(buf, &adpcm->IL, sizeof(UINT8));
-		buffer_read_data(buf, &adpcm->adpcm_acc, sizeof(INT32));
-		buffer_read_data(buf, &adpcm->adpcm_step, sizeof(INT32));
-		buffer_read_data(buf, &adpcm->adpcm_out, sizeof(INT32));
-		buffer_read_data(buf, &adpcm->vol_mul, sizeof(INT8));
-		buffer_read_data(buf, &adpcm->vol_shift, sizeof(UINT8));
-		buffer_read_data(buf, &adpcm->pan_raw, sizeof(UINT8));
+		buffer_read(buf, &adpcm->flag, sizeof(UINT8));
+		buffer_read(buf, &adpcm->flagMask, sizeof(UINT8));
+		buffer_read(buf, &adpcm->now_data, sizeof(UINT8));
+		buffer_read(buf, &adpcm->now_addr, sizeof(UINT32));
+		buffer_read(buf, &adpcm->now_step, sizeof(UINT32));
+		buffer_read(buf, &adpcm->start, sizeof(UINT32));
+		buffer_read(buf, &adpcm->end, sizeof(UINT32));
+		buffer_read(buf, &adpcm->IL, sizeof(UINT8));
+		buffer_read(buf, &adpcm->adpcm_acc, sizeof(INT32));
+		buffer_read(buf, &adpcm->adpcm_step, sizeof(INT32));
+		buffer_read(buf, &adpcm->adpcm_out, sizeof(INT32));
+		buffer_read(buf, &adpcm->vol_mul, sizeof(INT8));
+		buffer_read(buf, &adpcm->vol_shift, sizeof(UINT8));
+		buffer_read(buf, &adpcm->pan_raw, sizeof(UINT8));
 	}
 }
 
@@ -3823,22 +3823,22 @@ void YM2610SaveContext(Buffer* buf)
 	if (!buf) return;
 
 	// Write number of chips
-	buffer_write_data(buf, &YM2610NumChips, sizeof(YM2610NumChips));
+	buffer_write(buf, &YM2610NumChips, sizeof(YM2610NumChips));
 
 	// Write each YM2610 struct (save everything, pointers will be restored)
 	for (int i = 0; i < YM2610NumChips; i++) {
 		YM2610 *F2610 = &(FM2610[i]);
-		buffer_write_data(buf, F2610->REGS, 512);
+		buffer_write(buf, F2610->REGS, 512);
 		FMsave_state_st(buf, &FM2610[i].OPN.ST);
 		FMsave_state_channel(buf, FM2610[i].CH, 6);
 		/* 3slots */
-		buffer_write_data(buf, F2610->OPN.SL3.fc, 3 * sizeof(UINT32));
-		buffer_write_data(buf, &F2610->OPN.SL3.fn_h, sizeof(UINT8));
-		buffer_write_data(buf, F2610->OPN.SL3.kcode, 3 * sizeof(UINT8));
+		buffer_write(buf, F2610->OPN.SL3.fc, 3 * sizeof(UINT32));
+		buffer_write(buf, &F2610->OPN.SL3.fn_h, sizeof(UINT8));
+		buffer_write(buf, F2610->OPN.SL3.kcode, 3 * sizeof(UINT8));
 		/* address register1 */
-		buffer_write_data(buf, &F2610->addr_A1, sizeof(UINT8));
+		buffer_write(buf, &F2610->addr_A1, sizeof(UINT8));
 
-		buffer_write_data(buf, &F2610->adpcm_arrivedEndAddress, sizeof(UINT8));
+		buffer_write(buf, &F2610->adpcm_arrivedEndAddress, sizeof(UINT8));
 		/* rythm(ADPCMA) */
 		FMsave_state_adpcma(buf, F2610->adpcm);
 		/* Delta-T ADPCM unit */
@@ -3851,22 +3851,22 @@ void YM2610LoadContext(Buffer* buf)
 	if (!buf) return;
 
 	// Read number of chips
-	buffer_read_data(buf, &YM2610NumChips, sizeof(YM2610NumChips));
+	buffer_read(buf, &YM2610NumChips, sizeof(YM2610NumChips));
 
 	// Read each YM2610 struct and restore pointers
 	for (int i = 0; i < YM2610NumChips; i++) {
 		YM2610 *F2610 = &(FM2610[i]);
-		buffer_read_data(buf, F2610->REGS, 512);
+		buffer_read(buf, F2610->REGS, 512);
 		FMload_state_st(buf, &FM2610[i].OPN.ST);
 		FMload_state_channel(buf, FM2610[i].CH, 6);
 		/* 3slots */
-		buffer_read_data(buf, F2610->OPN.SL3.fc, 3 * sizeof(UINT32));
-		buffer_read_data(buf, &F2610->OPN.SL3.fn_h, sizeof(UINT8));
-		buffer_read_data(buf, F2610->OPN.SL3.kcode, 3 * sizeof(UINT8));
+		buffer_read(buf, F2610->OPN.SL3.fc, 3 * sizeof(UINT32));
+		buffer_read(buf, &F2610->OPN.SL3.fn_h, sizeof(UINT8));
+		buffer_read(buf, F2610->OPN.SL3.kcode, 3 * sizeof(UINT8));
 		/* address register1 */
-		buffer_read_data(buf, &F2610->addr_A1, sizeof(UINT8));
+		buffer_read(buf, &F2610->addr_A1, sizeof(UINT8));
 
-		buffer_read_data(buf, &F2610->adpcm_arrivedEndAddress, sizeof(UINT8));
+		buffer_read(buf, &F2610->adpcm_arrivedEndAddress, sizeof(UINT8));
 		/* rythm(ADPCMA) */
 		FMload_state_adpcma(buf, F2610->adpcm);
 		/* Delta-T ADPCM unit */

@@ -125,21 +125,6 @@ typedef void (*write8_handler)(UINT32 offset, UINT32 data);
 
 #define timer_get_time() 0.0
 
-// Memory Buffer for serialization (read/write capable)
-typedef struct {
-    UINT8* data;
-    UINT32 size;           // Current data size
-    UINT32 capacity;       // Allocated buffer size
-    UINT32 read_pos;       // Current read position
-    UINT32 write_pos;      // Current write position
-} Buffer;
-
-Buffer* buffer_create(size_t initial_capacity);
-void buffer_destroy(Buffer* buf);
-int buffer_resize(Buffer* buf, size_t new_capacity);
-void buffer_write_data(Buffer* buf, const void* data, size_t data_size);
-size_t buffer_read_data(Buffer* buf, void* data, size_t data_size);
-
 #ifdef __cplusplus
 }
 #endif

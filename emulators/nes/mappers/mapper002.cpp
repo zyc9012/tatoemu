@@ -44,14 +44,14 @@ void Mapper002::writeCHR(u16 address, u8 value) {
     m_cartridge->getCHR()[address & 0x1FFF] = value;
 }
 
-void Mapper002::saveState(std::ofstream& file) const {
-    Mapper::saveState(file);
-    file.write(reinterpret_cast<const char*>(&m_prgBank), sizeof(m_prgBank));
+void Mapper002::saveState(Buffer* buf) {
+    Mapper::saveState(buf);
+    buffer_write(buf, &m_prgBank, sizeof(m_prgBank));
 }
 
-void Mapper002::loadState(std::ifstream& file) {
-    Mapper::loadState(file);
-    file.read(reinterpret_cast<char*>(&m_prgBank), sizeof(m_prgBank));
+void Mapper002::loadState(Buffer* buf) {
+    Mapper::loadState(buf);
+    buffer_read(buf, &m_prgBank, sizeof(m_prgBank));
 }
 
 } // namespace nes

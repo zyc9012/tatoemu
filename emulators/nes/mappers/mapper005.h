@@ -27,8 +27,8 @@ public:
     bool isEnabled() const { return !m_channel.lengthCounter.isZero(); }
     
     // State save/load
-    void saveState(std::ofstream& file) const;
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
     
 private:
     // Reuse APU PulseChannel (sweep will be disabled/ignored)
@@ -47,8 +47,8 @@ public:
     float getOutput() const;
     
     // State save/load
-    void saveState(std::ofstream& file) const;
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
     
 private:
     MMC5Square m_square1;
@@ -88,8 +88,8 @@ public:
     float getAudioOutput() const override;
     bool hasExpansionAudio() const override { return true; }
     
-    void saveState(std::ofstream& file) const override;
-    void loadState(std::ifstream& file) override;
+    void saveState(Buffer* buf) override;
+    void loadState(Buffer* buf) override;
     
 private:
     u32 mapCHR(u16 address);

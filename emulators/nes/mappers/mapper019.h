@@ -20,8 +20,8 @@ public:
     void scanlineCounter() override {}
     void clockAudio() override; // Used to tick the IRQ timer every CPU cycle
     
-    void saveState(std::ofstream& file) const override;
-    void loadState(std::ifstream& file) override;
+    void saveState(Buffer* buf) override;
+    void loadState(Buffer* buf) override;
     
     bool hasExpansionAudio() const override { return false; }
     float getAudioOutput() const override { return 0.0f; }

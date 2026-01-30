@@ -1,7 +1,7 @@
 #include "core.h"
 #include <SDL3/SDL.h>
 #include <iostream>
-#include <fstream>
+#include "../components/buffer.h"
 #include <sstream>
 
 namespace gb {
@@ -114,69 +114,33 @@ void Core::update() {
 }
 
 bool Core::saveState(const fs::path& filename) {
-    std::ofstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open save state file: " << filename << std::endl;
-        return false;
-    }
-    
-    // Write a simple header
-    const char* header = "GBEMU";
-    file.write(header, 5);
-    u32 version = 1;
-    file.write(reinterpret_cast<const char*>(&version), sizeof(version));
+    Buffer buf = {};
     
     // Save all component states
-    m_cpu->saveState(file);
-    m_mmu->saveState(file);
-    m_ppu->saveState(file);
-    m_timer->saveState(file);
-    m_joypad->saveState(file);
-    m_apu->saveState(file);
-    m_cartridge->saveState(file);
+    m_cpu->saveState(&buf);
+    m_mmu->saveState(&buf);
+    m_ppu->saveState(&buf);
+    m_timer->saveState(&buf);
+    m_joypad->saveState(&buf);
+    m_apu->saveState(&buf);
+    m_cartridge->saveState(&buf);
     
-    // Save emulator state
-    file.write(reinterpret_cast<const char*>(&m_cyclesThisFrame), sizeof(m_cyclesThisFrame));
-    
-    file.close();
-    return true;
+    return buffer_save_to_file(&buf, filename);
 }
 
 bool Core::loadState(const fs::path& filename) {
-    std::ifstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open save state file: " << filename << std::endl;
-        return false;
-    }
-    
-    // Read and verify header
-    char header[6] = {0};
-    file.read(header, 5);
-    if (std::string(header) != "GBEMU") {
-        std::cerr << "Invalid save state file format" << std::endl;
-        return false;
-    }
-    
-    u32 version;
-    file.read(reinterpret_cast<char*>(&version), sizeof(version));
-    if (version != 1) {
-        std::cerr << "Unsupported save state version" << std::endl;
-        return false;
-    }
+    Buffer buf = {};
+    buffer_load_from_file(&buf, filename);
     
     // Load all component states
-    m_cpu->loadState(file);
-    m_mmu->loadState(file);
-    m_ppu->loadState(file);
-    m_timer->loadState(file);
-    m_joypad->loadState(file);
-    m_apu->loadState(file);
-    m_cartridge->loadState(file);
+    m_cpu->loadState(&buf);
+    m_mmu->loadState(&buf);
+    m_ppu->loadState(&buf);
+    m_timer->loadState(&buf);
+    m_joypad->loadState(&buf);
+    m_apu->loadState(&buf);
+    m_cartridge->loadState(&buf);
 
-    // Load emulator state
-    file.read(reinterpret_cast<char*>(&m_cyclesThisFrame), sizeof(m_cyclesThisFrame));
-    
-    file.close();
     return true;
 }
 

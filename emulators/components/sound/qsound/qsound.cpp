@@ -824,18 +824,18 @@ INT16 QscGetRightSample()
 
 void QscSaveContext(Buffer* buf)
 {
-	buffer_write_data(buf, &chip, sizeof(qsound_chip));
-	buffer_write_data(buf, &QsndGain, sizeof(QsndGain));
-	buffer_write_data(buf, &QsndOutputDir, sizeof(QsndOutputDir));
-	buffer_write_data(buf, &interpolate_buffer, sizeof(interpolate_buffer));
-	buffer_write_data(buf, &nDelta, sizeof(nDelta));
+	buffer_write(buf, &chip, sizeof(qsound_chip));
+	buffer_write(buf, &QsndGain, sizeof(QsndGain));
+	buffer_write(buf, &QsndOutputDir, sizeof(QsndOutputDir));
+	buffer_write(buf, &interpolate_buffer, sizeof(interpolate_buffer));
+	buffer_write(buf, &nDelta, sizeof(nDelta));
 }
 
 void QscLoadContext(Buffer* buf)
 {
-	buffer_read_data(buf, &chip, sizeof(qsound_chip));
-	buffer_read_data(buf, &QsndGain, sizeof(QsndGain));
-	buffer_read_data(buf, &QsndOutputDir, sizeof(QsndOutputDir));
-	buffer_read_data(buf, &interpolate_buffer, sizeof(interpolate_buffer));
-	buffer_read_data(buf, &nDelta, sizeof(nDelta));
+	buffer_read(buf, &chip, sizeof(qsound_chip));
+	buffer_read(buf, &QsndGain, sizeof(QsndGain));
+	buffer_read(buf, &QsndOutputDir, sizeof(QsndOutputDir));
+	buffer_read(buf, &interpolate_buffer, sizeof(interpolate_buffer));
+	buffer_read(buf, &nDelta, sizeof(nDelta));
 }

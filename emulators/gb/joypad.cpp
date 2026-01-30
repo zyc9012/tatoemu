@@ -13,12 +13,12 @@ Joypad::Joypad()
 Joypad::~Joypad() {
 }
 
-void Joypad::saveState(std::ofstream& file) const {
-    file.write(reinterpret_cast<const char*>(&m_selectedButtons), sizeof(m_selectedButtons));
+void Joypad::saveState(Buffer* buf) {
+    buffer_write(buf, &m_selectedButtons, sizeof(m_selectedButtons));
 }
 
-void Joypad::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(&m_selectedButtons), sizeof(m_selectedButtons));
+void Joypad::loadState(Buffer* buf) {
+    buffer_read(buf, &m_selectedButtons, sizeof(m_selectedButtons));
 }
 
 void Joypad::setCPU(CPU* cpu) {

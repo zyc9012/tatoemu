@@ -28,24 +28,24 @@ MMU::MMU()
 MMU::~MMU() {
 }
 
-void MMU::saveState(std::ofstream& file) const {
-    file.write(reinterpret_cast<const char*>(m_wram.data()), m_wram.size());
-    file.write(reinterpret_cast<const char*>(m_hram.data()), m_hram.size());
-    file.write(reinterpret_cast<const char*>(&m_ie), sizeof(m_ie));
-    file.write(reinterpret_cast<const char*>(&m_gbcMode), sizeof(m_gbcMode));
-    file.write(reinterpret_cast<const char*>(&m_wramBank), sizeof(m_wramBank));
-    file.write(reinterpret_cast<const char*>(&m_speedSwitch), sizeof(m_speedSwitch));
-    file.write(reinterpret_cast<const char*>(&m_doubleSpeed), sizeof(m_doubleSpeed));
+void MMU::saveState(Buffer* buf) {
+    buffer_write(buf, m_wram.data(), m_wram.size());
+    buffer_write(buf, m_hram.data(), m_hram.size());
+    buffer_write(buf, &m_ie, sizeof(m_ie));
+    buffer_write(buf, &m_gbcMode, sizeof(m_gbcMode));
+    buffer_write(buf, &m_wramBank, sizeof(m_wramBank));
+    buffer_write(buf, &m_speedSwitch, sizeof(m_speedSwitch));
+    buffer_write(buf, &m_doubleSpeed, sizeof(m_doubleSpeed));
 }
 
-void MMU::loadState(std::ifstream& file) {
-    file.read(reinterpret_cast<char*>(m_wram.data()), m_wram.size());
-    file.read(reinterpret_cast<char*>(m_hram.data()), m_hram.size());
-    file.read(reinterpret_cast<char*>(&m_ie), sizeof(m_ie));
-    file.read(reinterpret_cast<char*>(&m_gbcMode), sizeof(m_gbcMode));
-    file.read(reinterpret_cast<char*>(&m_wramBank), sizeof(m_wramBank));
-    file.read(reinterpret_cast<char*>(&m_speedSwitch), sizeof(m_speedSwitch));
-    file.read(reinterpret_cast<char*>(&m_doubleSpeed), sizeof(m_doubleSpeed));
+void MMU::loadState(Buffer* buf) {
+    buffer_read(buf, m_wram.data(), m_wram.size());
+    buffer_read(buf, m_hram.data(), m_hram.size());
+    buffer_read(buf, &m_ie, sizeof(m_ie));
+    buffer_read(buf, &m_gbcMode, sizeof(m_gbcMode));
+    buffer_read(buf, &m_wramBank, sizeof(m_wramBank));
+    buffer_read(buf, &m_speedSwitch, sizeof(m_speedSwitch));
+    buffer_read(buf, &m_doubleSpeed, sizeof(m_doubleSpeed));
 }
 
 void MMU::setCartridge(Cartridge* cartridge) {

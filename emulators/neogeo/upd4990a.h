@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../types.h"
+#include "../../components/buffer.h"
 #include <functional>
 
 namespace neogeo {
@@ -26,8 +27,8 @@ public:
     u8 read();
 
     // State save/load
-    void saveState(std::ofstream& file);
-    void loadState(std::ifstream& file);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
 
 private:
     // Current time
