@@ -1,6 +1,5 @@
 #include "cartridge.h"
 #include "../../utilities/zip_reader.h"
-#include <iostream>
 #include <cmath>
 #include <filesystem>
 #include <set>
@@ -102,7 +101,7 @@ bool Cartridge::load(const fs::path& filename) {
         // Handle ZIP files
         util::ZipReader zip;
         if (!zip.open(filename)) {
-            std::cerr << "Failed to open ZIP file: " << filename << std::endl;
+            log_error("Failed to open ZIP file: %s", filename.c_str());
             return false;
         }
 
@@ -120,7 +119,7 @@ bool Cartridge::load(const fs::path& filename) {
         // Handle regular files
         FILE* file = fopen(filename.c_str(), "rb");
         if (!file) {
-            std::cerr << "Failed to open ROM file: " << filename << std::endl;
+            log_error("Failed to open ROM file: %s", filename.c_str());
             return false;
         }
 
@@ -140,11 +139,11 @@ bool Cartridge::load(const fs::path& filename) {
     parseHeader();
     m_loaded = true;
 
-    std::cout << "Loaded ROM: " << m_title << std::endl;
-    std::cout << "  Cartridge Type: 0x" << std::hex << (int)m_cartridgeType << std::dec << std::endl;
-    std::cout << "  ROM Size: " << m_rom.size() / 1024.0 << " KB (0x" << std::hex << (int)m_romSize << std::dec << ")" << std::endl;
-    std::cout << "  RAM Size: " << m_ram.size() / 1024.0 << " KB (0x" << std::hex << (int)m_ramSize << std::dec << ")" << std::endl;
-    std::cout << "  Mode: " << (m_isGBCOnly ? "GBC Only" : (m_isGBC ? "GBC Compatible" : "DMG")) << std::endl;
+    log_info("Loaded ROM: %s", m_title.c_str());
+    log_info("  Cartridge Type: 0x%x", static_cast<int>(m_cartridgeType));
+    log_info("  ROM Size: %d KB (0x%x)", static_cast<int>(m_rom.size() / 1024.0), static_cast<int>(m_romSize));
+    log_info("  RAM Size: %d KB (0x%x)", static_cast<int>(m_ram.size() / 1024.0), static_cast<int>(m_ramSize));
+    log_info("  Mode: %s", (m_isGBCOnly ? "GBC Only" : (m_isGBC ? "GBC Compatible" : "DMG")));
     
     // Load battery save if available
     if (hasBattery()) {
@@ -338,7 +337,7 @@ void Cartridge::writeMBC1(u16 address, u8 value) {
             u8 bank = value & 0x03;
             // Validate RAM bank
             if (!m_ram.empty() && (bank * 0x2000) >= m_ram.size()) {
-                std::cerr << "Invalid RAM bank requested: " << std::hex << (int)bank << std::dec << std::endl;
+                log_error("Invalid RAM bank requested: 0x%x", bank);
                 bank = (m_ram.size() / 0x2000) - 1;
             }
             m_currentRamBank = bank;
@@ -407,7 +406,7 @@ void Cartridge::writeMBC1M(u16 address, u8 value) {
             u8 bank = value & 0x03;
             // Validate RAM bank
             if (!m_ram.empty() && (bank * 0x2000) >= m_ram.size()) {
-                std::cerr << "Invalid RAM bank requested: " << std::hex << (int)bank << std::dec << std::endl;
+                log_error("Invalid RAM bank requested: 0x%x", bank);
                 bank = (m_ram.size() / 0x2000) - 1;
             }
             m_currentRamBank = bank;
@@ -537,7 +536,7 @@ void Cartridge::writeMBC3(u16 address, u8 value) {
         u8 bank = value;
         // Validate RAM bank (only for RAM banks 0-3, RTC registers 0x08-0x0C are always valid)
         if (bank <= 0x03 && !m_ram.empty() && (bank * 0x2000) >= m_ram.size()) {
-            std::cerr << "Invalid RAM bank requested: " << std::hex << (int)bank << std::dec << std::endl;
+            log_error("Invalid RAM bank requested: 0x%x", bank);
             bank = (m_ram.size() / 0x2000) - 1;
         }
         m_currentRamBank = bank;
@@ -624,7 +623,7 @@ void Cartridge::writeMBC5(u16 address, u8 value) {
         u16 bank = m_currentRomBank | (m_romBankHighBits << 8);
         u16 maxBank = (m_rom.size() / 0x4000) - 1;
         if (bank > maxBank) {
-            std::cerr << "Invalid ROM bank requested: " << std::hex << (int)bank << std::dec << std::endl;
+            log_error("Invalid ROM bank requested: 0x%x", bank);
             bank = maxBank;
             m_currentRomBank = bank & 0xFF;
             m_romBankHighBits = (bank >> 8) & 0x01;
@@ -634,7 +633,7 @@ void Cartridge::writeMBC5(u16 address, u8 value) {
         u8 bank = value & 0x0F;
         // Validate RAM bank
         if (!m_ram.empty() && (bank * 0x2000) >= m_ram.size()) {
-            std::cerr << "Invalid RAM bank requested: " << std::hex << (int)bank << std::dec << std::endl;
+            log_error("Invalid RAM bank requested: 0x%x", bank);
             bank = (m_ram.size() / 0x2000) - 1;
         }
         m_currentRamBank = bank;
@@ -703,7 +702,7 @@ void Cartridge::writeMBC7(u16 address, u8 value) {
         u8 bank = value;
         // Validate RAM bank (only for RAM banks 0-15, accelerometer register 0x10 is always valid)
         if (bank <= 0x0F && !m_ram.empty() && (bank * 0x2000) >= m_ram.size()) {
-            std::cerr << "Invalid RAM bank requested: " << std::hex << (int)bank << std::dec << std::endl;
+            log_error("Invalid RAM bank requested: 0x%x", bank);
             bank = (m_ram.size() / 0x2000) - 1;
         }
         m_currentRamBank = bank;
@@ -798,7 +797,7 @@ void Cartridge::saveBattery() const {
     
     FILE* file = fopen(savPath.c_str(), "wb");
     if (!file) {
-        std::cerr << "Failed to create save file: " << savPath.string() << std::endl;
+        log_error("Failed to create save file: %s", savPath.c_str());
         return;
     }
     
@@ -806,7 +805,7 @@ void Cartridge::saveBattery() const {
     fwrite(m_ram.data(), 1, m_ram.size(), file);
     
     fclose(file);
-    std::cout << "Battery data saved to: " << savPath.string() << std::endl;
+    log_info("Battery data saved to: %s", savPath.c_str());
 }
 
 void Cartridge::loadBattery() {
@@ -819,22 +818,21 @@ void Cartridge::loadBattery() {
     
     FILE* file = fopen(savPath.c_str(), "rb");
     if (!file) {
-        std::cout << "No save file found: " << savPath.string() << std::endl;
+        log_error("No save file found: %s", savPath.c_str());
         return;
     }
     
     fseek(file, 0, SEEK_END);
-    size_t fileSize = ftell(file);
+    long fileSize = ftell(file);
     fseek(file, 0, SEEK_SET);
     
     // Read RAM data
     size_t ramSize = m_ram.size();
-    if (fileSize >= ramSize) {
+    if (fileSize >= (long)ramSize) {
         fread(m_ram.data(), 1, ramSize, file);
-        std::cout << "Battery data loaded from: " << savPath.string() << std::endl;
+        log_info("Battery data loaded from: %s", savPath.c_str());
     } else {
-        std::cerr << "Save file size mismatch (expected " << ramSize << " bytes, got " 
-                  << fileSize << " bytes)" << std::endl;
+        log_error("Save file size mismatch (expected %zu bytes, got %ld bytes)", ramSize, fileSize);
     }
     
     fclose(file);

@@ -3,7 +3,6 @@
 #include "apu.h"
 #include "consts.h"
 #include "../components/cpu/z80/z80.h"
-#include <iostream>
 #include <cstring>
 #include <vector>
 #include <cstddef>
@@ -185,7 +184,7 @@ void SoundCPU::loadState(Buffer* buf) {
     buffer_read(buf, &sizeNoPointers, sizeof(sizeNoPointers));
     
     if (sizeNoPointers != offsetof(Z80_Regs, irq_callback)) {
-        std::cerr << "Error: Saved Z80 context size mismatch" << std::endl;
+        log_error("Error: Saved Z80 context size mismatch");
         return;
     }
     

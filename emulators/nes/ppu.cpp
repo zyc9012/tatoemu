@@ -3,7 +3,6 @@
 #include "cartridge.h"
 #include <cstring>
 #include <algorithm>
-#include <iostream>
 
 namespace nes {
 
@@ -126,11 +125,11 @@ u8 PPU::readRegister(u16 address) {
     
     switch (address & 0x2007) {
         case PPUCTRL:   // $2000 - Write only
-            std::cerr << "[PPU] Read from write-only register PPUCTRL ($2000)" << std::endl;
+            log_error("[PPU] Read from write-only register PPUCTRL ($2000)");
             break;
             
         case PPUMASK:   // $2001 - Write only
-            std::cerr << "[PPU] Read from write-only register PPUMASK ($2001)" << std::endl;
+            log_error("[PPU] Read from write-only register PPUMASK ($2001)");
             break;
             
         case PPUSTATUS: // $2002
@@ -146,7 +145,7 @@ u8 PPU::readRegister(u16 address) {
             break;
             
         case OAMADDR:   // $2003 - Write only
-            std::cerr << "[PPU] Read from write-only register OAMADDR ($2003)" << std::endl;
+            log_error("[PPU] Read from write-only register OAMADDR ($2003)");
             break;
             
         case OAMDATA:   // $2004
@@ -161,11 +160,11 @@ u8 PPU::readRegister(u16 address) {
             break;
             
         case PPUSCROLL: // $2005 - Write only
-            std::cerr << "[PPU] Read from write-only register PPUSCROLL ($2005)" << std::endl;
+            log_error("[PPU] Read from write-only register PPUSCROLL ($2005)");
             break;
             
         case PPUADDR:   // $2006 - Write only
-            std::cerr << "[PPU] Read from write-only register PPUADDR ($2006)" << std::endl;
+            log_error("[PPU] Read from write-only register PPUADDR ($2006)");
             break;
             
         case PPUDATA:   // $2007
@@ -214,8 +213,7 @@ void PPU::writeRegister(u16 address, u8 value) {
             break;
             
         case PPUSTATUS: // $2002 - Read only
-            std::cerr << "[PPU] Write to read-only register PPUSTATUS ($2002) = $"
-                      << std::hex << static_cast<int>(value) << std::dec << std::endl;
+            log_error("[PPU] Write to read-only register PPUSTATUS ($2002) = $%x", value);
             break;
             
         case OAMADDR:   // $2003

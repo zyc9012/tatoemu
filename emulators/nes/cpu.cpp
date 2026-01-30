@@ -1,6 +1,5 @@
 #include "cpu.h"
 #include "memory.h"
-#include <iostream>
 
 namespace nes {
 
@@ -655,14 +654,12 @@ void CPU::executeInstruction() {
         // KIL/JAM opcodes - halt the CPU (we treat as NOP for compatibility)
         case 0x02: case 0x12: case 0x22: case 0x32: case 0x42: case 0x52:
         case 0x62: case 0x72: case 0x92: case 0xB2: case 0xD2: case 0xF2:
-            std::cerr << "[CPU] KIL/JAM opcode $" << std::hex << static_cast<int>(opcode)
-                      << " at PC=$" << (m_regs.pc - 1) << std::dec << std::endl;
+            log_error("[CPU] KIL/JAM opcode $%x at PC=$%x", opcode, m_regs.pc - 1);
             break;
         
         default:
             // Unknown opcode - treat as NOP
-            std::cerr << "[CPU] Illegal opcode $" << std::hex << static_cast<int>(opcode)
-                      << " at PC=$" << (m_regs.pc - 1) << std::dec << std::endl;
+            log_error("[CPU] Illegal opcode $%x at PC=$%x", opcode, m_regs.pc - 1);
             break;
     }
 }

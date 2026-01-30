@@ -4,7 +4,6 @@
 #include "apu.h"
 #include "cartridge.h"
 #include "controller.h"
-#include <iostream>
 
 namespace nes {
 
@@ -61,13 +60,13 @@ u8 Memory::cpuRead(u16 address) {
                 
             default:
                 // Other APU registers are write-only
-                std::cerr << "[MEM] Read from write-only APU register $" << std::hex << address << std::dec << std::endl;
+                log_error("[MEM] Read from write-only APU register $%x", address);
                 return 0;
         }
     }
     else if (address < 0x4020) {
         // APU and I/O functionality that is normally disabled
-        std::cerr << "[MEM] Read from disabled I/O region $" << std::hex << address << std::dec << std::endl;
+        log_error("[MEM] Read from disabled I/O region $%x", address);
         return 0;
     }
     else {
@@ -129,15 +128,13 @@ void Memory::cpuWrite(u16 address, u8 value) {
                 break;
                 
             default:
-                std::cerr << "[MEM] Write to unmapped APU/IO register $" << std::hex << address
-                          << " = $" << static_cast<int>(value) << std::dec << std::endl;
+                log_error("[MEM] Write to unmapped APU/IO register $%x = $%x", address, value);
                 break;
         }
     }
     else if (address < 0x4020) {
         // APU and I/O functionality that is normally disabled
-        std::cerr << "[MEM] Write to disabled I/O region $" << std::hex << address
-                  << " = $" << static_cast<int>(value) << std::dec << std::endl;
+        log_error("[MEM] Write to disabled I/O region $%x = $%x", address, value);
     }
     else {
         // Cartridge space ($4020-$FFFF)

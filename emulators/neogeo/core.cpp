@@ -1,7 +1,6 @@
 #include "core.h"
 #include "controller.h"
 #include <SDL3/SDL.h>
-#include <iostream>
 #include "../../components/buffer.h"
 
 namespace neogeo {
@@ -126,7 +125,7 @@ void Core::update() {
 
         // Check if watchdog has expired (should trigger every ~8 frames)
         if (m_watchdogTimer > static_cast<s32>(WATCHDOG_TIMEOUT_CYCLES)) {
-            std::cout << "Watchdog timer expired, resetting system..." << std::endl;
+            log_error("Watchdog timer expired, resetting system...");
             reset();
             return;
         }

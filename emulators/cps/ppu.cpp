@@ -4,7 +4,6 @@
 #include "memory.h"
 #include "consts.h"
 #include <cstring>
-#include <iostream>
 #include <algorithm>
 
 /*
@@ -351,7 +350,7 @@ void PPU::updatePalette() {
 
     if (palOffset >= VRAM_SIZE) {
         palOffset = 0;  // Fallback
-        std::cout << "Palette Update: palOffset out of bounds: 0x" << std::hex << palOffset << std::dec << std::endl;
+        log_error("Palette Update: palOffset out of bounds: 0x%x", palOffset);
     }
     
     // Get palette control register (which pages to update)

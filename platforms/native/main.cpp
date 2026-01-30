@@ -1,7 +1,6 @@
 #include "emulator.h"
 #include "config.h"
 #include "neogeo/config.h"
-#include <iostream>
 #include <string>
 #include <cstdlib>
 #include <filesystem>
@@ -38,14 +37,14 @@ int main(int argc, char* argv[]) {
     const char** argv_narrow = const_cast<const char**>(argv);
 #endif
     if (argc < 2) {
-        std::cout << "Usage: " << argv_narrow[0] << " <rom_file> [bootrom_file] [options]" << std::endl;
-        std::cout << "\nOptions:" << std::endl;
-        std::cout << "  --scale <n>           Window scale factor (default: 0, auto)" << std::endl;
-        std::cout << "  --scale-mode <mode>   Scale mode: linear, nearest (default: linear)" << std::endl;
-        std::cout << "  --sample-rate <hz>    Audio sample rate (default: " << Config::Audio::SampleRate << ")" << std::endl;
-        std::cout << "  --volume <0.0-1.0>    Audio volume (default: " << Config::Audio::Volume << ")" << std::endl;
-        std::cout << "  --neo-sys <system>    NeoGeo system: aes, mvs (default: mvs)" << std::endl;
-        std::cout << "  --neo-bios <index>    NeoGeo BIOS index: 0 ~ 34 (default: " << static_cast<int>(neogeo::Config::BiosIndex) << ")" << std::endl;
+        log_info("Usage: %s <rom_file> [bootrom_file] [options]", argv_narrow[0]);
+        log_info("Options:");
+        log_info("  --scale <n>           Window scale factor (default: 0, auto)");
+        log_info("  --scale-mode <mode>   Scale mode: linear, nearest (default: linear)");
+        log_info("  --sample-rate <hz>    Audio sample rate (default: %d)", Config::Audio::SampleRate);
+        log_info("  --volume <0.0-1.0>    Audio volume (default: %.1f)", Config::Audio::Volume);
+        log_info("  --neo-sys <system>    NeoGeo system: aes, mvs (default: mvs)");
+        log_info("  --neo-bios <index>    NeoGeo BIOS index: 0 ~ 34 (default: %d)", static_cast<int>(neogeo::Config::BiosIndex));
         return 1;
     }
 
@@ -66,15 +65,14 @@ int main(int argc, char* argv[]) {
             } else if (mode == "linear") {
                 Config::Window::ScaleMode = SDL_SCALEMODE_LINEAR;
             } else {
-                std::cerr << "Warning: Unknown scale mode '" << mode << "', using linear" << std::endl;
+                log_error("Warning: Unknown scale mode '%s', using linear", mode.c_str());
             }
         } else if (arg == "--sample-rate" && i + 1 < argc) {
             Config::Audio::SampleRate = std::stoul(argv_narrow[++i]);
         } else if (arg == "--volume" && i + 1 < argc) {
             float volume = std::stof(argv_narrow[++i]);
             if (volume < 0.0f || volume > 1.0f) {
-                std::cerr << "Warning: Volume should be between 0.0 and 1.0, clamping to "
-                          << (volume < 0.0f ? 0.0f : 1.0f) << std::endl;
+                log_error("Warning: Volume should be between 0.0 and 1.0, clamping to %.1f", (volume < 0.0f ? 0.0f : 1.0f));
                 volume = (volume < 0.0f) ? 0.0f : 1.0f;
             }
             Config::Audio::Volume = volume;
@@ -88,12 +86,12 @@ int main(int argc, char* argv[]) {
             } else if (system == "mvs") {
                 neogeo::Config::System = neogeo::SystemType::MVS;
             } else {
-                std::cerr << "Warning: Unknown NeoGeo system '" << system << "', using MVS" << std::endl;
+                log_error("Warning: Unknown NeoGeo system '%s', using MVS", system.c_str());
             }
         } else if (arg == "--neo-bios" && i + 1 < argc) {
             u8 biosIndex = static_cast<u8>(std::stoul(argv_narrow[++i]));
             if (biosIndex < 0 || biosIndex > 34) {
-                std::cerr << "Warning: NeoGeo BIOS index should be between 0 and 34, using " << static_cast<int>(neogeo::Config::BiosIndex) << std::endl;
+                log_error("Warning: NeoGeo BIOS index should be between 0 and 34, using %d", static_cast<int>(neogeo::Config::BiosIndex));
                 biosIndex = neogeo::Config::BiosIndex;
             }
             neogeo::Config::BiosIndex = biosIndex;
@@ -102,15 +100,15 @@ int main(int argc, char* argv[]) {
             if (romFile.empty()) {
                 romFile = fs::path(arg);
             } else {
-                std::cerr << "Warning: Unexpected argument: " << arg << std::endl;
+                log_error("Warning: Unexpected argument: %s", arg.c_str());
             }
         } else {
-            std::cerr << "Warning: Unknown option: " << arg << std::endl;
+            log_error("Warning: Unknown option: %s", arg.c_str());
         }
     }
 
     if (romFile.empty()) {
-        std::cerr << "Error: ROM file is required" << std::endl;
+        log_error("Error: ROM file is required");
         return 1;
     }
 
@@ -125,8 +123,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::cout << "Starting emulation..." << std::endl;
-    std::cout << "Press ESC to quit" << std::endl;
+    log_info("Starting emulation...");
+    log_info("Press ESC to quit");
 
     emulator.run();
 

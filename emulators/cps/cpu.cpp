@@ -1,6 +1,5 @@
 #include "cpu.h"
 #include "memory.h"
-#include <iostream>
 #include <vector>
 #include "../../components/cpu/m68k/m68k.h"
 #include "../../components/cpu/m68k/m68kcb.h"
@@ -152,7 +151,7 @@ void CPU::loadState(Buffer* buf) {
     buffer_read(buf, &contextSizeNoPointers, sizeof(contextSizeNoPointers));
 
     if (contextSizeNoPointers != m68k_context_size_no_pointers()) {
-        std::cerr << "Error: Saved CPU context size mismatch" << std::endl;
+        log_error("Error: Saved CPU context size mismatch");
         return;
     }
     

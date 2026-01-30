@@ -6,7 +6,6 @@
 #include "controller.h"
 #include "apu.h"
 #include "core.h"
-#include <iostream>
 #include <cstring>
 #include <filesystem>
 
@@ -758,7 +757,7 @@ void Memory::saveNVRAM() {
 
     FILE* file = fopen(nvramPath.c_str(), "wb");
     if (!file) {
-        std::cerr << "Failed to create NVRAM file: " << nvramPath.string() << std::endl;
+        log_error("Failed to create NVRAM file: %s", nvramPath.string().c_str());
         return;
     }
 
@@ -766,7 +765,7 @@ void Memory::saveNVRAM() {
     fwrite(m_nvram.data(), 1, m_nvram.size(), file);
 
     fclose(file);
-    std::cout << "NVRAM saved to: " << nvramPath.string() << std::endl;
+    log_info("NVRAM saved to: %s", nvramPath.string().c_str());
 }
 
 void Memory::loadNVRAM() {
@@ -786,9 +785,9 @@ void Memory::loadNVRAM() {
     size_t nvramSize = m_nvram.size();
     if (fileSize >= static_cast<long>(nvramSize)) {
         fread(m_nvram.data(), 1, nvramSize, file);
-        std::cout << "NVRAM loaded from: " << nvramPath.string() << std::endl;
+        log_info("NVRAM loaded from: %s", nvramPath.string().c_str());
     } else {
-        std::cerr << "NVRAM file size mismatch, expected " << nvramSize << " bytes, got " << fileSize << " bytes" << std::endl;
+        log_error("NVRAM file size mismatch, expected %d bytes, got %d bytes", static_cast<int>(nvramSize), static_cast<int>(fileSize));
     }
 
     fclose(file);

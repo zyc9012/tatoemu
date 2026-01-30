@@ -3,7 +3,6 @@
 #include "ppu.h"
 #include "db.h"
 #include "../../utilities/zip_reader.h"
-#include <iostream>
 #include <algorithm>
 #include <map>
 #include <cstring>
@@ -25,7 +24,7 @@ bool Cartridge::load(const fs::path& filename, u32 bios68kIndex) {
     // Check if it's a ZIP file
     fs::path ext = filename.extension();
     if (ext != ".zip") {
-        std::cerr << "NeoGeo ROMs must be in ZIP format" << std::endl;
+        log_error("NeoGeo ROMs must be in ZIP format");
         return false;
     }
     
@@ -39,7 +38,7 @@ bool Cartridge::load(const fs::path& filename, u32 bios68kIndex) {
     
     m_gameInfo = GameDatabase::findGame(romSetNameLower);
     if (!m_gameInfo) {
-        std::cerr << "Unsupported NeoGeo game: " << m_romSetName << std::endl;
+        log_error("Unsupported NeoGeo game: %s", m_romSetName.c_str());
         return false;
     }
 
@@ -47,7 +46,7 @@ bool Cartridge::load(const fs::path& filename, u32 bios68kIndex) {
         m_gameInfo->flags & GAME_FLAG_CMC50 ||
         m_gameInfo->flags & GAME_FLAG_SMA_PROTECTION ||
         m_gameInfo->flags & GAME_FLAG_ENCRYPTED_M1) {
-        std::cerr << "Encrypted NeoGeo games are not supported yet." << std::endl;
+        log_error("Encrypted NeoGeo games are not supported yet.");
         return false;
     }
     
@@ -56,23 +55,23 @@ bool Cartridge::load(const fs::path& filename, u32 bios68kIndex) {
     // Open and extract ZIP file
     util::ZipReader zip;
     if (!zip.open(filename)) {
-        std::cerr << "Failed to open ZIP file: " << filename << std::endl;
+        log_error("Failed to open ZIP file: %s", filename.c_str());
         return false;
     }
     
     // Extract all ROM files from ZIP
     std::map<std::string, std::vector<u8>> romFiles;
     if (!zip.extractAll(romFiles)) {
-        std::cerr << "Failed to extract files from ZIP" << std::endl;
+        log_error("Failed to extract files from ZIP");
         return false;
     }
     
     // Load BIOS ROMs from game ZIP first, then neogeo.zip
     if (!loadBIOSROMs(romFiles, filename, bios68kIndex)) {
         #ifdef __EMSCRIPTEN__
-        std::cerr << "Failed to load BIOS ROMs. Upload neogeo.zip and try again." << std::endl;
+        log_error("Failed to load BIOS ROMs. Upload neogeo.zip and try again.");
         #else
-        std::cerr << "Failed to load BIOS ROMs. Put neogeo.zip in the same directory as the game ZIP and try again." << std::endl;
+        log_error("Failed to load BIOS ROMs. Put neogeo.zip in the same directory as the game ZIP and try again.");
         #endif
         return false;
     }
@@ -82,13 +81,13 @@ bool Cartridge::load(const fs::path& filename, u32 bios68kIndex) {
         return false;
     }
     
-    std::cout << "Loaded NeoGeo ROM: " << m_title << std::endl;
-    std::cout << "  ROM Set: " << m_romSetName << std::endl;
-    std::cout << "  Program ROM: " << (m_programRomSize / 1024) << " KB" << std::endl;
-    std::cout << "  Sprite ROM: " << (m_spriteRomSize / 1024) << " KB" << std::endl;
-    std::cout << "  Text ROM: " << (m_textRomSize / 1024) << " KB" << std::endl;
+    log_info("Loaded NeoGeo ROM: %s", m_title.c_str());
+    log_info("  ROM Set: %s", m_romSetName.c_str());
+    log_info("  Program ROM: %d KB", static_cast<int>(m_programRomSize / 1024));
+    log_info("  Sprite ROM: %d KB", static_cast<int>(m_spriteRomSize / 1024));
+    log_info("  Text ROM: %d KB", static_cast<int>(m_textRomSize / 1024));
     if (m_soundRomSize > 0) {
-        std::cout << "  Sound ROM: " << (m_soundRomSize / 1024) << " KB" << std::endl;
+        log_info("  Sound ROM: %d KB", static_cast<int>(m_soundRomSize / 1024));
     }
     
     return true;
@@ -136,7 +135,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                 // Add to appropriate ROM bank
                 switch (entry.type) {
                     case ROMType::PROGRAM: {
-                        std::cout << "Loading program: " << entry.filename << std::endl;
+                        log_info("Loading program: %s", entry.filename);
                         
                         // Normal program ROM loading
                         std::vector<u8> romData = pair.second;
@@ -154,11 +153,11 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                         break;
                     }
                     case ROMType::TEXT:
-                        std::cout << "Loading text: " << entry.filename << std::endl;
+                        log_info("Loading text: %s", entry.filename);
                         m_textRom.insert(m_textRom.end(), pair.second.begin(), pair.second.end());
                         break;
                     case ROMType::SPRITE: {
-                        std::cout << "Loading sprite: " << entry.filename << std::endl;
+                        log_info("Loading sprite: %s", entry.filename);
                         u32 increment = pair.second.size() * 2;
                         if (spriteRomSizeFixCounter > 0 && spriteRomSizeFix > pair.second.size()) {
                             // Pad sprite ROM to the largest sprite ROM size except for the last two sprite ROMs. (Fixes kof95)
@@ -177,11 +176,11 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                         break;
                     }
                     case ROMType::SOUND_PROGRAM:
-                        std::cout << "Loading sound program: " << entry.filename << std::endl;
+                        log_info("Loading sound program: %s", entry.filename);
                         m_soundRom.insert(m_soundRom.end(), pair.second.begin(), pair.second.end());
                         break;
                     case ROMType::SOUND_SAMPLE:
-                        std::cout << "Loading sound sample: " << entry.filename << std::endl;
+                        log_info("Loading sound sample: %s", entry.filename);
                         m_adpcmRom.insert(m_adpcmRom.end(), pair.second.begin(), pair.second.end());
                         break;
                     default:
@@ -198,9 +197,9 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     
     // Check for missing ROMs
     if (!missingROMs.empty()) {
-        std::cerr << "Missing ROMs:" << std::endl;
+        log_error("Missing ROMs:");
         for (const auto& filename : missingROMs) {
-            std::cerr << "  - " << filename << std::endl;
+            log_error("  - %s", filename.c_str());
         }
         return false;
     }
@@ -209,7 +208,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     byteswap(m_programRom);
 
     // Process sprite ROMs
-    std::cout << "Decoding sprite ROMs..." << std::endl;
+    log_info("Decoding sprite ROMs...");
     // If no text ROM was loaded, extract text data from sprites
     if (m_textRom.empty() && !m_spriteRom.empty() && m_spriteRom.size() > 0x80000) {
         // Extract 512KB of text data from the end of the sprite ROM
@@ -224,7 +223,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     }
     
     // Decode text ROMs
-    std::cout << "Decoding text ROMs..." << std::endl;
+    log_info("Decoding text ROMs...");
     decodeTextROM();
     
     // Update sizes
@@ -450,7 +449,7 @@ bool Cartridge::loadBIOSROMs(const std::map<std::string, std::vector<u8>>& romFi
         // First check game ZIP for BIOS file
         for (const auto& pair : romFiles) {
             if (GameDatabase::validateBIOSROM(pair.first, pair.second, entry)) {
-                std::cout << "Loading " << biosTypeName << ": " << entry.filename << std::endl;
+                log_info("Loading %s: %s", biosTypeName.c_str(), entry.filename);
                 targetRom.assign(pair.second.begin(), pair.second.end());
                 found = true;
                 break;
@@ -464,7 +463,7 @@ bool Cartridge::loadBIOSROMs(const std::map<std::string, std::vector<u8>>& romFi
                 if (fs::exists(biosZipPath)) {
                     util::ZipReader biosZip;
                     if (!biosZip.open(biosZipPath) || !biosZip.extractAll(biosFiles)) {
-                        std::cerr << "Failed to load BIOS files from neogeo.zip" << std::endl;
+                        log_error("Failed to load BIOS files from neogeo.zip");
                         return false;
                     }
                 }
@@ -472,7 +471,7 @@ bool Cartridge::loadBIOSROMs(const std::map<std::string, std::vector<u8>>& romFi
             // Search in loaded BIOS files
             for (const auto& pair : biosFiles) {
                 if (GameDatabase::validateBIOSROM(pair.first, pair.second, entry)) {
-                    std::cout << "Loading " << biosTypeName << " (neogeo.zip): " << entry.filename << std::endl;
+                    log_info("Loading %s (neogeo.zip): %s", biosTypeName.c_str(), entry.filename);
                     targetRom.assign(pair.second.begin(), pair.second.end());
                     found = true;
                     break;
@@ -480,7 +479,7 @@ bool Cartridge::loadBIOSROMs(const std::map<std::string, std::vector<u8>>& romFi
             }
         }
         if (!found && (checkEmptyFilename || entry.filename[0] != '\0')) {
-            std::cerr << "Error: " << biosTypeName << " ROM not found: " << entry.filename << std::endl;
+            log_error("Error: %s ROM not found: %s", biosTypeName.c_str(), entry.filename);
         }
         return found;
     };

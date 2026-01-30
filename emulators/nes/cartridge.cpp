@@ -23,7 +23,6 @@
 #include "mappers/mapper163.h"
 #include "mappers/mapper164.h"
 #include "mappers/mapper178.h"
-#include <iostream>
 #include <algorithm>
 #include <cstring>
 
@@ -57,7 +56,7 @@ bool Cartridge::load(const fs::path& filename) {
         // Handle ZIP files
         util::ZipReader zip;
         if (!zip.open(filename)) {
-            std::cerr << "Failed to open ZIP file: " << filename << std::endl;
+            log_error("Failed to open ZIP file: %s", filename.c_str());
             return false;
         }
 
@@ -71,12 +70,12 @@ bool Cartridge::load(const fs::path& filename) {
         }
 
         zip.close();
-        std::cout << "Extracted " << romFilename << " from ZIP" << std::endl;
+        log_info("Extracted %s from ZIP", romFilename.c_str());
     } else {
         // Handle regular files
         FILE* file = fopen(filename.c_str(), "rb");
         if (!file) {
-            std::cerr << "Failed to open ROM file: " << filename << std::endl;
+            log_error("Failed to open ROM file: %s", filename.c_str());
             return false;
         }
 
@@ -90,7 +89,7 @@ bool Cartridge::load(const fs::path& filename) {
     }
     
     if (romData.size() < INES_HEADER_SIZE) {
-        std::cerr << "ROM file too small" << std::endl;
+        log_error("ROM file too small");
         return false;
     }
     
@@ -106,11 +105,7 @@ bool Cartridge::load(const fs::path& filename) {
     createMapper();
     
     if (!m_mapper) {
-        std::cerr << "Unsupported mapper: " << m_mapperNumber;
-        if (m_isNES20 && m_subMapper > 0) {
-            std::cerr << "." << static_cast<int>(m_subMapper);
-        }
-        std::cerr << std::endl;
+        log_error("Unsupported mapper: %d (%d)", m_mapperNumber, m_subMapper);
         return false;
     }
     
@@ -123,28 +118,24 @@ bool Cartridge::load(const fs::path& filename) {
     m_mapper->setBaseMirrorMode(m_mirrorMode);
     m_mapper->reset();
     
-    std::cout << "Loaded ROM: " << m_title << std::endl;
-    std::cout << "  Format: " << (m_isNES20 ? "NES 2.0" : "iNES") << std::endl;
-    std::cout << "  Mapper: " << static_cast<int>(m_mapperNumber);
-    if (m_isNES20 && m_subMapper > 0) {
-        std::cout << "." << static_cast<int>(m_subMapper);
-    }
-    std::cout << std::endl;
-    std::cout << "  PRG ROM: " << static_cast<int>(m_prgBanks) << " x 16KB" << std::endl;
-    std::cout << "  CHR ROM: " << static_cast<int>(m_chrBanks) << " x 8KB" << std::endl;
+    log_info("Loaded ROM: %s", m_title.c_str());
+    log_info("  Format: %s", m_isNES20 ? "NES 2.0" : "iNES");
+    log_info("  Mapper: %d (%d)", m_mapperNumber, m_subMapper);
+    log_info("  PRG ROM: %d x 16KB", static_cast<int>(m_prgBanks));
+    log_info("  CHR ROM: %d x 8KB", static_cast<int>(m_chrBanks));
     
     // Print RAM sizes
     size_t prgRamSize = m_prgRam.size();
     if (prgRamSize > 0) {
         if (prgRamSize >= 1024) {
-            std::cout << "  PRG RAM: " << (prgRamSize / 1024) << "KB";
+            log_info("  PRG RAM: %dKB", static_cast<int>(prgRamSize / 1024));
         } else {
-            std::cout << "  PRG RAM: " << prgRamSize << " bytes";
+            log_info("  PRG RAM: %d bytes", static_cast<int>(prgRamSize));
         }
         if (m_hasBattery) {
-            std::cout << " (battery-backed)";
+            log_info(" (battery-backed)");
         }
-        std::cout << std::endl;
+        log_info("");
     }
     
     // CHR RAM is only allocated if there's no CHR ROM
@@ -152,38 +143,38 @@ bool Cartridge::load(const fs::path& filename) {
         size_t chrRamSize = m_chrRom.size();
         if (chrRamSize > 0) {
             if (chrRamSize >= 1024) {
-                std::cout << "  CHR RAM: " << (chrRamSize / 1024) << "KB";
+                log_info("  CHR RAM: %dKB", static_cast<int>(chrRamSize / 1024));
             } else {
-                std::cout << "  CHR RAM: " << chrRamSize << " bytes";
+                log_info("  CHR RAM: %d bytes", static_cast<int>(chrRamSize));
             }
-            std::cout << std::endl;
+            log_info("");
         }
     }
     
-    std::cout << "  Mirroring: ";
+    log_info_nn("  Mirroring: ");
     switch (m_mirrorMode) {
         case MirrorMode::HORIZONTAL:
-            std::cout << "Horizontal";
+            log_info_nn("Horizontal");
             break;
         case MirrorMode::VERTICAL:
-            std::cout << "Vertical";
+            log_info_nn("Vertical");
             break;
         case MirrorMode::SINGLE_SCREEN_A:
-            std::cout << "Single Screen A";
+            log_info_nn("Single Screen A");
             break;
         case MirrorMode::SINGLE_SCREEN_B:
-            std::cout << "Single Screen B";
+            log_info_nn("Single Screen B");
             break;
         case MirrorMode::FOUR_SCREEN:
-            std::cout << "Four Screen";
+            log_info_nn("Four Screen");
             break;
         default:
-            std::cout << "Unknown";
+            log_info_nn("Unknown");
             break;
     }
-    std::cout << std::endl;
-    std::cout << "  Battery: " << (m_hasBattery ? "Yes" : "No") << std::endl;
-    std::cout << "  Trainer: " << (m_hasTrainer ? "Yes" : "No") << std::endl;
+    log_info("");
+    log_info("  Battery: %s", m_hasBattery ? "Yes" : "No");
+    log_info("  Trainer: %s", m_hasTrainer ? "Yes" : "No");
     
     return true;
 }
@@ -191,7 +182,7 @@ bool Cartridge::load(const fs::path& filename) {
 bool Cartridge::parseINES(const std::vector<u8>& data) {
     // Check for "NES\x1A" magic bytes
     if (data[0] != 'N' || data[1] != 'E' || data[2] != 'S' || data[3] != 0x1A) {
-        std::cerr << "Invalid iNES header" << std::endl;
+        log_error("Invalid iNES header");
         return false;
     }
     
@@ -240,13 +231,13 @@ bool Cartridge::parseINES(const std::vector<u8>& data) {
             u8 exponent = prgCount >> 2;
             u8 multiplier = prgCount & 0x03;
             if (exponent > 60) {
-                std::cerr << "Unsupported PRG ROM size (exponent too large)" << std::endl;
+                log_error("Unsupported PRG ROM size (exponent too large)");
                 return false;
             }
             u64 multiplierValue = multiplier * 2 + 1;
             u64 size = multiplierValue * (static_cast<u64>(1) << exponent);
             if (size > 0xFFFFFFFF) {
-                std::cerr << "Unsupported PRG ROM size (too large)" << std::endl;
+                log_error("Unsupported PRG ROM size (too large)");
                 return false;
             }
             prgSize = static_cast<size_t>(size);
@@ -278,13 +269,13 @@ bool Cartridge::parseINES(const std::vector<u8>& data) {
             u8 exponent = chrCount >> 2;
             u8 multiplier = chrCount & 0x03;
             if (exponent > 60) {
-                std::cerr << "Unsupported CHR ROM size (exponent too large)" << std::endl;
+                log_error("Unsupported CHR ROM size (exponent too large)");
                 return false;
             }
             u64 multiplierValue = multiplier * 2 + 1;
             u64 size = multiplierValue * (static_cast<u64>(1) << exponent);
             if (size > 0xFFFFFFFF) {
-                std::cerr << "Unsupported CHR ROM size (too large)" << std::endl;
+                log_error("Unsupported CHR ROM size (too large)");
                 return false;
             }
             chrSize = static_cast<size_t>(size);
@@ -347,7 +338,7 @@ bool Cartridge::parseINES(const std::vector<u8>& data) {
     if (m_hasTrainer) {
         // Load trainer data (512 bytes, mapped at $7000-$71FF)
         if (offset + 512 > data.size()) {
-            std::cerr << "Trainer data too small" << std::endl;
+            log_error("Trainer data too small");
             return false;
         }
         m_trainer.assign(data.begin() + offset, data.begin() + offset + 512);
@@ -356,7 +347,7 @@ bool Cartridge::parseINES(const std::vector<u8>& data) {
     
     // PRG ROM
     if (offset + prgSize > data.size()) {
-        std::cerr << "PRG ROM data too small" << std::endl;
+        log_error("PRG ROM data too small");
         return false;
     }
     m_prgRom.assign(data.begin() + offset, data.begin() + offset + prgSize);
@@ -365,7 +356,7 @@ bool Cartridge::parseINES(const std::vector<u8>& data) {
     // CHR ROM (or allocate CHR RAM)
     if (chrSize > 0) {
         if (offset + chrSize > data.size()) {
-            std::cerr << "CHR ROM data too small" << std::endl;
+            log_error("CHR ROM data too small");
             return false;
         }
         m_chrRom.assign(data.begin() + offset, data.begin() + offset + chrSize);
@@ -578,7 +569,7 @@ void Cartridge::saveBattery() const {
     if (file) {
         fwrite(m_prgRam.data(), 1, m_prgRam.size(), file);
         fclose(file);
-        std::cout << "Battery data saved to: " << savePath << std::endl;
+        log_info("Battery data saved to: %s", savePath.c_str());
     }
 }
 
@@ -594,7 +585,7 @@ void Cartridge::loadBattery() {
     if (file) {
         fread(m_prgRam.data(), 1, m_prgRam.size(), file);
         fclose(file);
-        std::cout << "Battery data loaded from: " << savePath << std::endl;
+        log_info("Battery data loaded from: %s", savePath.c_str());
     }
 }
 

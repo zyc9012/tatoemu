@@ -1,5 +1,4 @@
 #include "zip_reader.h"
-#include <iostream>
 #include <algorithm>
 #include <cstring>
 #include <filesystem>
@@ -21,7 +20,7 @@ bool ZipReader::open(const fs::path& filename) {
     // Read ZIP file into memory
     FILE* file = fopen(filename.c_str(), "rb");
     if (!file) {
-        std::cerr << "Failed to open ZIP file: " << filename << std::endl;
+        log_error("Failed to open ZIP file: %s", filename.c_str());
         return false;
     }
     
@@ -35,7 +34,7 @@ bool ZipReader::open(const fs::path& filename) {
     
     // Initialize miniz ZIP reader with memory buffer
     if (!mz_zip_reader_init_mem(&m_zipArchive, m_zipData.data(), m_zipData.size(), 0)) {
-        std::cerr << "Failed to initialize ZIP archive" << std::endl;
+        log_error("Failed to initialize ZIP archive");
         return false;
     }
     
@@ -115,7 +114,7 @@ bool ZipReader::findAndExtractFile(const std::set<std::string>& extensions, std:
 
         if (extensions.count(extStr) > 0) {
             if (!foundFilename.empty()) {
-                std::cerr << "Multiple ROM files found in ZIP" << std::endl;
+                log_error("Multiple ROM files found in ZIP");
                 return false;
             }
             foundFilename = filename;
@@ -123,7 +122,7 @@ bool ZipReader::findAndExtractFile(const std::set<std::string>& extensions, std:
     }
 
     if (foundFilename.empty()) {
-        std::cerr << "No ROM file found in ZIP" << std::endl;
+        log_error("No ROM file found in ZIP");
         return false;
     }
 

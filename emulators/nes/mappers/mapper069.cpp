@@ -1,6 +1,7 @@
 #include "mapper069.h"
 #include "../consts.h"
 #include <cstring>
+#include <algorithm>
 
 namespace nes {
 

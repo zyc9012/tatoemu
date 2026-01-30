@@ -12,7 +12,7 @@ This project is just for fun. It aims to build minimal emulators that work for m
 
 ## Requirements
 
-- C++17 compatible compiler
+- C++20 compatible compiler
 - CMake 3.20 or higher
 - SDL3 library
 

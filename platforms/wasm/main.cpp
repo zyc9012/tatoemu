@@ -4,7 +4,6 @@
 #include <SDL3/SDL.h>
 #include <emscripten.h>
 #include <emscripten/html5.h>
-#include <iostream>
 #include <string>
 #include <algorithm>
 #include <cstdio>
@@ -41,14 +40,14 @@ extern "C" {
     // Load ROM from uploaded file
     int loadROMFile(const char* filename) {
         if (!g_emulatorWasm || !g_emulatorWasm->initialized) {
-            std::cerr << "Emulator not initialized!" << std::endl;
+            log_error("Emulator not initialized!");
             return 0;
         }
         
-        std::cout << "Loading ROM: " << filename << std::endl;
+        log_info("Loading ROM: %s", filename);
         
         if (g_emulatorWasm->emulator.loadROM(filename)) {
-            std::cout << "ROM loaded successfully!" << std::endl;
+            log_info("ROM loaded successfully!");
             g_emulatorWasm->romLoaded = true;
             g_emulatorWasm->running = true;
             return 1;
@@ -60,17 +59,17 @@ extern "C" {
     // Load bootrom from uploaded file
     int loadBootromFile(const char* filename) {
         if (!g_emulatorWasm || !g_emulatorWasm->initialized) {
-            std::cerr << "Emulator not initialized!" << std::endl;
+            log_error("Emulator not initialized!");
             return 0;
         }
         
-        std::cout << "Loading bootrom: " << filename << std::endl;
+        log_info("Loading bootrom: %s", filename);
         
         if (g_emulatorWasm->emulator.loadBootrom(filename)) {
-            std::cout << "Bootrom loaded successfully!" << std::endl;
+            log_info("Bootrom loaded successfully!");
             return 1;
         } else {
-            std::cerr << "Failed to load bootrom" << std::endl;
+            log_error("Failed to load bootrom");
             return 0;
         }
     }
@@ -84,7 +83,7 @@ extern "C" {
         } else if (modeStr == "linear") {
             Config::Window::ScaleMode = SDL_SCALEMODE_LINEAR;
         } else {
-            std::cerr << "Warning: Unknown scale mode '" << modeStr << "', using linear" << std::endl;
+            log_error("Warning: Unknown scale mode '%s', using linear", modeStr.c_str());
             Config::Window::ScaleMode = SDL_SCALEMODE_LINEAR;
         }
     }
@@ -104,7 +103,7 @@ extern "C" {
         } else if (sysStr == "mvs") {
             neogeo::Config::System = neogeo::SystemType::MVS;
         } else {
-            std::cerr << "Warning: Unknown NeoGeo system '" << sysStr << "', using MVS" << std::endl;
+            log_error("Warning: Unknown NeoGeo system '%s', using MVS", sysStr.c_str());
             neogeo::Config::System = neogeo::SystemType::MVS;
         }
     }
@@ -112,7 +111,7 @@ extern "C" {
     void setNeoBios(const char* bios) {
         u8 biosIndex = static_cast<u8>(std::stoul(bios));
         if (biosIndex < 0 || biosIndex > 34) {
-            std::cerr << "Warning: NeoGeo BIOS index should be between 0 and 34, using " << static_cast<int>(neogeo::Config::BiosIndex) << std::endl;
+            log_error("Warning: NeoGeo BIOS index should be between 0 and 34, using %d", static_cast<int>(neogeo::Config::BiosIndex));
             biosIndex = neogeo::Config::BiosIndex;
         }
         neogeo::Config::BiosIndex = biosIndex;
@@ -120,14 +119,14 @@ extern "C" {
 }
 
 int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused))) {
-    std::cout << "TatoEmu (WebAssembly)" << std::endl;
-    std::cout << std::endl;
-    std::cout << "Waiting for ROM file upload..." << std::endl;
+    log_info("TatoEmu (WebAssembly)");
+    log_info("");
+    log_info("Waiting for ROM file upload...");
 
     g_emulatorWasm = new EmulatorWasm();
     g_emulatorWasm->initialized = true;
-    std::cout << "Emulator initialized successfully" << std::endl;
-    std::cout << "Please upload a ROM file to begin" << std::endl;
+    log_info("Emulator initialized successfully");
+    log_info("Please upload a ROM file to begin");
 
     // Set up the main loop using Emscripten's mechanism
     // 0 = use browser's requestAnimationFrame for timing (recommended)

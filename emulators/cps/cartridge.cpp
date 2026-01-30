@@ -5,9 +5,7 @@
 #include "decrypt.h"
 #include "zip_reader.h"
 #include <cstring>
-#include <iostream>
 #include <iomanip>
-#include <sstream>
 #include <algorithm>
 #include <map>
 #include <cstring>
@@ -66,7 +64,7 @@ bool Cartridge::load(const fs::path& filename) {
     // Check if it's a ZIP file
     fs::path ext = filename.extension();
     if (ext != ".zip") {
-        std::cerr << "CPS ROMs must be in ZIP format" << std::endl;
+        log_error("CPS ROMs must be in ZIP format");
         return false;
     }
     
@@ -76,8 +74,8 @@ bool Cartridge::load(const fs::path& filename) {
     // Look up game in unified database
     const GameInfo* gameInfo = GameDatabase::findGame(m_romSetName);
     if (!gameInfo) {
-        std::cerr << "Unsupported CPS game: " << m_romSetName << std::endl;
-        std::cerr << "Only games in the database are supported." << std::endl;
+        log_error("Unsupported CPS game: %s", m_romSetName.c_str());
+        log_error("Only games in the database are supported.");
         return false;
     }
     
@@ -88,14 +86,14 @@ bool Cartridge::load(const fs::path& filename) {
     // Open and extract ZIP file
     util::ZipReader zip;
     if (!zip.open(filename)) {
-        std::cerr << "Failed to open ZIP file: " << filename << std::endl;
+        log_error("Failed to open ZIP file: %s", filename.c_str());
         return false;
     }
     
     // Extract all ROM files from ZIP
     std::map<std::string, std::vector<u8>> romFiles;
     if (!zip.extractAll(romFiles)) {
-        std::cerr << "Failed to extract files from ZIP" << std::endl;
+        log_error("Failed to extract files from ZIP");
         return false;
     }
     
@@ -104,15 +102,15 @@ bool Cartridge::load(const fs::path& filename) {
         return false;
     }
     
-    std::cout << (m_cpsVer == 2 ? "Loaded CPS2 ROM: " : "Loaded CPS1 ROM: ") << m_title << std::endl;
-    std::cout << "  ROM Set: " << m_romSetName << std::endl;
-    std::cout << "  Program ROM: " << (m_programRomSize / 1024) << " KB" << std::endl;
-    std::cout << "  Graphics ROM: " << (m_graphicsRomSize / 1024) << " KB" << std::endl;
-    std::cout << "  Sound Program ROM: " << (m_soundProgramRomSize / 1024) << " KB" << std::endl;
-    std::cout << "  Sound Sample ROM: " << (m_soundSampleRomSize / 1024) << " KB" << std::endl;
+    log_info("%s: %s", (m_cpsVer == 2 ? "Loaded CPS2 ROM: " : "Loaded CPS1 ROM: "), m_title.c_str());
+    log_info("  ROM Set: %s", m_romSetName.c_str());
+    log_info("  Program ROM: %d KB", (m_programRomSize / 1024));
+    log_info("  Graphics ROM: %d KB", (m_graphicsRomSize / 1024));
+    log_info("  Sound Program ROM: %d KB", (m_soundProgramRomSize / 1024));
+    log_info("  Sound Sample ROM: %d KB", (m_soundSampleRomSize / 1024));
     if (m_cpsVer == 1) {
-        std::cout << "  Board Type: " << static_cast<int>(m_gameInfo->board) << std::endl;
-        std::cout << "  Graphics Mapper: " << static_cast<int>(m_gameInfo->mapper) << std::endl;
+        log_info("  Board Type: %d", static_cast<int>(m_gameInfo->board));
+        log_info("  Graphics Mapper: %d", static_cast<int>(m_gameInfo->mapper));
     }
     
     return true;
@@ -152,7 +150,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
             // Find and load encryption key from ROM file
             for (const auto& pair : romFiles) {
                 if (GameDatabase::validateROM(pair.first, pair.second, entry)) {
-                    std::cout << "Loading encryption key: " << entry.filename << std::endl;
+                    log_info("Loading encryption key: %s", entry.filename);
                     // CPS2 encryption keys are 20 bytes (0x14) with bit-scrambling
                     if (pair.second.size() >= 20) {
                         // The key file contains 160 bits (20 bytes) that need to be unscrambled
@@ -208,7 +206,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                 // Add to appropriate ROM bank
                 switch (entry.type) {
                     case ROMType::PROGRAM:
-                        std::cout << "Loading program: " << entry.filename << std::endl;
+                        log_info("Loading program: %s", entry.filename);
                         if (m_cpsVer == 1) {
                             if (entry.flags & ROM_FLAG_INTERLEAVE) {
                                 if (!interleaveInProgress) {
@@ -232,7 +230,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                         graphicsRomGroupSize = 4;
                         // fall through
                     case ROMType::GRAPHICS:
-                        std::cout << "Loading graphics: " << entry.filename << std::endl;
+                        log_info("Loading graphics: %s", entry.filename);
                         if (entry.flags & ROM_FLAG_INTERLEAVE) {
                             if (!interleaveInProgress) {
                                 m_graphicsRom.resize(m_graphicsRom.size() + pair.second.size() * 2);
@@ -253,11 +251,11 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
                         }
                         break;
                     case ROMType::SOUND_PROGRAM:
-                        std::cout << "Loading sound program: " << entry.filename << std::endl;
+                        log_info("Loading sound program: %s", entry.filename);
                         m_soundProgramRom.insert(m_soundProgramRom.end(), pair.second.begin(), pair.second.end());
                         break;
                     case ROMType::SOUND_SAMPLE:
-                        std::cout << "Loading sound sample: " << entry.filename << std::endl;
+                        log_info("Loading sound sample: %s", entry.filename);
                         if (entry.flags & ROM_FLAG_INTERLEAVE) {
                             if (!interleaveInProgress) {
                                 m_soundSampleRom.resize(m_soundSampleRom.size() + pair.second.size() * 2);
@@ -283,7 +281,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
         if (!found) {
             if (entry.flags & ROM_FLAG_OPTIONAL) {
                 // Optional ROM missing - just warn
-                std::cerr << "Warning: Optional ROM missing: " << entry.filename << std::endl;
+                log_error("Warning: Optional ROM missing: %s", entry.filename);
             } else {
                 missingROMs.push_back(entry.filename);
             }
@@ -292,9 +290,9 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     
     // Check for missing required ROMs
     if (!missingROMs.empty()) {
-        std::cerr << "Error: Missing required ROM files:" << std::endl;
+        log_error("Error: Missing required ROM files:");
         for (const auto& filename : missingROMs) {
-            std::cerr << "  - " << filename << std::endl;
+            log_error("  - %s", filename.c_str());
         }
         return false;
     }
@@ -318,7 +316,7 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
             m_soundProgramRom.resize(m_soundProgramRom.size() * 2);
             m_soundProgramRomSize = static_cast<u32>(m_soundProgramRom.size());
             // Decrypt CPS1 sound program ROM
-            std::cout << "Decrypting sound program ROM..." << std::endl;
+            log_info("Decrypting sound program ROM...");
             decryptCPS1SoundProgramROM();
         }
     } else {
@@ -379,7 +377,7 @@ void Cartridge::decryptCPS2ProgramROM() {
     
     // Check if we have valid decryption keys
     if (m_decryptKey[0] == 0 && m_decryptKey[1] == 0 && m_decryptKey[2] == 0 && m_decryptKey[3] == 0) {
-        std::cerr << "Warning: No decryption keys found. ROM may not work correctly." << std::endl;
+        log_error("Warning: No decryption keys found. ROM may not work correctly.");
         // Copy encrypted ROM as-is
         m_programRom = m_programRomEncrypted;
         return;
@@ -393,7 +391,7 @@ void Cartridge::decryptCPS2ProgramROM() {
     master_key[1] = m_decryptKey[1];
     
     // Print decryption key for verification
-    std::cout << "Decrypting CPS2 ROM..." << std::endl;
+    log_info("Decrypting CPS2 ROM...");
     
     // Convert address limits from bytes to 16-bit words
     u32 lower_limit = m_decryptStart / 2;
@@ -543,11 +541,11 @@ u32 Cartridge::calcGraphicsROMSizeFix(const GameInfo* gameInfo) {
 
 void Cartridge::decodeGraphicsROM(const std::vector<u32>& graphicsRomSizes) {
     if (m_graphicsRom.empty()) {
-        std::cerr << "Cartridge: No graphics ROM data to decode" << std::endl;
+        log_error("Cartridge: No graphics ROM data to decode");
         return;
     }
 
-    std::cout << "Decoding graphics ROM..." << std::endl;
+    log_info("Decoding graphics ROM...");
     
     if (m_cpsVer == 1) {
         decodeGraphicsROMCPS1(graphicsRomSizes);
@@ -681,7 +679,7 @@ void Cartridge::decodeGraphicsROMCPS2(const std::vector<u32>& graphicsRomSizes) 
     
     // Process graphics in groups of 4 ROMs
     if (graphicsRomSizes.size() < 4) {
-        std::cerr << "Error: CPS2 requires at least 4 graphics ROMs" << std::endl;
+        log_error("Error: CPS2 requires at least 4 graphics ROMs");
         return;
     }
     

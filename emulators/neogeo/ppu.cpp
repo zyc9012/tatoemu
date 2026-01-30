@@ -6,7 +6,6 @@
 #include "../core.h"
 #include <cstring>
 #include <algorithm>
-#include <iostream>
 #include <iomanip>
 
 namespace neogeo {

@@ -3,7 +3,6 @@
 #include "memory.h"
 #include "cartridge.h"
 #include "consts.h"
-#include <iostream>
 #include <cstring>
 
 extern "C" {
@@ -113,7 +112,7 @@ void APU::init(u32 sampleRate) {
                            ym2610TimerHandler, ym2610IrqHandler);
     
     if (result != 0) {
-        std::cerr << "Error: Failed to initialize YM2610" << std::endl;
+        log_error("Error: Failed to initialize YM2610");
     }
 
     // Reset YM2610

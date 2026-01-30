@@ -1,8 +1,6 @@
 #include "core.h"
 #include <SDL3/SDL.h>
-#include <iostream>
 #include "../components/buffer.h"
-#include <sstream>
 
 namespace gb {
 
@@ -54,7 +52,7 @@ void Core::setAudioDevice(AudioDevice* audioDevice) {
 
 bool Core::loadBootrom(const fs::path& filename) {
     if (!m_bootrom->load(filename)) {
-        std::cerr << "Failed to load bootrom, continuing without it" << std::endl;
+        log_error("Failed to load bootrom, continuing without it");
         return false;
     }
     return true;

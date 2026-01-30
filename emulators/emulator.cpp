@@ -7,8 +7,6 @@
 #include "neogeo/db.h"
 #include "../utilities/zip_reader.h"
 #include <SDL3/SDL.h>
-#include <iostream>
-#include <sstream>
 #include <algorithm>
 
 SDLVideoDevice::SDLVideoDevice(SDL_Renderer* renderer, SDL_Texture* texture, u16 screenWidth, u16 screenHeight)
@@ -73,7 +71,7 @@ CoreType determineCoreType(const fs::path& romFilename) {
         // Check ZIP contents for GB/GBC/NES files
         util::ZipReader zip;
         if (!zip.open(romFilename)) {
-            std::cerr << "Failed to open ZIP file for inspection: " << romFilename << std::endl;
+            log_error("Failed to open ZIP file for inspection: %s", romFilename.c_str());
             return CoreType::UNKNOWN;
         }
 
@@ -106,7 +104,7 @@ CoreType determineCoreType(const fs::path& romFilename) {
             return CoreType::NEOGEO;
         }
 
-        std::cerr << "Unknown game in ZIP: " << romSetName << std::endl;
+        log_error("Unknown game in ZIP: %s", romSetName.c_str());
         return CoreType::UNKNOWN;
     }
 
@@ -130,7 +128,7 @@ bool SDLAudioDevice::initialize() {
     m_audioStream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, nullptr, nullptr);
 
     if (!m_audioStream) {
-        std::cerr << "Failed to open audio stream: " << SDL_GetError() << std::endl;
+        log_error("Failed to open audio stream: %s", SDL_GetError());
         return false;
     }
 
@@ -206,27 +204,27 @@ bool Emulator::initialize() {
             break;
         case CoreType::UNKNOWN:
         default:
-            std::cerr << "Unsupported ROM file or unknown game: " << m_romFilename << std::endl;
+            log_error("Unsupported ROM file or unknown game: %s", m_romFilename.c_str());
             return false;
     }
 
     if (!m_core) {
-        std::cerr << "Failed to create core" << std::endl;
+        log_error("Failed to create core");
         return false;
     }
 
     // Initialize core
     if (!m_core->initialize()) {
-        std::cerr << "Failed to initialize core" << std::endl;
+        log_error("Failed to initialize core");
         return false;
     }
 
     // Load bootrom if provided (optional, GB only)
     if (!m_bootromFilename.empty()) {
-        std::cout << "Loading bootrom: " << m_bootromFilename << std::endl;
+        log_info("Loading bootrom: %s", m_bootromFilename.c_str());
         m_core->loadBootrom(m_bootromFilename);
     } else if (coreType == CoreType::GB) {
-        std::cout << "No bootrom provided, starting with post-boot state" << std::endl;
+        log_info("No bootrom provided, starting with post-boot state");
     }
     
     if (!m_core->loadROM(m_romFilename)) {
@@ -246,7 +244,7 @@ bool Emulator::initialize() {
 
     // Initialize SDL
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
-        std::cerr << "Failed to initialize SDL: " << SDL_GetError() << std::endl;
+        log_error("Failed to initialize SDL: %s", SDL_GetError());
         return false;
     }
 
@@ -274,14 +272,14 @@ bool Emulator::initialize() {
     );
 
     if (!m_window) {
-        std::cerr << "Failed to create window: " << SDL_GetError() << std::endl;
+        log_error("Failed to create window: %s", SDL_GetError());
         return false;
     }
 
     // Create renderer
     m_renderer = SDL_CreateRenderer(m_window, nullptr);
     if (!m_renderer) {
-        std::cerr << "Failed to create renderer: " << SDL_GetError() << std::endl;
+        log_error("Failed to create renderer: %s", SDL_GetError());
         return false;
     }
 
@@ -298,7 +296,7 @@ bool Emulator::initialize() {
     );
 
     if (!m_texture) {
-        std::cerr << "Failed to create texture: " << SDL_GetError() << std::endl;
+        log_error("Failed to create texture: %s", SDL_GetError());
         return false;
     }
 
@@ -310,7 +308,7 @@ bool Emulator::initialize() {
 
     // Initialize audio
     if (!m_audioDevice->initialize()) {
-        std::cerr << "Warning: Failed to initialize audio" << std::endl;
+        log_error("Warning: Failed to initialize audio");
         // Continue anyway - emulator can run without audio
     }
 
@@ -324,7 +322,7 @@ bool Emulator::initialize() {
     m_core->setAudioSampleRate(Config::Audio::SampleRate);
     m_core->setAudioVolume(Config::Audio::Volume);
     
-    std::cout << "Emulator initialized successfully" << std::endl;
+    log_info("Emulator initialized successfully");
     return true;
 }
 
@@ -457,7 +455,7 @@ void Emulator::handleInput() {
                             fs::path savePath = m_romFilename;
                             savePath.replace_extension(".state");
                             if (m_core->saveState(savePath)) {
-                                std::cout << "State saved to " << savePath.string() << std::endl;
+                                log_info("State saved to %s", savePath.c_str());
                             }
                         }
                         break;
@@ -469,7 +467,7 @@ void Emulator::handleInput() {
                                 if (m_audioDevice) {
                                     m_audioDevice->clearBuffer();
                                 }
-                                std::cout << "State loaded from " << savePath.string() << std::endl;
+                                log_info("State loaded from %s", savePath.c_str());
                             }
                         }
                         break;
@@ -540,17 +538,9 @@ void Emulator::updateWindowStats() {
         std::string title = (m_core ? m_core->getGameTitle() : "") + " - ";
         
         // Add stats: FPS, Speed, Audio Buffer
-        std::ostringstream stats;
-        stats.setf(std::ios::fixed);
-        stats.precision(1);
-        stats << actualFPS
-              << " FPS | Speed: "
-              << (m_emulationSpeed * m_gameSpeed * 100.0)
-              << "% | Audio: "
-              << bufferPercent
-              << "%";
-        
-        title += stats.str();
+        char stats[50];
+        snprintf(stats, sizeof(stats), "%.1f FPS | Speed: %.1f%% | Audio: %d%%", actualFPS, m_emulationSpeed * m_gameSpeed * 100.0, bufferPercent);
+        title += stats;
         
         // Update window title
         SDL_SetWindowTitle(m_window, title.c_str());
@@ -570,5 +560,5 @@ void Emulator::updateGameSpeed(double gameSpeed) {
     if (m_core) {
         m_core->updateGameSpeed(gameSpeed);
     }
-    std::cout << "Game speed updated to " << m_gameSpeed << std::endl;
+    log_info("Game speed updated to %.1f", m_gameSpeed);
 }

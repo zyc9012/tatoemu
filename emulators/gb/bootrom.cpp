@@ -1,5 +1,5 @@
 #include "bootrom.h"
-#include <iostream>
+#include "../types.h"
 #include <algorithm>
 
 namespace gb {
@@ -18,33 +18,32 @@ Bootrom::~Bootrom() {
 bool Bootrom::load(const fs::path& filename) {
     FILE* file = fopen(filename.c_str(), "rb");
     if (!file) {
-        std::cerr << "Failed to open bootrom file: " << filename << std::endl;
+        log_error("Failed to open bootrom file: %s", filename.c_str());
         return false;
     }
     
     // Get file size
     fseek(file, 0, SEEK_END);
-    size_t size = ftell(file);
+    long size = ftell(file);
     fseek(file, 0, SEEK_SET);
     
     // Determine bootrom type based on size
     if (size == DMG_BOOTROM_SIZE) {
         m_size = DMG_BOOTROM_SIZE;
         m_isGBC = false;
-        std::cout << "Loading DMG bootrom (" << size << " bytes)" << std::endl;
+        log_info("Loading DMG bootrom (%ld bytes)", size);
     } else if (size == GBC_BOOTROM_SIZE) {
         m_size = GBC_BOOTROM_SIZE;
         m_isGBC = true;
-        std::cout << "Loading GBC bootrom (" << size << " bytes)" << std::endl;
+        log_info("Loading GBC bootrom (%ld bytes)", size);
     } else {
-        std::cerr << "Invalid bootrom size: " << size << " bytes. Expected " 
-                  << DMG_BOOTROM_SIZE << " (DMG) or " << GBC_BOOTROM_SIZE << " (GBC)" << std::endl;
+        log_error("Invalid bootrom size: %ld bytes. Expected %d (DMG) or %d (GBC)", size, DMG_BOOTROM_SIZE, GBC_BOOTROM_SIZE);
         return false;
     }
     
     // Read bootrom data
     if (!fread(m_data.data(), 1, m_size, file)) {
-        std::cerr << "Failed to read bootrom data" << std::endl;
+        log_error("Failed to read bootrom data");
         fclose(file);
         return false;
     }
@@ -53,7 +52,7 @@ bool Bootrom::load(const fs::path& filename) {
     m_loaded = true;
     m_enabled = true;
     
-    std::cout << "Bootrom loaded successfully" << std::endl;
+    log_info("Bootrom loaded successfully");
     return true;
 }
 
@@ -83,7 +82,7 @@ u8 Bootrom::read(u16 address) const {
 void Bootrom::disable() {
     if (m_enabled) {
         m_enabled = false;
-        std::cout << "Bootrom disabled" << std::endl;
+        log_info("Bootrom disabled");
     }
 }
 

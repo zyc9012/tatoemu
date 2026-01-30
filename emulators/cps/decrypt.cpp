@@ -1,6 +1,5 @@
 #include "decrypt.h"
 #include "../../types.h"
-#include <iostream>
 #include <cstring>
 
 namespace cps {

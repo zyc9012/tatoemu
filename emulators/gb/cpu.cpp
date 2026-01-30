@@ -1,6 +1,5 @@
 #include "cpu.h"
 #include "mmu.h"
-#include <iostream>
 
 namespace gb {
 
@@ -1140,7 +1139,7 @@ u32 CPU::executeInstruction(u8 opcode) {
         }
         
         default:
-            std::cerr << "Unknown opcode: 0x" << std::hex << (int)opcode << std::dec << std::endl;
+            log_error("Unknown opcode: 0x%x", opcode);
             return 4;
     }
 }

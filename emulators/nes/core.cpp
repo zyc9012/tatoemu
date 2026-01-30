@@ -1,8 +1,6 @@
 #include "core.h"
 #include "../components/buffer.h"
 #include <SDL3/SDL.h>
-#include <iostream>
-#include <sstream>
 
 namespace nes {
 

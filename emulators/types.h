@@ -14,6 +14,10 @@ using s8 = int8_t;
 using s16 = int16_t;
 using s32 = int32_t;
 
+#define log_info_nn(fmt, ...) fprintf(stdout, fmt __VA_OPT__(,) __VA_ARGS__) // no newline
+#define log_info(fmt, ...) fprintf(stdout, fmt "\n" __VA_OPT__(,) __VA_ARGS__)
+#define log_error(fmt, ...) fprintf(stderr, fmt "\n" __VA_OPT__(,) __VA_ARGS__)
+
 // AudioDevice interface for platform-specific audio output
 class AudioDevice {
     public:

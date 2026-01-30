@@ -2,7 +2,6 @@
 #include "../../types.h"
 #include "../../components/buffer.h"
 #include <ctime>
-#include <iostream>
 
 namespace neogeo {
 

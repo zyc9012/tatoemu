@@ -1,6 +1,6 @@
 // Based on MAME/FBNeo EEPROM implementation
 #include "eeprom.h"
-#include <iostream>
+#include "../../types.h"
 
 EEPROM::EEPROM()
     : m_interface(nullptr)
@@ -33,7 +33,7 @@ void EEPROM::init(const EEPROMInterface* interface)
 
     if ((1 << m_interface->address_bits) * m_interface->data_bits / 8 > MEMORY_SIZE)
     {
-        std::cerr << "error: EEPROM larger than memory allows" << std::endl;
+        log_error("error: EEPROM larger than memory allows");
         m_initialized = false;
         return;
     }
@@ -111,7 +111,7 @@ void EEPROM::processWrite(UINT32 bit)
 {
     if (m_serialCount >= SERIAL_BUFFER_LENGTH - 1)
     {
-        std::cerr << "error: EEPROM serial buffer overflow" << std::endl;
+        log_error("error: EEPROM serial buffer overflow");
         return;
     }
 
