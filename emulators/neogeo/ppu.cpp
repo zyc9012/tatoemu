@@ -576,14 +576,19 @@ void PPU::renderSpriteLine(const u8* /* tileData */, u32* palette, s32 xPos, s32
                 m_cartridge->readSpriteROM8(tileOffset + line * 8 + 7) << 24;
     
     // Render pixels with zoom
-    // For now, simplified zoom: just render based on xZoom value
     // xZoom 15 = full 16 pixels, xZoom 0 = 1 pixel
-    // TODO: Use zoom table for accurate rendering like FBNeo
     u32 pixelsToRender = xZoom + 1;
     if (pixelsToRender > 16) pixelsToRender = 16;
     
-    for (u32 px = 0; px < pixelsToRender; px++) {
-        s32 screenX = xPos + px;
+    // Evenly distribute pixels across the line
+    float pxFloat = 0.0f;
+    float step = 16.0f / pixelsToRender;
+
+    for (u32 offset = 0; offset < pixelsToRender; offset++) {
+        u32 px = static_cast<u32>(pxFloat);
+        s32 screenX = xPos + offset;
+
+        pxFloat += step;
         
         // Clip to screen bounds
         if (screenX < 0 || screenX >= static_cast<s32>(m_screenWidth)) {
