@@ -14,30 +14,6 @@ This project is just for fun. It aims to build minimal emulators that work for m
 
 - C++20 compatible compiler
 - CMake 3.20 or higher
-- SDL3 library
-
-### Installing SDL3
-
-#### macOS (using Homebrew)
-```bash
-brew install cmake sdl3
-```
-
-#### Linux (Ubuntu/Debian)
-```bash
-# You may need to build SDL3 from source
-git clone https://github.com/libsdl-org/SDL.git -b main
-cd SDL
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j$(nproc)
-sudo make install
-```
-
-#### Windows (MinGW-w64)
-```bash
-pacman -S mingw-w64-x86_64-cmake mingw-w64-x86_64-sdl3
-```
 
 ## Building
 

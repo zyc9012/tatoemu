@@ -1,6 +1,3 @@
-# Find SDL3 (Emscripten provides SDL3 via ports)
-find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3)
-
 # Include common CMakeLists configuration
 include(${CMAKE_CURRENT_SOURCE_DIR}/../CMakeLists.common.txt)
 
@@ -26,9 +23,6 @@ set(SHELL_FILE "${CMAKE_CURRENT_SOURCE_DIR}/shell.html")
 
 # Emscripten-specific settings
 set(EMSCRIPTEN_LINK_FLAGS
-    # Use SDL3 port
-    "-sUSE_SDL=3"
-    
     # Memory settings
     "-sALLOW_MEMORY_GROWTH=1"
     "-sINITIAL_MEMORY=128MB"

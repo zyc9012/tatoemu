@@ -1,15 +1,5 @@
 option(BUILD_STATIC "Build static executable." ON)
 
-if(BUILD_STATIC AND NOT APPLE)
-  find_package(SDL3
-    REQUIRED COMPONENTS SDL3-static
-    CONFIG)
-else()
-  find_package(SDL3
-    REQUIRED COMPONENTS SDL3
-    CONFIG)
-endif()
-
 # Include common CMakeLists configuration
 include(${CMAKE_CURRENT_SOURCE_DIR}/../CMakeLists.common.txt)
 
@@ -34,15 +24,12 @@ set_target_properties(tatoemu PROPERTIES
 )
 
 # Link SDL3
-if(BUILD_STATIC AND NOT APPLE)
-  target_link_libraries(tatoemu PUBLIC SDL3::SDL3-static)
+target_link_libraries(tatoemu PUBLIC SDL3::SDL3-static)
+if(WIN32)
   set_target_properties(tatoemu PROPERTIES LINK_SEARCH_END_STATIC TRUE)
-  target_link_options(tatoemu PRIVATE -static -s)
-  if(WIN32)
-    target_link_options(tatoemu PRIVATE -municode)
-  endif()
+  target_link_options(tatoemu PRIVATE -static -s -municode)
 else()
-  target_link_libraries(tatoemu PUBLIC SDL3::SDL3)
+  target_link_options(tatoemu PRIVATE -s)
 endif()
 
 # Compiler optimization flags
