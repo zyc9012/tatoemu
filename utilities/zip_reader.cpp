@@ -18,9 +18,9 @@ bool ZipReader::open(const fs::path& filename) {
     close();
     
     // Read ZIP file into memory
-    FILE* file = fopen(filename.c_str(), "rb");
+    FILE* file = fopen(filename.string().c_str(), "rb");
     if (!file) {
-        log_error("Failed to open ZIP file: %s", filename.c_str());
+        log_error("Failed to open ZIP file: %s", filename.string().c_str());
         return false;
     }
     

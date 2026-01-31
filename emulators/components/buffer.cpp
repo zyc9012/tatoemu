@@ -23,7 +23,7 @@ size_t buffer_read(Buffer* buf, void* data, size_t data_size) {
 }
 
 bool buffer_load_from_file(Buffer* buf, const std::filesystem::path& filename) {
-    FILE* file = fopen(filename.c_str(), "rb");
+    FILE* file = fopen(filename.string().c_str(), "rb");
     if (!file) return false;
 
     fseek(file, 0, SEEK_END);
@@ -37,7 +37,7 @@ bool buffer_load_from_file(Buffer* buf, const std::filesystem::path& filename) {
 }
 
 bool buffer_save_to_file(Buffer* buf, const std::filesystem::path& filename) {
-    FILE* file = fopen(filename.c_str(), "wb");
+    FILE* file = fopen(filename.string().c_str(), "wb");
     if (!file) return false;
 
     fwrite(buf->data.data(), 1, buf->data.size(), file);

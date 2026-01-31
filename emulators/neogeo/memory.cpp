@@ -755,7 +755,7 @@ void Memory::saveNVRAM() {
     fs::path nvramPath = m_romFilename;
     nvramPath.replace_extension(".sav");
 
-    FILE* file = fopen(nvramPath.c_str(), "wb");
+    FILE* file = fopen(nvramPath.string().c_str(), "wb");
     if (!file) {
         log_error("Failed to create NVRAM file: %s", nvramPath.string().c_str());
         return;
@@ -772,7 +772,7 @@ void Memory::loadNVRAM() {
     fs::path nvramPath = m_romFilename;
     nvramPath.replace_extension(".sav");
 
-    FILE* file = fopen(nvramPath.c_str(), "rb");
+    FILE* file = fopen(nvramPath.string().c_str(), "rb");
     if (!file) {
         return;
     }

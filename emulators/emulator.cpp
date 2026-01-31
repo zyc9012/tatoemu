@@ -71,7 +71,7 @@ CoreType determineCoreType(const fs::path& romFilename) {
         // Check ZIP contents for GB/GBC/NES files
         util::ZipReader zip;
         if (!zip.open(romFilename)) {
-            log_error("Failed to open ZIP file for inspection: %s", romFilename.c_str());
+            log_error("Failed to open ZIP file for inspection: %s", romFilename.string().c_str());
             return CoreType::UNKNOWN;
         }
 
@@ -204,7 +204,7 @@ bool Emulator::initialize() {
             break;
         case CoreType::UNKNOWN:
         default:
-            log_error("Unsupported ROM file or unknown game: %s", m_romFilename.c_str());
+            log_error("Unsupported ROM file or unknown game: %s", m_romFilename.string().c_str());
             return false;
     }
 
@@ -221,7 +221,7 @@ bool Emulator::initialize() {
 
     // Load bootrom if provided (optional, GB only)
     if (!m_bootromFilename.empty()) {
-        log_info("Loading bootrom: %s", m_bootromFilename.c_str());
+        log_info("Loading bootrom: %s", m_bootromFilename.string().c_str());
         m_core->loadBootrom(m_bootromFilename);
     } else if (coreType == CoreType::GB) {
         log_info("No bootrom provided, starting with post-boot state");
@@ -455,7 +455,7 @@ void Emulator::handleInput() {
                             fs::path savePath = m_romFilename;
                             savePath.replace_extension(".state");
                             if (m_core->saveState(savePath)) {
-                                log_info("State saved to %s", savePath.c_str());
+                                log_info("State saved to %s", savePath.string().c_str());
                             }
                         }
                         break;
@@ -467,7 +467,7 @@ void Emulator::handleInput() {
                                 if (m_audioDevice) {
                                     m_audioDevice->clearBuffer();
                                 }
-                                log_info("State loaded from %s", savePath.c_str());
+                                log_info("State loaded from %s", savePath.string().c_str());
                             }
                         }
                         break;

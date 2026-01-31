@@ -56,7 +56,7 @@ bool Cartridge::load(const fs::path& filename) {
         // Handle ZIP files
         util::ZipReader zip;
         if (!zip.open(filename)) {
-            log_error("Failed to open ZIP file: %s", filename.c_str());
+            log_error("Failed to open ZIP file: %s", filename.string().c_str());
             return false;
         }
 
@@ -73,9 +73,9 @@ bool Cartridge::load(const fs::path& filename) {
         log_info("Extracted %s from ZIP", romFilename.c_str());
     } else {
         // Handle regular files
-        FILE* file = fopen(filename.c_str(), "rb");
+        FILE* file = fopen(filename.string().c_str(), "rb");
         if (!file) {
-            log_error("Failed to open ROM file: %s", filename.c_str());
+            log_error("Failed to open ROM file: %s", filename.string().c_str());
             return false;
         }
 
@@ -565,11 +565,11 @@ void Cartridge::saveBattery() const {
     fs::path savePath = m_romFilename;
     savePath.replace_extension(".sav");
     
-    FILE* file = fopen(savePath.c_str(), "wb");
+    FILE* file = fopen(savePath.string().c_str(), "wb");
     if (file) {
         fwrite(m_prgRam.data(), 1, m_prgRam.size(), file);
         fclose(file);
-        log_info("Battery data saved to: %s", savePath.c_str());
+        log_info("Battery data saved to: %s", savePath.string().c_str());
     }
 }
 
@@ -581,11 +581,11 @@ void Cartridge::loadBattery() {
     fs::path savePath = m_romFilename;
     savePath.replace_extension(".sav");
     
-    FILE* file = fopen(savePath.c_str(), "rb");
+    FILE* file = fopen(savePath.string().c_str(), "rb");
     if (file) {
         fread(m_prgRam.data(), 1, m_prgRam.size(), file);
         fclose(file);
-        log_info("Battery data loaded from: %s", savePath.c_str());
+        log_info("Battery data loaded from: %s", savePath.string().c_str());
     }
 }
 

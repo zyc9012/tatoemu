@@ -16,9 +16,9 @@ Bootrom::~Bootrom() {
 }
 
 bool Bootrom::load(const fs::path& filename) {
-    FILE* file = fopen(filename.c_str(), "rb");
+    FILE* file = fopen(filename.string().c_str(), "rb");
     if (!file) {
-        log_error("Failed to open bootrom file: %s", filename.c_str());
+        log_error("Failed to open bootrom file: %s", filename.string().c_str());
         return false;
     }
     

@@ -55,7 +55,7 @@ bool Cartridge::load(const fs::path& filename, u32 bios68kIndex) {
     // Open and extract ZIP file
     util::ZipReader zip;
     if (!zip.open(filename)) {
-        log_error("Failed to open ZIP file: %s", filename.c_str());
+        log_error("Failed to open ZIP file: %s", filename.string().c_str());
         return false;
     }
     
