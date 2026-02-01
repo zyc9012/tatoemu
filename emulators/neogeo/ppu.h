@@ -168,6 +168,9 @@ private:
     TextBankMode m_textBankMode;
     std::array<u32, 40> m_bankLookupAddress;  // Column to address offset mapping
     std::array<u32, 40> m_bankLookupShift;    // Column to bit shift mapping
+
+    // Sprite bank limit for optimization
+    u32 m_maxSpriteBank;
     
     // Helper functions
     void renderFrame();
@@ -203,9 +206,8 @@ private:
     inline void plotPixel(s32 x, s32 y, u32 color);
     inline bool isPixelVisible(s32 x, s32 y) const;
     
-    // Calculate sprite tile limit for optimization
+    // Calculate sprite bank limit for optimization
     void calcSpriteBankLimit();
-    u32 m_maxSpriteBank;
 };
 
 } // namespace neogeo

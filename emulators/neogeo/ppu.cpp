@@ -402,11 +402,56 @@ void PPU::renderSprites() {
 }
 
 void PPU::calcSpriteBankLimit() {
-    // Calculate maximum sprite bank based on per-scanline sprite limits
-    // Neo Geo has a limit of ~96 sprites per scanline
-    constexpr u32 MAX_SPRITE_BANKS = 0x17d;
-    
-    m_maxSpriteBank = MAX_SPRITE_BANKS;  // No limit for now (can be optimized)
+    // Determine the highest sprite "bank" we might need to process, based on
+    // the hardware per-scanline sprite strip limit (96).
+    constexpr u32 MAX_SPRITE_BANKS = 0x17d;       // 381 sprite banks
+    constexpr u32 MAX_SPRITEBANK_LINE = 0x60;     // 96 sprite banks per scanline
+
+    u32 maxSpriteBank = 0;
+
+    // SCB2 (0x10400) contains Y position + size + chain bit.
+    // We scan visible lines (240) and count how many banks could be active.
+    s32 bankYPos = 0;
+    s32 bankSize = 0;
+
+    for (u32 yLine = 0; yLine < 240; yLine++) {
+        u32 yCount = 0;
+
+        for (u32 bank = 0; bank < MAX_SPRITE_BANKS; bank++) {
+            const u16 attrib02 = readGraphicsRAM16(0x10400 + bank * 2);
+
+            // If not chained (bit 6 clear), update Y/size for this strip.
+            // If chained, the hardware reuses the previous strip's Y/size.
+            if ((attrib02 & 0x40) == 0) {
+                bankYPos = (0x0200 - (attrib02 >> 7)) & 0x01FF;
+                bankSize = attrib02 & 0x3F;
+            }
+
+            if (bankSize == 0) {
+                continue;
+            }
+
+            const bool activeOnThisLine =
+                (bankSize >= 0x20) ||
+                (((static_cast<s32>(yLine) - bankYPos) & 0x01FF) < (bankSize << 4));
+
+            if (!activeOnThisLine) {
+                continue;
+            }
+
+            yCount++;
+
+            if (bank + 1 > maxSpriteBank) {
+                maxSpriteBank = bank + 1;
+            }
+
+            if (yCount >= MAX_SPRITEBANK_LINE) {
+                break;
+            }
+        }
+    }
+
+    m_maxSpriteBank = maxSpriteBank;
 }
 
 void PPU::renderSpriteBank(u32 bankIndex) {
