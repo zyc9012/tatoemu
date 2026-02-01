@@ -508,18 +508,18 @@ u8 Memory::readPort(u16 port) {
             // Ports 0x050-0x051: Raster line counter for IRQ line 50 (CPS2 only)
             if ((port & 0x0FE) == 0x050) {
                 if ((port & 1) == 0) {
-                    return (m_rasterIRQ50 >> 8) & 0xFF;  // High byte
+                    return ((m_rasterIRQ50 - m_ppu->getScanline()) >> 8) & 0xFF;  // High byte
                 } else {
-                    return m_rasterIRQ50 & 0xFF;          // Low byte
+                    return (m_rasterIRQ50 - m_ppu->getScanline()) & 0xFF;         // Low byte
                 }
             }
             
             // Ports 0x052-0x053: Raster line counter for IRQ line 52 (CPS2 only)
             if ((port & 0x0FE) == 0x052) {
                 if ((port & 1) == 0) {
-                    return (m_rasterIRQ52 >> 8) & 0xFF;  // High byte
+                    return ((m_rasterIRQ52 - m_ppu->getScanline()) >> 8) & 0xFF;  // High byte
                 } else {
-                    return m_rasterIRQ52 & 0xFF;          // Low byte
+                    return (m_rasterIRQ52 - m_ppu->getScanline()) & 0xFF;         // Low byte
                 }
             }
         }

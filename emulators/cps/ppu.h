@@ -17,6 +17,7 @@ class Memory;
 constexpr u32 PALETTE_RAM_SIZE = 0xC00;
 constexpr u32 VISIBLE_SCANLINES = 224;
 constexpr u32 TOTAL_SCANLINES = 262;
+constexpr u32 FIRST_VISIBLE_SCANLINE = 0x10;
 
 // Tile type constants
 enum TileType {
@@ -63,7 +64,7 @@ public:
     void setRasterLine(u32 zone, s32 scanline);
     void copyRegistersToZone(u32 zone);
     void copyFrgRegistersToZone(u32 zone);
-    s32 getRasterLineCount() const;
+    u32 getScanline() const { return m_scanline; }
     
     // Save/Load state
     void saveState(Buffer* buf);
@@ -116,6 +117,8 @@ private:
     bool m_frameComplete;
     u32 m_scanline;
     u32 m_cycles;
+    // Number of CPS2 beam-synced raster IRQs recorded this frame.
+    s32 m_rasterIrqCount;
     
     // Palette dirty flag
     bool m_paletteNeedsUpdate;
@@ -144,6 +147,9 @@ private:
     // Helper functions
     void renderFrame();
     void clearScreen();
+
+    // Process CPS2 raster interrupts
+    void processCPS2RasterInterrupts();
     
     // Palette handling
     void updatePalette();

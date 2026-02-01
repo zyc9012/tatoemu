@@ -31,6 +31,7 @@ PPU::PPU()
     , m_frameComplete(false)
     , m_scanline(0)
     , m_cycles(0)
+    , m_rasterIrqCount(0)
     , m_paletteNeedsUpdate(true)
     , m_maxZValue(1)
     , m_maxZMask(0)
@@ -75,6 +76,7 @@ void PPU::reset() {
     m_frameComplete = false;
     m_scanline = 0;
     m_cycles = 0;
+    m_rasterIrqCount = 0;
     m_paletteNeedsUpdate = true;
     
     // Reset scroll offsets
@@ -404,60 +406,16 @@ void PPU::step() {
     
     // Check if we've moved to a new scanline
     if (newScanline != m_scanline) {
-        u32 prevScanline = m_scanline;
         m_scanline = newScanline;
         
-        // CPS2: Check for raster interrupts
-        if (m_cartridge && m_cartridge->getCPSVersion() == 2 && m_memory && m_cpu) {
-            // Check IRQ line 50 (priority 4)
-            u16 rasterIRQ50 = m_memory->getRasterIRQ50();
-            if (rasterIRQ50 > 0 && rasterIRQ50 < VISIBLE_SCANLINES) {
-                // Check if we just crossed this scanline
-                if (prevScanline < rasterIRQ50 && m_scanline >= rasterIRQ50) {
-                    // Save current register state to zone 0 before IRQ
-                    copyRegistersToZone(0);
-                    copyFrgRegistersToZone(0);
-                    
-                    // Set raster line boundary (zone 1 starts here)
-                    setRasterLine(1, static_cast<s32>(rasterIRQ50));
-                    
-                    // Trigger IRQ line 50 (priority 4)
-                    m_cpu->irq(4);
-                }
-            }
-            
-            // Check IRQ line 52 (priority 6)
-            u16 rasterIRQ52 = m_memory->getRasterIRQ52();
-            if (rasterIRQ52 > 0 && rasterIRQ52 < VISIBLE_SCANLINES) {
-                // Check if we just crossed this scanline
-                if (prevScanline < rasterIRQ52 && m_scanline >= rasterIRQ52) {
-                    // Determine which zone we're entering
-                    s32 zoneNum = (rasterIRQ50 > 0 && rasterIRQ52 > rasterIRQ50) ? 2 : 1;
-                    
-                    // Save previous zone's register state
-                    copyRegistersToZone(zoneNum - 1);
-                    copyFrgRegistersToZone(zoneNum - 1);
-                    
-                    // Set raster line boundary
-                    setRasterLine(zoneNum, static_cast<s32>(rasterIRQ52));
-                    
-                    // Trigger IRQ line 52 (priority 6)
-                    m_cpu->irq(6);
-                }
-            }
+        // CPS2: Handle raster interrupts
+        if (m_cartridge && m_cartridge->getCPSVersion() == 2 && m_cpu) {
+            processCPS2RasterInterrupts();
         }
         
-        // At VBlank start (scanline 224), render the frame and trigger interrupt
-        if (m_scanline == VISIBLE_SCANLINES) {
-            // CPS2: Save final zone's register state before rendering
-            if (m_cartridge && m_cartridge->getCPSVersion() == 2) {
-                s32 lastZone = getRasterLineCount() - 1;
-                if (lastZone >= 0) {
-                    copyRegistersToZone(lastZone);
-                    copyFrgRegistersToZone(lastZone);
-                }
-            }
-            
+        // At VBlank start (scanline 224 + 16 = 240), render the frame and trigger interrupt
+        static constexpr u32 nVBlankLine = FIRST_VISIBLE_SCANLINE + VISIBLE_SCANLINES;
+        if (m_scanline == nVBlankLine) {
             renderFrame();
 
             // Trigger VBlank interrupt (priority 2)
@@ -469,10 +427,72 @@ void PPU::step() {
     
     // Check if frame is complete
     if (m_cycles >= cyclesPerFrame) {
-        m_cycles = 0;
+        m_cycles -= cyclesPerFrame;
         m_scanline = 0;
         m_frameComplete = true;
+        m_rasterIrqCount = 0;  // Reset raster IRQ count for next frame
+        
+        // Reset raster lines for next frame
+        for (s32 i = 0; i < MAX_RASTER + 2; i++) {
+            m_rasterLines[i] = 0;
+        }
     }
+}
+
+void PPU::processCPS2RasterInterrupts() {
+    // This function is called at the start of each scanline.
+    // At first visible line, copy initial register state to zone 0
+    if (m_scanline == static_cast<u32>(FIRST_VISIBLE_SCANLINE)) {
+        copyRegistersToZone(0);
+        copyFrgRegistersToZone(0);
+    }
+    
+    // Read IRQ control register (0x4E-0x4F)
+    u16 irqCtrl = (static_cast<u16>(m_cpsRegs[0x4E]) << 8) | m_cpsRegs[0x4F];
+    bool beamSyncEnabled = (irqCtrl & 0x0200) == 0;
+    
+    auto processIrq = [this, beamSyncEnabled](u8 irqLineReg) {
+        u16 irqReg = (static_cast<u16>(m_cpsRegs[irqLineReg]) << 8) | m_cpsRegs[irqLineReg + 1];
+        bool autoIrq = (irqReg & 0x8000) != 0;
+        u32 irqLine = irqReg & 0x01FF;
+
+        if ((autoIrq || beamSyncEnabled) && irqLine < TOTAL_SCANLINES) {
+            // Check if we are on the scanline for this interrupt
+            if (m_scanline == irqLine) {
+                // Trigger IRQ (level 4 for raster interrupts)
+                m_cpu->irq(4);
+    
+                // Handle auto-IRQ mode
+                if (autoIrq) {
+                    irqLine += 32;
+                    m_cpsRegs[irqLineReg] = ((irqLine >> 8) & 0x01) | 0x80;  // Preserve auto-IRQ flag
+                    m_cpsRegs[irqLineReg + 1] = irqLine & 0xFF;
+                }
+            }
+    
+            // Let CPU process the irq for one more scanline and then save registers
+            if (m_scanline == irqLine + 1) {
+                // Record raster line for this interrupt zone
+                if (irqLine >= FIRST_VISIBLE_SCANLINE) {
+                    m_rasterIrqCount++;
+                    s32 rasterLine = irqLine - FIRST_VISIBLE_SCANLINE;
+                    if (rasterLine < static_cast<s32>(VISIBLE_SCANLINES)) {
+                        setRasterLine(m_rasterIrqCount, rasterLine);
+                        copyRegistersToZone(m_rasterIrqCount);
+                        copyFrgRegistersToZone(m_rasterIrqCount);
+                    } else {
+                        setRasterLine(m_rasterIrqCount, 0);
+                    }
+                }
+            }
+        }
+    };
+
+    // Process IRQ line 50
+    processIrq(0x50);
+
+    // Process IRQ line 52
+    processIrq(0x52);
 }
 
 // ============================================================================
@@ -660,11 +680,6 @@ void PPU::renderLayersCPS2() {
     
     // Initialize Z-buffer for CPS2 sprite rendering
     initCPS2ZBuffer();
-    
-    // Ensure zone 0 has current register state
-    // (If no raster interrupts occurred, use current registers)
-    copyRegistersToZone(0);
-    copyFrgRegistersToZone(0);
     
     // Arrays to store layer info for each raster zone
     s32 draw[MAX_RASTER][4];      // Layer order for each zone
@@ -1736,16 +1751,6 @@ void PPU::copyFrgRegistersToZone(u32 zone) {
     for (u8 i = 0; i < 16; i++) {
         m_rasterFrg[zone][i] = readFrgReg8(i);
     }
-}
-
-s32 PPU::getRasterLineCount() const {
-    // Count how many active raster zones exist.
-    for (s32 i = 1; i < MAX_RASTER + 2; i++) {
-        if (m_rasterLines[i] == 0) {
-            return i;
-        }
-    }
-    return MAX_RASTER + 1;
 }
 
 } // namespace cps
