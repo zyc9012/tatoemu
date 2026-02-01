@@ -166,7 +166,7 @@ private:
     
     // Common (Scroll 2 is same for both CPS1 and CPS2)
     void renderScroll1(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine);
-    void renderScroll2(const u8* base, s32 scrollX, s32 scrollY);
+    void renderScroll2(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine);
     void renderScroll3(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine);
     
     // Tile rendering (internal)

@@ -623,7 +623,7 @@ void PPU::renderLayersCPS1() {
                             break;
                         case 2:
                             if ((drawMask & 4) && scr2Base) {
-                                renderScroll2(scr2Base, scr2X, scr2Y);
+                                renderScroll2(scr2Base, scr2X, scr2Y, 0, SCREEN_HEIGHT);
                             }
                             break;
                         case 3:
@@ -644,7 +644,7 @@ void PPU::renderLayersCPS1() {
                 
             case 2:  // Scroll 2 (16x16 tiles)
                 if ((drawMask & 4) && scr2Base) {
-                    renderScroll2(scr2Base, scr2X, scr2Y);
+                    renderScroll2(scr2Base, scr2X, scr2Y, 0, SCREEN_HEIGHT);
                 }
                 break;
                 
@@ -804,8 +804,7 @@ void PPU::renderLayersCPS2() {
                             if (drawMask[nSlice] & 4) {
                                 u8* scr2Base = findGfxRam(scr2Off, 0x4000);
                                 if (scr2Base) {
-                                    // TODO: Support scanline range for Scroll 2
-                                    renderScroll2(scr2Base, scr2X, scr2Y);
+                                    renderScroll2(scr2Base, scr2X, scr2Y, startLine, endLine);
                                 }
                             }
                             break;
@@ -921,7 +920,7 @@ void PPU::renderScroll1(const u8* base, s32 scrollX, s32 scrollY, s32 startLine,
 // Scroll 2 (16x16 tiles with optional row scroll)
 // ============================================================================
 
-void PPU::renderScroll2(const u8* base, s32 scrollX, s32 scrollY) {
+void PPU::renderScroll2(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine) {
     if (!base || m_decodedGfx.empty()) return;
 
     // Check for row scroll enable (bit 0 of register 0x22)
@@ -950,7 +949,26 @@ void PPU::renderScroll2(const u8* base, s32 scrollX, s32 scrollY) {
     s32 nXTile = SCREEN_WIDTH >> 4;   // 24 tiles
     s32 nYTile = SCREEN_HEIGHT >> 4;  // 14 tiles
 
-    for (s32 y = -1; y < nYTile; y++) {
+    u8 cpsVer = m_cartridge->getCPSVersion();
+
+    // Determine Y range: CPS1 always full screen, CPS2 uses partial scanline rendering
+    s32 yStart, yEnd;
+    if (cpsVer == 1) {
+        // CPS1: full screen rendering
+        yStart = -1;
+        yEnd = nYTile;
+    } else {
+        // CPS2: partial scanline rendering
+        s32 nFirstY = (startLine + (scrollY & 15)) >> 4;
+        s32 nLastY = (endLine + (scrollY & 15)) >> 4;
+        yStart = nFirstY - 1;
+        yEnd = nLastY;
+    }
+
+    for (s32 y = yStart; y < yEnd; y++) {
+        // Check if this row intersects with our scanline range (CPS2 only)
+        bool clipY = (cpsVer == 2) &&
+                    (((y << 4) < startLine) || (((y << 4) + 16) >= endLine));
         // Calculate row-specific scroll X for row scroll
         s32 scrollX_row = scrollX;
         if (rowScrollEnabled && rowScrollTable) {
@@ -1001,7 +1019,7 @@ void PPU::renderScroll2(const u8* base, s32 scrollX, s32 scrollY) {
             s32 py = sy + (y << 4);
             
             // Determine if clipping is needed
-            bool clipCheck = (x < 0 || x >= nXTile - 1 || y < 0 || y >= nYTile - 1);
+            bool clipCheck = (x < 0 || x >= nXTile - 1 || y < 0 || y >= nYTile - 1 || clipY);
             
             if (m_bgHiMode) {
                 // Read mask from CPS register at offset specified by maskAddr
