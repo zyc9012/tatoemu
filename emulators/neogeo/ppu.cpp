@@ -625,15 +625,29 @@ void PPU::renderSpriteLine(const u8* /* tileData */, u32* palette, s32 xPos, s32
     u32 pixelsToRender = xZoom + 1;
     if (pixelsToRender > 16) pixelsToRender = 16;
     
-    // Evenly distribute pixels across the line
-    float pxFloat = 0.0f;
-    float step = 16.0f / pixelsToRender;
+    // Evenly distribute pixels across the 16 source pixels (centered nearest-neighbor shrink).
+    static constexpr u8 pixelLookup[16][16] = {
+        /* 0  */ { 8 },
+        /* 1  */ { 4, 12 },
+        /* 2  */ { 2, 8, 13 },
+        /* 3  */ { 2, 6, 10, 14 },
+        /* 4  */ { 1, 4, 8, 11, 14 },
+        /* 5  */ { 1, 4, 6, 9, 12, 14 },
+        /* 6  */ { 1, 3, 5, 8, 10, 12, 14 },
+        /* 7  */ { 1, 3, 5, 7, 9, 11, 13, 15 },
+        /* 8  */ { 0, 2, 4, 6, 8, 9, 11, 13, 15 },
+        /* 9  */ { 0, 2, 4, 5, 7, 8, 10, 12, 13, 15 },
+        /* 10 */ { 0, 2, 3, 5, 6, 8, 9, 10, 12, 13, 15 },
+        /* 11 */ { 0, 2, 3, 4, 6, 7, 8, 10, 11, 12, 14, 15 },
+        /* 12 */ { 0, 1, 3, 4, 5, 6, 8, 9, 10, 11, 12, 14, 15 },
+        /* 13 */ { 0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15 },
+        /* 14 */ { 0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15 },
+        /* 15 */ { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
+    };
 
     for (u32 offset = 0; offset < pixelsToRender; offset++) {
-        u32 px = static_cast<u32>(pxFloat);
+        const u32 px = static_cast<u32>(pixelLookup[xZoom][offset]);
         s32 screenX = xPos + offset;
-
-        pxFloat += step;
         
         // Clip to screen bounds
         if (screenX < 0 || screenX >= static_cast<s32>(m_screenWidth)) {
