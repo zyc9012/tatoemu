@@ -36,7 +36,6 @@ PPU::PPU()
     , m_maxZMask(0)
     , m_zOffset(0)
     , m_currentZValue(0)
-    , m_currentMask(0)
     , m_bgHiMode(false)
     , m_spriteEnableMask(0xFF)
 {
@@ -45,7 +44,6 @@ PPU::PPU()
     m_palette.fill(0);
     m_cpsRegs.fill(0);
     m_rasterLines.fill(0);
-    m_maskAddr.fill(0);
     
     for (auto& regs : m_rasterRegs) {
         regs.fill(0);
@@ -74,7 +72,6 @@ void PPU::reset() {
     m_vram.fill(0);
     m_cpsRegs.fill(0);
     m_rasterLines.fill(0);
-    m_maskAddr.fill(0);
     
     m_frameComplete = false;
     m_scanline = 0;
@@ -93,7 +90,6 @@ void PPU::reset() {
     m_currentZValue = 0;
     
     // Reset masking and blending
-    m_currentMask = 0;
     m_bgHiMode = false;
     m_spriteEnableMask = 0xFF;
     
@@ -616,7 +612,28 @@ void PPU::renderLayersCPS1() {
                 if (drawMask & 1) {
                     renderSpritesCPS1();
                 }
-                // TODO: BgHi masking - render next layer with masking enabled
+
+                if (i + 1 < 4) {
+                    m_bgHiMode = true;
+                    switch (draw[i + 1]) {
+                        case 1:
+                            if ((drawMask & 2) && scr1Base) {
+                                renderScroll1(scr1Base, scr1X, scr1Y, 0, SCREEN_HEIGHT);
+                            }
+                            break;
+                        case 2:
+                            if ((drawMask & 4) && scr2Base) {
+                                renderScroll2(scr2Base, scr2X, scr2Y);
+                            }
+                            break;
+                        case 3:
+                            if ((drawMask & 8) && scr3Base) {
+                                renderScroll3(scr3Base, scr3X, scr3Y, 0, SCREEN_HEIGHT);
+                            }
+                            break;
+                    }
+                    m_bgHiMode = false;
+                }
                 break;
                 
             case 1:  // Scroll 1 (8x8 tiles)
@@ -885,8 +902,17 @@ void PPU::renderScroll1(const u8* base, s32 scrollX, s32 scrollY, s32 startLine,
             
             // Determine if clipping is needed
             bool clipCheck = (x < 0 || x >= nXTile - 1 || y < 0 || y >= nYTile - 1 || clipY);
-            
-            drawTile8x8(px, py, tileAddr, palette, flip, clipCheck, 0);
+
+            if (m_bgHiMode) {
+                // Read mask from CPS register at offset specified by maskAddr
+                u8 maskReg = m_boardConfig.maskAddr[(attrib & 0x180) >> 7];
+                u16 mask = (static_cast<u16>(m_cpsRegs[maskReg]) << 8) | m_cpsRegs[maskReg + 1];
+                if (mask != 0) {
+                    drawTile8x8(px, py, tileAddr, palette, flip, clipCheck, mask);
+                }
+            } else {
+                drawTile8x8(px, py, tileAddr, palette, flip, clipCheck, 0);
+            }
         }
     }
 }
@@ -977,7 +1003,17 @@ void PPU::renderScroll2(const u8* base, s32 scrollX, s32 scrollY) {
             // Determine if clipping is needed
             bool clipCheck = (x < 0 || x >= nXTile - 1 || y < 0 || y >= nYTile - 1);
             
-            drawTile16x16(px, py, tileAddr, palette, flip, clipCheck);
+            if (m_bgHiMode) {
+                // Read mask from CPS register at offset specified by maskAddr
+                u8 maskReg = m_boardConfig.maskAddr[(attrib & 0x180) >> 7];
+                u16 mask = (static_cast<u16>(m_cpsRegs[maskReg]) << 8) | m_cpsRegs[maskReg + 1];
+                if (mask != 0) {
+                    drawTile16x16(px, py, tileAddr, palette, flip, clipCheck, mask);
+                }
+            } else {
+                drawTile16x16(px, py, tileAddr, palette, flip, clipCheck, 0);
+            }
+            
         }
     }
 }
@@ -1057,7 +1093,16 @@ void PPU::renderScroll3(const u8* base, s32 scrollX, s32 scrollY, s32 startLine,
             // Determine if clipping is needed
             bool clipCheck = (x < 0 || x >= nXTile - 1 || y < 0 || y >= nYTile - 1 || clipY);
             
-            drawTile32x32(px, py, tileAddr, palette, flip, clipCheck, 0);
+            if (m_bgHiMode) {
+                // Read mask from CPS register at offset specified by maskAddr
+                u8 maskReg = m_boardConfig.maskAddr[(attrib & 0x180) >> 7];
+                u16 mask = (static_cast<u16>(m_cpsRegs[maskReg]) << 8) | m_cpsRegs[maskReg + 1];
+                if (mask != 0) {
+                    drawTile32x32(px, py, tileAddr, palette, flip, clipCheck, mask);
+                }
+            } else {
+                drawTile32x32(px, py, tileAddr, palette, flip, clipCheck, 0);
+            }
         }
     }
 }
@@ -1293,7 +1338,7 @@ void PPU::renderSpritesCPS2(s32 levelFrom, s32 levelTo) {
                                   py + 16 > SCREEN_HEIGHT);
                 
                 // Draw with Z-buffer support
-                drawTile16x16(px, py, tileAddr, palette, flip, clipCheck, true);
+                drawTile16x16(px, py, tileAddr, palette, flip, clipCheck, 0, true);
             }
         }
         
@@ -1375,11 +1420,11 @@ void PPU::drawTile8x8(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool cl
                 // Extract from low nibble first for flipped
                 u8 c = (pix >> (tx * 4)) & 0x0F;
                 
-                // Check mask bit if masking enabled
-                bool masked = mask && !(mask & (1 << tx));
-                
-                if (c && !masked && (!clipCheck || isPixelVisible(px, py))) {
-                    plotPixel(px, py, pal[c]);
+                // Draw: if no mask draw all, if mask only draw where bit is SET
+                if (c && (!clipCheck || isPixelVisible(px, py))) {
+                    if (mask == 0 || (mask & (1 << (c ^ 15)))) {
+                        plotPixel(px, py, pal[c]);
+                    }
                 }
             }
         } else {
@@ -1389,18 +1434,18 @@ void PPU::drawTile8x8(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool cl
                 s32 px = x + tx;
                 u8 c = (pix >> ((7 - tx) * 4)) & 0x0F;
                 
-                // Check mask bit if masking enabled
-                bool masked = mask && !(mask & (1 << tx));
-                
-                if (c && !masked && (!clipCheck || isPixelVisible(px, py))) {
-                    plotPixel(px, py, pal[c]);
+                // Draw: if no mask draw all, if mask only draw where bit is SET
+                if (c && (!clipCheck || isPixelVisible(px, py))) {
+                    if (mask == 0 || (mask & (1 << (c ^ 15)))) {
+                        plotPixel(px, py, pal[c]);
+                    }
                 }
             }
         }
     }
 }
 
-void PPU::drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, bool useZ) {
+void PPU::drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, u16 mask, bool useZ) {
     tileAddr &= m_gfxMask;
     if (tileAddr >= m_gfxLen) return;
     
@@ -1441,17 +1486,23 @@ void PPU::drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool 
                 s32 px = x + tx;
                 u8 c = (pix1 >> (tx * 4)) & 0x0F;
                 
+                // Draw: if no mask draw all, if mask only draw where bit is SET
                 if (c && (!clipCheck || isPixelVisible(px, py))) {
-                    plotFunc(px, py, pal[c]);
+                    if (mask == 0 || (mask & (1 << (c ^ 15)))) {
+                        plotFunc(px, py, pal[c]);
+                    }
                 }
             }
             // Draw first word's pixels reversed
             for (s32 tx = 0; tx < 8; tx++) {
                 s32 px = x + 8 + tx;
                 u8 c = (pix0 >> (tx * 4)) & 0x0F;
-                
+
+                // Draw: if no mask draw all, if mask only draw where bit is SET
                 if (c && (!clipCheck || isPixelVisible(px, py))) {
-                    plotFunc(px, py, pal[c]);
+                    if (mask == 0 || (mask & (1 << (c ^ 15)))) {
+                        plotFunc(px, py, pal[c]);
+                    }
                 }
             }
         } else {
@@ -1464,8 +1515,11 @@ void PPU::drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool 
                 s32 px = x + tx;
                 u8 c = (pix0 >> ((7 - tx) * 4)) & 0x0F;
                 
+                // Draw: if no mask draw all, if mask only draw where bit is SET
                 if (c && (!clipCheck || isPixelVisible(px, py))) {
-                    plotFunc(px, py, pal[c]);
+                    if (mask == 0 || (mask & (1 << (c ^ 15)))) {
+                        plotFunc(px, py, pal[c]);
+                    }
                 }
             }
             // Draw second word (pixels 8-15)
@@ -1473,8 +1527,11 @@ void PPU::drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool 
                 s32 px = x + 8 + tx;
                 u8 c = (pix1 >> ((7 - tx) * 4)) & 0x0F;
                 
+                // Draw: if no mask draw all, if mask only draw where bit is SET
                 if (c && (!clipCheck || isPixelVisible(px, py))) {
-                    plotFunc(px, py, pal[c]);
+                    if (mask == 0 || (mask & (1 << (c ^ 15)))) {
+                        plotFunc(px, py, pal[c]);
+                    }
                 }
             }
         }
@@ -1513,12 +1570,11 @@ void PPU::drawTile32x32(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool 
                     // Reverse pixel order within word
                     u8 c = (pix >> (tx * 4)) & 0x0F;
                     
-                    // Check mask if enabled
-                    s32 pixelIndex = (w * 8) + tx;
-                    bool masked = mask && !(mask & (1 << pixelIndex));
-                    
-                    if (c && !masked && (!clipCheck || isPixelVisible(px, py))) {
-                        plotPixel(px, py, pal[c]);
+                    // Draw: if no mask draw all, if mask only draw where bit is SET
+                    if (c && (!clipCheck || isPixelVisible(px, py))) {
+                        if (mask == 0 || (mask & (1 << (c ^ 15)))) {
+                            plotPixel(px, py, pal[c]);
+                        }
                     }
                 }
             }
@@ -1530,12 +1586,11 @@ void PPU::drawTile32x32(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool 
                     s32 px = x + (w * 8) + tx;
                     u8 c = (pix >> ((7 - tx) * 4)) & 0x0F;
                     
-                    // Check mask if enabled
-                    s32 pixelIndex = (w * 8) + tx;
-                    bool masked = mask && !(mask & (1 << pixelIndex));
-                    
-                    if (c && !masked && (!clipCheck || isPixelVisible(px, py))) {
-                        plotPixel(px, py, pal[c]);
+                    // Draw: if no mask draw all, if mask only draw where bit is SET
+                    if (c && (!clipCheck || isPixelVisible(px, py))) {
+                        if (mask == 0 || (mask & (1 << (c ^ 15)))) {
+                            plotPixel(px, py, pal[c]);
+                        }
                     }
                 }
             }

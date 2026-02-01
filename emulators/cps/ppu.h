@@ -134,8 +134,6 @@ private:
     std::array<std::array<u8, 16>, MAX_RASTER> m_rasterFrg;    // CpsSaveFrg per zone
     
     // CPS1 tile masking (BgHi mode)
-    std::array<u32, 4> m_maskAddr;
-    u16 m_currentMask;
     bool m_bgHiMode;
     
     // CPS2 sprite enable mask (8 bits for 8 priority levels)
@@ -173,7 +171,7 @@ private:
     
     // Tile rendering (internal)
     void drawTile8x8(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, u16 mask = 0);
-    void drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, bool useZ = false);
+    void drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, u16 mask = 0, bool useZ = false);
     void drawTile32x32(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, u16 mask = 0);
     
     // Pixel plotting
