@@ -264,7 +264,7 @@ void APU::saveState(Buffer* buf) {
     buffer_write(buf, &m_cyclesPerSample, sizeof(m_cyclesPerSample));
     buffer_write(buf, &m_ym2151RegSelect, sizeof(m_ym2151RegSelect));
 
-    if (m_cartridge->getCPSVersion() == 1) {
+    if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
         // Save YM2151 state
         YM2151SaveContext(buf);
         // Save MSM6295 state
@@ -282,7 +282,7 @@ void APU::loadState(Buffer* buf) {
     buffer_read(buf, &m_cyclesPerSample, sizeof(m_cyclesPerSample));
     buffer_read(buf, &m_ym2151RegSelect, sizeof(m_ym2151RegSelect));
 
-    if (m_cartridge->getCPSVersion() == 1) {
+    if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
         // Load YM2151 state
         YM2151LoadContext(buf);
         // Load MSM6295 state
