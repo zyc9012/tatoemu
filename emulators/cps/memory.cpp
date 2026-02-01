@@ -68,9 +68,7 @@ Memory::Memory()
     , m_soundCommand(0)
     , m_soundFade(0)
     , m_qscCmd{0, 0}
-    , m_n664001(0)
-    , m_rasterIRQ50(0)
-    , m_rasterIRQ52(0) {
+    , m_n664001(0) {
 }
 
 u8 Memory::getCPSVersion() const {
@@ -124,8 +122,6 @@ void Memory::reset() {
     m_objRam.fill(0);
     m_frgRegs.fill(0);
     m_n664001 = 0;
-    m_rasterIRQ50 = 0;
-    m_rasterIRQ52 = 0;
     m_qscCmd[0] = 0;
     m_qscCmd[1] = 0;
     
@@ -508,18 +504,22 @@ u8 Memory::readPort(u16 port) {
             // Ports 0x050-0x051: Raster line counter for IRQ line 50 (CPS2 only)
             if ((port & 0x0FE) == 0x050) {
                 if ((port & 1) == 0) {
-                    return ((m_rasterIRQ50 - m_ppu->getScanline()) >> 8) & 0xFF;  // High byte
+                    u16 irqReg = m_ppu->readRegister16(0x50);
+                    return ((irqReg - m_ppu->getScanline()) >> 8) & 0xFF;  // High byte
                 } else {
-                    return (m_rasterIRQ50 - m_ppu->getScanline()) & 0xFF;         // Low byte
+                    u16 irqReg = m_ppu->readRegister16(0x50);
+                    return (irqReg - m_ppu->getScanline()) & 0xFF;         // Low byte
                 }
             }
             
             // Ports 0x052-0x053: Raster line counter for IRQ line 52 (CPS2 only)
             if ((port & 0x0FE) == 0x052) {
                 if ((port & 1) == 0) {
-                    return ((m_rasterIRQ52 - m_ppu->getScanline()) >> 8) & 0xFF;  // High byte
+                    u16 irqReg = m_ppu->readRegister16(0x52);
+                    return ((irqReg - m_ppu->getScanline()) >> 8) & 0xFF;  // High byte
                 } else {
-                    return (m_rasterIRQ52 - m_ppu->getScanline()) & 0xFF;         // Low byte
+                    u16 irqReg = m_ppu->readRegister16(0x52);
+                    return (irqReg - m_ppu->getScanline()) & 0xFF;         // Low byte
                 }
             }
         }
@@ -629,30 +629,6 @@ void Memory::writePort(u16 port, u8 value) {
         if ((port & 0x1FF) == 0x0E1) {
             m_objectBank = value & 1;
             return;
-        }
-        
-        if (port >= 0x0100 && port < 0x0200) {
-            // Ports 0x050-0x051: Raster line register for IRQ line 50 (CPS2 only)
-            if ((port & 0x0FE) == 0x050) {
-                if ((port & 1) == 0) {
-                    // High byte
-                    m_rasterIRQ50 = (m_rasterIRQ50 & 0x00FF) | (static_cast<u16>(value) << 8);
-                } else {
-                    // Low byte
-                    m_rasterIRQ50 = (m_rasterIRQ50 & 0xFF00) | value;
-                }
-            }
-            
-            // Ports 0x052-0x053: Raster line register for IRQ line 52 (CPS2 only)
-            if ((port & 0x0FE) == 0x052) {
-                if ((port & 1) == 0) {
-                    // High byte
-                    m_rasterIRQ52 = (m_rasterIRQ52 & 0x00FF) | (static_cast<u16>(value) << 8);
-                } else {
-                    // Low byte
-                    m_rasterIRQ52 = (m_rasterIRQ52 & 0xFF00) | value;
-                }
-            }
         }
     } else {
         if (m_cartridge && m_cartridge->isCPS1QSound()) {

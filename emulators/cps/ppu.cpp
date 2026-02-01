@@ -194,6 +194,10 @@ u8 PPU::readRegister8(u8 reg) {
     return m_cpsRegs[reg];
 }
 
+u16 PPU::readRegister16(u8 reg) {
+    return (static_cast<u16>(m_cpsRegs[reg]) << 8) | m_cpsRegs[reg + 1];
+}
+
 void PPU::writeRegister8(u8 reg, u8 value) {
     m_cpsRegs[reg] = value;
 }

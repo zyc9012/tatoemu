@@ -58,6 +58,7 @@ public:
     
     // CPS Register access
     u8 readRegister8(u8 reg);
+    u16 readRegister16(u8 reg);
     void writeRegister8(u8 reg, u8 value);
     
     // CPS2 Raster interrupt control
