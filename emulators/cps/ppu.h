@@ -136,9 +136,6 @@ private:
     // CPS1 tile masking (BgHi mode)
     bool m_bgHiMode;
     
-    // CPS2 sprite enable mask (8 bits for 8 priority levels)
-    u8 m_spriteEnableMask;
-
     // Game specific hacks
     bool m_is_xmcota;
     bool m_is_ssf2;

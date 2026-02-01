@@ -37,7 +37,6 @@ PPU::PPU()
     , m_zOffset(0)
     , m_currentZValue(0)
     , m_bgHiMode(false)
-    , m_spriteEnableMask(0xFF)
 {
     m_frameBuffer.fill(0);
     m_vram.fill(0);
@@ -91,7 +90,6 @@ void PPU::reset() {
     
     // Reset masking and blending
     m_bgHiMode = false;
-    m_spriteEnableMask = 0xFF;
     
     // Reset raster zones (default: single zone covering whole screen)
     m_rasterLines[0] = 0;        // Zone 0 starts at scanline 0
@@ -1267,6 +1265,7 @@ void PPU::renderSpritesCPS2(s32 levelFrom, s32 levelTo) {
     // Iterate through sprites
     // Sprites are processed in order (not reversed like CPS1)
     m_currentZValue = static_cast<u16>(m_maxZValue);
+    bool higherPriorityFound = false;  // Track if we've encountered sprites with higher priority
     
     for (s32 i = 0; i < spriteEnd; i++) {
         u32 sprAddr = i * 8;
@@ -1280,14 +1279,15 @@ void PPU::renderSpritesCPS2(s32 levelFrom, s32 levelTo) {
         // Get sprite priority from bits [15:13] of xData
         u32 priority = (xData >> 13) & 7;
         
-        // Check if sprite priority is in our rendering range
-        if (static_cast<s32>(priority) < levelFrom || static_cast<s32>(priority) > levelTo) {
+        // Check if sprite priority is above our rendering range
+        if (static_cast<s32>(priority) > levelTo) {
+            higherPriorityFound = true;  // Mark that higher priority sprites exist
             m_currentZValue++;
             continue;
         }
         
-        // Check if this priority level is enabled
-        if ((m_spriteEnableMask & (1 << priority)) == 0) {
+        // Check if sprite priority is below our rendering range
+        if (static_cast<s32>(priority) < levelFrom) {
             m_currentZValue++;
             continue;
         }
@@ -1298,8 +1298,16 @@ void PPU::renderSpritesCPS2(s32 levelFrom, s32 levelTo) {
             continue;
         }
         
-        // Update Z-buffer tracking
-        m_maxZValue = m_currentZValue;
+        // Update Z-buffer tracking based on whether higher priority sprites exist
+        if (higherPriorityFound) {
+            m_maxZMask = m_currentZValue;
+        } else {
+            m_maxZValue = m_currentZValue;
+        }
+        
+        // Determine if we should use Z-buffer masking for this sprite
+        // Use Z-buffer if: we found higher priority sprites OR mask value exceeds normal value
+        bool useZBuffer = higherPriorityFound || (m_maxZMask > m_maxZValue);
         
         // Get sprite size
         s32 bx = ((attrib >> 8) & 15) + 1;
@@ -1355,8 +1363,8 @@ void PPU::renderSpritesCPS2(s32 levelFrom, s32 levelTo) {
                                   px + 16 > SCREEN_WIDTH || 
                                   py + 16 > SCREEN_HEIGHT);
                 
-                // Draw with Z-buffer support
-                drawTile16x16(px, py, tileAddr, palette, flip, clipCheck, 0, true);
+                // Draw with Z-buffer support if needed
+                drawTile16x16(px, py, tileAddr, palette, flip, clipCheck, 0, useZBuffer);
             }
         }
         
