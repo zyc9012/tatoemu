@@ -17,6 +17,13 @@ class Cartridge;
 // Bank 1: 0x10000-0x1FFFF (sprite control blocks SCB2/3/4)
 constexpr u32 GRAPHICS_RAM_SIZE = 0x20000;
 
+// Text layer bank switching cache (calculated once at init)
+enum class TextBankMode {
+    NONE,              // No bank switching (text ROM <= 256KB)
+    STANDARD,          // Standard mode
+    ALTERNATE          // Alternate mode (KOF2000, KOF2003, SVC Chaos)
+};
+
 // PPU (Picture Processing Unit)
 // Handles all video rendering for Neo Geo: sprites and text layer
 class PPU {
@@ -159,12 +166,6 @@ private:
     u32 m_sliceStart;
     u32 m_sliceEnd;
     
-    // Text layer bank switching cache (calculated once at init)
-    enum class TextBankMode {
-        NONE,              // No bank switching (text ROM <= 256KB)
-        STANDARD,          // Standard mode
-        ALTERNATE          // Alternate mode (KOF2000, KOF2003, SVC Chaos)
-    };
     TextBankMode m_textBankMode;
     std::array<u32, 40> m_bankLookupAddress;  // Column to address offset mapping
     std::array<u32, 40> m_bankLookupShift;    // Column to bit shift mapping
