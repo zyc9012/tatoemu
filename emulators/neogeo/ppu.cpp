@@ -235,10 +235,7 @@ void PPU::step() {
 
             // Update sprite frame timing
             updateSpriteFrame();
-        }
-        
-        // VBlank starts at scanline 224
-        if (m_scanline == VISIBLE_SCANLINES) {
+
             // Trigger VBlank interrupt
             if (m_cpu) {
                 m_cpu->irq(1);  // VBlank is IRQ level 1
