@@ -554,8 +554,7 @@ void Cartridge::processSWAPCRom() {
     const u32 WORD_COUNT = 0x100000;          // 0x100000 16-bit words = 0x200000 bytes per region
     
     if (m_spriteRom.size() < BUFFER_END) {
-        // Not enough sprite ROM for SWAPC
-        return;
+        m_spriteRom.resize(BUFFER_END);
     }
     
     // Allocate temporary buffer (0x600000 - 0x200000 = 0x400000 bytes)
