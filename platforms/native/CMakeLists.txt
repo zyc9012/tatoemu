@@ -33,6 +33,19 @@ set_target_properties(tatoemu PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 
+# Embed Windows icon into the output binary
+if(WIN32)
+  set(TATOEMU_ICO_PATH "${CMAKE_SOURCE_DIR}/platforms/native/tatoemu.ico")
+  if(EXISTS "${TATOEMU_ICO_PATH}")
+    configure_file(
+      "${CMAKE_CURRENT_LIST_DIR}/tatoemu.rc.in"
+      "${CMAKE_CURRENT_BINARY_DIR}/tatoemu.rc"
+      @ONLY
+    )
+    target_sources(tatoemu PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/tatoemu.rc")
+  endif()
+endif()
+
 # Link SDL3
 if(BUILD_STATIC AND NOT APPLE)
   target_link_libraries(tatoemu PUBLIC SDL3::SDL3-static)
