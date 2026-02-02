@@ -1,6 +1,7 @@
 #include "emulator.h"
 #include "config.h"
 #include "neogeo/config.h"
+#include "configfile.h"
 #include <string>
 #include <cstdlib>
 #include <filesystem>
@@ -47,6 +48,8 @@ int main(int argc, char* argv[]) {
         log_info("  --neo-bios <index>    NeoGeo BIOS index: 0 ~ 34 (default: %d)", static_cast<int>(neogeo::Config::BiosIndex));
         return 1;
     }
+
+    loadConfigFile(argv[0]);
 
     fs::path romFile;
     fs::path bootromFile;

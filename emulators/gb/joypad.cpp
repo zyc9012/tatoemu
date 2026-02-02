@@ -30,35 +30,33 @@ bool Joypad::handleInput(SDL_Event& event) {
         case SDL_EVENT_KEY_DOWN:
         case SDL_EVENT_KEY_UP: {
             bool pressed = event.type == SDL_EVENT_KEY_DOWN;
-            switch (event.key.key) {
-                case Config::Key::BUTTON_A: // A button
-                    handleButton(BUTTON_A, pressed);
-                    return true;
-                case Config::Key::BUTTON_B: // B button
-                    handleButton(BUTTON_B, pressed);
-                    return true;
-                case Config::Key::START: // Start
-                    handleButton(BUTTON_START, pressed);
-                    return true;
-                case Config::Key::SELECT_PRIMARY: // Select
-                case Config::Key::SELECT_SECONDARY:
-                    handleButton(BUTTON_SELECT, pressed);
-                    return true;
-                case Config::Key::DPAD_UP:
-                    handleButton(BUTTON_UP, pressed);
-                    return true;
-                case Config::Key::DPAD_DOWN:
-                    handleButton(BUTTON_DOWN, pressed);
-                    return true;
-                case Config::Key::DPAD_LEFT:
-                    handleButton(BUTTON_LEFT, pressed);
-                    return true;
-                case Config::Key::DPAD_RIGHT:
-                    handleButton(BUTTON_RIGHT, pressed);
-                    return true;
-                default:
-                    return false;
+            const SDL_Keycode key = event.key.key;
+            if (key == Config::Key::ButtonA) { // A button
+                handleButton(BUTTON_A, pressed);
+                return true;
+            } else if (key == Config::Key::ButtonB) { // B button
+                handleButton(BUTTON_B, pressed);
+                return true;
+            } else if (key == Config::Key::Start) { // Start
+                handleButton(BUTTON_START, pressed);
+                return true;
+            } else if (key == Config::Key::SelectPrimary || key == Config::Key::SelectSecondary) { // Select
+                handleButton(BUTTON_SELECT, pressed);
+                return true;
+            } else if (key == Config::Key::DpadUp) {
+                handleButton(BUTTON_UP, pressed);
+                return true;
+            } else if (key == Config::Key::DpadDown) {
+                handleButton(BUTTON_DOWN, pressed);
+                return true;
+            } else if (key == Config::Key::DpadLeft) {
+                handleButton(BUTTON_LEFT, pressed);
+                return true;
+            } else if (key == Config::Key::DpadRight) {
+                handleButton(BUTTON_RIGHT, pressed);
+                return true;
             }
+            return false;
         }
     }
     return false;

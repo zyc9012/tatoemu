@@ -15,12 +15,12 @@ namespace Audio {
 }
 
 namespace Key {
-    constexpr SDL_Keycode QUIT = SDLK_ESCAPE;
-    constexpr SDL_Keycode SAVE_STATE = SDLK_F5;
-    constexpr SDL_Keycode LOAD_STATE = SDLK_F9;
-    constexpr SDL_Keycode PAUSE = SDLK_P;
-    constexpr SDL_Keycode GAME_SPEED_UP = SDLK_EQUALS;
-    constexpr SDL_Keycode GAME_SPEED_DOWN = SDLK_MINUS;
+    inline SDL_Keycode Quit = SDLK_ESCAPE;
+    inline SDL_Keycode SaveState = SDLK_F5;
+    inline SDL_Keycode LoadState = SDLK_F9;
+    inline SDL_Keycode Pause = SDLK_P;
+    inline SDL_Keycode GameSpeedUp = SDLK_EQUALS;
+    inline SDL_Keycode GameSpeedDown = SDLK_MINUS;
 }
 
 } // namespace Config

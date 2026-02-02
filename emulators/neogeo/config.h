@@ -9,33 +9,33 @@ namespace neogeo {
 namespace Config {
 namespace Key {
     // NeoGeo arcade controls (4-button layout)
-    constexpr SDL_Keycode P1_UP = SDLK_UP;
-    constexpr SDL_Keycode P1_DOWN = SDLK_DOWN;
-    constexpr SDL_Keycode P1_LEFT = SDLK_LEFT;
-    constexpr SDL_Keycode P1_RIGHT = SDLK_RIGHT;
-    constexpr SDL_Keycode P1_BUTTON_A = SDLK_A;
-    constexpr SDL_Keycode P1_BUTTON_B = SDLK_S;
-    constexpr SDL_Keycode P1_BUTTON_C = SDLK_D;
-    constexpr SDL_Keycode P1_BUTTON_D = SDLK_F;
+    inline SDL_Keycode P1_Up = SDLK_UP;
+    inline SDL_Keycode P1_Down = SDLK_DOWN;
+    inline SDL_Keycode P1_Left = SDLK_LEFT;
+    inline SDL_Keycode P1_Right = SDLK_RIGHT;
+    inline SDL_Keycode P1_ButtonA = SDLK_A;
+    inline SDL_Keycode P1_ButtonB = SDLK_S;
+    inline SDL_Keycode P1_ButtonC = SDLK_D;
+    inline SDL_Keycode P1_ButtonD = SDLK_F;
     
-    constexpr SDL_Keycode P2_UP = SDLK_KP_8;
-    constexpr SDL_Keycode P2_DOWN = SDLK_KP_5;
-    constexpr SDL_Keycode P2_LEFT = SDLK_KP_4;
-    constexpr SDL_Keycode P2_RIGHT = SDLK_KP_6;
-    constexpr SDL_Keycode P2_BUTTON_A = SDLK_J;
-    constexpr SDL_Keycode P2_BUTTON_B = SDLK_K;
-    constexpr SDL_Keycode P2_BUTTON_C = SDLK_L;
-    constexpr SDL_Keycode P2_BUTTON_D = SDLK_SEMICOLON;
+    inline SDL_Keycode P2_Up = SDLK_KP_8;
+    inline SDL_Keycode P2_Down = SDLK_KP_5;
+    inline SDL_Keycode P2_Left = SDLK_KP_4;
+    inline SDL_Keycode P2_Right = SDLK_KP_6;
+    inline SDL_Keycode P2_ButtonA = SDLK_J;
+    inline SDL_Keycode P2_ButtonB = SDLK_K;
+    inline SDL_Keycode P2_ButtonC = SDLK_L;
+    inline SDL_Keycode P2_ButtonD = SDLK_SEMICOLON;
     
-    constexpr SDL_Keycode P1_COIN = SDLK_5;
-    constexpr SDL_Keycode P2_COIN = SDLK_6;
-    constexpr SDL_Keycode P1_START = SDLK_1;
-    constexpr SDL_Keycode P2_START = SDLK_2;
-    constexpr SDL_Keycode P1_SELECT = SDLK_3;
-    constexpr SDL_Keycode P2_SELECT = SDLK_4;
+    inline SDL_Keycode P1_Coin = SDLK_5;
+    inline SDL_Keycode P2_Coin = SDLK_6;
+    inline SDL_Keycode P1_Start = SDLK_1;
+    inline SDL_Keycode P2_Start = SDLK_2;
+    inline SDL_Keycode P1_Select = SDLK_3;
+    inline SDL_Keycode P2_Select = SDLK_4;
 
-    constexpr SDL_Keycode TEST = SDLK_F2;
-    constexpr SDL_Keycode SERVICE = SDLK_F3;
+    inline SDL_Keycode Test = SDLK_F2;
+    inline SDL_Keycode Service = SDLK_F3;
 }
 
 // Default to MVS

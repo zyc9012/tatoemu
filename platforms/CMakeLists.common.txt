@@ -72,6 +72,7 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/components/buffer.cpp
     ${CMAKE_SOURCE_DIR}/emulators/emulator.cpp
     ${CMAKE_SOURCE_DIR}/utilities/zip_reader.cpp
+    ${CMAKE_SOURCE_DIR}/utilities/inih/ini.c
     ${CMAKE_SOURCE_DIR}/utilities/miniz/miniz.c
 )
 
@@ -146,6 +147,7 @@ function(apply_common_target_settings target_name)
     # Add C source files and compile them as C
     set_source_files_properties(
         ${CMAKE_SOURCE_DIR}/utilities/miniz/miniz.c
+        ${CMAKE_SOURCE_DIR}/utilities/inih/ini.c
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kcpu.c
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kops.c
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kcb.c

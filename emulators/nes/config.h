@@ -8,15 +8,15 @@ namespace nes {
 namespace Config {
 namespace Key {
     // NES controller mapping
-    constexpr SDL_Keycode BUTTON_A = SDLK_Z;
-    constexpr SDL_Keycode BUTTON_B = SDLK_X;
-    constexpr SDL_Keycode START = SDLK_RETURN;
-    constexpr SDL_Keycode SELECT_PRIMARY = SDLK_RSHIFT;
-    constexpr SDL_Keycode SELECT_SECONDARY = SDLK_LSHIFT;
-    constexpr SDL_Keycode DPAD_UP = SDLK_UP;
-    constexpr SDL_Keycode DPAD_DOWN = SDLK_DOWN;
-    constexpr SDL_Keycode DPAD_LEFT = SDLK_LEFT;
-    constexpr SDL_Keycode DPAD_RIGHT = SDLK_RIGHT;
+    inline SDL_Keycode ButtonA = SDLK_Z;
+    inline SDL_Keycode ButtonB = SDLK_X;
+    inline SDL_Keycode Start = SDLK_RETURN;
+    inline SDL_Keycode SelectPrimary = SDLK_RSHIFT;
+    inline SDL_Keycode SelectSecondary = SDLK_LSHIFT;
+    inline SDL_Keycode DpadUp = SDLK_UP;
+    inline SDL_Keycode DpadDown = SDLK_DOWN;
+    inline SDL_Keycode DpadLeft = SDLK_LEFT;
+    inline SDL_Keycode DpadRight = SDLK_RIGHT;
 }
 
 } // namespace Config

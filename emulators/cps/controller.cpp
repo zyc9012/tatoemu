@@ -123,88 +123,87 @@ bool Controller::handleInput(SDL_Event& event) {
         case SDL_EVENT_KEY_DOWN:
         case SDL_EVENT_KEY_UP: {
             bool pressed = event.type == SDL_EVENT_KEY_DOWN;
-            switch (event.key.key) {
-                case Config::Key::P1_UP:
-                    handleButton(1, BUTTON_UP, pressed);
-                    return true;
-                case Config::Key::P1_DOWN:
-                    handleButton(1, BUTTON_DOWN, pressed);
-                    return true;
-                case Config::Key::P1_LEFT:
-                    handleButton(1, BUTTON_LEFT, pressed);
-                    return true;
-                case Config::Key::P1_RIGHT:
-                    handleButton(1, BUTTON_RIGHT, pressed);
-                    return true;
-                case Config::Key::P1_PUNCH1:
-                    handleButton(1, BUTTON_PUNCH1, pressed);
-                    return true;
-                case Config::Key::P1_PUNCH2:
-                    handleButton(1, BUTTON_PUNCH2, pressed);
-                    return true;
-                case Config::Key::P1_PUNCH3:
-                    handleButton(1, BUTTON_PUNCH3, pressed);
-                    return true;
-                case Config::Key::P1_KICK1:
-                    handleButton(1, BUTTON_KICK1, pressed);
-                    return true;
-                case Config::Key::P1_KICK2:
-                    handleButton(1, BUTTON_KICK2, pressed);
-                    return true;
-                case Config::Key::P1_KICK3:
-                    handleButton(1, BUTTON_KICK3, pressed);
-                    return true;
-                case Config::Key::P2_UP:
-                    handleButton(2, BUTTON_UP, pressed);
-                    return true;
-                case Config::Key::P2_DOWN:
-                    handleButton(2, BUTTON_DOWN, pressed);
-                    return true;
-                case Config::Key::P2_LEFT:
-                    handleButton(2, BUTTON_LEFT, pressed);
-                    return true;
-                case Config::Key::P2_RIGHT:
-                    handleButton(2, BUTTON_RIGHT, pressed);
-                    return true;
-                case Config::Key::P2_PUNCH1:
-                    handleButton(2, BUTTON_PUNCH1, pressed);
-                    return true;
-                case Config::Key::P2_PUNCH2:
-                    handleButton(2, BUTTON_PUNCH2, pressed);
-                    return true;
-                case Config::Key::P2_PUNCH3:
-                    handleButton(2, BUTTON_PUNCH3, pressed);
-                    return true;
-                case Config::Key::P2_KICK1:
-                    handleButton(2, BUTTON_KICK1, pressed);
-                    return true;
-                case Config::Key::P2_KICK2:
-                    handleButton(2, BUTTON_KICK2, pressed);
-                    return true;
-                case Config::Key::P2_KICK3:
-                    handleButton(2, BUTTON_KICK3, pressed);
-                    return true;
-                case Config::Key::P1_COIN:
-                    handleButton(1, BUTTON_COIN, pressed);
-                    return true;
-                case Config::Key::P2_COIN:
-                    handleButton(2, BUTTON_COIN, pressed);
-                    return true;
-                case Config::Key::P1_START:
-                    handleButton(1, BUTTON_START, pressed);
-                    return true;
-                case Config::Key::P2_START:
-                    handleButton(2, BUTTON_START, pressed);
-                    return true;
-                case Config::Key::DIAG:
-                    handleButton(0, BUTTON_DIAG, pressed);
-                    return true;
-                case Config::Key::SERVICE:
-                    handleButton(0, BUTTON_SERVICE, pressed);
-                    return true;
-                default:
-                    return false;
+            const SDL_Keycode key = event.key.key;
+            if (key == Config::Key::P1_Up) {
+                handleButton(1, BUTTON_UP, pressed);
+                return true;
+            } else if (key == Config::Key::P1_Down) {
+                handleButton(1, BUTTON_DOWN, pressed);
+                return true;
+            } else if (key == Config::Key::P1_Left) {
+                handleButton(1, BUTTON_LEFT, pressed);
+                return true;
+            } else if (key == Config::Key::P1_Right) {
+                handleButton(1, BUTTON_RIGHT, pressed);
+                return true;
+            } else if (key == Config::Key::P1_Punch1) {
+                handleButton(1, BUTTON_PUNCH1, pressed);
+                return true;
+            } else if (key == Config::Key::P1_Punch2) {
+                handleButton(1, BUTTON_PUNCH2, pressed);
+                return true;
+            } else if (key == Config::Key::P1_Punch3) {
+                handleButton(1, BUTTON_PUNCH3, pressed);
+                return true;
+            } else if (key == Config::Key::P1_Kick1) {
+                handleButton(1, BUTTON_KICK1, pressed);
+                return true;
+            } else if (key == Config::Key::P1_Kick2) {
+                handleButton(1, BUTTON_KICK2, pressed);
+                return true;
+            } else if (key == Config::Key::P1_Kick3) {
+                handleButton(1, BUTTON_KICK3, pressed);
+                return true;
+            } else if (key == Config::Key::P2_Up) {
+                handleButton(2, BUTTON_UP, pressed);
+                return true;
+            } else if (key == Config::Key::P2_Down) {
+                handleButton(2, BUTTON_DOWN, pressed);
+                return true;
+            } else if (key == Config::Key::P2_Left) {
+                handleButton(2, BUTTON_LEFT, pressed);
+                return true;
+            } else if (key == Config::Key::P2_Right) {
+                handleButton(2, BUTTON_RIGHT, pressed);
+                return true;
+            } else if (key == Config::Key::P2_Punch1) {
+                handleButton(2, BUTTON_PUNCH1, pressed);
+                return true;
+            } else if (key == Config::Key::P2_Punch2) {
+                handleButton(2, BUTTON_PUNCH2, pressed);
+                return true;
+            } else if (key == Config::Key::P2_Punch3) {
+                handleButton(2, BUTTON_PUNCH3, pressed);
+                return true;
+            } else if (key == Config::Key::P2_Kick1) {
+                handleButton(2, BUTTON_KICK1, pressed);
+                return true;
+            } else if (key == Config::Key::P2_Kick2) {
+                handleButton(2, BUTTON_KICK2, pressed);
+                return true;
+            } else if (key == Config::Key::P2_Kick3) {
+                handleButton(2, BUTTON_KICK3, pressed);
+                return true;
+            } else if (key == Config::Key::P1_Coin) {
+                handleButton(1, BUTTON_COIN, pressed);
+                return true;
+            } else if (key == Config::Key::P2_Coin) {
+                handleButton(2, BUTTON_COIN, pressed);
+                return true;
+            } else if (key == Config::Key::P1_Start) {
+                handleButton(1, BUTTON_START, pressed);
+                return true;
+            } else if (key == Config::Key::P2_Start) {
+                handleButton(2, BUTTON_START, pressed);
+                return true;
+            } else if (key == Config::Key::Diag) {
+                handleButton(0, BUTTON_DIAG, pressed);
+                return true;
+            } else if (key == Config::Key::Service) {
+                handleButton(0, BUTTON_SERVICE, pressed);
+                return true;
             }
+            return false;
         }
     }
     return false;

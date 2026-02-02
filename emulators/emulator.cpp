@@ -441,45 +441,37 @@ void Emulator::handleInput() {
                 break;
 
             case SDL_EVENT_KEY_DOWN:
-                switch (event.key.key) {
-                    case Config::Key::QUIT:
-                        m_running = false;
-                        break;
+                if (event.key.key == Config::Key::Quit) {
+                    m_running = false;
                 }
                 break;
 
             case SDL_EVENT_KEY_UP:
-                switch (event.key.key) {
-                    case Config::Key::SAVE_STATE: // Save state
-                        if (!m_romFilename.empty() && m_core) {
-                            fs::path savePath = m_romFilename;
-                            savePath.replace_extension(".state");
-                            if (m_core->saveState(savePath)) {
-                                log_info("State saved to %s", savePath.string().c_str());
-                            }
+                if (event.key.key == Config::Key::SaveState) { // Save state
+                    if (!m_romFilename.empty() && m_core) {
+                        fs::path savePath = m_romFilename;
+                        savePath.replace_extension(".state");
+                        if (m_core->saveState(savePath)) {
+                            log_info("State saved to %s", savePath.string().c_str());
                         }
-                        break;
-                    case Config::Key::LOAD_STATE: // Load state
-                        if (!m_romFilename.empty() && m_core) {
-                            fs::path savePath = m_romFilename;
-                            savePath.replace_extension(".state");
-                            if (m_core->loadState(savePath)) {
-                                if (m_audioDevice) {
-                                    m_audioDevice->clearBuffer();
-                                }
-                                log_info("State loaded from %s", savePath.string().c_str());
+                    }
+                } else if (event.key.key == Config::Key::LoadState) { // Load state
+                    if (!m_romFilename.empty() && m_core) {
+                        fs::path savePath = m_romFilename;
+                        savePath.replace_extension(".state");
+                        if (m_core->loadState(savePath)) {
+                            if (m_audioDevice) {
+                                m_audioDevice->clearBuffer();
                             }
+                            log_info("State loaded from %s", savePath.string().c_str());
                         }
-                        break;
-                    case Config::Key::GAME_SPEED_UP: // Game speed up
-                        updateGameSpeed(m_gameSpeed + 0.5);
-                        break;
-                    case Config::Key::GAME_SPEED_DOWN: // Game speed down
-                        updateGameSpeed(m_gameSpeed - 0.5);
-                        break;
-                    case Config::Key::PAUSE: // Pause / Resume
-                        m_paused = !m_paused;
-                        break;
+                    }
+                } else if (event.key.key == Config::Key::GameSpeedUp) { // Game speed up
+                    updateGameSpeed(m_gameSpeed + 0.5);
+                } else if (event.key.key == Config::Key::GameSpeedDown) { // Game speed down
+                    updateGameSpeed(m_gameSpeed - 0.5);
+                } else if (event.key.key == Config::Key::Pause) { // Pause / Resume
+                    m_paused = !m_paused;
                 }
                 break;
         }

@@ -17,6 +17,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/../CMakeLists.common.txt)
 set(SOURCES
     ${COMMON_SOURCES}
     ${CMAKE_SOURCE_DIR}/platforms/native/main.cpp
+    ${CMAKE_SOURCE_DIR}/platforms/native/configfile.cpp
 )
 
 # Header files

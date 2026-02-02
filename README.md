@@ -72,6 +72,10 @@ python3 -m http.server 8080
 ./tatoemu <path_to_rom> [options]
 ```
 
+On the first launch, a config file (`tatoemu.ini`) will be generated in the same directory as the executable.
+
+The following options and control mappings can be customized within this config file.
+
 ### Command-Line Options
 
 - `--scale <n>` - Window scale factor (default: 0, auto)
@@ -82,7 +86,7 @@ python3 -m http.server 8080
 - `--neo-sys <system>` - NeoGeo system type: `aes` or `mvs` (default: mvs)
 - `--neo-bios <index>` - NeoGeo BIOS index: 0 ~ 34 (default: 19 - Universe BIOS 4.0)
 
-### Controls
+### Default Controls
 
 #### Game Boy / NES
 - **Arrow Keys** - D-Pad (Up/Down/Left/Right)

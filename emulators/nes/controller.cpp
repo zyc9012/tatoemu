@@ -14,36 +14,34 @@ bool Controller::handleInput(SDL_Event& event) {
         case SDL_EVENT_KEY_DOWN:
         case SDL_EVENT_KEY_UP: {
             bool pressed = event.type == SDL_EVENT_KEY_DOWN;
-            switch (event.key.key) {
-                case Config::Key::BUTTON_A:
-                    handleButton(0, BUTTON_A, pressed);
-                    return true;
-                case Config::Key::BUTTON_B:
-                    handleButton(0, BUTTON_B, pressed);
-                    return true;
-                case Config::Key::START:
-                    handleButton(0, BUTTON_START, pressed);
-                    return true;
-                case Config::Key::SELECT_PRIMARY:
-                case Config::Key::SELECT_SECONDARY:
-                    handleButton(0, BUTTON_SELECT, pressed);
-                    return true;
-                case Config::Key::DPAD_UP:
-                    handleButton(0, BUTTON_UP, pressed);
-                    return true;
-                case Config::Key::DPAD_DOWN:
-                    handleButton(0, BUTTON_DOWN, pressed);
-                    return true;
-                case Config::Key::DPAD_LEFT:
-                    handleButton(0, BUTTON_LEFT, pressed);
-                    return true;
-                case Config::Key::DPAD_RIGHT:
-                    handleButton(0, BUTTON_RIGHT, pressed);
-                    return true;
-                // TODO: handle player 2 buttons
-                default:
-                    return false;
+            const SDL_Keycode key = event.key.key;
+            if (key == Config::Key::ButtonA) {
+                handleButton(0, BUTTON_A, pressed);
+                return true;
+            } else if (key == Config::Key::ButtonB) {
+                handleButton(0, BUTTON_B, pressed);
+                return true;
+            } else if (key == Config::Key::Start) {
+                handleButton(0, BUTTON_START, pressed);
+                return true;
+            } else if (key == Config::Key::SelectPrimary || key == Config::Key::SelectSecondary) {
+                handleButton(0, BUTTON_SELECT, pressed);
+                return true;
+            } else if (key == Config::Key::DpadUp) {
+                handleButton(0, BUTTON_UP, pressed);
+                return true;
+            } else if (key == Config::Key::DpadDown) {
+                handleButton(0, BUTTON_DOWN, pressed);
+                return true;
+            } else if (key == Config::Key::DpadLeft) {
+                handleButton(0, BUTTON_LEFT, pressed);
+                return true;
+            } else if (key == Config::Key::DpadRight) {
+                handleButton(0, BUTTON_RIGHT, pressed);
+                return true;
             }
+            // TODO: handle player 2 buttons
+            return false;
         }
     }
     return false;
