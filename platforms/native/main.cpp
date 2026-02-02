@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
             }
             Config::Audio::Volume = volume;
         } else if (arg == "--bootrom" && i + 1 < argc) {
-            bootromFile = fs::path(argv_narrow[++i]);
+            bootromFile = fs::path(argv[++i]);
         } else if (arg == "--neo-sys" && i + 1 < argc) {
             std::string system = argv_narrow[++i];
             std::transform(system.begin(), system.end(), system.begin(), ::tolower);
@@ -98,7 +98,7 @@ int main(int argc, char* argv[]) {
         } else if (arg[0] != '-') {
             // Positional argument (rom file)
             if (romFile.empty()) {
-                romFile = fs::path(arg);
+                romFile = fs::path(argv[i]);
             } else {
                 log_error("Warning: Unexpected argument: %s", arg.c_str());
             }

@@ -830,7 +830,7 @@ void Cartridge::loadBattery() {
     size_t ramSize = m_ram.size();
     if (fileSize >= (long)ramSize) {
         fread(m_ram.data(), 1, ramSize, file);
-        log_info("Battery data loaded from: %s", savPath.c_str());
+        log_info("Battery data loaded from: %s", savPath.string().c_str());
     } else {
         log_error("Save file size mismatch (expected %zu bytes, got %ld bytes)", ramSize, fileSize);
     }
