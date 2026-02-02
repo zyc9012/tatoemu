@@ -11,8 +11,7 @@ namespace Key {
     inline SDL_Keycode ButtonA = SDLK_Z;
     inline SDL_Keycode ButtonB = SDLK_X;
     inline SDL_Keycode Start = SDLK_RETURN;
-    inline SDL_Keycode SelectPrimary = SDLK_RSHIFT;
-    inline SDL_Keycode SelectSecondary = SDLK_LSHIFT;
+    inline SDL_Keycode Select = SDLK_RSHIFT;
     inline SDL_Keycode DpadUp = SDLK_UP;
     inline SDL_Keycode DpadDown = SDLK_DOWN;
     inline SDL_Keycode DpadLeft = SDLK_LEFT;

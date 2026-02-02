@@ -40,7 +40,7 @@ bool Joypad::handleInput(SDL_Event& event) {
             } else if (key == Config::Key::Start) { // Start
                 handleButton(BUTTON_START, pressed);
                 return true;
-            } else if (key == Config::Key::SelectPrimary || key == Config::Key::SelectSecondary) { // Select
+            } else if (key == Config::Key::Select) { // Select
                 handleButton(BUTTON_SELECT, pressed);
                 return true;
             } else if (key == Config::Key::DpadUp) {

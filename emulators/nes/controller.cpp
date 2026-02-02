@@ -24,7 +24,7 @@ bool Controller::handleInput(SDL_Event& event) {
             } else if (key == Config::Key::Start) {
                 handleButton(0, BUTTON_START, pressed);
                 return true;
-            } else if (key == Config::Key::SelectPrimary || key == Config::Key::SelectSecondary) {
+            } else if (key == Config::Key::Select) {
                 handleButton(0, BUTTON_SELECT, pressed);
                 return true;
             } else if (key == Config::Key::DpadUp) {

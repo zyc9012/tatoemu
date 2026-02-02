@@ -111,8 +111,7 @@ static void createDefaultIni(const fs::path& iniPath) {
     fprintf(out, "A=%s\n", SDL_GetKeyName(nes::Config::Key::ButtonA));
     fprintf(out, "B=%s\n", SDL_GetKeyName(nes::Config::Key::ButtonB));
     fprintf(out, "Start=%s\n", SDL_GetKeyName(nes::Config::Key::Start));
-    fprintf(out, "SelectPrimary=%s\n", SDL_GetKeyName(nes::Config::Key::SelectPrimary));
-    fprintf(out, "SelectSecondary=%s\n", SDL_GetKeyName(nes::Config::Key::SelectSecondary));
+    fprintf(out, "Select=%s\n", SDL_GetKeyName(nes::Config::Key::Select));
     fprintf(out, "Up=%s\n", SDL_GetKeyName(nes::Config::Key::DpadUp));
     fprintf(out, "Down=%s\n", SDL_GetKeyName(nes::Config::Key::DpadDown));
     fprintf(out, "Left=%s\n", SDL_GetKeyName(nes::Config::Key::DpadLeft));
@@ -122,8 +121,7 @@ static void createDefaultIni(const fs::path& iniPath) {
     fprintf(out, "A=%s\n", SDL_GetKeyName(gb::Config::Key::ButtonA));
     fprintf(out, "B=%s\n", SDL_GetKeyName(gb::Config::Key::ButtonB));
     fprintf(out, "Start=%s\n", SDL_GetKeyName(gb::Config::Key::Start));
-    fprintf(out, "SelectPrimary=%s\n", SDL_GetKeyName(gb::Config::Key::SelectPrimary));
-    fprintf(out, "SelectSecondary=%s\n", SDL_GetKeyName(gb::Config::Key::SelectSecondary));
+    fprintf(out, "Select=%s\n", SDL_GetKeyName(gb::Config::Key::Select));
     fprintf(out, "Up=%s\n", SDL_GetKeyName(gb::Config::Key::DpadUp));
     fprintf(out, "Down=%s\n", SDL_GetKeyName(gb::Config::Key::DpadDown));
     fprintf(out, "Left=%s\n", SDL_GetKeyName(gb::Config::Key::DpadLeft));
@@ -252,8 +250,7 @@ static int configHandler(void* /*user*/, const char* section, const char* name, 
         if (key == "A") set_key(nes::Config::Key::ButtonA);
         else if (key == "B") set_key(nes::Config::Key::ButtonB);
         else if (key == "Start") set_key(nes::Config::Key::Start);
-        else if (key == "SelectPrimary") set_key(nes::Config::Key::SelectPrimary);
-        else if (key == "SelectSecondary") set_key(nes::Config::Key::SelectSecondary);
+        else if (key == "Select") set_key(nes::Config::Key::Select);
         else if (key == "Up") set_key(nes::Config::Key::DpadUp);
         else if (key == "Down") set_key(nes::Config::Key::DpadDown);
         else if (key == "Left") set_key(nes::Config::Key::DpadLeft);
@@ -262,8 +259,7 @@ static int configHandler(void* /*user*/, const char* section, const char* name, 
         if (key == "A") set_key(gb::Config::Key::ButtonA);
         else if (key == "B") set_key(gb::Config::Key::ButtonB);
         else if (key == "Start") set_key(gb::Config::Key::Start);
-        else if (key == "SelectPrimary") set_key(gb::Config::Key::SelectPrimary);
-        else if (key == "SelectSecondary") set_key(gb::Config::Key::SelectSecondary);
+        else if (key == "Select") set_key(gb::Config::Key::Select);
         else if (key == "Up") set_key(gb::Config::Key::DpadUp);
         else if (key == "Down") set_key(gb::Config::Key::DpadDown);
         else if (key == "Left") set_key(gb::Config::Key::DpadLeft);
