@@ -79,13 +79,16 @@ static void createDefaultIni(const fs::path& iniPath) {
         log_error("Warning: Failed to create default config file: %s", iniPath.string().c_str());
         return;
     }
-    fprintf(out, "; TatoEmu configuration file\n");
+    fprintf(out, "# TatoEmu configuration file\n");
     fprintf(out, "\n");
     fprintf(out, "[Common]\n");
-    fprintf(out, "WindowScale=%u ; (0=auto, 1=1x, 2=2x, ...)\n", Config::Window::Scale);
-    fprintf(out, "WindowScaleMode=%s ; (nearest, linear)\n", scale_mode_to_string(Config::Window::ScaleMode));
+    fprintf(out, "# Window scale: 0-auto, 1-1x, 2-2x, ...\n");
+    fprintf(out, "WindowScale=%u\n", Config::Window::Scale);
+    fprintf(out, "# Window scale mode: nearest or linear\n");
+    fprintf(out, "WindowScaleMode=%s\n", scale_mode_to_string(Config::Window::ScaleMode));
     fprintf(out, "SampleRate=%u\n", Config::Audio::SampleRate);
-    fprintf(out, "Volume=%u ; (0-100)\n", Config::Audio::Volume);
+    fprintf(out, "# Audio volume: 0-100\n");
+    fprintf(out, "Volume=%u\n", Config::Audio::Volume);
     fprintf(out, "Quit=%s\n", SDL_GetKeyName(Config::Key::Quit));
     fprintf(out, "SaveState=%s\n", SDL_GetKeyName(Config::Key::SaveState));
     fprintf(out, "LoadState=%s\n", SDL_GetKeyName(Config::Key::LoadState));
@@ -142,8 +145,10 @@ static void createDefaultIni(const fs::path& iniPath) {
     fprintf(out, "Service=%s\n", SDL_GetKeyName(cps::Config::Key::Service));
     fprintf(out, "\n");
     fprintf(out, "[NeoGeo]\n");
-    fprintf(out, "System=%s ; (aes, mvs)\n", neogeo_system_to_string(neogeo::Config::System));
-    fprintf(out, "BiosIndex=%d ; (0-34)\n", static_cast<int>(neogeo::Config::BiosIndex));
+    fprintf(out, "# NeoGeo system type: aes or mvs\n");
+    fprintf(out, "System=%s\n", neogeo_system_to_string(neogeo::Config::System));
+    fprintf(out, "# Bios index: 0-34\n");
+    fprintf(out, "BiosIndex=%d\n", static_cast<int>(neogeo::Config::BiosIndex));
     fprintf(out, "P1_Up=%s\n", SDL_GetKeyName(neogeo::Config::Key::P1_Up));
     fprintf(out, "P1_Down=%s\n", SDL_GetKeyName(neogeo::Config::Key::P1_Down));
     fprintf(out, "P1_Left=%s\n", SDL_GetKeyName(neogeo::Config::Key::P1_Left));
