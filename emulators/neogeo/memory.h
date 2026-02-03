@@ -16,6 +16,16 @@ class APU;
 class UPD4990A;
 class Core;
 
+// Interface for memory hijacking
+// This is used to hijack the memory read and write functions
+// for specific games
+class MemoryHijacker {
+public:
+    virtual ~MemoryHijacker() = default;
+    virtual bool read16(u32 address, u16& ret) = 0;
+    virtual bool write16(u32 address, u16 value) = 0;
+};
+
 // NeoGeo Memory Map (Cartridge systems - MVS/AES):
 // 0x000000-0x0003FF: Vector table (switchable BIOS/cartridge)
 // 0x000400-0x0FFFFF: Program ROM (base, up to 1MB)
@@ -135,6 +145,9 @@ private:
     u8 m_z80Bank2;  // 6-bit bank number (0-63)
     u8 m_z80Bank3;  // 7-bit bank number (0-127)
     bool m_z80BiosRomMapped;  // True when Z80 BIOS ROM is mapped at 0x0000-0x7FFF
+
+    // Memory hijacker
+    std::unique_ptr<MemoryHijacker> m_memoryHijacker;
     
     // Helper methods
     u8 readPalette8(u32 address);

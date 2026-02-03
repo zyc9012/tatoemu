@@ -32,7 +32,8 @@ Memory::Memory()
     , m_z80Bank1(0x06)
     , m_z80Bank2(0x0E)
     , m_z80Bank3(0x1E)
-    , m_z80BiosRomMapped(false) {
+    , m_z80BiosRomMapped(false)
+    , m_memoryHijacker(nullptr) {
     m_nvram.fill(0);
 }
 
@@ -77,6 +78,13 @@ void Memory::reset() {
     // Load after rom filename is updated
     loadNVRAM();
     m_nvramLoaded = true;
+
+    // Install memory hijacker for specific games
+    m_memoryHijacker = nullptr;
+    auto romSetName = std::string_view(m_cartridge->getGameInfo()->romSetName);
+    if (romSetName == "mslugx") {
+        m_memoryHijacker = std::make_unique<MslugxMemory>(this);
+    }
 }
 
 u8 Memory::read8(u32 address) {
@@ -189,6 +197,13 @@ u8 Memory::read8(u32 address) {
 }
 
 u16 Memory::read16(u32 address) {
+    if (m_memoryHijacker) {
+        u16 ret = 0;
+        if (m_memoryHijacker->read16(address, ret)) {
+            return ret;
+        }
+    }
+
     // Video controller
     if (address >= 0x3C0000 && address <= 0x3C000F) {
         return readVideoController(address);
@@ -286,6 +301,12 @@ void Memory::write8(u32 address, u8 value) {
 }
 
 void Memory::write16(u32 address, u16 value) {
+    if (m_memoryHijacker) {
+        if (m_memoryHijacker->write16(address, value)) {
+            return;
+        }
+    }
+
     // Video controller
     if (address >= 0x3C0000 && address <= 0x3C000F) {
         writeVideoController(address, value);

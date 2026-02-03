@@ -3445,4 +3445,62 @@ bool GameDatabase::validateROM(const std::string& filename, const std::vector<u8
     return true;
 }
 
+// ============================================================================
+// Game specific
+// ============================================================================
+
+MslugxMemory::MslugxMemory(Memory* memory) : MemoryHijacker() {
+    m_memory = memory;
+    command = 0;
+    counter = 0;
+}
+
+// Metal Slug X protection read
+bool MslugxMemory::read16(u32 address, u16& ret) {
+    if (address == 0x2FFFE8) {
+        ret = 0;
+        switch (command) {
+            case 0x0001:
+                ret = m_memory->read8(0xDEDD2 + ((counter >> 3) & 0xfff)) >> (~counter & 0x07);
+                ret &= 1;
+                counter++;
+                break;
+            case 0x0FFF:
+                u32 select = m_memory->read16(0x10F00A) - 1;
+                ret = m_memory->read8(0xDEDD2 + ((select >> 3) & 0x0FFF)) >> (~select & 0x07);
+                ret &= 1;
+                break;
+        }
+        return true;
+    }
+
+    return false;
+}
+
+// Metal Slug X protection write
+bool MslugxMemory::write16(u32 address, u16 value) {
+    if ((address & 0xFFFFF0) == 0x2FFFE0) {
+        switch (address) {
+            case 0x2FFFE0:
+                command = 0;
+                break;
+
+            case 0x2FFFE2:
+            case 0x2FFFE4:
+                command |= value;
+                break;
+
+            case 0x2FFFE6:
+                break;
+
+            case 0x2FFFEA:
+                counter = 0;
+                break;
+        }
+        return true;
+    }
+
+    return false;
+}
+
 } // namespace neogeo

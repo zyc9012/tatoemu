@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../types.h"
+#include "memory.h"
 #include <string>
 #include <vector>
 
@@ -76,6 +77,24 @@ private:
     static const u32 s_gameCount;
     static const BIOSROMEntry s_biosROMs[];
     static const u32 s_biosROMCount;
+};
+
+
+// ============================================================================
+// Game specific
+// ============================================================================
+class MslugxMemory : public MemoryHijacker {
+public:
+    MslugxMemory(Memory* memory);
+    ~MslugxMemory() override = default;
+
+    bool read16(u32 address, u16& ret) override;
+    bool write16(u32 address, u16 value) override;
+
+private:
+    Memory* m_memory;
+    u16 command;
+    u16 counter;
 };
 
 } // namespace neogeo

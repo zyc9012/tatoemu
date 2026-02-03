@@ -72,13 +72,13 @@ bool Core::loadROM(const fs::path& filename) {
 }
 
 void Core::reset() {
+    m_cartridge->reset();
     m_cpu->reset();
     m_soundCpu->reset();
     m_apu->reset();
     m_ppu->reset();
     m_memory->reset();
     m_controller->reset();
-    m_cartridge->reset();
     m_upd4990a->initialize(CPU_FREQUENCY, [this]() { return m_cpu->getCycles(); });
 
     m_watchdogTimer = 0;
