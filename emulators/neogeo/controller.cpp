@@ -19,6 +19,9 @@ void Controller::reset() {
         // 1/2 slot MVS
         m_inputBanks[3] |=  0x20;
         m_inputBanks[5] |=  0x40;
+    } else {
+        // AES
+        m_inputBanks[2] |= 0x80;
     }
 }
 
