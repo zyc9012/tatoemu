@@ -320,7 +320,10 @@ bool Emulator::initialize() {
     m_videoDevice->setDisplayAspectRatio(m_core->getDisplayAspectRatio());
     
     m_core->setAudioSampleRate(Config::Audio::SampleRate);
-    m_core->setAudioVolume(Config::Audio::Volume);
+
+    // Calculate volume
+    float volume = std::powf(Config::Audio::Volume / 100.0f, 2.0f);
+    m_core->setAudioVolume(volume);
     
     log_info("Emulator initialized successfully");
     return true;

@@ -40,20 +40,6 @@ static bool parse_u32(std::string_view s, u32& out) {
     }
 }
 
-static bool parse_float(std::string_view s, float& out) {
-    s = trim(s);
-    if (s.empty()) return false;
-    try {
-        size_t idx = 0;
-        float v = std::stof(std::string(s), &idx);
-        if (idx != s.size()) return false;
-        out = v;
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
 static bool parse_scale_mode(std::string_view s, SDL_ScaleMode& out) {
     s = trim(s);
     std::string lower(s);
@@ -99,7 +85,7 @@ static void createDefaultIni(const fs::path& iniPath) {
     fprintf(out, "WindowScale=%u ; (0=auto, 1=1x, 2=2x, ...)\n", Config::Window::Scale);
     fprintf(out, "WindowScaleMode=%s ; (nearest, linear)\n", scale_mode_to_string(Config::Window::ScaleMode));
     fprintf(out, "SampleRate=%u\n", Config::Audio::SampleRate);
-    fprintf(out, "Volume=%g ; (0.0-1.0)\n", static_cast<double>(Config::Audio::Volume));
+    fprintf(out, "Volume=%u ; (0-100)\n", Config::Audio::Volume);
     fprintf(out, "Quit=%s\n", SDL_GetKeyName(Config::Key::Quit));
     fprintf(out, "SaveState=%s\n", SDL_GetKeyName(Config::Key::SaveState));
     fprintf(out, "LoadState=%s\n", SDL_GetKeyName(Config::Key::LoadState));
@@ -197,15 +183,6 @@ static int configHandler(void* /*user*/, const char* section, const char* name, 
         return true;
     };
 
-    auto set_float = [&](float& target, float minv, float maxv) -> bool {
-        float v = 0.0f;
-        if (!parse_float(val, v)) return false;
-        if (v < minv) v = minv;
-        if (v > maxv) v = maxv;
-        target = v;
-        return true;
-    };
-
     auto set_key = [&](SDL_Keycode& target) -> bool {
         SDL_Keycode k = SDLK_UNKNOWN;
         if (!parse_keycode(val, k)) return false;
@@ -239,7 +216,7 @@ static int configHandler(void* /*user*/, const char* section, const char* name, 
         if (key == "WindowScale") set_u32(Config::Window::Scale);
         else if (key == "WindowScaleMode") parse_scale_mode(val, Config::Window::ScaleMode);
         else if (key == "SampleRate") set_u32(Config::Audio::SampleRate);
-        else if (key == "Volume") set_float(Config::Audio::Volume, 0.0f, 1.0f);
+        else if (key == "Volume") set_u32(Config::Audio::Volume);
         else if (key == "Quit") set_key(Config::Key::Quit);
         else if (key == "SaveState") set_key(Config::Key::SaveState);
         else if (key == "LoadState") set_key(Config::Key::LoadState);

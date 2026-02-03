@@ -11,7 +11,7 @@ namespace Window {
 
 namespace Audio {
     inline u32 SampleRate = 44100;
-    inline float Volume = 0.3f;
+    inline u32 Volume = 60;
 }
 
 namespace Key {

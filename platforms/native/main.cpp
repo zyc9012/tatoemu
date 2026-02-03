@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
         log_info("  --scale <n>           Window scale factor (default: 0, auto)");
         log_info("  --scale-mode <mode>   Scale mode: linear, nearest (default: linear)");
         log_info("  --sample-rate <hz>    Audio sample rate (default: %d)", Config::Audio::SampleRate);
-        log_info("  --volume <0.0-1.0>    Audio volume (default: %.1f)", Config::Audio::Volume);
+        log_info("  --volume <0-100>      Audio volume (default: %d)", Config::Audio::Volume);
         log_info("  --neo-sys <system>    NeoGeo system: aes, mvs (default: mvs)");
         log_info("  --neo-bios <index>    NeoGeo BIOS index: 0 ~ 34 (default: %d)", static_cast<int>(neogeo::Config::BiosIndex));
         return 1;
@@ -73,12 +73,12 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--sample-rate" && i + 1 < argc) {
             Config::Audio::SampleRate = std::stoul(argv_narrow[++i]);
         } else if (arg == "--volume" && i + 1 < argc) {
-            float volume = std::stof(argv_narrow[++i]);
-            if (volume < 0.0f || volume > 1.0f) {
-                log_error("Warning: Volume should be between 0.0 and 1.0, clamping to %.1f", (volume < 0.0f ? 0.0f : 1.0f));
-                volume = (volume < 0.0f) ? 0.0f : 1.0f;
+            s32 volume = std::stoi(argv_narrow[++i]);
+            if (volume < 0 || volume > 100) {
+                log_error("Warning: Volume should be between 0 and 100, clamping to %d", (volume < 0 ? 0 : 100));
+                volume = (volume < 0) ? 0 : 100;
             }
-            Config::Audio::Volume = volume;
+            Config::Audio::Volume = static_cast<u32>(volume);
         } else if (arg == "--bootrom" && i + 1 < argc) {
             bootromFile = fs::path(argv[++i]);
         } else if (arg == "--neo-sys" && i + 1 < argc) {

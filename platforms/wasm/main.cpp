@@ -89,10 +89,7 @@ extern "C" {
     }
 
     void setVolume(int volume) {
-        float volumeFloat = volume / 100.0f;
-        if (volumeFloat < 0.0f) volumeFloat = 0.0f;
-        if (volumeFloat > 1.0f) volumeFloat = 1.0f;
-        Config::Audio::Volume = volumeFloat;
+        Config::Audio::Volume = static_cast<u32>(volume);
     }
 
     void setNeoSys(const char* sys) {
