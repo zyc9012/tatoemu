@@ -2,6 +2,26 @@
 #include <algorithm>
 #include <cstring>
 #include <filesystem>
+#include <string>
+
+#define MAX_BACKUPS 3
+
+namespace fs = std::filesystem;
+
+static fs::path backup_path(const fs::path& base, int n) {
+    return fs::path(base.string() + ".bak" + std::to_string(n));
+}
+
+static void shift_backups(const fs::path& base, int n) {
+    fs::path p = backup_path(base, n);
+    if (!fs::exists(p)) return;
+    if (n >= MAX_BACKUPS) {
+        fs::remove(p);
+        return;
+    }
+    shift_backups(base, n + 1);
+    fs::rename(p, backup_path(base, n + 1));
+}
 
 void buffer_write(Buffer* buf, const void* data, size_t data_size) {
     if (!buf || !data || data_size == 0) return;
@@ -36,7 +56,12 @@ bool buffer_load_from_file(Buffer* buf, const std::filesystem::path& filename) {
     return true;
 }
 
-bool buffer_save_to_file(Buffer* buf, const std::filesystem::path& filename) {
+bool buffer_save_to_file(Buffer* buf, const std::filesystem::path& filename, bool create_backup) {
+    if (create_backup && fs::exists(filename)) {
+        shift_backups(filename, 1);
+        fs::rename(filename, backup_path(filename, 1));
+    }
+
     FILE* file = fopen(filename.string().c_str(), "wb");
     if (!file) return false;
 

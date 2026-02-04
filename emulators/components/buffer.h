@@ -27,7 +27,7 @@ size_t buffer_read(Buffer* buf, void* data, size_t data_size);
 
 #ifdef __cplusplus
 bool buffer_load_from_file(Buffer* buf, const std::filesystem::path& filename);
-bool buffer_save_to_file(Buffer* buf, const std::filesystem::path& filename);
+bool buffer_save_to_file(Buffer* buf, const std::filesystem::path& filename, bool create_backup = true);
 #endif
 
 #ifdef __cplusplus
