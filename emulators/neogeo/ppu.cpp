@@ -217,8 +217,8 @@ void PPU::initTextBankSwitching() {
     }
 }
 
-void PPU::step() {
-    m_cycles += 1;
+void PPU::step(u32 cycles) {
+    m_cycles += cycles;
     
     if (m_cycles >= CPU_CYCLES_PER_SCANLINE) {
         m_cycles -= CPU_CYCLES_PER_SCANLINE;

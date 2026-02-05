@@ -115,9 +115,7 @@ void Core::update() {
         // Run PPU (graphics chip runs in parallel)
         // PPU typically runs at similar speed to main CPU
         u32 ppuCycles = cpuCycles;
-        for (u32 i = 0; i < ppuCycles; i++) {
-            m_ppu->step();
-        }
+        m_ppu->step(ppuCycles);
 
         // Check for IRQ timer
         u32 newCycles = m_cpu->getCycles();

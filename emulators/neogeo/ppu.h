@@ -27,7 +27,7 @@ public:
     ~PPU() = default;
 
     void reset();
-    void step();
+    void step(u32 cycles);
     
     bool isFrameComplete() const { return m_frameComplete; }
     void clearFrameComplete() { m_frameComplete = false; }
