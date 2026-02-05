@@ -6,6 +6,7 @@
 #include "controller.h"
 #include "apu.h"
 #include "core.h"
+#include "protections.h"
 #include <cstring>
 #include <filesystem>
 
@@ -80,13 +81,7 @@ void Memory::reset() {
     m_nvramLoaded = true;
 
     // Install memory hijacker for specific games
-    m_memoryHijacker = nullptr;
-    auto romSetName = std::string_view(m_cartridge->getGameInfo()->romSetName);
-    if (romSetName == "mslugx") {
-        m_memoryHijacker = std::make_unique<MslugxMemory>(this);
-    } else if (romSetName == "kof98") {
-        m_memoryHijacker = std::make_unique<Kof98Memory>(m_cartridge);
-    }
+    m_memoryHijacker = initProtections(this, m_cartridge);
 }
 
 u8 Memory::read8(u32 address) {

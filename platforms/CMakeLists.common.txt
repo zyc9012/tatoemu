@@ -58,6 +58,7 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/cartridge.cpp
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/upd4990a.cpp
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/db.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/neogeo/protections.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/eeprom/eeprom.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kcpu.c
@@ -117,6 +118,7 @@ set(COMMON_HEADERS
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/cartridge.h
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/upd4990a.h
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/db.h
+    ${CMAKE_SOURCE_DIR}/emulators/neogeo/protections.h
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/config.h
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/consts.h
     ${CMAKE_SOURCE_DIR}/emulators/emulator.h

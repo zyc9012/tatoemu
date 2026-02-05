@@ -2,6 +2,7 @@
 #include "cpu.h"
 #include "ppu.h"
 #include "db.h"
+#include "protections.h"
 #include "../../utilities/zip_reader.h"
 #include <algorithm>
 #include <map>
