@@ -59,7 +59,7 @@ static void write32_pd_callback(unsigned int address, unsigned int value) {
 CPU::CPU()
     : m_memory(nullptr)
     , m_cycles(0)
-    , m_inStep(false) {
+    , m_executing(false) {
     // Initialize Musashi emulator (safe to call multiple times)
     static bool initialized = false;
     if (!initialized) {
@@ -107,11 +107,11 @@ u32 CPU::step(u32 cycles) {
     // Set global memory pointer for callbacks
     g_memory = m_memory;
 
-    m_inStep = true;
     // Execute cycles
+    m_executing = true;
     u32 cyclesUsed = m68k_execute(cycles);
     m_cycles += cyclesUsed;
-    m_inStep = false;
+    m_executing = false;
 
     return cyclesUsed;
 }

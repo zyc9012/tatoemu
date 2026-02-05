@@ -1,5 +1,6 @@
 #pragma once
 
+#include "consts.h"
 #include "../types.h"
 #include "../components/compact.h"
 #include "../components/buffer.h"
@@ -18,7 +19,9 @@ public:
     void reset();
     u32 step(u32 cycles);  // Execute specified number of cycles, returns actual cycles executed
     
-    u32 getCycles() const { return m_cycles; }
+    u32 frameCycles() const { return m_cycles; }
+    void endFrame() { m_cycles -= SOUND_CPU_CYCLES_PER_FRAME; }
+
     void setMemory(Memory* memory) { m_memory = memory; }
     void setAPU(APU* apu) { m_apu = apu; }
     

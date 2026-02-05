@@ -91,9 +91,6 @@ SoundCPU::SoundCPU()
     Z80SetIOWriteHandler(z80_write_io);
     Z80SetCPUOpReadHandler(z80_read_op);
     Z80SetCPUOpArgReadHandler(z80_read_op_arg);
-    
-    // Reset the CPU
-    reset();
 }
 
 SoundCPU::~SoundCPU() {

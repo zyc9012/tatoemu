@@ -20,6 +20,16 @@ void UPD4990A::initialize(u32 ticksPerSecond, std::function<u32()> totalCyclesCa
     m_totalCyclesCallback = totalCyclesCallback;
 
     reset();
+}
+
+void UPD4990A::reset() {
+    m_register[0] = m_register[1] = 0;
+    m_command = 0;
+    m_mode = m_tpMode = 0;
+    m_count = m_tpCount = 0;
+    m_interval = m_oneSecond / 64;
+    m_prevCLK = m_prevSTB = 0;
+    m_tp = 0;
 
     // Set the time to the current local time
     std::time_t now = std::time(nullptr);
@@ -32,16 +42,6 @@ void UPD4990A::initialize(u32 ticksPerSecond, std::function<u32()> totalCyclesCa
     m_weekDay = tmLocalTime->tm_wday;
     m_month = tmLocalTime->tm_mon + 1;  // tm_mon is 0-based
     m_year = tmLocalTime->tm_year % 100;  // Get last 2 digits of year
-}
-
-void UPD4990A::reset() {
-    m_register[0] = m_register[1] = 0;
-    m_command = 0;
-    m_mode = m_tpMode = 0;
-    m_count = m_tpCount = 0;
-    m_interval = m_oneSecond / 64;
-    m_prevCLK = m_prevSTB = 0;
-    m_tp = 0;
 }
 
 void UPD4990A::update() {

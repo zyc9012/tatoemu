@@ -80,10 +80,8 @@ void Core::reset() {
     m_ppu->reset();
     m_memory->reset();
     m_controller->reset();
-    m_upd4990a->initialize(CPU_FREQUENCY, [this]() { return m_cpu->getCycles(); });
+    m_upd4990a->initialize(CPU_FREQUENCY, [this]() { return m_cpu->frameCycles(); });
 
-    m_cyclesThisFrame = 0;
-    m_soundCyclesThisFrame = 0;
     m_watchdogTimer = 0;
 }
 
@@ -92,34 +90,26 @@ void Core::update() {
     
     u32 nextCpuCycles = CPU_CYCLES_PER_STEP;
     
-    while (m_cyclesThisFrame < CPU_CYCLES_PER_FRAME) {
+    while (m_cpu->frameCycles() < CPU_CYCLES_PER_FRAME) {
         // Execute CPU cycles
-        u32 oldCycles = m_cpu->getCycles();
+        u32 oldCycles = m_cpu->frameCycles();
         u32 cpuCycles = m_cpu->step(nextCpuCycles);
+        u32 newCycles = m_cpu->frameCycles();
+
         nextCpuCycles = CPU_CYCLES_PER_STEP;
-
-        // Update cycle counter
-        m_cyclesThisFrame += cpuCycles;
-
         // Run sound CPU proportionally
-        s32 soundCpuCycles = m_cyclesThisFrame * SOUND_CYCLES_RATIO - m_soundCyclesThisFrame;
+        s32 soundCpuCycles = static_cast<s32>(newCycles * SOUND_CYCLES_RATIO) - m_soundCpu->frameCycles();
         
         // Execute Z80 and get actual cycles executed
         if (soundCpuCycles > 0) {
             u32 soundCpuCyclesActual = m_soundCpu->step(static_cast<u32>(soundCpuCycles));
             m_apu->step(soundCpuCyclesActual, m_gameSpeed);
-
-            // Update sound cycle counter
-            m_soundCyclesThisFrame += soundCpuCyclesActual;
         }
         
-        // Run PPU (graphics chip runs in parallel)
-        // PPU typically runs at similar speed to main CPU
-        u32 ppuCycles = cpuCycles;
-        m_ppu->step(ppuCycles);
+        // Run PPU
+        m_ppu->step(cpuCycles);
 
         // Check for IRQ timer
-        u32 newCycles = m_cpu->getCycles();
         u32 targetIRQCycles = m_memory->getTargetIRQCycles();
         u16 irqControl = m_memory->getIRQControl();
         if (irqControl & 0x10) {
@@ -132,34 +122,33 @@ void Core::update() {
         }
 
         // Avoid overrunning the frame by too much
-        u32 cyclesLeft = CPU_CYCLES_PER_FRAME - m_cyclesThisFrame;
+        u32 cyclesLeft = CPU_CYCLES_PER_FRAME - newCycles;
         if (cyclesLeft < CPU_CYCLES_PER_STEP && cyclesLeft < nextCpuCycles) {
             nextCpuCycles = cyclesLeft;
         }
     }
 
     // Update watchdog timer
-    if (m_cartridge) {
-        m_watchdogTimer += m_cyclesThisFrame;
+    m_watchdogTimer += m_cpu->frameCycles();
 
-        // Check if watchdog has expired (should trigger every ~8 frames)
-        if (m_watchdogTimer > static_cast<s32>(WATCHDOG_TIMEOUT_CYCLES)) {
-            log_error("Watchdog timer expired, resetting system...");
-            reset();
-            return;
-        }
+    // Check if watchdog has expired (should trigger every ~8 frames)
+    if (m_watchdogTimer > static_cast<s32>(WATCHDOG_TIMEOUT_CYCLES)) {
+        log_info("Watchdog timer expired, resetting system...");
+        reset();
+        return;
     }
 
-    m_cyclesThisFrame -= CPU_CYCLES_PER_FRAME;
-    m_soundCyclesThisFrame -= SOUND_CPU_CYCLES_PER_FRAME;
+    m_upd4990a->update();
+    m_cpu->endFrame();
+    m_soundCpu->endFrame();
+    m_memory->endFrame();
+    m_upd4990a->endFrame(m_cpu->frameCycles());
 }
 
 bool Core::saveState(const fs::path& filename) {
     Buffer buf = {};
     
     // Save all component states
-    buffer_write(&buf, &m_cyclesThisFrame, sizeof(m_cyclesThisFrame));
-    buffer_write(&buf, &m_soundCyclesThisFrame, sizeof(m_soundCyclesThisFrame));
     buffer_write(&buf, &m_watchdogTimer, sizeof(m_watchdogTimer));
     m_cpu->saveState(&buf);
     m_soundCpu->saveState(&buf);
@@ -178,8 +167,6 @@ bool Core::loadState(const fs::path& filename) {
     buffer_load_from_file(&buf, filename);
     
     // Load all component states
-    buffer_read(&buf, &m_cyclesThisFrame, sizeof(m_cyclesThisFrame));
-    buffer_read(&buf, &m_soundCyclesThisFrame, sizeof(m_soundCyclesThisFrame));
     buffer_read(&buf, &m_watchdogTimer, sizeof(m_watchdogTimer));
     m_cpu->loadState(&buf);
     m_soundCpu->loadState(&buf);

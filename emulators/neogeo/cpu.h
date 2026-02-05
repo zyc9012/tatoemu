@@ -1,5 +1,6 @@
 #pragma once
 
+#include "consts.h"
 #include "../types.h"
 #include "../../components/cpu/m68k/m68k.h"
 #include "../../components/buffer.h"
@@ -18,7 +19,9 @@ public:
     void reset();
     u32 step(u32 cycles);
     
-    u32 getCycles() const { return m_inStep ? m_cycles + m68k_cycles_run() : m_cycles; }
+    u32 frameCycles() const { return m_executing ? m_cycles + m68k_cycles_run() : m_cycles; }
+    void endFrame() { m_cycles -= CPU_CYCLES_PER_FRAME; }
+
     void setMemory(Memory* memory) { m_memory = memory; }
     
     // Interrupt handling
@@ -31,7 +34,7 @@ public:
 private:
     Memory* m_memory;
     u32 m_cycles;
-    bool m_inStep;
+    bool m_executing;
 };
 
 } // namespace neogeo

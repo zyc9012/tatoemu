@@ -102,6 +102,7 @@ public:
     // IRQ timer
     u32 getTargetIRQCycles() const { return m_targetIRQCycles; }
     void reloadIRQTimer(u8 bit);
+    void endFrame() { m_targetIRQCycles -= CPU_CYCLES_PER_FRAME; }
 
     // IRQ
     void vblankIRQ();

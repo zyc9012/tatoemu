@@ -19,8 +19,8 @@ public:
     // Reset
     void reset();
 
-    // Update (call once per frame)
     void update();
+    void endFrame(u32 lastCycleCount) { m_lastCycleCount = lastCycleCount; }
 
     // I/O interface
     void write(u8 clk, u8 stb, u8 data);

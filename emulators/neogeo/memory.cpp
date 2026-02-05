@@ -345,7 +345,7 @@ u16 Memory::readVideoController(u32 address) {
             // Display status (scanline + sprite frame)
             if (m_ppu) {
                 constexpr u32 scanlineOffset = 0xF8;
-                u32 currentScanline = (m_ppu->getScanline() + 248) % 264;
+                u32 currentScanline = ((m_cpu->frameCycles() / CPU_CYCLES_PER_SCANLINE) + 248) % 264;
                 u32 spriteFrame = m_ppu->getSpriteFrame();
                 return static_cast<u16>(((currentScanline + scanlineOffset) << 7) | (spriteFrame & 7));
             }
@@ -630,7 +630,7 @@ void Memory::reloadIRQTimer(u8 bit) {
     // Bit 7 = 1: Reload counter when it reaches 0.
     if (m_irqControl & 0x10) {
         if (m_irqControl & (1 << bit)) {
-            m_targetIRQCycles = m_cpu->getCycles() + static_cast<u32>(m_irqOffset * TIMER_CYCLES_TO_CPU_CYCLES_RATIO);
+            m_targetIRQCycles = m_cpu->frameCycles() + static_cast<u32>(m_irqOffset * TIMER_CYCLES_TO_CPU_CYCLES_RATIO);
         }
     } else {
         m_targetIRQCycles = 0;
