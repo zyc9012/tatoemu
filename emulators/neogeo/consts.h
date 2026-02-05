@@ -11,11 +11,14 @@ constexpr double TARGET_FPS = 59.1856;
 // CPU frequencies
 constexpr u32 CPU_FREQUENCY = 12000000;  // 12 MHz (68000)
 constexpr u32 SOUND_CPU_FREQUENCY = 4000000;  // 4 MHz (Z80)
+constexpr u32 IRQ_TIMER_FREQUENCY = 6000000;  // 6 MHz (IRQ timer)
 
 // Cycles per frame
 constexpr u32 CPU_CYCLES_PER_FRAME = static_cast<u32>(CPU_FREQUENCY / TARGET_FPS);
+constexpr u32 CPU_CYCLES_PER_STEP = 50;
 constexpr u32 SOUND_CPU_CYCLES_PER_FRAME = static_cast<u32>(SOUND_CPU_FREQUENCY / TARGET_FPS);
 constexpr float SOUND_CYCLES_RATIO = static_cast<float>(SOUND_CPU_FREQUENCY) / static_cast<float>(CPU_FREQUENCY);
+constexpr float TIMER_CYCLES_TO_CPU_CYCLES_RATIO = static_cast<float>(CPU_FREQUENCY) / static_cast<float>(IRQ_TIMER_FREQUENCY);
 constexpr u32 WATCHDOG_TIMEOUT_CYCLES = CPU_CYCLES_PER_FRAME * 8;
 
 // Memory sizes

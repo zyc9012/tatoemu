@@ -28,6 +28,8 @@ Memory::Memory()
     , m_biosTextRomEnabled(false)
     , m_irqControl(0)
     , m_irqOffset(0)
+    , m_targetIRQCycles(0)
+    , m_irqAcknowledge(0xFF)
     , m_programRomBank(0x100000)
     , m_z80Bank0(0x02)
     , m_z80Bank1(0x06)
@@ -58,6 +60,8 @@ void Memory::reset() {
     // Reset video controller registers
     m_irqControl = 0;
     m_irqOffset = 0;
+    m_targetIRQCycles = 0;
+    m_irqAcknowledge = 0xFF;
     
     // Reset Z80 banking
     m_z80Bank0 = 0x02;  // Bank 0: starts at 0x8000 in Z80 ROM
@@ -377,7 +381,7 @@ void Memory::writeVideoController(u32 address, u16 value) {
             
         case 0x06:
             // IRQ control + sprite frame speed
-            m_irqControl = value & 0xFF;
+            m_irqControl = value;
             if (m_ppu) {
                 m_ppu->setSpriteFrameSpeed((value >> 8) & 0xFF);
             }
@@ -391,13 +395,26 @@ void Memory::writeVideoController(u32 address, u16 value) {
         case 0x0A:
             // IRQ offset (low word)
             m_irqOffset = (m_irqOffset & 0xFFFF0000) | value;
-            // IRQ scheduling would go here
+            reloadIRQTimer(5);
             break;
             
         case 0x0C:
             // IRQ acknowledge
             if (m_cpu) {
-                m_cpu->irq(0);
+                m_irqAcknowledge |= (value & 7);
+                if ((m_irqAcknowledge & 7) == 7) {
+                    m_cpu->irq(0);
+                } else {
+                    if ((m_irqAcknowledge & 1) == 0) {
+                        m_cpu->irq(3);
+                    }
+                    if ((m_irqAcknowledge & 2) == 0) {
+                        m_cpu->irq(2);
+                    }
+                    if ((m_irqAcknowledge & 4) == 0) {
+                        m_cpu->irq(1);
+                    }
+                }
             }
             break;
     }
@@ -594,6 +611,32 @@ void Memory::writeIO2(u8 offset, u8 /* value */) {
     }
 }
 
+void Memory::vblankIRQ() {
+    m_irqAcknowledge &= ~4;
+    m_cpu->irq(1);
+    reloadIRQTimer(6);
+}
+
+void Memory::timerIRQ() {
+    m_irqAcknowledge &= ~2;
+    m_cpu->irq(2);
+    reloadIRQTimer(7);
+}
+
+void Memory::reloadIRQTimer(u8 bit) {
+    // Bit 4 = 1: Enable timer interrupt.
+    // Bit 5 = 1: Reload counter as soon as REG_TIMERLOW is written to.
+    // Bit 6 = 1: Reload counter at the beginning of the hblank of the first vblank line (start of each frame).
+    // Bit 7 = 1: Reload counter when it reaches 0.
+    if (m_irqControl & 0x10) {
+        if (m_irqControl & (1 << bit)) {
+            m_targetIRQCycles = m_cpu->getCycles() + static_cast<u32>(m_irqOffset * TIMER_CYCLES_TO_CPU_CYCLES_RATIO);
+        }
+    } else {
+        m_targetIRQCycles = 0;
+    }
+}
+
 // Z80 Memory Map:
 // 0x0000-0x7FFF: Z80 BIOS ROM or cartridge ROM (32KB, switchable)
 // 0x8000-0xBFFF: Bank 0 (16KB, bank << 14)
@@ -737,6 +780,8 @@ void Memory::saveState(Buffer* buf) {
     buffer_write(buf, &m_biosTextRomEnabled, sizeof(m_biosTextRomEnabled));
     buffer_write(buf, &m_irqControl, sizeof(m_irqControl));
     buffer_write(buf, &m_irqOffset, sizeof(m_irqOffset));
+    buffer_write(buf, &m_targetIRQCycles, sizeof(m_targetIRQCycles));
+    buffer_write(buf, &m_irqAcknowledge, sizeof(m_irqAcknowledge));
     buffer_write(buf, &m_z80Bank0, sizeof(m_z80Bank0));
     buffer_write(buf, &m_z80Bank1, sizeof(m_z80Bank1));
     buffer_write(buf, &m_z80Bank2, sizeof(m_z80Bank2));
@@ -757,6 +802,8 @@ void Memory::loadState(Buffer* buf) {
     buffer_read(buf, &m_biosTextRomEnabled, sizeof(m_biosTextRomEnabled));
     buffer_read(buf, &m_irqControl, sizeof(m_irqControl));
     buffer_read(buf, &m_irqOffset, sizeof(m_irqOffset));
+    buffer_read(buf, &m_targetIRQCycles, sizeof(m_targetIRQCycles));
+    buffer_read(buf, &m_irqAcknowledge, sizeof(m_irqAcknowledge));
     buffer_read(buf, &m_z80Bank0, sizeof(m_z80Bank0));
     buffer_read(buf, &m_z80Bank1, sizeof(m_z80Bank1));
     buffer_read(buf, &m_z80Bank2, sizeof(m_z80Bank2));

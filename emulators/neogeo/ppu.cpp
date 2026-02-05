@@ -237,9 +237,7 @@ void PPU::step() {
             updateSpriteFrame();
 
             // Trigger VBlank interrupt
-            if (m_cpu) {
-                m_cpu->irq(1);  // VBlank is IRQ level 1
-            }
+            m_memory->vblankIRQ();
         }
     }
 }

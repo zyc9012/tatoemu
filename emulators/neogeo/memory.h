@@ -99,6 +99,14 @@ public:
     // IRQ control access (for PPU)
     u16 getIRQControl() const { return m_irqControl; }
 
+    // IRQ timer
+    u32 getTargetIRQCycles() const { return m_targetIRQCycles; }
+    void reloadIRQTimer(u8 bit);
+
+    // IRQ
+    void vblankIRQ();
+    void timerIRQ();
+
 private:
     // Component pointers
     CPU* m_cpu;
@@ -131,6 +139,8 @@ private:
     // Video controller registers
     u16 m_irqControl;          // IRQ control register
     u32 m_irqOffset;           // IRQ offset register
+    u32 m_targetIRQCycles;     // Target IRQ cycles
+    u8 m_irqAcknowledge;       // IRQ acknowledge
     
     // 68K ROM banking (for games > 1MB)
     u32 m_programRomBank;  // Bank offset for 0x200000-0x2FFFFF area

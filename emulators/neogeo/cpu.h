@@ -18,7 +18,7 @@ public:
     void reset();
     u32 step(u32 cycles);
     
-    u32 getCycles() const { return m_cycles + m68k_cycles_run(); }
+    u32 getCycles() const { return m_inStep ? m_cycles + m68k_cycles_run() : m_cycles; }
     void setMemory(Memory* memory) { m_memory = memory; }
     
     // Interrupt handling
@@ -31,6 +31,7 @@ public:
 private:
     Memory* m_memory;
     u32 m_cycles;
+    bool m_inStep;
 };
 
 } // namespace neogeo

@@ -1,6 +1,7 @@
 #include "core.h"
 #include "controller.h"
 #include <SDL3/SDL.h>
+#include <algorithm>
 #include "../../components/buffer.h"
 
 namespace neogeo {
@@ -88,32 +89,47 @@ void Core::update() {
     // Run until we complete a frame
     // The PPU will set frameComplete when VBlank starts
     
-    // Track accumulated excess/deficit for Z80 synchronization
-    s32 soundCpuSyncOffset = 0;
     u32 cyclesThisFrame = 0;
+    u32 nextCpuCycles = CPU_CYCLES_PER_STEP;
     
     while (!m_ppu->isFrameComplete()) {
         // Execute CPU cycles
-        u32 cpuCycles = m_cpu->step(50);
+        u32 oldCycles = m_cpu->getCycles();
+        u32 cpuCycles = m_cpu->step(nextCpuCycles);
+        nextCpuCycles = CPU_CYCLES_PER_STEP;
 
         // Update cycle counter
         cyclesThisFrame += cpuCycles;
 
         // Run sound CPU proportionally
-        s32 soundCpuCycles = static_cast<u32>(cpuCycles * SOUND_CYCLES_RATIO) - soundCpuSyncOffset;
+        s32 soundCpuCycles = m_cpu->getCycles() * SOUND_CYCLES_RATIO - m_soundCpu->getCycles();
         
         // Execute Z80 and get actual cycles executed
-        u32 soundCpuCyclesActual = m_soundCpu->step(static_cast<u32>(soundCpuCycles));
-        soundCpuSyncOffset = static_cast<s32>(soundCpuCyclesActual) - static_cast<s32>(soundCpuCycles);
+        if (soundCpuCycles > 0) {
+            u32 soundCpuCyclesActual = m_soundCpu->step(static_cast<u32>(soundCpuCycles));
 
-        // Run APU using actual cycles executed
-        m_apu->step(soundCpuCyclesActual, m_gameSpeed);
+            // Run APU using actual cycles executed
+            m_apu->step(soundCpuCyclesActual, m_gameSpeed);
+        }
         
         // Run PPU (graphics chip runs in parallel)
         // PPU typically runs at similar speed to main CPU
         u32 ppuCycles = cpuCycles;
         for (u32 i = 0; i < ppuCycles; i++) {
             m_ppu->step();
+        }
+
+        // Check for IRQ timer
+        u32 newCycles = m_cpu->getCycles();
+        u32 targetIRQCycles = m_memory->getTargetIRQCycles();
+        u16 irqControl = m_memory->getIRQControl();
+        if (irqControl & 0x10) {
+            s32 cyclesToIRQ = static_cast<s32>(targetIRQCycles) - static_cast<s32>(newCycles);
+            if (cyclesToIRQ > 0 && cyclesToIRQ < static_cast<s32>(CPU_CYCLES_PER_STEP)) {
+                nextCpuCycles = cyclesToIRQ;
+            } else if (oldCycles < targetIRQCycles && newCycles >= targetIRQCycles) {
+                m_memory->timerIRQ();
+            }
         }
     }
     
