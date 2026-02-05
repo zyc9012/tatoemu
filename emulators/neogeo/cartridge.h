@@ -57,6 +57,7 @@ public:
     
     // Vector table access
     u8 readVectorTable8(u32 address) const;  // 0x000000-0x0003FF
+    void writeVectorTable8(u32 address, u8 value);
     u8 readBiosVectorTable8(u32 address) const;  // 0xC00000-0xC003FF
     void setBiosVectorTableActive(bool active);  // Switch between BIOS/cartridge vector table
     

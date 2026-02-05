@@ -84,6 +84,8 @@ void Memory::reset() {
     auto romSetName = std::string_view(m_cartridge->getGameInfo()->romSetName);
     if (romSetName == "mslugx") {
         m_memoryHijacker = std::make_unique<MslugxMemory>(this);
+    } else if (romSetName == "kof98") {
+        m_memoryHijacker = std::make_unique<Kof98Memory>(m_cartridge);
     }
 }
 

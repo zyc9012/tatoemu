@@ -203,6 +203,10 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
         }
         return false;
     }
+
+    if (m_romSetName == "kof98") {
+        decryptKof98(m_programRom);
+    }
     
     // Byteswap program ROM (68000 is big-endian, ROMs stored little-endian)
     byteswap(m_programRom);
@@ -646,6 +650,23 @@ u8 Cartridge::readVectorTable8(u32 address) const {
     }
     
     return 0;
+}
+
+void Cartridge::writeVectorTable8(u32 address, u8 value) {
+    // Vector table at 0x000000-0x0003FF
+    u32 offset = address & 0x3FF;
+    
+    if (m_biosVectorTableActive) {
+        // BIOS vectors active: 0x000000 maps to hybrid (BIOS[0x00-0x7F] + Cart[0x80-0x3FF])
+        if (offset < m_hybridBiosVectors.size()) {
+            m_hybridBiosVectors[offset] = value;
+        }
+    } else {
+        // Cartridge vectors active: 0x000000 maps to straight cartridge ROM
+        if (offset < m_programRom.size()) {
+            m_programRom[offset] = value;
+        }
+    }
 }
 
 u8 Cartridge::readBiosVectorTable8(u32 address) const {

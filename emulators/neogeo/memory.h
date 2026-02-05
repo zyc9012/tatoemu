@@ -22,8 +22,8 @@ class Core;
 class MemoryHijacker {
 public:
     virtual ~MemoryHijacker() = default;
-    virtual bool read16(u32 address, u16& ret) = 0;
-    virtual bool write16(u32 address, u16 value) = 0;
+    virtual bool read16(u32 /* address */, u16& /* ret */) { return false; }
+    virtual bool write16(u32 /* address */, u16 /* value */) { return false; }
 };
 
 // NeoGeo Memory Map (Cartridge systems - MVS/AES):

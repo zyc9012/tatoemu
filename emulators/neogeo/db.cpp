@@ -1,4 +1,5 @@
 #include "db.h"
+#include "cartridge.h"
 #include "../../../utilities/miniz/miniz.h"
 #include <algorithm>
 #include <cstring>
@@ -3500,6 +3501,54 @@ bool MslugxMemory::write16(u32 address, u16 value) {
         return true;
     }
 
+    return false;
+}
+
+// kof98
+void decryptKof98(std::vector<u8>& rom)
+{
+    std::vector<u8> temp(0x200000);
+
+    for (u32 i = 0; i < 0x100000; i++) {
+        u32 j = i;
+
+        if ((i & 0x0000fc) == 0x000000) j ^= 0x000100;
+        if ((i & 0x0c0000) != 0x080000) j ^= 0x000100;
+        if ((i & 0x0c0008) == 0x080008) j ^= 0x000100;
+        if ((i & 0x0c00fe) == 0x080000) j ^= 0x000100;
+        if ((i & 0x0c0002) == 0x080002) j ^= 0x000100;
+        if ((i & 0x100000) == 0x100000) j ^= 0x000102;
+        if ((i & 0x000002) == 0x000002) j ^= 0x100002;
+        if ((i & 0x000008) == 0x000008) j ^= 0x100002;
+        
+        temp[i] = rom[j];
+    }
+
+    memmove(rom.data() + 0x000800, temp.data() + 0x000800, 0x200000 - 0x000800);
+    memmove(rom.data() + 0x100000, rom.data() + 0x200000, 0x400000);
+}
+
+Kof98Memory::Kof98Memory(Cartridge* cartridge) : m_cartridge(cartridge) {}
+
+// kof98 protection write
+bool Kof98Memory::write16(u32 address, u16 value) {
+    if (address == 0x20AAAA) {
+        switch (value) {
+            case 0x0090:
+                m_cartridge->writeVectorTable8(0x000100, 0x00);
+                m_cartridge->writeVectorTable8(0x000101, 0xC2);
+                m_cartridge->writeVectorTable8(0x000102, 0x00);
+                m_cartridge->writeVectorTable8(0x000103, 0xFD);
+                break;
+            case 0x00F0:
+                m_cartridge->writeVectorTable8(0x000100, 0x4E);
+                m_cartridge->writeVectorTable8(0x000101, 0x45);
+                m_cartridge->writeVectorTable8(0x000102, 0x4F);
+                m_cartridge->writeVectorTable8(0x000103, 0x2D);
+                break;
+        }
+        return true;
+    }
     return false;
 }
 
