@@ -82,34 +82,35 @@ void Core::reset() {
     m_controller->reset();
     m_upd4990a->initialize(CPU_FREQUENCY, [this]() { return m_cpu->getCycles(); });
 
+    m_cyclesThisFrame = 0;
+    m_soundCyclesThisFrame = 0;
     m_watchdogTimer = 0;
 }
 
 void Core::update() {
     // Run until we complete a frame
-    // The PPU will set frameComplete when VBlank starts
     
-    u32 cyclesThisFrame = 0;
     u32 nextCpuCycles = CPU_CYCLES_PER_STEP;
     
-    while (!m_ppu->isFrameComplete()) {
+    while (m_cyclesThisFrame < CPU_CYCLES_PER_FRAME) {
         // Execute CPU cycles
         u32 oldCycles = m_cpu->getCycles();
         u32 cpuCycles = m_cpu->step(nextCpuCycles);
         nextCpuCycles = CPU_CYCLES_PER_STEP;
 
         // Update cycle counter
-        cyclesThisFrame += cpuCycles;
+        m_cyclesThisFrame += cpuCycles;
 
         // Run sound CPU proportionally
-        s32 soundCpuCycles = m_cpu->getCycles() * SOUND_CYCLES_RATIO - m_soundCpu->getCycles();
+        s32 soundCpuCycles = m_cyclesThisFrame * SOUND_CYCLES_RATIO - m_soundCyclesThisFrame;
         
         // Execute Z80 and get actual cycles executed
         if (soundCpuCycles > 0) {
             u32 soundCpuCyclesActual = m_soundCpu->step(static_cast<u32>(soundCpuCycles));
-
-            // Run APU using actual cycles executed
             m_apu->step(soundCpuCyclesActual, m_gameSpeed);
+
+            // Update sound cycle counter
+            m_soundCyclesThisFrame += soundCpuCyclesActual;
         }
         
         // Run PPU (graphics chip runs in parallel)
@@ -129,13 +130,17 @@ void Core::update() {
                 m_memory->timerIRQ();
             }
         }
+
+        // Avoid overrunning the frame by too much
+        u32 cyclesLeft = CPU_CYCLES_PER_FRAME - m_cyclesThisFrame;
+        if (cyclesLeft < CPU_CYCLES_PER_STEP && cyclesLeft < nextCpuCycles) {
+            nextCpuCycles = cyclesLeft;
+        }
     }
-    
-    m_ppu->clearFrameComplete();
 
     // Update watchdog timer
     if (m_cartridge) {
-        m_watchdogTimer += cyclesThisFrame;
+        m_watchdogTimer += m_cyclesThisFrame;
 
         // Check if watchdog has expired (should trigger every ~8 frames)
         if (m_watchdogTimer > static_cast<s32>(WATCHDOG_TIMEOUT_CYCLES)) {
@@ -144,12 +149,18 @@ void Core::update() {
             return;
         }
     }
+
+    m_cyclesThisFrame -= CPU_CYCLES_PER_FRAME;
+    m_soundCyclesThisFrame -= SOUND_CPU_CYCLES_PER_FRAME;
 }
 
 bool Core::saveState(const fs::path& filename) {
     Buffer buf = {};
     
     // Save all component states
+    buffer_write(&buf, &m_cyclesThisFrame, sizeof(m_cyclesThisFrame));
+    buffer_write(&buf, &m_soundCyclesThisFrame, sizeof(m_soundCyclesThisFrame));
+    buffer_write(&buf, &m_watchdogTimer, sizeof(m_watchdogTimer));
     m_cpu->saveState(&buf);
     m_soundCpu->saveState(&buf);
     m_apu->saveState(&buf);
@@ -167,6 +178,9 @@ bool Core::loadState(const fs::path& filename) {
     buffer_load_from_file(&buf, filename);
     
     // Load all component states
+    buffer_read(&buf, &m_cyclesThisFrame, sizeof(m_cyclesThisFrame));
+    buffer_read(&buf, &m_soundCyclesThisFrame, sizeof(m_soundCyclesThisFrame));
+    buffer_read(&buf, &m_watchdogTimer, sizeof(m_watchdogTimer));
     m_cpu->loadState(&buf);
     m_soundCpu->loadState(&buf);
     m_apu->loadState(&buf);

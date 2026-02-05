@@ -65,6 +65,10 @@ private:
     std::unique_ptr<Cartridge> m_cartridge;
     std::unique_ptr<Controller> m_controller;
     std::unique_ptr<UPD4990A> m_upd4990a;
+
+    // Cycle counters
+    u32 m_cyclesThisFrame = 0;
+    u32 m_soundCyclesThisFrame = 0;
     
     // Frame timing
     double m_gameSpeed = 1.0;

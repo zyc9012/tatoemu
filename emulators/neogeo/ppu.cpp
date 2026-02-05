@@ -15,7 +15,6 @@ PPU::PPU()
     , m_cartridge(nullptr)
     , m_memory(nullptr)
     , m_videoDevice(nullptr)
-    , m_frameComplete(false)
     , m_scanline(0)
     , m_cycles(0)
     , m_spriteFrameSpeed(0)
@@ -52,7 +51,6 @@ void PPU::reset() {
     m_graphicsRam.fill(0);
     m_scanline = 0;
     m_cycles = 0;
-    m_frameComplete = false;
     m_spriteFrameSpeed = 0;
     m_spriteFrameTimer = 0;
     m_spriteFrame = 0;
@@ -227,7 +225,6 @@ void PPU::step(u32 cycles) {
         if (m_scanline >= TOTAL_SCANLINES) {
             m_scanline = 0;
             renderFrame();
-            m_frameComplete = true;
 
             // Update sprite frame timing
             updateSpriteFrame();

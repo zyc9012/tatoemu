@@ -29,9 +29,6 @@ public:
     void reset();
     void step(u32 cycles);
     
-    bool isFrameComplete() const { return m_frameComplete; }
-    void clearFrameComplete() { m_frameComplete = false; }
-    
     // Component connections
     void setCPU(CPU* cpu) { m_cpu = cpu; }
     void setCartridge(Cartridge* cartridge) { m_cartridge = cartridge; }
@@ -121,7 +118,6 @@ private:
     std::array<u32, 4096> m_palette;
     
     // Frame state
-    bool m_frameComplete;
     u32 m_scanline;
     u32 m_cycles;
 
