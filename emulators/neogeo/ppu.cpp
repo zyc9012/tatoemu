@@ -218,14 +218,10 @@ void PPU::initTextBankSwitching() {
 }
 
 void PPU::step() {
-    // NeoGeo timing: ~202752 cycles per frame at 12MHz
-    // 264 scanlines total, ~768 cycles per scanline
-    constexpr u32 CYCLES_PER_SCANLINE = 768;
-    
     m_cycles += 1;
     
-    if (m_cycles >= CYCLES_PER_SCANLINE) {
-        m_cycles -= CYCLES_PER_SCANLINE;
+    if (m_cycles >= CPU_CYCLES_PER_SCANLINE) {
+        m_cycles -= CPU_CYCLES_PER_SCANLINE;
         m_scanline++;
         
         if (m_scanline >= TOTAL_SCANLINES) {

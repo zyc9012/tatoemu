@@ -12,11 +12,6 @@ namespace neogeo {
 class CPU;
 class Cartridge;
 
-// Graphics RAM size (128KB total - two 64KB banks)
-// Bank 0: 0x00000-0x0FFFF (sprite tile data, text layer)
-// Bank 1: 0x10000-0x1FFFF (sprite control blocks SCB2/3/4)
-constexpr u32 GRAPHICS_RAM_SIZE = 0x20000;
-
 // Text layer bank switching cache (calculated once at init)
 enum class TextBankMode {
     NONE,              // No bank switching (text ROM <= 256KB)
