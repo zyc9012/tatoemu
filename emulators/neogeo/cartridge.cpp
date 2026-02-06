@@ -82,7 +82,7 @@ bool Cartridge::load(const fs::path& filename, u32 bios68kIndex) {
         return false;
     }
     
-    log_info("Loaded NeoGeo ROM: %s", m_title.c_str());
+    log_info("Loaded NeoGeo ROM: %s (ID: %03X)", m_title.c_str(), m_gameId);
     log_info("  ROM Set: %s", m_romSetName.c_str());
     log_info("  Program ROM: %d KB", static_cast<int>(m_programRomSize / 1024));
     log_info("  Sprite ROM: %d KB", static_cast<int>(m_spriteRomSize / 1024));
@@ -239,6 +239,8 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     
     // Build vector tables
     buildVectorTables();
+
+    m_gameId = m_programRom[0x0108] << 8 | m_programRom[0x0109];
     
     return true;
 }

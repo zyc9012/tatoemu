@@ -80,6 +80,9 @@ public:
     void saveState(Buffer* buf);
     void loadState(Buffer* buf);
 
+    // Game ID
+    u16 getGameId() const { return m_gameId; }
+
 private:
     CPU* m_cpu;
     PPU* m_ppu;
@@ -111,6 +114,9 @@ private:
     u32 m_spriteRomSize;
     u32 m_textRomSize;
     u32 m_soundRomSize;
+
+    // Game ID
+    u16 m_gameId;
     
     // Helper to load ROMs from database
     bool loadROMsFromDatabase(const std::map<std::string, std::vector<u8>>& romFiles);
