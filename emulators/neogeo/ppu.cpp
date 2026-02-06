@@ -246,9 +246,6 @@ void PPU::step(u32 cycles) {
 }
 
 void PPU::newFrame() {
-    // Update palette from memory
-    updatePalette();
-    
     // Clear screen to backdrop color
     clearScreen();
 
@@ -331,8 +328,11 @@ void PPU::renderSprites() {
     // Render to the current scanline
     m_sliceEnd = std::min((m_scanline + 248) % 264 - 5, static_cast<u32>(0xF0));
 
-    // Calculate sprite bank limit for optimization
-    calcSpriteBankLimit();
+    if (m_sliceStart == 0x10) {
+        // Only calculate once before the first sprite is rendered
+        updatePalette();
+        calcSpriteBankLimit();
+    }
     
     // Render all sprite banks
     constexpr u32 MAX_SPRITE_BANKS = 0x17d;  // 381 sprite banks
