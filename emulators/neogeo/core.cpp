@@ -114,7 +114,9 @@ void Core::update() {
         // Check for IRQ timer
         u32 targetIRQCycles = m_memory->getTargetIRQCycles();
         u16 irqControl = m_memory->getIRQControl();
-        if (irqControl & 0x10) {
+        if ((irqControl & 0x10) &&
+            // Skip timer IRQ for zedblade
+            m_cartridge->getGameId() != 0x76) {
             s32 cyclesToIRQ = static_cast<s32>(targetIRQCycles) - static_cast<s32>(newCycles);
             if (cyclesToIRQ > 0 && cyclesToIRQ < static_cast<s32>(CPU_CYCLES_PER_STEP)) {
                 nextCpuCycles = cyclesToIRQ;
