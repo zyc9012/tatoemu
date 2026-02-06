@@ -224,14 +224,10 @@ void PPU::step(u32 cycles) {
 
         if (m_scanline >= TOTAL_SCANLINES) {
             // Render the remaining sprites
-            if (m_enableSprites) {
-                renderSprites();
-            }
+            renderSprites();
             
             // Render text layer on top
-            if (m_enableText) {
-                renderText();
-            }
+            renderText();
             
             // Send frame to video device
             if (m_videoDevice) {
@@ -324,7 +320,7 @@ u32 PPU::convertPaletteEntry(u16 entry, bool /* darken */) {
 }
 
 void PPU::renderSprites() {
-    if (!m_cartridge || m_spriteTileMask == 0 || m_sliceStart >= 0xF0) {
+    if (!m_cartridge || !m_enableSprites || m_spriteTileMask == 0 || m_sliceStart >= 0xF0) {
         return;
     }
 
@@ -674,7 +670,7 @@ void PPU::renderSpriteLine(const u8* /* tileData */, u32* palette, s32 xPos, s32
 }
 
 void PPU::renderText() {
-    if (!m_cartridge || !m_memory) {
+    if (!m_cartridge || !m_memory || !m_enableText) {
         return;
     }
     
