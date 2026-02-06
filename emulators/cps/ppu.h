@@ -37,10 +37,7 @@ public:
     ~PPU() = default;
 
     void reset();
-    void step();
-    
-    bool isFrameComplete() const { return m_frameComplete; }
-    void clearFrameComplete() { m_frameComplete = false; }
+    void step(u32 cycles);
     
     void setCPU(CPU* cpu) { m_cpu = cpu; }
     void setCartridge(Cartridge* cartridge);
@@ -115,9 +112,10 @@ private:
     u32 m_gfxBankSizes[4];
     
     // Frame state
-    bool m_frameComplete;
     u32 m_scanline;
     u32 m_cycles;
+    u32 m_cyclesPerFrame;
+    u32 m_cyclesPerScanline;
     // Number of CPS2 beam-synced raster IRQs recorded this frame.
     s32 m_rasterIrqCount;
     

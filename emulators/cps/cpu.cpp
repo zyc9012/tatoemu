@@ -1,5 +1,7 @@
 #include "cpu.h"
 #include "memory.h"
+#include "cartridge.h"
+#include "consts.h"
 #include <vector>
 #include "../../components/cpu/m68k/m68k.h"
 #include "../../components/cpu/m68k/m68kcb.h"
@@ -78,7 +80,11 @@ static void write32_pd_callback(unsigned int address, unsigned int value) {
 }
 
 CPU::CPU()
-    : m_memory(nullptr) {
+    : m_memory(nullptr)
+    , m_cartridge(nullptr)
+    , m_cycles(0)
+    , m_cyclesPerFrame(0)
+    , m_executing(false) {
     // Initialize Musashi emulator (safe to call multiple times)
     static bool initialized = false;
     if (!initialized) {
@@ -95,6 +101,17 @@ CPU::~CPU() {
 void CPU::reset() {
     // Set global memory pointer for callbacks
     g_memory = m_memory;
+
+    m_cycles = 0;
+    m_executing = false;
+
+    if (m_cartridge->getCPSVersion() == 2) {
+        m_cyclesPerFrame = ::cps2::CPU_CYCLES_PER_FRAME;
+    } else if (m_cartridge->isCPS1QSound()) {
+        m_cyclesPerFrame = ::cps1qs::CPU_CYCLES_PER_FRAME;
+    } else {
+        m_cyclesPerFrame = ::cps1::CPU_CYCLES_PER_FRAME;
+    }
     
     // Set up callbacks - 1:1 match with Musashi interface
     m68k_memory_callbacks callbacks = {};
@@ -124,7 +141,12 @@ u32 CPU::step(u32 cycles) {
     g_memory = m_memory;
     
     // Execute cycles
-    return m68k_execute(cycles);
+    m_executing = true;
+    u32 cyclesUsed = m68k_execute(cycles);
+    m_cycles += cyclesUsed;
+    m_executing = false;
+
+    return cyclesUsed;
 }
 
 void CPU::irq(u8 level) {
@@ -142,6 +164,9 @@ void CPU::saveState(Buffer* buf) {
     
     buffer_write(buf, &contextSizeNoPointers, sizeof(contextSizeNoPointers));
     buffer_write(buf, context.data(), contextSizeNoPointers);
+    buffer_write(buf, &m_cycles, sizeof(m_cycles));
+    buffer_write(buf, &m_cyclesPerFrame, sizeof(m_cyclesPerFrame));
+    buffer_write(buf, &m_executing, sizeof(m_executing));
 }
 
 void CPU::loadState(Buffer* buf) {
@@ -168,6 +193,10 @@ void CPU::loadState(Buffer* buf) {
 
     // Set current context back
     m68k_set_context(currentContext.data());
+    
+    buffer_read(buf, &m_cycles, sizeof(m_cycles));
+    buffer_read(buf, &m_cyclesPerFrame, sizeof(m_cyclesPerFrame));
+    buffer_read(buf, &m_executing, sizeof(m_executing));
     
     // Ensure memory pointer is set
     g_memory = m_memory;

@@ -28,9 +28,10 @@ PPU::PPU()
     , m_layer2XOffs(0), m_layer2YOffs(0)
     , m_layer3XOffs(0), m_layer3YOffs(0)
     , m_gfxMapper(nullptr)
-    , m_frameComplete(false)
     , m_scanline(0)
     , m_cycles(0)
+    , m_cyclesPerFrame(0)
+    , m_cyclesPerScanline(0)
     , m_rasterIrqCount(0)
     , m_paletteNeedsUpdate(true)
     , m_maxZValue(1)
@@ -73,7 +74,6 @@ void PPU::reset() {
     m_cpsRegs.fill(0);
     m_rasterLines.fill(0);
     
-    m_frameComplete = false;
     m_scanline = 0;
     m_cycles = 0;
     m_rasterIrqCount = 0;
@@ -99,6 +99,16 @@ void PPU::reset() {
     for (s32 i = 2; i < MAX_RASTER + 2; i++) {
         m_rasterLines[i] = 0;
     }
+
+    if (m_cartridge->getCPSVersion() == 2) {
+        m_cyclesPerFrame = ::cps2::CPU_CYCLES_PER_FRAME;
+    } else if (m_cartridge->isCPS1QSound()) {
+        m_cyclesPerFrame = ::cps1qs::CPU_CYCLES_PER_FRAME;
+    } else {
+        m_cyclesPerFrame = ::cps1::CPU_CYCLES_PER_FRAME;
+    }
+
+    m_cyclesPerScanline = m_cyclesPerFrame / TOTAL_SCANLINES;
     
     if (m_cartridge) {
         u8 cpsVer = m_cartridge->getCPSVersion();
@@ -387,26 +397,17 @@ void PPU::updatePalette() {
 // Frame Stepping
 // ============================================================================
 
-void PPU::step() {
+void PPU::step(u32 cycles) {
     // CPS1/CPS2 render a full frame at VBlank
     // Frame rate is ~59.63Hz for both systems
     // CPS1: 68000 runs at 10MHz, CPS2: 68000 runs at 16MHz
     // CPU cycles per frame ~= CPU_FREQUENCY / 59.63
     
     // Increment cycle counter
-    m_cycles++;
+    m_cycles += cycles;
     
     // Calculate current scanline
-    u32 cyclesPerFrame;
-    if (m_cartridge->getCPSVersion() == 2) {
-        cyclesPerFrame = ::cps2::CPU_CYCLES_PER_FRAME;
-    } else if (m_cartridge->isCPS1QSound()) {
-        cyclesPerFrame = ::cps1qs::CPU_CYCLES_PER_FRAME;
-    } else {
-        cyclesPerFrame = ::cps1::CPU_CYCLES_PER_FRAME;
-    }
-    u32 cyclesPerScanline = cyclesPerFrame / TOTAL_SCANLINES;
-    u32 newScanline = m_cycles / cyclesPerScanline;
+    u32 newScanline = m_cycles / m_cyclesPerScanline;
     
     // Check if we've moved to a new scanline
     if (newScanline != m_scanline) {
@@ -430,10 +431,9 @@ void PPU::step() {
     }
     
     // Check if frame is complete
-    if (m_cycles >= cyclesPerFrame) {
-        m_cycles -= cyclesPerFrame;
+    if (m_cycles >= m_cyclesPerFrame) {
+        m_cycles -= m_cyclesPerFrame;
         m_scanline = 0;
-        m_frameComplete = true;
         m_rasterIrqCount = 0;  // Reset raster IRQ count for next frame
         
         // Reset raster lines for next frame
@@ -1666,9 +1666,10 @@ void PPU::saveState(Buffer* buf) {
     buffer_write(buf, m_gfxScroll, sizeof(m_gfxScroll));
     
     // Save state flags
-    buffer_write(buf, &m_frameComplete, sizeof(m_frameComplete));
     buffer_write(buf, &m_scanline, sizeof(m_scanline));
     buffer_write(buf, &m_cycles, sizeof(m_cycles));
+    buffer_write(buf, &m_cyclesPerFrame, sizeof(m_cyclesPerFrame));
+    buffer_write(buf, &m_cyclesPerScanline, sizeof(m_cyclesPerScanline));
     buffer_write(buf, &m_paletteNeedsUpdate, sizeof(m_paletteNeedsUpdate));
 }
 
@@ -1691,9 +1692,10 @@ void PPU::loadState(Buffer* buf) {
     buffer_read(buf, m_gfxScroll, sizeof(m_gfxScroll));
     
     // Load state flags
-    buffer_read(buf, &m_frameComplete, sizeof(m_frameComplete));
     buffer_read(buf, &m_scanline, sizeof(m_scanline));
     buffer_read(buf, &m_cycles, sizeof(m_cycles));
+    buffer_read(buf, &m_cyclesPerFrame, sizeof(m_cyclesPerFrame));
+    buffer_read(buf, &m_cyclesPerScanline, sizeof(m_cyclesPerScanline));
     buffer_read(buf, &m_paletteNeedsUpdate, sizeof(m_paletteNeedsUpdate));
     
     // Force palette update after loading state

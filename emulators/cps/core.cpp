@@ -20,6 +20,7 @@ bool Core::initialize() {
 
     // Wire up components
     m_cpu->setMemory(m_memory.get());
+    m_cpu->setCartridge(m_cartridge.get());
     m_soundCpu->setMemory(m_memory.get());
     m_soundCpu->setAPU(m_apu.get());
     m_soundCpu->setCartridge(m_cartridge.get());
@@ -80,13 +81,13 @@ bool Core::loadROM(const fs::path& filename) {
     m_controller->setCPSVersion(m_cpsVersion);
     
     // Reset all components
+    m_cartridge->reset();
     m_cpu->reset();
     m_soundCpu->reset();
     m_ppu->reset();
     m_apu->reset();
     m_memory->reset();
     m_controller->reset();
-    m_cartridge->reset();
 
     return true;
 }
@@ -94,13 +95,13 @@ bool Core::loadROM(const fs::path& filename) {
 void Core::update() {
     // Run until we complete a frame
     // The PPU will set frameComplete when VBlank starts
+
+    u32 nextCpuCycles = CPU_CYCLES_PER_STEP;
     
-    // Track accumulated excess/deficit for Z80 synchronization
-    s32 soundCpuSyncOffset = 0;
-    
-    while (!m_ppu->isFrameComplete()) {
+    while (m_cpu->frameCycles() < m_cpu->cyclesPerFrame()) {
         // Execute CPU cycles)
-        u32 cpuCycles = m_cpu->step(50);
+        u32 cpuCycles = m_cpu->step(nextCpuCycles);
+        nextCpuCycles = CPU_CYCLES_PER_STEP;
         
         // Run sound CPU proportionally
         float soundCyclesRatio;
@@ -111,24 +112,26 @@ void Core::update() {
         } else {
             soundCyclesRatio = ::cps1::SOUND_CYCLES_RATIO;
         }
-        s32 soundCpuCycles = static_cast<u32>(cpuCycles * soundCyclesRatio) - soundCpuSyncOffset;
+        s32 soundCpuCycles = static_cast<s32>(m_cpu->frameCycles() * soundCyclesRatio) - m_soundCpu->frameCycles();
         
         // Execute Z80 and get actual cycles executed
-        u32 soundCpuCyclesActual = m_soundCpu->step(static_cast<u32>(soundCpuCycles));
-        soundCpuSyncOffset = static_cast<s32>(soundCpuCyclesActual) - static_cast<s32>(soundCpuCycles);
-
-        // Run APU using actual cycles executed
-        m_apu->step(soundCpuCyclesActual, m_gameSpeed);
+        if (soundCpuCycles > 0) {
+            u32 soundCpuCyclesActual = m_soundCpu->step(static_cast<u32>(soundCpuCycles));
+            m_apu->step(soundCpuCyclesActual, m_gameSpeed);
+        }
         
-        // Run PPU (graphics chip runs in parallel)
-        // PPU typically runs at similar speed to main CPU
-        u32 ppuCycles = cpuCycles;
-        for (u32 i = 0; i < ppuCycles; i++) {
-            m_ppu->step();
+        // Run PPU
+        m_ppu->step(cpuCycles);
+
+        // Avoid overrunning the frame by too much
+        u32 cyclesLeft = m_cpu->cyclesPerFrame() - m_cpu->frameCycles();
+        if (cyclesLeft < nextCpuCycles) {
+            nextCpuCycles = cyclesLeft;
         }
     }
-    
-    m_ppu->clearFrameComplete();
+
+    m_cpu->endFrame();
+    m_soundCpu->endFrame();
 }
 
 bool Core::saveState(const fs::path& filename) {

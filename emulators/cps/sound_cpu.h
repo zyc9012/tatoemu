@@ -19,7 +19,9 @@ public:
     void reset();
     u32 step(u32 cycles);  // Execute specified number of cycles, returns actual cycles executed
     
-    u32 getCycles() const { return m_cycles; }
+    u32 frameCycles() const { return m_cycles; }
+    void endFrame() { m_cycles -= m_cyclesPerFrame; }
+
     void setMemory(Memory* memory) { m_memory = memory; }
     void setAPU(APU* apu) { m_apu = apu; }
     void setCartridge(Cartridge* cartridge) { m_cartridge = cartridge; }
@@ -44,6 +46,7 @@ protected:
     Memory* m_memory;
     APU* m_apu;
     u32 m_cycles;
+    u32 m_cyclesPerFrame;
     Cartridge* m_cartridge;
     
     // CPS2 timer-based interrupt (252 Hz)

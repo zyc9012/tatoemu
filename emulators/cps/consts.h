@@ -14,6 +14,8 @@ constexpr double TARGET_FPS = 59.6294;
 // Memory sizes (shared)
 constexpr u32 VRAM_SIZE = 192 * 1024;  // 192 KB VRAM
 
+constexpr u32 CPU_CYCLES_PER_STEP = 50;
+
 } // namespace cps
 
 namespace cps1 {

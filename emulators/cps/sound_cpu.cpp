@@ -96,9 +96,6 @@ SoundCPU::SoundCPU()
     Z80SetIOWriteHandler(z80_write_io);
     Z80SetCPUOpReadHandler(z80_read_op);
     Z80SetCPUOpArgReadHandler(z80_read_op_arg);
-    
-    // Reset the CPU
-    reset();
 }
 
 SoundCPU::~SoundCPU() {
@@ -111,6 +108,14 @@ void SoundCPU::reset() {
     Z80Reset();
     m_cycles = 0;
     m_timerAccumulator = 0;
+
+    if (m_cartridge->getCPSVersion() == 2) {
+        m_cyclesPerFrame = ::cps2::SOUND_CPU_CYCLES_PER_FRAME;
+    } else if (m_cartridge->isCPS1QSound()) {
+        m_cyclesPerFrame = ::cps1qs::SOUND_CPU_CYCLES_PER_FRAME;
+    } else {
+        m_cyclesPerFrame = ::cps1::SOUND_CPU_CYCLES_PER_FRAME;
+    }
     
     // Calculate timer period for CPS2 (252 Hz interrupt rate)
     if (m_cpsVersion == 2 || (m_cpsVersion == 1 && m_cartridge && m_cartridge->isCPS1QSound())) {
@@ -173,6 +178,7 @@ void SoundCPU::saveState(Buffer* buf) {
     buffer_write(buf, &sizeNoPointers, sizeof(sizeNoPointers));
     buffer_write(buf, &regs, sizeNoPointers);
     buffer_write(buf, &m_cycles, sizeof(m_cycles));
+    buffer_write(buf, &m_cyclesPerFrame, sizeof(m_cyclesPerFrame));
     buffer_write(buf, &m_cpsVersion, sizeof(m_cpsVersion));
     buffer_write(buf, &m_timerAccumulator, sizeof(m_timerAccumulator));
     buffer_write(buf, &m_timerPeriod, sizeof(m_timerPeriod));
@@ -203,6 +209,7 @@ void SoundCPU::loadState(Buffer* buf) {
     Z80SetContext(&currentRegs);
     
     buffer_read(buf, &m_cycles, sizeof(m_cycles));
+    buffer_read(buf, &m_cyclesPerFrame, sizeof(m_cyclesPerFrame));
     buffer_read(buf, &m_cpsVersion, sizeof(m_cpsVersion));
     buffer_read(buf, &m_timerAccumulator, sizeof(m_timerAccumulator));
     buffer_read(buf, &m_timerPeriod, sizeof(m_timerPeriod));
