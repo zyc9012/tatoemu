@@ -329,7 +329,7 @@ void PPU::renderSprites() {
     }
 
     // Render to the current scanline
-    m_sliceEnd = std::min((m_scanline + 248) % 264, static_cast<u32>(0xF0));
+    m_sliceEnd = std::min((m_scanline + 248) % 264 - 5, static_cast<u32>(0xF0));
 
     // Calculate sprite bank limit for optimization
     calcSpriteBankLimit();
