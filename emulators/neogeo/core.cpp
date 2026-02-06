@@ -89,7 +89,9 @@ void Core::update() {
     // Run until we complete a frame
     
     u32 nextCpuCycles = CPU_CYCLES_PER_STEP;
-    
+
+    m_ppu->newFrame();
+
     while (m_cpu->frameCycles() < CPU_CYCLES_PER_FRAME) {
         // Execute CPU cycles
         u32 oldCycles = m_cpu->frameCycles();
@@ -118,6 +120,7 @@ void Core::update() {
                 nextCpuCycles = cyclesToIRQ;
             } else if (oldCycles < targetIRQCycles && newCycles >= targetIRQCycles) {
                 m_memory->timerIRQ();
+                m_ppu->renderSprites();
             }
         }
 

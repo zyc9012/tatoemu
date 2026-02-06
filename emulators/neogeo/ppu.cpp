@@ -221,10 +221,24 @@ void PPU::step(u32 cycles) {
     if (m_cycles >= CPU_CYCLES_PER_SCANLINE) {
         m_cycles -= CPU_CYCLES_PER_SCANLINE;
         m_scanline++;
-        
+
         if (m_scanline >= TOTAL_SCANLINES) {
+            // Render the remaining sprites
+            if (m_enableSprites) {
+                renderSprites();
+            }
+            
+            // Render text layer on top
+            if (m_enableText) {
+                renderText();
+            }
+            
+            // Send frame to video device
+            if (m_videoDevice) {
+                m_videoDevice->render(m_frameBuffer.data());
+            }
+
             m_scanline = 0;
-            renderFrame();
 
             // Update sprite frame timing
             updateSpriteFrame();
@@ -235,42 +249,30 @@ void PPU::step(u32 cycles) {
     }
 }
 
-void PPU::clearScreen() {
-    // Clear to backdrop color (palette entry 0x0FFF - the last palette entry)
-    // This is the standard Neo Geo backdrop color register
-    u32 backdropColor = m_palette[0x0FFF];
-    std::fill(m_frameBuffer.begin(), m_frameBuffer.end(), backdropColor);
-}
-
-void PPU::renderFrame() {
-    if (!m_enableGraphics) {
-        clearScreen();
-        if (m_videoDevice) {
-            m_videoDevice->render(m_frameBuffer.data());
-        }
-        return;
-    }
-    
+void PPU::newFrame() {
     // Update palette from memory
     updatePalette();
     
     // Clear screen to backdrop color
     clearScreen();
-    
-    // Render sprites first (they go under the text layer)
-    if (m_enableSprites) {
-        renderSprites();
-    }
-    
-    // Render text layer on top
-    if (m_enableText) {
-        renderText();
-    }
-    
-    // Send frame to video device
-    if (m_videoDevice) {
-        m_videoDevice->render(m_frameBuffer.data());
-    }
+
+    // Reset bank position for first sprite
+    m_bankXPos = 0;
+    m_bankYPos = 0;
+    m_bankXZoom = 0;
+    m_bankYZoom = 0;
+    m_bankSize = 0;
+
+    // Reset slice rendering
+    m_sliceStart = 0x10;
+    m_sliceEnd = 0xF0;
+}
+
+void PPU::clearScreen() {
+    // Clear to backdrop color (palette entry 0x0FFF - the last palette entry)
+    // This is the standard Neo Geo backdrop color register
+    u32 backdropColor = m_palette[0x0FFF];
+    std::fill(m_frameBuffer.begin(), m_frameBuffer.end(), backdropColor);
 }
 
 void PPU::updatePalette() {
@@ -322,19 +324,15 @@ u32 PPU::convertPaletteEntry(u16 entry, bool /* darken */) {
 }
 
 void PPU::renderSprites() {
-    if (!m_cartridge || m_spriteTileMask == 0) {
+    if (!m_cartridge || m_spriteTileMask == 0 || m_sliceStart >= 0xF0) {
         return;
     }
-    
+
+    // Render to the current scanline
+    m_sliceEnd = std::min((m_scanline + 248) % 264, static_cast<u32>(0xF0));
+
     // Calculate sprite bank limit for optimization
     calcSpriteBankLimit();
-    
-    // Reset bank position for first sprite
-    m_bankXPos = 0;
-    m_bankYPos = 0;
-    m_bankXZoom = 0;
-    m_bankYZoom = 0;
-    m_bankSize = 0;
     
     // Render all sprite banks
     constexpr u32 MAX_SPRITE_BANKS = 0x17d;  // 381 sprite banks
@@ -387,6 +385,8 @@ void PPU::renderSprites() {
             renderSpriteBank(bank);
         }
     }
+
+    m_sliceStart = m_sliceEnd;
 }
 
 void PPU::calcSpriteBankLimit() {

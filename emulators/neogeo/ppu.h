@@ -28,6 +28,10 @@ public:
 
     void reset();
     void step(u32 cycles);
+    void newFrame();
+
+    // Sprite rendering
+    void renderSprites();
     
     // Component connections
     void setCPU(CPU* cpu) { m_cpu = cpu; }
@@ -165,7 +169,6 @@ private:
     u32 m_maxSpriteBank;
     
     // Helper functions
-    void renderFrame();
     void clearScreen();
     void initTextBankSwitching();  // Initialize text bank switching tables
     
@@ -173,8 +176,7 @@ private:
     void updatePalette();
     u32 convertPaletteEntry(u16 entry, bool darken);
     
-    // Layer rendering
-    void renderSprites();
+    // Render text
     void renderText();
     
     // Sprite rendering helpers
