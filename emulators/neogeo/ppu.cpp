@@ -320,7 +320,11 @@ u32 PPU::convertPaletteEntry(u16 entry, bool /* darken */) {
 }
 
 void PPU::renderSprites() {
-    if (!m_cartridge || !m_enableSprites || m_spriteTileMask == 0 || m_sliceStart >= 0xF0) {
+    if (!m_cartridge || !m_enableSprites) {
+        return;
+    }
+
+    if (m_spriteTileMask == 0 || m_sliceStart >= 0xF0 || m_scanline < 40) {
         return;
     }
 
