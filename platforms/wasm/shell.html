@@ -671,6 +671,202 @@
             font-style: italic;
             padding: 40px 20px;
         }
+
+        /* Key Bindings Modal */
+        .keybind-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 900;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .keybind-modal.show {
+            display: flex;
+        }
+
+        .keybind-modal-content {
+            background: rgba(30, 30, 30, 0.98);
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .keybind-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+        }
+
+        .keybind-modal-header h2 {
+            color: #e0e0e0;
+            font-size: 1.5em;
+            margin: 0;
+        }
+
+        .keybind-modal-close {
+            background: transparent;
+            border: none;
+            color: #e0e0e0;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .keybind-modal-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .keybind-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+
+        .keybind-tab {
+            background: #2d2d2d;
+            border: 1px solid #444;
+            color: #b0b0b0;
+            padding: 6px 14px;
+            border-radius: 6px 6px 0 0;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .keybind-tab:hover {
+            background: #3a3a3a;
+            color: #e0e0e0;
+        }
+
+        .keybind-tab.active {
+            background: #444;
+            color: #e67e22;
+            border-bottom-color: #444;
+            font-weight: 600;
+        }
+
+        .keybind-panel {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .keybind-panel.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #keybindPanels {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .keybind-players-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .keybind-group {
+            min-width: 0;
+        }
+
+        .keybind-group-title {
+            color: #90caf9;
+            font-size: 13px;
+            font-weight: 600;
+            margin: 12px 0 6px 0;
+            padding-left: 5px;
+        }
+
+        .keybind-group-title:first-child {
+            margin-top: 0;
+        }
+
+        .keybind-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 7px 10px;
+            background: #2d2d2d;
+            border-radius: 5px;
+            margin-bottom: 4px;
+        }
+
+        .keybind-label {
+            color: #b0b0b0;
+            font-size: 13px;
+            flex: 1;
+        }
+
+        .keybind-key {
+            background: #1a1a1a;
+            border: 1px solid #555;
+            color: #e0e0e0;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            min-width: 80px;
+            text-align: center;
+            transition: all 0.2s;
+            font-family: monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .keybind-key:hover {
+            border-color: #e67e22;
+        }
+
+        .keybind-key.listening {
+            border-color: #e67e22;
+            background: #3a2a1a;
+            color: #e67e22;
+            animation: keybind-pulse 1s infinite;
+        }
+
+        @keyframes keybind-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .keybind-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #333;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
@@ -680,6 +876,9 @@
         <input type="file" id="romInput" accept=".gb,.gbc,.nes,.zip,.sav,.state" style="display: none;">
         <button class="toolbar-btn primary" id="fileManagerBtn">
             <i class="fas fa-folder-plus"></i> Game Library
+        </button>
+        <button class="toolbar-btn" id="keybindBtn">
+            <i class="fas fa-keyboard"></i> Keys
         </button>
         <button class="toolbar-btn" id="configBtn">
             <i class="fas fa-cog"></i> Config
@@ -1003,6 +1202,22 @@
         </div>
     </div>
 
+    <!-- Key Bindings Modal -->
+    <div id="keybindModal" class="keybind-modal">
+        <div class="keybind-modal-content">
+            <div class="keybind-modal-header">
+                <h2><i class="fas fa-keyboard"></i> Key Bindings</h2>
+                <button class="keybind-modal-close" id="keybindModalClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="keybind-tabs" id="keybindTabs"></div>
+            <div id="keybindPanels"></div>
+            <div class="keybind-actions">
+                <button class="config-btn" id="keybindApplyBtn">Apply</button>
+                <button class="config-btn secondary" id="keybindResetBtn">Reset to Defaults</button>
+            </div>
+        </div>
+    </div>
+
     <script type='text/javascript'>
         let romLoaded = false;
         let bootromLoaded = false;
@@ -1043,8 +1258,8 @@
 
         function saveConfiguration() {
             try {
-                const configJson = JSON.stringify(currentConfig, null, 2);
-                // Convert string to Uint8Array
+                const toSave = { ...currentConfig, keyBindings };
+                const configJson = JSON.stringify(toSave, null, 2);
                 const encoder = new TextEncoder();
                 const data = encoder.encode(configJson);
                 Module.FS.writeFile(CONFIG_FILE_PATH, data);
@@ -1063,7 +1278,16 @@
                     const loadedConfig = JSON.parse(configJson);
 
                     // Merge with defaults to ensure all keys exist
-                    currentConfig = { ...configDefaults, ...loadedConfig };
+                    const { keyBindings: savedBindings, ...rest } = loadedConfig;
+                    currentConfig = { ...configDefaults, ...rest };
+                    // Merge saved key bindings
+                    if (savedBindings) {
+                        for (const [section, keys] of Object.entries(savedBindings)) {
+                            if (keyBindings[section]) {
+                                Object.assign(keyBindings[section], keys);
+                            }
+                        }
+                    }
                     console.log('Configuration loaded');
                 } else {
                     console.log('No saved configuration found, using defaults');
@@ -1248,6 +1472,7 @@
                         }
                         loadConfiguration();
                         applyConfiguration();
+                        applyKeyBindings();
                     });
                 } catch (err) {
                     console.error('Failed to mount persistent storage:', err);
@@ -1506,6 +1731,365 @@
 
             applyConfiguration();
         }
+
+        // ========== Key Bindings ==========
+        const keyBindingSchemas = {
+            Common: {
+                label: 'Common',
+                groups: {
+                    'System': [
+                        { key: 'Quit', label: 'Quit', default: 'Escape' },
+                        { key: 'Pause', label: 'Pause/Resume', default: 'P' },
+                        { key: 'SaveState', label: 'Save State', default: 'F5' },
+                        { key: 'LoadState', label: 'Load State', default: 'F9' },
+                        { key: 'SpeedUp', label: 'Speed Up', default: '=' },
+                        { key: 'SpeedDown', label: 'Speed Down', default: '-' },
+                    ]
+                }
+            },
+            GB: {
+                label: 'Game Boy',
+                groups: {
+                    'Controls': [
+                        { key: 'Up', label: 'D-Pad Up', default: 'Up' },
+                        { key: 'Down', label: 'D-Pad Down', default: 'Down' },
+                        { key: 'Left', label: 'D-Pad Left', default: 'Left' },
+                        { key: 'Right', label: 'D-Pad Right', default: 'Right' },
+                        { key: 'A', label: 'A Button', default: 'Z' },
+                        { key: 'B', label: 'B Button', default: 'X' },
+                        { key: 'Start', label: 'Start', default: 'Return' },
+                        { key: 'Select', label: 'Select', default: 'Right Shift' },
+                    ]
+                }
+            },
+            NES: {
+                label: 'NES',
+                groups: {
+                    'Controls': [
+                        { key: 'Up', label: 'D-Pad Up', default: 'Up' },
+                        { key: 'Down', label: 'D-Pad Down', default: 'Down' },
+                        { key: 'Left', label: 'D-Pad Left', default: 'Left' },
+                        { key: 'Right', label: 'D-Pad Right', default: 'Right' },
+                        { key: 'A', label: 'A Button', default: 'Z' },
+                        { key: 'B', label: 'B Button', default: 'X' },
+                        { key: 'Start', label: 'Start', default: 'Return' },
+                        { key: 'Select', label: 'Select', default: 'Right Shift' },
+                    ]
+                }
+            },
+            CPS: {
+                label: 'CPS1/CPS2',
+                groups: {
+                    'Player 1': [
+                        { key: 'P1_Up', label: 'Up', default: 'Up' },
+                        { key: 'P1_Down', label: 'Down', default: 'Down' },
+                        { key: 'P1_Left', label: 'Left', default: 'Left' },
+                        { key: 'P1_Right', label: 'Right', default: 'Right' },
+                        { key: 'P1_Punch1', label: 'Punch 1', default: 'A' },
+                        { key: 'P1_Punch2', label: 'Punch 2', default: 'S' },
+                        { key: 'P1_Punch3', label: 'Punch 3', default: 'D' },
+                        { key: 'P1_Kick1', label: 'Kick 1', default: 'Z' },
+                        { key: 'P1_Kick2', label: 'Kick 2', default: 'X' },
+                        { key: 'P1_Kick3', label: 'Kick 3', default: 'C' },
+                        { key: 'P1_Start', label: 'Start', default: '1' },
+                        { key: 'P1_Coin', label: 'Coin', default: '5' },
+                    ],
+                    'Player 2': [
+                        { key: 'P2_Up', label: 'Up', default: 'Keypad 8' },
+                        { key: 'P2_Down', label: 'Down', default: 'Keypad 5' },
+                        { key: 'P2_Left', label: 'Left', default: 'Keypad 4' },
+                        { key: 'P2_Right', label: 'Right', default: 'Keypad 6' },
+                        { key: 'P2_Punch1', label: 'Punch 1', default: 'J' },
+                        { key: 'P2_Punch2', label: 'Punch 2', default: 'K' },
+                        { key: 'P2_Punch3', label: 'Punch 3', default: 'L' },
+                        { key: 'P2_Kick1', label: 'Kick 1', default: 'M' },
+                        { key: 'P2_Kick2', label: 'Kick 2', default: ',' },
+                        { key: 'P2_Kick3', label: 'Kick 3', default: '.' },
+                        { key: 'P2_Start', label: 'Start', default: '2' },
+                        { key: 'P2_Coin', label: 'Coin', default: '6' },
+                    ],
+                    'System': [
+                        { key: 'Diag', label: 'Diagnostic', default: 'F2' },
+                        { key: 'Service', label: 'Service', default: 'F3' },
+                    ]
+                }
+            },
+            NeoGeo: {
+                label: 'NeoGeo',
+                groups: {
+                    'Player 1': [
+                        { key: 'P1_Up', label: 'Up', default: 'Up' },
+                        { key: 'P1_Down', label: 'Down', default: 'Down' },
+                        { key: 'P1_Left', label: 'Left', default: 'Left' },
+                        { key: 'P1_Right', label: 'Right', default: 'Right' },
+                        { key: 'P1_A', label: 'A', default: 'A' },
+                        { key: 'P1_B', label: 'B', default: 'S' },
+                        { key: 'P1_C', label: 'C', default: 'D' },
+                        { key: 'P1_D', label: 'D', default: 'F' },
+                        { key: 'P1_Start', label: 'Start', default: '1' },
+                        { key: 'P1_Select', label: 'Select', default: '3' },
+                        { key: 'P1_Coin', label: 'Coin', default: '5' },
+                    ],
+                    'Player 2': [
+                        { key: 'P2_Up', label: 'Up', default: 'Keypad 8' },
+                        { key: 'P2_Down', label: 'Down', default: 'Keypad 5' },
+                        { key: 'P2_Left', label: 'Left', default: 'Keypad 4' },
+                        { key: 'P2_Right', label: 'Right', default: 'Keypad 6' },
+                        { key: 'P2_A', label: 'A', default: 'J' },
+                        { key: 'P2_B', label: 'B', default: 'K' },
+                        { key: 'P2_C', label: 'C', default: 'L' },
+                        { key: 'P2_D', label: 'D', default: ';' },
+                        { key: 'P2_Start', label: 'Start', default: '2' },
+                        { key: 'P2_Select', label: 'Select', default: '4' },
+                        { key: 'P2_Coin', label: 'Coin', default: '6' },
+                    ],
+                    'System': [
+                        { key: 'Test', label: 'Test', default: 'F2' },
+                        { key: 'Service', label: 'Service', default: 'F3' },
+                    ]
+                }
+            }
+        };
+
+        // Current key bindings state (section -> key -> SDL key name)
+        let keyBindings = {};
+        let activeListeningBtn = null;
+
+        // SDL key name mapping from browser KeyboardEvent.code/key to SDL key names
+        const browserKeyToSDL = {
+            'Escape': 'Escape', 'F1': 'F1', 'F2': 'F2', 'F3': 'F3', 'F4': 'F4',
+            'F5': 'F5', 'F6': 'F6', 'F7': 'F7', 'F8': 'F8', 'F9': 'F9',
+            'F10': 'F10', 'F11': 'F11', 'F12': 'F12',
+            'Backquote': '`', 'Digit1': '1', 'Digit2': '2', 'Digit3': '3', 'Digit4': '4',
+            'Digit5': '5', 'Digit6': '6', 'Digit7': '7', 'Digit8': '8', 'Digit9': '9', 'Digit0': '0',
+            'Minus': '-', 'Equal': '=', 'Backspace': 'Backspace',
+            'Tab': 'Tab',
+            'KeyA': 'A', 'KeyB': 'B', 'KeyC': 'C', 'KeyD': 'D', 'KeyE': 'E', 'KeyF': 'F',
+            'KeyG': 'G', 'KeyH': 'H', 'KeyI': 'I', 'KeyJ': 'J', 'KeyK': 'K', 'KeyL': 'L',
+            'KeyM': 'M', 'KeyN': 'N', 'KeyO': 'O', 'KeyP': 'P', 'KeyQ': 'Q', 'KeyR': 'R',
+            'KeyS': 'S', 'KeyT': 'T', 'KeyU': 'U', 'KeyV': 'V', 'KeyW': 'W', 'KeyX': 'X',
+            'KeyY': 'Y', 'KeyZ': 'Z',
+            'BracketLeft': '[', 'BracketRight': ']', 'Backslash': '\\',
+            'Semicolon': ';', 'Quote': "'", 'Enter': 'Return',
+            'Comma': ',', 'Period': '.', 'Slash': '/',
+            'Space': 'Space',
+            'CapsLock': 'CapsLock',
+            'ShiftLeft': 'Left Shift', 'ShiftRight': 'Right Shift',
+            'ControlLeft': 'Left Ctrl', 'ControlRight': 'Right Ctrl',
+            'AltLeft': 'Left Alt', 'AltRight': 'Right Alt',
+            'MetaLeft': 'Left GUI', 'MetaRight': 'Right GUI',
+            'ArrowUp': 'Up', 'ArrowDown': 'Down', 'ArrowLeft': 'Left', 'ArrowRight': 'Right',
+            'Insert': 'Insert', 'Delete': 'Delete', 'Home': 'Home', 'End': 'End',
+            'PageUp': 'PageUp', 'PageDown': 'PageDown',
+            'Numpad0': 'Keypad 0', 'Numpad1': 'Keypad 1', 'Numpad2': 'Keypad 2',
+            'Numpad3': 'Keypad 3', 'Numpad4': 'Keypad 4', 'Numpad5': 'Keypad 5',
+            'Numpad6': 'Keypad 6', 'Numpad7': 'Keypad 7', 'Numpad8': 'Keypad 8',
+            'Numpad9': 'Keypad 9',
+            'NumpadDecimal': 'Keypad .', 'NumpadAdd': 'Keypad +', 'NumpadSubtract': 'Keypad -',
+            'NumpadMultiply': 'Keypad *', 'NumpadDivide': 'Keypad /', 'NumpadEnter': 'Keypad Enter',
+        };
+
+        function initKeyBindings() {
+            // Initialize with defaults from schema
+            keyBindings = {};
+            for (const [section, schema] of Object.entries(keyBindingSchemas)) {
+                keyBindings[section] = {};
+                for (const bindings of Object.values(schema.groups)) {
+                    for (const binding of bindings) {
+                        keyBindings[section][binding.key] = binding.default;
+                    }
+                }
+            }
+        }
+
+        function applyKeyBindings() {
+            try {
+                for (const [section, keys] of Object.entries(keyBindings)) {
+                    for (const [key, sdlName] of Object.entries(keys)) {
+                        Module.ccall('setKeyBinding', 'void', ['string', 'string', 'string'], [section, key, sdlName]);
+                    }
+                }
+            } catch (e) {
+                console.error('Error applying key bindings:', e);
+            }
+        }
+
+        function buildKeybindUI() {
+            const tabsContainer = document.getElementById('keybindTabs');
+            const panelsContainer = document.getElementById('keybindPanels');
+            tabsContainer.innerHTML = '';
+            panelsContainer.innerHTML = '';
+
+            let first = true;
+            for (const [section, schema] of Object.entries(keyBindingSchemas)) {
+                // Tab
+                const tab = document.createElement('button');
+                tab.className = 'keybind-tab' + (first ? ' active' : '');
+                tab.textContent = schema.label;
+                tab.dataset.section = section;
+                tab.addEventListener('click', () => {
+                    tabsContainer.querySelectorAll('.keybind-tab').forEach(t => t.classList.remove('active'));
+                    panelsContainer.querySelectorAll('.keybind-panel').forEach(p => p.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById('keybind-panel-' + section).classList.add('active');
+                });
+                tabsContainer.appendChild(tab);
+
+                // Panel
+                const panel = document.createElement('div');
+                panel.className = 'keybind-panel' + (first ? ' active' : '');
+                panel.id = 'keybind-panel-' + section;
+
+                const groupNames = Object.keys(schema.groups);
+                // Detect player groups for two-column layout
+                const playerGroups = groupNames.filter(g => g.startsWith('Player'));
+                const otherGroups = groupNames.filter(g => !g.startsWith('Player'));
+
+                // Render player groups in a two-column grid
+                if (playerGroups.length >= 2) {
+                    const grid = document.createElement('div');
+                    grid.className = 'keybind-players-grid';
+                    for (const groupName of playerGroups) {
+                        const col = document.createElement('div');
+                        col.className = 'keybind-group';
+                        const title = document.createElement('div');
+                        title.className = 'keybind-group-title';
+                        title.textContent = groupName;
+                        col.appendChild(title);
+                        for (const binding of schema.groups[groupName]) {
+                            col.appendChild(createKeybindRow(section, binding));
+                        }
+                        grid.appendChild(col);
+                    }
+                    panel.appendChild(grid);
+                }
+
+                // Render non-player groups normally
+                for (const groupName of (playerGroups.length >= 2 ? otherGroups : groupNames)) {
+                    if (groupNames.length > 1) {
+                        const title = document.createElement('div');
+                        title.className = 'keybind-group-title';
+                        title.textContent = groupName;
+                        panel.appendChild(title);
+                    }
+                    for (const binding of schema.groups[groupName]) {
+                        panel.appendChild(createKeybindRow(section, binding));
+                    }
+                }
+
+                panelsContainer.appendChild(panel);
+                first = false;
+            }
+        }
+
+        function createKeybindRow(section, binding) {
+            const row = document.createElement('div');
+            row.className = 'keybind-row';
+
+            const label = document.createElement('span');
+            label.className = 'keybind-label';
+            label.textContent = binding.label;
+
+            const btn = document.createElement('button');
+            btn.className = 'keybind-key';
+            btn.textContent = keyBindings[section][binding.key] || binding.default;
+            btn.dataset.section = section;
+            btn.dataset.key = binding.key;
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                startListening(btn);
+            });
+
+            row.appendChild(label);
+            row.appendChild(btn);
+            return row;
+        }
+
+        function startListening(btn) {
+            // Cancel previous listening
+            if (activeListeningBtn) {
+                activeListeningBtn.classList.remove('listening');
+                activeListeningBtn.textContent = keyBindings[activeListeningBtn.dataset.section][activeListeningBtn.dataset.key];
+            }
+            activeListeningBtn = btn;
+            btn.classList.add('listening');
+            btn.textContent = 'Press a key...';
+        }
+
+        function handleKeybindCapture(e) {
+            if (!activeListeningBtn) return;
+            e.preventDefault();
+            e.stopPropagation();
+
+            const sdlName = browserKeyToSDL[e.code];
+            if (!sdlName) {
+                // Fallback: try e.key for special cases
+                activeListeningBtn.classList.remove('listening');
+                activeListeningBtn.textContent = keyBindings[activeListeningBtn.dataset.section][activeListeningBtn.dataset.key];
+                activeListeningBtn = null;
+                return;
+            }
+
+            const section = activeListeningBtn.dataset.section;
+            const key = activeListeningBtn.dataset.key;
+            keyBindings[section][key] = sdlName;
+            activeListeningBtn.classList.remove('listening');
+            activeListeningBtn.textContent = sdlName;
+            activeListeningBtn = null;
+        }
+
+        // Key Bindings Modal
+        const keybindModal = document.getElementById('keybindModal');
+        const keybindBtn = document.getElementById('keybindBtn');
+        const keybindModalClose = document.getElementById('keybindModalClose');
+        const keybindApplyBtn = document.getElementById('keybindApplyBtn');
+        const keybindResetBtn = document.getElementById('keybindResetBtn');
+
+        keybindBtn.addEventListener('click', () => {
+            buildKeybindUI();
+            keybindModal.classList.add('show');
+        });
+
+        keybindModalClose.addEventListener('click', () => {
+            activeListeningBtn = null;
+            keybindModal.classList.remove('show');
+        });
+
+        keybindModal.addEventListener('click', (e) => {
+            if (e.target === keybindModal) {
+                activeListeningBtn = null;
+                keybindModal.classList.remove('show');
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (activeListeningBtn) {
+                handleKeybindCapture(e);
+                return;
+            }
+            if (e.key === 'Escape' && keybindModal.classList.contains('show')) {
+                activeListeningBtn = null;
+                keybindModal.classList.remove('show');
+            }
+        });
+
+        keybindApplyBtn.addEventListener('click', () => {
+            applyKeyBindings();
+            saveConfiguration();
+            keybindModal.classList.remove('show');
+            showLog('Key bindings applied');
+        });
+
+        keybindResetBtn.addEventListener('click', () => {
+            initKeyBindings();
+            buildKeybindUI();
+            applyKeyBindings();
+            saveConfiguration();
+            showLog('Key bindings reset to defaults');
+        });
+
+        // Initialize key bindings on startup
+        initKeyBindings();
 
         Module.setStatus('Downloading...');
 
