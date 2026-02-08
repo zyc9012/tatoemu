@@ -633,7 +633,7 @@
             padding: 20px;
             max-width: 800px;
             width: 90%;
-            max-height: 80vh;
+            height: 80vh;
             display: flex;
             flex-direction: column;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
@@ -1715,8 +1715,7 @@
             generalPanel.className = 'keybind-panel active';
             generalPanel.id = 'keybind-panel-General';
             generalPanel.innerHTML = `
-                <div class="config-section">
-                    <h3>Display & Audio</h3>
+                <div style="margin-bottom: 8px;">
                     <div class="config-item">
                         <label for="scaleMode">Scale Mode:</label>
                         <select id="scaleMode">
@@ -1743,8 +1742,19 @@
                 volValue.textContent = volSlider.value + '%';
             });
 
+            // ---- Common key bindings in General tab ----
+            const commonSchema = keyBindingSchemas['Common'];
+            if (commonSchema) {
+                for (const [groupName, bindings] of Object.entries(commonSchema.groups)) {
+                    for (const binding of bindings) {
+                        generalPanel.appendChild(createKeybindRow('Common', binding));
+                    }
+                }
+            }
+
             // ---- Key binding tabs ----
             for (const [section, schema] of Object.entries(keyBindingSchemas)) {
+                if (section === 'Common') continue;
                 // Tab
                 const tab = document.createElement('button');
                 tab.className = 'keybind-tab';
