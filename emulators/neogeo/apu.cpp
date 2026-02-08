@@ -187,7 +187,8 @@ void APU::step(u32 cycles, double gameSpeed) {
         AY8910Update(0, ay8910Buffers, 1);
 
         // Mix AY8910 channels (A + B + C) with 0.20 volume to both channels (like FBNeo)
-        INT16 ay8910Mixed = ay8910ChanA + ay8910ChanB + ay8910ChanC;
+        INT32 ay8910Mixed = ay8910ChanA + ay8910ChanB + ay8910ChanC;
+        ay8910Mixed = std::clamp(ay8910Mixed, -32768, 32767);
         float ay8910Volume = 0.20f;
 
         // Combine YM2610 and AY8910 samples
