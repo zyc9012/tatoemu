@@ -43,6 +43,7 @@ public:
     
     // Graphics ROM access (for PPU - sprite ROMs)
     u8 readSpriteROM8(u32 address) const;
+    const u8* getSpriteROMData() const { return m_spriteRom.data(); }
     u32 getSpriteROMSize() const { return static_cast<u32>(m_spriteRom.size()); }
     
     // Text ROM access (for PPU)

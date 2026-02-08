@@ -192,10 +192,6 @@ private:
     // Alpha blending helper
     inline u32 alphaBlend(u32 dst, u32 src, u32 alpha);
     
-    // Pixel plotting
-    inline void plotPixel(s32 x, s32 y, u32 color);
-    inline bool isPixelVisible(s32 x, s32 y) const;
-    
     // Calculate sprite bank limit for optimization
     void calcSpriteBankLimit();
 };

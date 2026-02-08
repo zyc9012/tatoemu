@@ -404,11 +404,15 @@ void PPU::calcSpriteBankLimit() {
     s32 bankYPos = 0;
     s32 bankSize = 0;
 
+    const u8* scb2 = &m_graphicsRam[0x10400];
+
     for (u32 yLine = 0; yLine < 240; yLine++) {
         u32 yCount = 0;
 
         for (u32 bank = 0; bank < MAX_SPRITE_BANKS; bank++) {
-            const u16 attrib02 = readGraphicsRAM16(0x10400 + bank * 2);
+            // Read big-endian u16 directly from SCB2
+            const u32 offset = bank * 2;
+            const u16 attrib02 = (scb2[offset] << 8) | scb2[offset + 1];
 
             // If not chained (bit 6 clear), update Y/size for this strip.
             // If chained, the hardware reuses the previous strip's Y/size.
@@ -595,20 +599,18 @@ void PPU::renderSpriteLine(const u8* /* tileData */, u32* palette, s32 xPos, s32
     // Sprite ROM is decoded into 32-bit words
     // Each sprite tile is 128 bytes = 32 UINT32 values
     // Each scanline uses 2 UINT32 values (16 pixels, 4bpp = 64 bits = 8 bytes)
-    u32 tileOffset = tileNumber * 128;
+    u32 tileOffset = tileNumber * 128 + line * 8;
+    
+    if (tileOffset + 8 > m_cartridge->getSpriteROMSize()) {
+        return;
+    }
     
     // Read the two 32-bit words for this line
     // Note: line is already the Y position within the tile (0-15)
     // Decoded sprite data is stored as u32 array, so read in little-endian order
-    u32 word0 = m_cartridge->readSpriteROM8(tileOffset + line * 8 + 0) |
-                m_cartridge->readSpriteROM8(tileOffset + line * 8 + 1) << 8 |
-                m_cartridge->readSpriteROM8(tileOffset + line * 8 + 2) << 16 |
-                m_cartridge->readSpriteROM8(tileOffset + line * 8 + 3) << 24;
-    
-    u32 word1 = m_cartridge->readSpriteROM8(tileOffset + line * 8 + 4) |
-                m_cartridge->readSpriteROM8(tileOffset + line * 8 + 5) << 8 |
-                m_cartridge->readSpriteROM8(tileOffset + line * 8 + 6) << 16 |
-                m_cartridge->readSpriteROM8(tileOffset + line * 8 + 7) << 24;
+    const u8* spriteData = m_cartridge->getSpriteROMData() + tileOffset;
+    u32 word0 = spriteData[0] | (spriteData[1] << 8) | (spriteData[2] << 16) | (spriteData[3] << 24);
+    u32 word1 = spriteData[4] | (spriteData[5] << 8) | (spriteData[6] << 16) | (spriteData[7] << 24);
     
     // Render pixels with zoom
     // xZoom 15 = full 16 pixels, xZoom 0 = 1 pixel
