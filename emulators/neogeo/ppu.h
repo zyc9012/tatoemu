@@ -62,13 +62,8 @@ public:
     void writeVRAM(u16 value);
     void setVRAMPointer(u16 pointer) {
         // Pointer is a word address with bank selection in bit 15
-        // Convert to byte address: (lower 15 bits << 1) + bank offset
-        m_graphicsRamPointer = ((pointer & 0x7FFF) << 1) | (pointer & 0x8000 ? 0x10000 : 0);
-    }
-    u16 getVRAMPointer() const { 
-        // Convert byte address back to word address with bank bit
-        u32 wordAddr = m_graphicsRamPointer >> 1;
-        return (wordAddr & 0x7FFF) | (m_graphicsRamPointer & 0x10000 ? 0x8000 : 0);
+        m_graphicsRamPointer = pointer << 1;
+        m_graphicsRamBank = (pointer & 0x8000) ? 0x10000 : 0x00000;
     }
     void setVRAMModulo(s16 modulo) { 
         // Modulo is in words, convert to bytes
@@ -131,7 +126,8 @@ private:
     u8 m_spriteFrame;          // Current sprite animation frame (0-7)
     
     // Video controller state (for auto-increment VRAM access)
-    u32 m_graphicsRamPointer;  // Current VRAM byte address (0x00000-0x1FFFF)
+    u16 m_graphicsRamPointer;  // Current VRAM byte address (0x00000-0xFFFF)
+    u32 m_graphicsRamBank;     // Current VRAM bank (0x00000 or 0x10000)
     s32 m_graphicsRamModulo;   // VRAM modulo in bytes (added to pointer after each access)
     
     // Rendering enable flags

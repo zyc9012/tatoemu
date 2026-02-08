@@ -21,6 +21,7 @@ PPU::PPU()
     , m_spriteFrameTimer(0)
     , m_spriteFrame(0)
     , m_graphicsRamPointer(0)
+    , m_graphicsRamBank(0)
     , m_graphicsRamModulo(0)
     , m_enableGraphics(true)
     , m_enableSprites(true)
@@ -55,6 +56,7 @@ void PPU::reset() {
     m_spriteFrameTimer = 0;
     m_spriteFrame = 0;
     m_graphicsRamPointer = 0;
+    m_graphicsRamBank = 0;
     m_graphicsRamModulo = 0;
     m_bankXPos = 0;
     m_bankYPos = 0;
@@ -870,17 +872,15 @@ void PPU::updateSpriteFrame() {
 // The video controller pointer can access both 64KB banks
 // Note: Reads do NOT auto-increment, only writes do
 u16 PPU::readVRAM() {
-    // Pointer is already a byte address (0x00000-0x1FFFF) from setVRAMPointer
-    u32 fullAddress = m_graphicsRamPointer & 0x1FFFF;  // Safety mask
+    u32 fullAddress = m_graphicsRamBank + m_graphicsRamPointer;
     return readGraphicsRAM16(fullAddress);
 }
 
 void PPU::writeVRAM(u16 value) {
-    // Pointer is already a byte address (0x00000-0x1FFFF) from setVRAMPointer
-    u32 fullAddress = m_graphicsRamPointer & 0x1FFFF;  // Safety mask
+    u32 fullAddress = m_graphicsRamBank + m_graphicsRamPointer;
 
     writeGraphicsRAM16(fullAddress, value);
-    m_graphicsRamPointer = (m_graphicsRamPointer + m_graphicsRamModulo) & 0x1FFFF;
+    m_graphicsRamPointer = m_graphicsRamPointer + m_graphicsRamModulo;
 }
 
 // Graphics RAM access
@@ -924,6 +924,7 @@ void PPU::saveState(Buffer* buf) {
     buffer_write(buf, &m_spriteFrameTimer, sizeof(m_spriteFrameTimer));
     buffer_write(buf, &m_spriteFrame, sizeof(m_spriteFrame));
     buffer_write(buf, &m_graphicsRamPointer, sizeof(m_graphicsRamPointer));
+    buffer_write(buf, &m_graphicsRamBank, sizeof(m_graphicsRamBank));
     buffer_write(buf, &m_graphicsRamModulo, sizeof(m_graphicsRamModulo));
 }
 
@@ -942,6 +943,7 @@ void PPU::loadState(Buffer* buf) {
     buffer_read(buf, &m_spriteFrameTimer, sizeof(m_spriteFrameTimer));
     buffer_read(buf, &m_spriteFrame, sizeof(m_spriteFrame));
     buffer_read(buf, &m_graphicsRamPointer, sizeof(m_graphicsRamPointer));
+    buffer_read(buf, &m_graphicsRamBank, sizeof(m_graphicsRamBank));
     buffer_read(buf, &m_graphicsRamModulo, sizeof(m_graphicsRamModulo));
     
     // Update palette
