@@ -174,26 +174,26 @@ void APU::step(u32 cycles, double gameSpeed) {
         m_cycleAccumulator -= m_cyclesPerSample * gameSpeed;
     
         // Generate YM2610 samples
-        INT16 ym2610Left = 0;
-        INT16 ym2610Right = 0;
-        INT16* ym2610Buffers[2] = { &ym2610Left, &ym2610Right };
+        s16 ym2610Left = 0;
+        s16 ym2610Right = 0;
+        s16* ym2610Buffers[2] = { &ym2610Left, &ym2610Right };
         YM2610UpdateOne(0, ym2610Buffers, 1);
 
         // Generate AY8910 samples
-        INT16 ay8910ChanA = 0;
-        INT16 ay8910ChanB = 0;
-        INT16 ay8910ChanC = 0;
-        INT16* ay8910Buffers[3] = { &ay8910ChanA, &ay8910ChanB, &ay8910ChanC };
+        s16 ay8910ChanA = 0;
+        s16 ay8910ChanB = 0;
+        s16 ay8910ChanC = 0;
+        s16* ay8910Buffers[3] = { &ay8910ChanA, &ay8910ChanB, &ay8910ChanC };
         AY8910Update(0, ay8910Buffers, 1);
 
         // Mix AY8910 channels (A + B + C) with 0.20 volume to both channels (like FBNeo)
-        INT32 ay8910Mixed = ay8910ChanA + ay8910ChanB + ay8910ChanC;
+        s32 ay8910Mixed = ay8910ChanA + ay8910ChanB + ay8910ChanC;
         ay8910Mixed = std::clamp(ay8910Mixed, -32768, 32767);
         float ay8910Volume = 0.20f;
 
         // Combine YM2610 and AY8910 samples
-        INT16 leftBuf = ym2610Left + static_cast<INT16>(ay8910Mixed * ay8910Volume);
-        INT16 rightBuf = ym2610Right + static_cast<INT16>(ay8910Mixed * ay8910Volume);
+        s16 leftBuf = ym2610Left + static_cast<s16>(ay8910Mixed * ay8910Volume);
+        s16 rightBuf = ym2610Right + static_cast<s16>(ay8910Mixed * ay8910Volume);
 
         // Apply master volume and convert to float
         float left = leftBuf / 32768.0f * m_volume;
