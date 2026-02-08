@@ -273,70 +273,7 @@
             font-weight: 600;
         }
 
-        /* Configuration Modal */
-        .config-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 900;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .config-modal.show {
-            display: flex;
-        }
-
-        .config-modal-content {
-            background: rgba(30, 30, 30, 0.98);
-            border-radius: 12px;
-            padding: 20px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-        }
-
-        .config-modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #333;
-            padding-bottom: 15px;
-        }
-
-        .config-modal-header h2 {
-            color: #e0e0e0;
-            font-size: 1.5em;
-            margin: 0;
-        }
-
-        .config-modal-close {
-            background: transparent;
-            border: none;
-            color: #e0e0e0;
-            font-size: 24px;
-            cursor: pointer;
-            padding: 0;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            transition: background 0.2s;
-        }
-
-        .config-modal-close:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
+        /* Configuration styles (used within unified config modal) */
         .config-content {
             display: flex;
             flex-direction: column;
@@ -878,9 +815,6 @@
             <i class="fas fa-folder-plus"></i> Game Library
         </button>
         <button class="toolbar-btn" id="keybindBtn">
-            <i class="fas fa-keyboard"></i> Keys
-        </button>
-        <button class="toolbar-btn" id="configBtn">
             <i class="fas fa-cog"></i> Config
         </button>
         <button class="toolbar-btn" id="helpBtn">
@@ -1095,89 +1029,6 @@
         </div>
     </div>
 
-    <!-- Configuration Modal -->
-    <div id="configModal" class="config-modal">
-        <div class="config-modal-content">
-            <div class="config-modal-header">
-                <h2><i class="fas fa-cog"></i> Configuration</h2>
-                <button class="config-modal-close" id="configModalClose"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="config-content">
-                <div class="config-section">
-                    <h3>General</h3>
-                    <div class="config-item">
-                        <label for="scaleMode">Scale Mode:</label>
-                        <select id="scaleMode">
-                            <option value="nearest">Nearest</option>
-                            <option value="linear">Linear</option>
-                        </select>
-                    </div>
-                    <div class="config-item">
-                        <label for="volume">Volume:</label>
-                        <input type="range" id="volume" min="0" max="100" value="100">
-                        <span id="volumeValue">100%</span>
-                    </div>
-                </div>
-
-                <div class="config-section">
-                    <h3>NeoGeo</h3>
-                    <div class="config-item">
-                        <label for="neoSys">System:</label>
-                        <select id="neoSys">
-                            <option value="mvs">MVS</option>
-                            <option value="aes">AES</option>
-                        </select>
-                    </div>
-                    <div class="config-item">
-                        <label for="neoBios">BIOS:</label>
-                        <select id="neoBios">
-                            <option value="0">MVS Asia/Europe ver. 6 (1 slot)</option>
-                            <option value="1">MVS Asia/Europe ver. 5 (1 slot)</option>
-                            <option value="2">MVS Asia/Europe ver. 3 (4 slot)</option>
-                            <option value="3">MVS USA ver. 5 (2 slot)</option>
-                            <option value="4">MVS USA ver. 5 (4 slot)</option>
-                            <option value="5">MVS USA ver. 5 (6 slot)</option>
-                            <option value="6">MVS USA (U4)</option>
-                            <option value="7">MVS USA (U3)</option>
-                            <option value="8">MVS Japan ver. 6 (? slot)</option>
-                            <option value="9">MVS Japan ver. 5 (? slot)</option>
-                            <option value="10">MVS Japan ver. 3 (4 slot)</option>
-                            <option value="11">NEO-MVH MV1C (Asia)</option>
-                            <option value="12">NEO-MVH MV1C (Japan)</option>
-                            <option value="13">MVS Japan (J3)</option>
-                            <option value="14">MVS Japan (J3, alt)</option>
-                            <option value="15">AES Japan</option>
-                            <option value="16">AES Asia</option>
-                            <option value="17">Development Kit</option>
-                            <option value="18">Deck ver. 6 (Git Ver 1.3)</option>
-                            <option value="19">Universe BIOS (Hack, Ver. 4.0)</option>
-                            <option value="20">Universe BIOS (Hack, Ver. 3.3)</option>
-                            <option value="21">Universe BIOS (Hack, Ver. 3.2)</option>
-                            <option value="22">Universe BIOS (Hack, Ver. 3.1)</option>
-                            <option value="23">Universe BIOS (Hack, Ver. 3.0)</option>
-                            <option value="24">Universe BIOS (Hack, Ver. 2.3)</option>
-                            <option value="25">Universe BIOS (Hack, Ver. 2.3)</option>
-                            <option value="26">Universe BIOS (Hack, Ver. 2.2)</option>
-                            <option value="27">Universe BIOS (Hack, Ver. 2.1)</option>
-                            <option value="28">Universe BIOS (Hack, Ver. 2.0)</option>
-                            <option value="29">Universe BIOS (Hack, Ver. 1.3)</option>
-                            <option value="30">Universe BIOS (Hack, Ver. 1.2)</option>
-                            <option value="31">Universe BIOS (Hack, Ver. 1.2)</option>
-                            <option value="32">Universe BIOS (Hack, Ver. 1.1)</option>
-                            <option value="33">Universe BIOS (Hack, Ver. 1.0)</option>
-                            <option value="34">NeoOpen BIOS v0.1 beta</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="config-actions">
-                    <button class="config-btn" id="applyConfigBtn">Apply</button>
-                    <button class="config-btn secondary" id="resetConfigBtn">Reset to Defaults</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- File Manager Modal -->
     <div id="fileManagerModal" class="file-manager-modal">
         <div class="file-manager-content">
@@ -1202,11 +1053,11 @@
         </div>
     </div>
 
-    <!-- Key Bindings Modal -->
+    <!-- Configuration Modal -->
     <div id="keybindModal" class="keybind-modal">
         <div class="keybind-modal-content">
             <div class="keybind-modal-header">
-                <h2><i class="fas fa-keyboard"></i> Key Bindings</h2>
+                <h2><i class="fas fa-cog"></i> Configuration</h2>
                 <button class="keybind-modal-close" id="keybindModalClose"><i class="fas fa-times"></i></button>
             </div>
             <div class="keybind-tabs" id="keybindTabs"></div>
@@ -1298,64 +1149,6 @@
                 currentConfig = { ...configDefaults };
             }
         }
-
-        // Configuration Modal functionality
-        const configModal = document.getElementById('configModal');
-        const configBtn = document.getElementById('configBtn');
-        const configModalClose = document.getElementById('configModalClose');
-        const applyConfigBtn = document.getElementById('applyConfigBtn');
-        const resetConfigBtn = document.getElementById('resetConfigBtn');
-        const scaleModeSelect = document.getElementById('scaleMode');
-        const volumeSlider = document.getElementById('volume');
-        const volumeValue = document.getElementById('volumeValue');
-        const neoSysSelect = document.getElementById('neoSys');
-        const neoBiosSelect = document.getElementById('neoBios');
-        const neogeoSection = document.getElementById('neogeoSection');
-
-        configBtn.addEventListener('click', function() {
-            // Load current config values into the modal
-            scaleModeSelect.value = currentConfig.scaleMode;
-            volumeSlider.value = currentConfig.volume;
-            volumeValue.textContent = currentConfig.volume + '%';
-            neoSysSelect.value = currentConfig.neoSys;
-            neoBiosSelect.value = currentConfig.neoBios;
-            configModal.classList.add('show');
-        });
-
-
-        configModalClose.addEventListener('click', function() {
-            configModal.classList.remove('show');
-        });
-
-        configModal.addEventListener('click', function(e) {
-            if (e.target === configModal) {
-                configModal.classList.remove('show');
-            }
-        });
-
-        // Volume slider value display
-        volumeSlider.addEventListener('input', function() {
-            volumeValue.textContent = volumeSlider.value + '%';
-        });
-
-        applyConfigBtn.addEventListener('click', function() {
-            // Update current config
-            currentConfig.scaleMode = scaleModeSelect.value;
-            currentConfig.volume = parseInt(volumeSlider.value);
-            currentConfig.neoSys = neoSysSelect.value;
-            currentConfig.neoBios = neoBiosSelect.value;
-
-            // Apply settings to C++
-            applyConfiguration();
-            // Save configuration to persistent storage
-            saveConfiguration();
-            configModal.classList.remove('show');
-        });
-
-        resetConfigBtn.addEventListener('click', function() {
-            resetToDefaults();
-            showLog('Configuration reset to defaults');
-        });
 
         // File upload button handlers
         const fileManagerBtn = document.getElementById('fileManagerBtn');
@@ -1718,20 +1511,6 @@
             }
         }
 
-        function resetToDefaults() {
-            // Reset to defaults
-            currentConfig = { ...configDefaults };
-
-            // Update modal display
-            scaleModeSelect.value = currentConfig.scaleMode;
-            volumeSlider.value = currentConfig.volume;
-            volumeValue.textContent = currentConfig.volume + '%';
-            neoSysSelect.value = currentConfig.neoSys;
-            neoBiosSelect.value = currentConfig.neoBios;
-
-            applyConfiguration();
-        }
-
         // ========== Key Bindings ==========
         const keyBindingSchemas = {
             Common: {
@@ -1920,11 +1699,55 @@
             tabsContainer.innerHTML = '';
             panelsContainer.innerHTML = '';
 
-            let first = true;
+            // ---- General tab ----
+            const generalTab = document.createElement('button');
+            generalTab.className = 'keybind-tab active';
+            generalTab.textContent = 'General';
+            generalTab.addEventListener('click', () => {
+                tabsContainer.querySelectorAll('.keybind-tab').forEach(t => t.classList.remove('active'));
+                panelsContainer.querySelectorAll('.keybind-panel').forEach(p => p.classList.remove('active'));
+                generalTab.classList.add('active');
+                document.getElementById('keybind-panel-General').classList.add('active');
+            });
+            tabsContainer.appendChild(generalTab);
+
+            const generalPanel = document.createElement('div');
+            generalPanel.className = 'keybind-panel active';
+            generalPanel.id = 'keybind-panel-General';
+            generalPanel.innerHTML = `
+                <div class="config-section">
+                    <h3>Display & Audio</h3>
+                    <div class="config-item">
+                        <label for="scaleMode">Scale Mode:</label>
+                        <select id="scaleMode">
+                            <option value="nearest">Nearest</option>
+                            <option value="linear">Linear</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label for="volume">Volume:</label>
+                        <input type="range" id="volume" min="0" max="100" value="${currentConfig.volume}">
+                        <span id="volumeValue">${currentConfig.volume}%</span>
+                    </div>
+                </div>
+            `;
+            panelsContainer.appendChild(generalPanel);
+
+            // Set current config values
+            generalPanel.querySelector('#scaleMode').value = currentConfig.scaleMode;
+
+            // Volume slider
+            const volSlider = generalPanel.querySelector('#volume');
+            const volValue = generalPanel.querySelector('#volumeValue');
+            volSlider.addEventListener('input', () => {
+                volValue.textContent = volSlider.value + '%';
+            });
+
+            // ---- Key binding tabs ----
             for (const [section, schema] of Object.entries(keyBindingSchemas)) {
                 // Tab
                 const tab = document.createElement('button');
-                tab.className = 'keybind-tab' + (first ? ' active' : '');
+                tab.className = 'keybind-tab';
                 tab.textContent = schema.label;
                 tab.dataset.section = section;
                 tab.addEventListener('click', () => {
@@ -1937,8 +1760,66 @@
 
                 // Panel
                 const panel = document.createElement('div');
-                panel.className = 'keybind-panel' + (first ? ' active' : '');
+                panel.className = 'keybind-panel';
                 panel.id = 'keybind-panel-' + section;
+
+                // Add NeoGeo system settings at the top of NeoGeo tab
+                if (section === 'NeoGeo') {
+                    const neoConfig = document.createElement('div');
+                    neoConfig.style.marginBottom = '8px';
+                    neoConfig.innerHTML = `
+                        <div class="config-item">
+                            <label for="neoSys">Type:</label>
+                            <select id="neoSys">
+                                <option value="mvs">MVS</option>
+                                <option value="aes">AES</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label for="neoBios">BIOS:</label>
+                            <select id="neoBios">
+                                <option value="0">MVS Asia/Europe ver. 6 (1 slot)</option>
+                                <option value="1">MVS Asia/Europe ver. 5 (1 slot)</option>
+                                <option value="2">MVS Asia/Europe ver. 3 (4 slot)</option>
+                                <option value="3">MVS USA ver. 5 (2 slot)</option>
+                                <option value="4">MVS USA ver. 5 (4 slot)</option>
+                                <option value="5">MVS USA ver. 5 (6 slot)</option>
+                                <option value="6">MVS USA (U4)</option>
+                                <option value="7">MVS USA (U3)</option>
+                                <option value="8">MVS Japan ver. 6 (? slot)</option>
+                                <option value="9">MVS Japan ver. 5 (? slot)</option>
+                                <option value="10">MVS Japan ver. 3 (4 slot)</option>
+                                <option value="11">NEO-MVH MV1C (Asia)</option>
+                                <option value="12">NEO-MVH MV1C (Japan)</option>
+                                <option value="13">MVS Japan (J3)</option>
+                                <option value="14">MVS Japan (J3, alt)</option>
+                                <option value="15">AES Japan</option>
+                                <option value="16">AES Asia</option>
+                                <option value="17">Development Kit</option>
+                                <option value="18">Deck ver. 6 (Git Ver 1.3)</option>
+                                <option value="19">Universe BIOS (Hack, Ver. 4.0)</option>
+                                <option value="20">Universe BIOS (Hack, Ver. 3.3)</option>
+                                <option value="21">Universe BIOS (Hack, Ver. 3.2)</option>
+                                <option value="22">Universe BIOS (Hack, Ver. 3.1)</option>
+                                <option value="23">Universe BIOS (Hack, Ver. 3.0)</option>
+                                <option value="24">Universe BIOS (Hack, Ver. 2.3)</option>
+                                <option value="25">Universe BIOS (Hack, Ver. 2.3)</option>
+                                <option value="26">Universe BIOS (Hack, Ver. 2.2)</option>
+                                <option value="27">Universe BIOS (Hack, Ver. 2.1)</option>
+                                <option value="28">Universe BIOS (Hack, Ver. 2.0)</option>
+                                <option value="29">Universe BIOS (Hack, Ver. 1.3)</option>
+                                <option value="30">Universe BIOS (Hack, Ver. 1.2)</option>
+                                <option value="31">Universe BIOS (Hack, Ver. 1.2)</option>
+                                <option value="32">Universe BIOS (Hack, Ver. 1.1)</option>
+                                <option value="33">Universe BIOS (Hack, Ver. 1.0)</option>
+                                <option value="34">NeoOpen BIOS v0.1 beta</option>
+                            </select>
+                        </div>
+                    `;
+                    panel.appendChild(neoConfig);
+                    neoConfig.querySelector('#neoSys').value = currentConfig.neoSys;
+                    neoConfig.querySelector('#neoBios').value = currentConfig.neoBios;
+                }
 
                 const groupNames = Object.keys(schema.groups);
                 // Detect player groups for two-column layout
@@ -1978,7 +1859,6 @@
                 }
 
                 panelsContainer.appendChild(panel);
-                first = false;
             }
         }
 
@@ -2074,18 +1954,32 @@
         });
 
         keybindApplyBtn.addEventListener('click', () => {
+            // Read general config from the modal
+            const generalPanel = document.getElementById('keybind-panel-General');
+            if (generalPanel) {
+                currentConfig.scaleMode = generalPanel.querySelector('#scaleMode').value;
+                currentConfig.volume = parseInt(generalPanel.querySelector('#volume').value);
+            }
+            const neoPanel = document.getElementById('keybind-panel-NeoGeo');
+            if (neoPanel) {
+                currentConfig.neoSys = neoPanel.querySelector('#neoSys').value;
+                currentConfig.neoBios = neoPanel.querySelector('#neoBios').value;
+            }
+            applyConfiguration();
             applyKeyBindings();
             saveConfiguration();
             keybindModal.classList.remove('show');
-            showLog('Key bindings applied');
+            showLog('Configuration applied');
         });
 
         keybindResetBtn.addEventListener('click', () => {
+            currentConfig = { ...configDefaults };
             initKeyBindings();
             buildKeybindUI();
+            applyConfiguration();
             applyKeyBindings();
             saveConfiguration();
-            showLog('Key bindings reset to defaults');
+            showLog('Configuration reset to defaults');
         });
 
         // Initialize key bindings on startup
