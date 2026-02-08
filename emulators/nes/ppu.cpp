@@ -32,7 +32,6 @@ PPU::PPU()
     , m_videoDevice(nullptr)
     , m_cycle(0)
     , m_scanline(0)
-    , m_frameComplete(false)
     , m_oddFrame(false)
     , m_ppuCtrl(0)
     , m_ppuMask(0)
@@ -67,7 +66,6 @@ PPU::PPU()
 void PPU::reset() {
     m_cycle = 0;
     m_scanline = 0;
-    m_frameComplete = false;
     m_oddFrame = false;
     
     m_ppuCtrl = 0;
@@ -861,7 +859,6 @@ void PPU::step() {
             m_videoDevice->render(m_framebuffer.data());
         }
         
-        m_frameComplete = true;
     }
     
     // Pre-render scanline (261)
@@ -946,7 +943,6 @@ void PPU::saveState(Buffer* buf) {
     // Timing
     buffer_write(buf, &m_cycle, sizeof(m_cycle));
     buffer_write(buf, &m_scanline, sizeof(m_scanline));
-    buffer_write(buf, &m_frameComplete, sizeof(m_frameComplete));
     buffer_write(buf, &m_oddFrame, sizeof(m_oddFrame));
     
     // Registers
@@ -996,7 +992,6 @@ void PPU::loadState(Buffer* buf) {
     // Timing
     buffer_read(buf, &m_cycle, sizeof(m_cycle));
     buffer_read(buf, &m_scanline, sizeof(m_scanline));
-    buffer_read(buf, &m_frameComplete, sizeof(m_frameComplete));
     buffer_read(buf, &m_oddFrame, sizeof(m_oddFrame));
     
     // Registers

@@ -115,6 +115,7 @@ bool Core::saveState(const fs::path& filename) {
     Buffer buf = {};
     
     // Save all component states
+    buffer_write(&buf, &m_cyclesThisFrame, sizeof(m_cyclesThisFrame));
     m_cpu->saveState(&buf);
     m_mmu->saveState(&buf);
     m_ppu->saveState(&buf);
@@ -131,6 +132,7 @@ bool Core::loadState(const fs::path& filename) {
     buffer_load_from_file(&buf, filename);
     
     // Load all component states
+    buffer_read(&buf, &m_cyclesThisFrame, sizeof(m_cyclesThisFrame));
     m_cpu->loadState(&buf);
     m_mmu->loadState(&buf);
     m_ppu->loadState(&buf);

@@ -82,10 +82,6 @@ public:
     u8 readRegister(u16 address);
     void writeRegister(u16 address, u8 value);
     
-    // Frame completion tracking
-    bool isFrameComplete() const { return m_frameComplete; }
-    void clearFrameComplete() { m_frameComplete = false; }
-    
     // Timing access (for mapper IRQs)
     u16 getCycle() const { return m_cycle; }
     u16 getScanline() const { return m_scanline; }
@@ -155,7 +151,6 @@ private:
     // Timing
     u16 m_cycle;        // Current PPU cycle (0-340)
     u16 m_scanline;     // Current scanline (0-261)
-    bool m_frameComplete;
     bool m_oddFrame;    // Odd/even frame flag (for skip cycle)
     
     // Registers

@@ -4,7 +4,8 @@
 
 namespace nes {
 
-Core::Core() {
+Core::Core()
+    : m_cyclesThisFrame(0) {
 }
 
 bool Core::initialize() {
@@ -67,33 +68,26 @@ bool Core::loadROM(const fs::path& filename) {
 }
 
 void Core::update() {
-    // Run until we complete a frame
-    // The PPU will set frameComplete when VBlank starts
-    
-    while (!m_ppu->isFrameComplete()) {
+    while (m_cyclesThisFrame < CPU_CYCLES_PER_FRAME) {
         // Track cycles before instruction
         u32 cyclesBefore = m_cpu->getCycles();
-        
+
         // Execute one CPU instruction (takes multiple cycles)
         m_cpu->step();
-        
+
         // Calculate how many CPU cycles the instruction took
         u32 cpuCycles = m_cpu->getCycles() - cyclesBefore;
-        
+        m_cyclesThisFrame += cpuCycles;
+
         // Run PPU for 3 PPU cycles per CPU cycle
         u32 ppuCycles = cpuCycles * PPU_CYCLES_PER_CPU;
         for (u32 i = 0; i < ppuCycles; i++) {
             m_ppu->step();
-
-            // Break out of the loop if the frame is complete
-            if (m_ppu->isFrameComplete()) {
-                break;
-            }
         }
-        
+
         // Run APU
         m_apu->step(cpuCycles, m_gameSpeed);
-        
+
         // Check for mapper IRQ (for VRC6 and similar mappers that clock IRQ on CPU cycles)
         // This is needed because VRC6 IRQ is clocked during APU step, not at PPU cycle 260
         if (m_cartridge->irqState()) {
@@ -101,14 +95,15 @@ void Core::update() {
             m_cartridge->irqClear();
         }
     }
-    
-    m_ppu->clearFrameComplete();
+
+    m_cyclesThisFrame -= CPU_CYCLES_PER_FRAME;
 }
 
 bool Core::saveState(const fs::path& filename) {
     Buffer buf = {};
     
     // Save all component states
+    buffer_write(&buf, &m_cyclesThisFrame, sizeof(m_cyclesThisFrame));
     m_cpu->saveState(&buf);
     m_ppu->saveState(&buf);
     m_apu->saveState(&buf);
@@ -124,6 +119,7 @@ bool Core::loadState(const fs::path& filename) {
     buffer_load_from_file(&buf, filename);
     
     // Load all component states
+    buffer_read(&buf, &m_cyclesThisFrame, sizeof(m_cyclesThisFrame));
     m_cpu->loadState(&buf);
     m_ppu->loadState(&buf);
     m_apu->loadState(&buf);
