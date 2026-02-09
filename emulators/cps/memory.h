@@ -10,8 +10,8 @@ namespace cps {
 
 class CPU;
 class SoundCPU;
-class PPU;
-class APU;
+class Video;
+class Audio;
 class Cartridge;
 class Controller;
 
@@ -53,8 +53,8 @@ public:
     // Component connections
     void setCPU(CPU* cpu) { m_cpu = cpu; }
     void setSoundCPU(SoundCPU* soundCpu) { m_soundCpu = soundCpu; }
-    void setPPU(PPU* ppu) { m_ppu = ppu; }
-    void setAPU(APU* apu) { m_apu = apu; }
+    void setVideo(Video* video) { m_video = video; }
+    void setAudio(Audio* audio) { m_audio = audio; }
     void setCartridge(Cartridge* cartridge) { m_cartridge = cartridge; }
     void setController(Controller* controller) { m_controller = controller; }
     
@@ -66,8 +66,8 @@ private:
     // Component pointers
     CPU* m_cpu;
     SoundCPU* m_soundCpu;
-    PPU* m_ppu;
-    APU* m_apu;
+    Video* m_video;
+    Audio* m_audio;
     Cartridge* m_cartridge;
     Controller* m_controller;
     
@@ -92,7 +92,7 @@ private:
     u8 readPort(u16 port);
     void writePort(u16 port, u8 value);
     
-    // Helper methods (now use virtual PPU methods)
+    // Helper methods (now use virtual Video methods)
     u8 readVRAM8(u32 address);
     u16 readVRAM16(u32 address);
     u32 readVRAM32(u32 address);

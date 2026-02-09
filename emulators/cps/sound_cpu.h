@@ -7,7 +7,7 @@
 namespace cps {
 
 class Memory;
-class APU;
+class Audio;
 class Cartridge;
 
 // Z80 CPU emulator (shared between CPS1 and CPS2)
@@ -23,12 +23,12 @@ public:
     void endFrame() { m_cycles -= m_cyclesPerFrame; }
 
     void setMemory(Memory* memory) { m_memory = memory; }
-    void setAPU(APU* apu) { m_apu = apu; }
+    void setAudio(Audio* audio) { m_audio = audio; }
     void setCartridge(Cartridge* cartridge) { m_cartridge = cartridge; }
     
     // Accessors for Z80 callbacks
     Memory* getMemory() const { return m_memory; }
-    APU* getAPU() const { return m_apu; }
+    Audio* getAudio() const { return m_audio; }
     
     // Interrupt handling
     void irq(bool state = true);
@@ -44,7 +44,7 @@ public:
 protected:
     // Protected so Z80 callback functions can access them
     Memory* m_memory;
-    APU* m_apu;
+    Audio* m_audio;
     u32 m_cycles;
     u32 m_cyclesPerFrame;
     Cartridge* m_cartridge;

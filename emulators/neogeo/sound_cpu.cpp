@@ -1,6 +1,6 @@
 #include "sound_cpu.h"
 #include "memory.h"
-#include "apu.h"
+#include "audio.h"
 #include "../components/cpu/z80/z80.h"
 #include <cstring>
 #include <vector>
@@ -72,7 +72,7 @@ static u8 z80_read_op_arg(u32 address) {
 
 SoundCPU::SoundCPU()
     : m_memory(nullptr)
-    , m_apu(nullptr)
+    , m_audio(nullptr)
     , m_cycles(0) {
     // Initialize Z80
     static bool z80_initialized = false;
@@ -111,8 +111,8 @@ u32 SoundCPU::step(u32 cycles) {
         m_cycles += actualCycles;
 
         // Update YM2610 timers - this will trigger IRQs when timers expire
-        if (m_apu) {
-            m_apu->updateTimers(actualCycles);
+        if (m_audio) {
+            m_audio->updateTimers(actualCycles);
         }
 
         return actualCycles;

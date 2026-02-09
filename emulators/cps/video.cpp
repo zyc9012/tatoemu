@@ -1,4 +1,4 @@
-#include "ppu.h"
+#include "video.h"
 #include "cartridge.h"
 #include "cpu.h"
 #include "memory.h"
@@ -7,7 +7,7 @@
 #include <algorithm>
 
 /*
- * PPU Implementation (CPS1 and CPS2)
+ * Video Implementation (CPS1 and CPS2)
  */
 
 namespace cps {
@@ -16,7 +16,7 @@ namespace cps {
 // Constructor / Initialization
 // ============================================================================
 
-PPU::PPU()
+Video::Video()
     : m_cpu(nullptr)
     , m_cartridge(nullptr)
     , m_memory(nullptr)
@@ -64,11 +64,11 @@ PPU::PPU()
     m_gfxBankSizes[3] = 0;
 }
 
-void PPU::setCartridge(Cartridge* cartridge) {
+void Video::setCartridge(Cartridge* cartridge) {
     m_cartridge = cartridge;
 }
 
-void PPU::reset() {
+void Video::reset() {
     m_frameBuffer.fill(0);
     m_vram.fill(0);
     m_cpsRegs.fill(0);
@@ -141,7 +141,7 @@ void PPU::reset() {
     }
 }
 
-void PPU::setupGraphicsMapper() {
+void Video::setupGraphicsMapper() {
     if (!m_cartridge) return;
     
     CPSMapper mapper = m_cartridge->getMapper();
@@ -152,14 +152,14 @@ void PPU::setupGraphicsMapper() {
 // VRAM Access
 // ============================================================================
 
-u8 PPU::readVRAM8(u32 address) {
+u8 Video::readVRAM8(u32 address) {
     if (address < VRAM_SIZE) {
         return m_vram[address];
     }
     return 0;
 }
 
-u16 PPU::readVRAM16(u32 address) {
+u16 Video::readVRAM16(u32 address) {
     if (address + 1 < VRAM_SIZE) {
         // CPS1 VRAM is big-endian from 68000 perspective
         return (static_cast<u16>(m_vram[address]) << 8) | m_vram[address + 1];
@@ -167,13 +167,13 @@ u16 PPU::readVRAM16(u32 address) {
     return 0;
 }
 
-u32 PPU::readVRAM32(u32 address) {
+u32 Video::readVRAM32(u32 address) {
     u32 high = readVRAM16(address);
     u32 low = readVRAM16(address + 2);
     return (high << 16) | low;
 }
 
-void PPU::writeVRAM8(u32 address, u8 value) {
+void Video::writeVRAM8(u32 address, u8 value) {
     if (address < VRAM_SIZE) {
         m_vram[address] = value;
         // Always mark palette as potentially dirty - the actual palette location
@@ -182,7 +182,7 @@ void PPU::writeVRAM8(u32 address, u8 value) {
     }
 }
 
-void PPU::writeVRAM16(u32 address, u16 value) {
+void Video::writeVRAM16(u32 address, u16 value) {
     if (address + 1 < VRAM_SIZE) {
         // Big-endian write
         m_vram[address] = (value >> 8) & 0xFF;
@@ -191,7 +191,7 @@ void PPU::writeVRAM16(u32 address, u16 value) {
     }
 }
 
-void PPU::writeVRAM32(u32 address, u32 value) {
+void Video::writeVRAM32(u32 address, u32 value) {
     writeVRAM16(address, (value >> 16) & 0xFFFF);
     writeVRAM16(address + 2, value & 0xFFFF);
 }
@@ -200,15 +200,15 @@ void PPU::writeVRAM32(u32 address, u32 value) {
 // CPS Register Access
 // ============================================================================
 
-u8 PPU::readRegister8(u8 reg) {
+u8 Video::readRegister8(u8 reg) {
     return m_cpsRegs[reg];
 }
 
-u16 PPU::readRegister16(u8 reg) {
+u16 Video::readRegister16(u8 reg) {
     return (static_cast<u16>(m_cpsRegs[reg]) << 8) | m_cpsRegs[reg + 1];
 }
 
-void PPU::writeRegister8(u8 reg, u8 value) {
+void Video::writeRegister8(u8 reg, u8 value) {
     m_cpsRegs[reg] = value;
 }
 
@@ -216,7 +216,7 @@ void PPU::writeRegister8(u8 reg, u8 value) {
 // VRAM Helper - Find graphics RAM at a specific address
 // ============================================================================
 
-u8* PPU::findGfxRam(u32 address, u32 len) {
+u8* Video::findGfxRam(u32 address, u32 len) {
     address &= 0xFFFFFF;  // 24-bit bus
     // VRAM is at 0x900000-0x92FFFF from 68000 address space
     // In our VRAM array, offset 0 corresponds to 0x900000
@@ -231,7 +231,7 @@ u8* PPU::findGfxRam(u32 address, u32 len) {
 // Maps tile codes to actual ROM addresses based on graphics type
 // ============================================================================
 
-s32 PPU::gfxRomBankMapper(u32 type, s32 code) const {
+s32 Video::gfxRomBankMapper(u32 type, s32 code) const {
     // CPS2: Direct addressing, no mapper needed
     if (!m_cartridge || m_cartridge->getCPSVersion() != 1) {
         return code;
@@ -277,7 +277,7 @@ s32 PPU::gfxRomBankMapper(u32 type, s32 code) const {
     return -1;
 }
 
-void PPU::setDecodedGraphics(const std::vector<u8>& decodedGfx) {
+void Video::setDecodedGraphics(const std::vector<u8>& decodedGfx) {
     m_decodedGfx = decodedGfx;
     m_gfxLen = static_cast<u32>(m_decodedGfx.size());
     
@@ -289,7 +289,7 @@ void PPU::setDecodedGraphics(const std::vector<u8>& decodedGfx) {
     m_gfxMask -= 1;
 }
 
-const u8* PPU::getGfxRom(u32 address) const {
+const u8* Video::getGfxRom(u32 address) const {
     if (address < m_gfxLen && !m_decodedGfx.empty()) {
         return m_decodedGfx.data() + address;
     }
@@ -300,7 +300,7 @@ const u8* PPU::getGfxRom(u32 address) const {
 // CPS2 Z-Buffer Initialization
 // ============================================================================
 
-void PPU::initCPS2ZBuffer() {
+void Video::initCPS2ZBuffer() {
     // Initialize Z-buffer offset for this frame
     m_zOffset = m_maxZMask;
     
@@ -320,7 +320,7 @@ void PPU::initCPS2ZBuffer() {
 // Palette Handling
 // ============================================================================
 
-u32 PPU::convertPaletteEntry(u16 entry) {
+u32 Video::convertPaletteEntry(u16 entry) {
     /*
      * CPS1/CPS2 palette format (16-bit):
      * Bits 15-12: Brightness (0-15)
@@ -344,7 +344,7 @@ u32 PPU::convertPaletteEntry(u16 entry) {
     return 0xFF000000 | (r << 16) | (g << 8) | b;
 }
 
-void PPU::updatePalette() {
+void Video::updatePalette() {
     // Get palette base address from CPS registers (register 0x0A as 16-bit)
     // The 68000 writes this as big-endian, so reg[0x0A] is high byte, reg[0x0B] is low byte
     u32 palAddr = (static_cast<u32>(m_cpsRegs[0x0A]) << 8) | m_cpsRegs[0x0B];
@@ -397,7 +397,7 @@ void PPU::updatePalette() {
 // Frame Stepping
 // ============================================================================
 
-void PPU::step(u32 cycles) {
+void Video::step(u32 cycles) {
     // CPS1/CPS2 render a full frame at VBlank
     // Frame rate is ~59.63Hz for both systems
     // CPS1: 68000 runs at 10MHz, CPS2: 68000 runs at 16MHz
@@ -443,7 +443,7 @@ void PPU::step(u32 cycles) {
     }
 }
 
-void PPU::processCPS2RasterInterrupts() {
+void Video::processCPS2RasterInterrupts() {
     // This function is called at the start of each scanline.
     // At first visible line, copy initial register state to zone 0
     if (m_scanline == static_cast<u32>(FIRST_VISIBLE_SCANLINE)) {
@@ -503,7 +503,7 @@ void PPU::processCPS2RasterInterrupts() {
 // Frame Rendering
 // ============================================================================
 
-void PPU::renderFrame() {
+void Video::renderFrame() {
     if (!m_videoDevice) return;
     
     // Update palette if needed
@@ -519,7 +519,7 @@ void PPU::renderFrame() {
     m_videoDevice->render(m_frameBuffer.data());
 }
 
-void PPU::clearScreen() {
+void Video::clearScreen() {
     if (!m_cartridge) {
         m_frameBuffer.fill(0);
         return;
@@ -542,7 +542,7 @@ void PPU::clearScreen() {
 // Layer Rendering
 // ============================================================================
 
-void PPU::renderLayers() {
+void Video::renderLayers() {
     if (!m_cartridge) return;
     
     u8 cpsVer = m_cartridge->getCPSVersion();
@@ -554,7 +554,7 @@ void PPU::renderLayers() {
     }
 }
 
-void PPU::renderLayersCPS1() {
+void Video::renderLayersCPS1() {
     // CPS1: Simple priority system with single register set
     
     // Use board configuration for layer control register
@@ -679,7 +679,7 @@ void PPU::renderLayersCPS1() {
     }
 }
 
-void PPU::renderLayersCPS2() {
+void Video::renderLayersCPS2() {
     // CPS2 raster-based priority rendering
     
     // Initialize Z-buffer for CPS2 sprite rendering
@@ -852,7 +852,7 @@ void PPU::renderLayersCPS2() {
 // Scroll 1 (8x8 tiles)
 // ============================================================================
 
-void PPU::renderScroll1(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine) {
+void Video::renderScroll1(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine) {
     if (!base || m_decodedGfx.empty()) return;
     
     s32 ix = (scrollX >> 3) + 1;
@@ -937,7 +937,7 @@ void PPU::renderScroll1(const u8* base, s32 scrollX, s32 scrollY, s32 startLine,
 // Scroll 2 (16x16 tiles with optional row scroll)
 // ============================================================================
 
-void PPU::renderScroll2(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine) {
+void Video::renderScroll2(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine) {
     if (!base || m_decodedGfx.empty()) return;
 
     // Check for row scroll enable (bit 0 of register 0x22)
@@ -1058,7 +1058,7 @@ void PPU::renderScroll2(const u8* base, s32 scrollX, s32 scrollY, s32 startLine,
 // Scroll 3 (32x32 tiles)
 // ============================================================================
 
-void PPU::renderScroll3(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine) {
+void Video::renderScroll3(const u8* base, s32 scrollX, s32 scrollY, s32 startLine, s32 endLine) {
     if (!base || m_decodedGfx.empty()) return;
     
     s32 ix = (scrollX >> 5) + 1;
@@ -1147,7 +1147,7 @@ void PPU::renderScroll3(const u8* base, s32 scrollX, s32 scrollY, s32 startLine,
 // Sprite Rendering - CPS1 Version
 // ============================================================================
 
-void PPU::renderSpritesCPS1() {
+void Video::renderSpritesCPS1() {
     if (m_decodedGfx.empty()) return;
     
     // CPS1: Get sprite table address from register 0x00-0x01
@@ -1254,7 +1254,7 @@ void PPU::renderSpritesCPS1() {
 // Sprite Rendering - CPS2 Version
 // ============================================================================
 
-void PPU::renderSpritesCPS2(s32 levelFrom, s32 levelTo) {
+void Video::renderSpritesCPS2(s32 levelFrom, s32 levelTo) {
     if (m_decodedGfx.empty()) return;
     
     // CPS2 supports up to 1024 sprites (8 bytes each = 8KB max)
@@ -1400,7 +1400,7 @@ void PPU::renderSpritesCPS2(s32 levelFrom, s32 levelTo) {
 // Tile Drawing Functions
 // ============================================================================
 
-inline void PPU::plotPixel(s32 x, s32 y, u32 color) {
+inline void Video::plotPixel(s32 x, s32 y, u32 color) {
     if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT) {
         if (m_isVertical) {
             m_frameBuffer[(SCREEN_WIDTH - x - 1) * SCREEN_HEIGHT + y] = color;
@@ -1410,7 +1410,7 @@ inline void PPU::plotPixel(s32 x, s32 y, u32 color) {
     }
 }
 
-inline void PPU::plotPixelWithZ(s32 x, s32 y, u32 color) {
+inline void Video::plotPixelWithZ(s32 x, s32 y, u32 color) {
     if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT) {
         u32 offset;
         if (m_isVertical) {
@@ -1426,11 +1426,11 @@ inline void PPU::plotPixelWithZ(s32 x, s32 y, u32 color) {
     }
 }
 
-inline bool PPU::isPixelVisible(s32 x, s32 y) {
+inline bool Video::isPixelVisible(s32 x, s32 y) {
     return (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT);
 }
 
-void PPU::drawTile8x8(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, u16 mask) {
+void Video::drawTile8x8(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, u16 mask) {
     // Check bounds
     tileAddr &= m_gfxMask;
     if (tileAddr >= m_gfxLen) return;
@@ -1490,7 +1490,7 @@ void PPU::drawTile8x8(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool cl
     }
 }
 
-void PPU::drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, u16 mask, bool useZ) {
+void Video::drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, u16 mask, bool useZ) {
     tileAddr &= m_gfxMask;
     if (tileAddr >= m_gfxLen) return;
     
@@ -1583,7 +1583,7 @@ void PPU::drawTile16x16(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool 
     }
 }
 
-void PPU::drawTile32x32(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, u16 mask) {
+void Video::drawTile32x32(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool clipCheck, u16 mask) {
     tileAddr &= m_gfxMask;
     if (tileAddr >= m_gfxLen) return;
     
@@ -1647,7 +1647,7 @@ void PPU::drawTile32x32(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, bool 
 // Save/Load State
 // ============================================================================
 
-void PPU::saveState(Buffer* buf) {
+void Video::saveState(Buffer* buf) {
     // Save VRAM
     buffer_write(buf, m_vram.data(), m_vram.size());
     
@@ -1673,7 +1673,7 @@ void PPU::saveState(Buffer* buf) {
     buffer_write(buf, &m_paletteNeedsUpdate, sizeof(m_paletteNeedsUpdate));
 }
 
-void PPU::loadState(Buffer* buf) {
+void Video::loadState(Buffer* buf) {
     // Load VRAM
     buffer_read(buf, m_vram.data(), m_vram.size());
     
@@ -1706,27 +1706,27 @@ void PPU::loadState(Buffer* buf) {
 // CPS2 Memory Access Helpers
 // ============================================================================
 
-u8 PPU::readObjRAM8(u32 offset) {
+u8 Video::readObjRAM8(u32 offset) {
     if (!m_memory) return 0;
     // Object RAM is at 0x708000-0x70FFFF (32KB visible at a time due to banking)
     if (offset >= 0x8000) return 0;  // 32KB max visible
     return m_memory->read8(0x708000 + offset);
 }
 
-u16 PPU::readObjRAM16(u32 offset) {
+u16 Video::readObjRAM16(u32 offset) {
     if (!m_memory) return 0;
     if (offset >= 0x8000) return 0;
     return m_memory->read16(0x708000 + offset);
 }
 
-u8 PPU::readFrgReg8(u8 reg) {
+u8 Video::readFrgReg8(u8 reg) {
     if (!m_memory) return 0;
     // Frg registers are at 0x400000-0x40000F (16 bytes)
     if (reg >= 0x10) return 0;
     return m_memory->read8(0x400000 + reg);
 }
 
-u16 PPU::readFrgReg16(u8 reg) {
+u16 Video::readFrgReg16(u8 reg) {
     if (!m_memory) return 0;
     if (reg >= 0x10) return 0;
     return m_memory->read16(0x400000 + reg);
@@ -1736,20 +1736,20 @@ u16 PPU::readFrgReg16(u8 reg) {
 // CPS2 Raster Interrupt Management
 // ============================================================================
 
-void PPU::setRasterLine(u32 zone, s32 scanline) {
+void Video::setRasterLine(u32 zone, s32 scanline) {
     // Set the scanline boundary for a raster zone.
     if (zone >= MAX_RASTER + 2) return;
     m_rasterLines[zone] = scanline;
 }
 
-void PPU::copyRegistersToZone(u32 zone) {
+void Video::copyRegistersToZone(u32 zone) {
     if (zone >= MAX_RASTER) return;
     
     // Copy all 256 CPS registers to this zone's register set
     std::copy(m_cpsRegs.begin(), m_cpsRegs.end(), m_rasterRegs[zone].begin());
 }
 
-void PPU::copyFrgRegistersToZone(u32 zone) {
+void Video::copyFrgRegistersToZone(u32 zone) {
     if (zone >= MAX_RASTER) return;
     if (!m_memory) return;
     

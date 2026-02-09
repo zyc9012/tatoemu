@@ -1,10 +1,10 @@
 #include "memory.h"
 #include "upd4990a.h"
 #include "cpu.h"
-#include "ppu.h"
+#include "video.h"
 #include "cartridge.h"
 #include "controller.h"
-#include "apu.h"
+#include "audio.h"
 #include "core.h"
 #include "protections.h"
 #include <cstring>
@@ -15,10 +15,10 @@ namespace neogeo {
 Memory::Memory()
     : m_cpu(nullptr)
     , m_soundCpu(nullptr)
-    , m_ppu(nullptr)
+    , m_video(nullptr)
     , m_cartridge(nullptr)
     , m_controller(nullptr)
-    , m_apu(nullptr)
+    , m_audio(nullptr)
     , m_core(nullptr)
     , m_nvramLoaded(false)
     , m_inputSelect(0)
@@ -127,8 +127,8 @@ u8 Memory::read8(u32 address) {
         case 0x320000:
             if ((address & 1) == 0) {
                 // Even: Sound reply
-                if (m_apu) {
-                    return m_apu->getSoundReply();
+                if (m_audio) {
+                    return m_audio->getSoundReply();
                 }
                 return 0x00;
             } else {
@@ -165,7 +165,7 @@ u8 Memory::read8(u32 address) {
     
     // Note: Sprite ROM (0x400000-0x4FFFFF) and Text ROM (0x500000-0x5FFFFF) are NOT
     // directly readable through the CPU address space on the NeoGeo.
-    // The sprite and text data are accessed by the PPU through dedicated buses.
+    // The sprite and text data are accessed by the Video through dedicated buses.
     
     // BIOS ROM (0xC00000-0xCFFFFF) - first 0x400 bytes are vector table
     if (address >= 0xC00000 && address <= 0xCFFFFF) {
@@ -261,8 +261,8 @@ void Memory::write8(u32 address, u8 value) {
             // Sound command (even addresses)
             if ((address & 1) == 0) {
                 // Send sound command (triggers NMI to Z80 if enabled)
-                if (m_apu) {
-                    m_apu->setSoundCommand(value);
+                if (m_audio) {
+                    m_audio->setSoundCommand(value);
                 }
             }
             return;
@@ -329,24 +329,24 @@ u16 Memory::readVideoController(u32 address) {
         case 0x00:
         case 0x02:
             // Graphics RAM read
-            if (m_ppu) {
-                return m_ppu->readVRAM();
+            if (m_video) {
+                return m_video->readVRAM();
             }
             return 0;
             
         case 0x04:
             // Graphics RAM modulo
-            if (m_ppu) {
-                return m_ppu->getVRAMModulo();
+            if (m_video) {
+                return m_video->getVRAMModulo();
             }
             return 0;
             
         case 0x06:
             // Display status (scanline + sprite frame)
-            if (m_ppu) {
+            if (m_video) {
                 constexpr u32 scanlineOffset = 0xF8;
                 u32 currentScanline = ((m_cpu->frameCycles() / CPU_CYCLES_PER_SCANLINE) + 248) % 264;
-                u32 spriteFrame = m_ppu->getSpriteFrame();
+                u32 spriteFrame = m_video->getSpriteFrame();
                 return static_cast<u16>(((currentScanline + scanlineOffset) << 7) | (spriteFrame & 7));
             }
             return (0xF8 << 7);  // Fake VBlank
@@ -360,30 +360,30 @@ void Memory::writeVideoController(u32 address, u16 value) {
     switch (address & 0x0E) {
         case 0x00:
             // Graphics RAM pointer
-            if (m_ppu) {
-                m_ppu->setVRAMPointer(value);
+            if (m_video) {
+                m_video->setVRAMPointer(value);
             }
             break;
             
         case 0x02:
             // Graphics RAM write
-            if (m_ppu) {
-                m_ppu->writeVRAM(value);
+            if (m_video) {
+                m_video->writeVRAM(value);
             }
             break;
             
         case 0x04:
             // Graphics RAM modulo
-            if (m_ppu) {
-                m_ppu->setVRAMModulo(static_cast<s16>(value));
+            if (m_video) {
+                m_video->setVRAMModulo(static_cast<s16>(value));
             }
             break;
             
         case 0x06:
             // IRQ control + sprite frame speed
             m_irqControl = value;
-            if (m_ppu) {
-                m_ppu->setSpriteFrameSpeed((value >> 8) & 0xFF);
+            if (m_video) {
+                m_video->setSpriteFrameSpeed((value >> 8) & 0xFF);
             }
             break;
             
@@ -723,8 +723,8 @@ u8 Memory::readZ80IO(u16 port) {
     switch (portLow) {
         case 0x00:
             // Read sound command from 68000
-            if (m_apu) {
-                return m_apu->readPort(port);
+            if (m_audio) {
+                return m_audio->readPort(port);
             }
             return 0x00;
             
@@ -732,8 +732,8 @@ u8 Memory::readZ80IO(u16 port) {
         case 0x05:
         case 0x06:
             // YM2610 read
-            if (m_apu) {
-                return m_apu->readPort(port);
+            if (m_audio) {
+                return m_audio->readPort(port);
             }
             return 0x00;
             
@@ -763,8 +763,8 @@ u8 Memory::readZ80IO(u16 port) {
 }
 
 void Memory::writeZ80IO(u16 port, u8 value) {
-    if (m_apu) {
-        m_apu->writePort(port, value);
+    if (m_audio) {
+        m_audio->writePort(port, value);
     }
 }
 

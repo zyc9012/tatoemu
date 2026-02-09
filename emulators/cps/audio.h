@@ -15,12 +15,11 @@ extern "C" {
 
 namespace cps {
 
-// Audio Processing Unit
-// CPS1: YM2151 + MSM6295
-class APU {
+// Audio - CPS1: YM2151 + MSM6295, CPS2: + QSound
+class Audio {
 public:
-    APU();
-    ~APU();
+    Audio();
+    ~Audio();
 
     void reset();
     void step(u32 cycles, double gameSpeed);

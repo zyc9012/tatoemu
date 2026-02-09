@@ -40,8 +40,8 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/cps/sound_cpu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/controller.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/core.cpp
-    ${CMAKE_SOURCE_DIR}/emulators/cps/ppu.cpp
-    ${CMAKE_SOURCE_DIR}/emulators/cps/apu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/video.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/cps/audio.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/memory.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/cartridge.cpp
     ${CMAKE_SOURCE_DIR}/emulators/cps/db.cpp
@@ -50,10 +50,10 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/cps/decrypt.cpp
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/cpu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/sound_cpu.cpp
-    ${CMAKE_SOURCE_DIR}/emulators/neogeo/apu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/neogeo/audio.cpp
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/controller.cpp
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/core.cpp
-    ${CMAKE_SOURCE_DIR}/emulators/neogeo/ppu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/neogeo/video.cpp
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/memory.cpp
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/cartridge.cpp
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/upd4990a.cpp
@@ -104,16 +104,16 @@ set(COMMON_HEADERS
     ${CMAKE_SOURCE_DIR}/emulators/cps/consts.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/cartridge.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/core.h
-    ${CMAKE_SOURCE_DIR}/emulators/cps/ppu.h
-    ${CMAKE_SOURCE_DIR}/emulators/cps/apu.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/video.h
+    ${CMAKE_SOURCE_DIR}/emulators/cps/audio.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/memory.h
     ${CMAKE_SOURCE_DIR}/emulators/cps/db.h
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/cpu.h
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/sound_cpu.h
-    ${CMAKE_SOURCE_DIR}/emulators/neogeo/apu.h
+    ${CMAKE_SOURCE_DIR}/emulators/neogeo/audio.h
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/controller.h
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/core.h
-    ${CMAKE_SOURCE_DIR}/emulators/neogeo/ppu.h
+    ${CMAKE_SOURCE_DIR}/emulators/neogeo/video.h
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/memory.h
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/cartridge.h
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/upd4990a.h

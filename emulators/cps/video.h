@@ -28,13 +28,12 @@ enum TileType {
     CTT_CARE  = 2,  // Need to clip
 };
 
-// PPU (Picture Processing Unit)
-// Handles all video rendering including scroll layers, sprites, and palette
+// Video - Handles all video rendering including scroll layers, sprites, and palette
 // Unified implementation supporting both CPS1 and CPS2
-class PPU {
+class Video {
 public:
-    PPU();
-    ~PPU() = default;
+    Video();
+    ~Video() = default;
 
     void reset();
     void step(u32 cycles);

@@ -11,9 +11,9 @@
 namespace cps {
 
 class CPU;
-class PPU;
+class Video;
 
-// Forward declarations - PPU is now unified
+// Forward declarations - Video is now unified
 
 // Unified CPS ROM/Cartridge loader supporting both CPS1 and CPS2
 class Cartridge {
@@ -35,11 +35,11 @@ public:
     u8 readEncryptedROM8(u32 address);
     u16 readEncryptedROM16(u32 address);
     
-    // Graphics ROM access (for PPU)
+    // Graphics ROM access (for Video)
     u8 readGraphicsROM8(u32 address) const;
     u32 getGraphicsROMSize() const { return static_cast<u32>(m_graphicsRom.size()); }
     
-    // Decoded graphics ROM access (for PPU)
+    // Decoded graphics ROM access (for Video)
     const u8* getDecodedGraphicsROM() const { return m_decodedGraphicsRom.data(); }
     u32 getDecodedGraphicsROMSize() const { return static_cast<u32>(m_decodedGraphicsRom.size()); }
     
@@ -54,7 +54,7 @@ public:
     
     // Component connections
     void setCPU(CPU* cpu) { m_cpu = cpu; }
-    void setPPU(PPU* ppu);
+    void setVideo(Video* video);
     
     // CPS version
     u8 getCPSVersion() const { return m_cpsVer; }
@@ -78,7 +78,7 @@ public:
 
 private:
     CPU* m_cpu;
-    PPU* m_ppu;
+    Video* m_video;
     
     u8 m_cpsVer = 1;  // CPS version: 1 for CPS1, 2 for CPS2
     

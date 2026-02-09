@@ -11,7 +11,7 @@
 namespace neogeo {
 
 class CPU;
-class PPU;
+class Video;
 
 // System types
 enum class SystemType {
@@ -41,12 +41,12 @@ public:
     u16 readROM16(u32 address);
     u32 getProgramROMSize() const { return static_cast<u32>(m_programRom.size()); }
     
-    // Graphics ROM access (for PPU - sprite ROMs)
+    // Graphics ROM access (for Video - sprite ROMs)
     u8 readSpriteROM8(u32 address) const;
     const u8* getSpriteROMData() const { return m_spriteRom.data(); }
     u32 getSpriteROMSize() const { return static_cast<u32>(m_spriteRom.size()); }
     
-    // Text ROM access (for PPU)
+    // Text ROM access (for Video)
     u8 readTextROM8(u32 address) const;
     u32 getTextROMSize() const { return static_cast<u32>(m_textRom.size()); }
     
@@ -75,7 +75,7 @@ public:
     
     // Component connections
     void setCPU(CPU* cpu) { m_cpu = cpu; }
-    void setPPU(PPU* ppu) { m_ppu = ppu; }
+    void setVideo(Video* video) { m_video = video; }
 
     // Save/Load state
     void saveState(Buffer* buf);
@@ -86,7 +86,7 @@ public:
 
 private:
     CPU* m_cpu;
-    PPU* m_ppu;
+    Video* m_video;
     
     std::string m_title;
     std::string m_romSetName;  // MAME ROM set name (from ZIP filename)

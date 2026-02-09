@@ -9,10 +9,10 @@ namespace neogeo {
 
 class CPU;
 class SoundCPU;
-class PPU;
+class Video;
 class Cartridge;
 class Controller;
-class APU;
+class Audio;
 class UPD4990A;
 class Core;
 
@@ -71,10 +71,10 @@ public:
     // Component connections
     void setCPU(CPU* cpu) { m_cpu = cpu; }
     void setSoundCPU(SoundCPU* soundCpu) { m_soundCpu = soundCpu; }
-    void setPPU(PPU* ppu) { m_ppu = ppu; }
+    void setVideo(Video* video) { m_video = video; }
     void setCartridge(Cartridge* cartridge) { m_cartridge = cartridge; }
     void setController(Controller* controller) { m_controller = controller; }
-    void setAPU(APU* apu) { m_apu = apu; }
+    void setAudio(Audio* audio) { m_audio = audio; }
     void setUPD4990A(UPD4990A* upd4990a) { m_upd4990a = upd4990a; }
     void setCore(Core* core) { m_core = core; }
     
@@ -86,17 +86,17 @@ public:
     void saveNVRAM();
     void loadNVRAM();
     
-    // Video controller access (for PPU)
+    // Video controller access (for Video)
     u16 readVideoController(u32 address);
     void writeVideoController(u32 address, u16 value);
     
-    // Palette access (for PPU)
+    // Palette access (for Video)
     u16 readPalette16(u32 address) const;
     
-    // Text ROM selection (for PPU)
+    // Text ROM selection (for Video)
     bool isBIOSTextROMEnabled() const { return m_biosTextRomEnabled; }
 
-    // IRQ control access (for PPU)
+    // IRQ control access (for Video)
     u16 getIRQControl() const { return m_irqControl; }
 
     // IRQ timer
@@ -112,10 +112,10 @@ private:
     // Component pointers
     CPU* m_cpu;
     SoundCPU* m_soundCpu;
-    PPU* m_ppu;
+    Video* m_video;
     Cartridge* m_cartridge;
     Controller* m_controller;
-    APU* m_apu;
+    Audio* m_audio;
     UPD4990A* m_upd4990a;
     Core* m_core;
 

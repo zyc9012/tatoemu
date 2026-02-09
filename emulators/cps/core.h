@@ -4,8 +4,8 @@
 #include "../../core.h"
 #include "cpu.h"
 #include "sound_cpu.h"
-#include "ppu.h"
-#include "apu.h"
+#include "video.h"
+#include "audio.h"
 #include "memory.h"
 #include "cartridge.h"
 #include "controller.h"
@@ -53,8 +53,8 @@ private:
     // Core components
     std::unique_ptr<CPU> m_cpu;
     std::unique_ptr<SoundCPU> m_soundCpu;
-    std::unique_ptr<PPU> m_ppu;
-    std::unique_ptr<APU> m_apu;
+    std::unique_ptr<Video> m_video;
+    std::unique_ptr<Audio> m_audio;
     std::unique_ptr<Memory> m_memory;
     std::unique_ptr<Cartridge> m_cartridge;
     std::unique_ptr<Controller> m_controller;

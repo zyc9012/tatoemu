@@ -19,12 +19,11 @@ enum class TextBankMode {
     ALTERNATE          // Alternate mode (KOF2000, KOF2003, SVC Chaos)
 };
 
-// PPU (Picture Processing Unit)
-// Handles all video rendering for Neo Geo: sprites and text layer
-class PPU {
+// Video - Handles all video rendering for Neo Geo: sprites and text layer
+class Video {
 public:
-    PPU();
-    ~PPU() = default;
+    Video();
+    ~Video() = default;
 
     void reset();
     void step(u32 cycles);

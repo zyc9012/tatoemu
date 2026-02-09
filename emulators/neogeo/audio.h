@@ -11,12 +11,11 @@ class Memory;
 class Cartridge;
 class AudioDevice;
 
-// NeoGeo Audio Processing Unit
-// Uses YM2610 (OPNB) for FM synthesis, SSG (AY-3-8910), and ADPCM
-class APU {
+// NeoGeo Audio - Uses YM2610 (OPNB) for FM synthesis, SSG (AY-3-8910), and ADPCM
+class Audio {
 public:
-    APU();
-    ~APU();
+    Audio();
+    ~Audio();
 
     void init(u32 sampleRate = 44100);
     void reset();

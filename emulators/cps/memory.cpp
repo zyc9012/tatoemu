@@ -2,8 +2,8 @@
 #include "cartridge.h"
 #include "cpu.h"
 #include "sound_cpu.h"
-#include "ppu.h"
-#include "apu.h"
+#include "video.h"
+#include "audio.h"
 #include "controller.h"
 #include "db.h"
 #include <cstring>
@@ -56,8 +56,8 @@ namespace cps {
 Memory::Memory()
     : m_cpu(nullptr)
     , m_soundCpu(nullptr)
-    , m_ppu(nullptr)
-    , m_apu(nullptr)
+    , m_video(nullptr)
+    , m_audio(nullptr)
     , m_cartridge(nullptr)
     , m_controller(nullptr)
     , m_z80Bank(0)
@@ -420,45 +420,45 @@ void Memory::write32(u32 address, u32 value) {
 }
 
 // ============================================================================
-// VRAM Access (forwarded to PPU)
+// VRAM Access (forwarded to Video)
 // ============================================================================
 
 u8 Memory::readVRAM8(u32 address) {
-    if (m_ppu) {
-        return m_ppu->readVRAM8(address);
+    if (m_video) {
+        return m_video->readVRAM8(address);
     }
     return 0x00;
 }
 
 u16 Memory::readVRAM16(u32 address) {
-    if (m_ppu) {
-        return m_ppu->readVRAM16(address);
+    if (m_video) {
+        return m_video->readVRAM16(address);
     }
     return 0x0000;
 }
 
 u32 Memory::readVRAM32(u32 address) {
-    if (m_ppu) {
-        return m_ppu->readVRAM32(address);
+    if (m_video) {
+        return m_video->readVRAM32(address);
     }
     return 0x00000000;
 }
 
 void Memory::writeVRAM8(u32 address, u8 value) {
-    if (m_ppu) {
-        m_ppu->writeVRAM8(address, value);
+    if (m_video) {
+        m_video->writeVRAM8(address, value);
     }
 }
 
 void Memory::writeVRAM16(u32 address, u16 value) {
-    if (m_ppu) {
-        m_ppu->writeVRAM16(address, value);
+    if (m_video) {
+        m_video->writeVRAM16(address, value);
     }
 }
 
 void Memory::writeVRAM32(u32 address, u32 value) {
-    if (m_ppu) {
-        m_ppu->writeVRAM32(address, value);
+    if (m_video) {
+        m_video->writeVRAM32(address, value);
     }
 }
 
@@ -504,22 +504,22 @@ u8 Memory::readPort(u16 port) {
             // Ports 0x050-0x051: Raster line counter for IRQ line 50 (CPS2 only)
             if ((port & 0x0FE) == 0x050) {
                 if ((port & 1) == 0) {
-                    u16 irqReg = m_ppu->readRegister16(0x50);
-                    return ((irqReg - m_ppu->getScanline()) >> 8) & 0xFF;  // High byte
+                    u16 irqReg = m_video->readRegister16(0x50);
+                    return ((irqReg - m_video->getScanline()) >> 8) & 0xFF;  // High byte
                 } else {
-                    u16 irqReg = m_ppu->readRegister16(0x50);
-                    return (irqReg - m_ppu->getScanline()) & 0xFF;         // Low byte
+                    u16 irqReg = m_video->readRegister16(0x50);
+                    return (irqReg - m_video->getScanline()) & 0xFF;         // Low byte
                 }
             }
             
             // Ports 0x052-0x053: Raster line counter for IRQ line 52 (CPS2 only)
             if ((port & 0x0FE) == 0x052) {
                 if ((port & 1) == 0) {
-                    u16 irqReg = m_ppu->readRegister16(0x52);
-                    return ((irqReg - m_ppu->getScanline()) >> 8) & 0xFF;  // High byte
+                    u16 irqReg = m_video->readRegister16(0x52);
+                    return ((irqReg - m_video->getScanline()) >> 8) & 0xFF;  // High byte
                 } else {
-                    u16 irqReg = m_ppu->readRegister16(0x52);
-                    return (irqReg - m_ppu->getScanline()) & 0xFF;         // Low byte
+                    u16 irqReg = m_video->readRegister16(0x52);
+                    return (irqReg - m_video->getScanline()) & 0xFF;         // Low byte
                 }
             }
         }
@@ -602,9 +602,9 @@ u8 Memory::readPort(u16 port) {
             }
         }
         
-        // CPS Registers - forward to PPU
-        if (m_ppu) {
-            return m_ppu->readRegister8(port & 0xFF);
+        // CPS Registers - forward to Video
+        if (m_video) {
+            return m_video->readRegister8(port & 0xFF);
         }
     }
     
@@ -663,9 +663,9 @@ void Memory::writePort(u16 port, u8 value) {
     if (port >= 0x100 && port < 0x200) {
         u8 regNum = port & 0xFF;
         
-        // Forward to PPU for layer control and scroll registers
-        if (m_ppu) {
-            m_ppu->writeRegister8(regNum, value);
+        // Forward to Video for layer control and scroll registers
+        if (m_video) {
+            m_video->writeRegister8(regNum, value);
         }
         
         return;
@@ -711,7 +711,7 @@ u8 Memory::readZ80(u32 address) {
             if (address >= 0xD000 && address < 0xF000) {
                 // QSound status register (0xD007)
                 if (address == 0xD007) {
-                    return m_apu->readQSound();
+                    return m_audio->readQSound();
                 }
                 // Other addresses in this range: for data reads, return 0xFF
                 // For opcode fetches, this should map to ROM (handled by fetch logic)
@@ -757,15 +757,15 @@ u8 Memory::readZ80(u32 address) {
                 switch (address) {
                     case 0xF001:
                         // YM2151 status register
-                        if (m_apu) {
-                            return m_apu->readPort(0x01);
+                        if (m_audio) {
+                            return m_audio->readPort(0x01);
                         }
                         return 0xFF;
 
                     case 0xF002:
                         // MSM6295 status
-                        if (m_apu) {
-                            return m_apu->readPort(0x02);
+                        if (m_audio) {
+                            return m_audio->readPort(0x02);
                         }
                         return 0xFF;
 
@@ -793,7 +793,7 @@ u8 Memory::readZ80(u32 address) {
         if (address >= 0xD000 && address < 0xF000) {
             // QSound status register (0xD007)
             if (address == 0xD007) {
-                return m_apu->readQSound();
+                return m_audio->readQSound();
             }
             // Other addresses in this range: for data reads, return 0xFF
             // For opcode fetches, this should map to ROM (handled by fetch logic)
@@ -918,7 +918,7 @@ void Memory::writeZ80(u32 address, u8 value) {
                 }
                 if (address == 0xD002) {
                     // QSound command write
-                    m_apu->writeQSound(value, (static_cast<u16>(m_qscCmd[0]) << 8) | m_qscCmd[1]);
+                    m_audio->writeQSound(value, (static_cast<u16>(m_qscCmd[0]) << 8) | m_qscCmd[1]);
                     return;
                 }
                 if (address == 0xD003) {
@@ -968,22 +968,22 @@ void Memory::writeZ80(u32 address, u8 value) {
                 switch (address) {
                     case 0xF000:
                         // YM2151 register select
-                        if (m_apu) {
-                            m_apu->writePort(0x00, value);
+                        if (m_audio) {
+                            m_audio->writePort(0x00, value);
                         }
                         return;
 
                     case 0xF001:
                         // YM2151 data write
-                        if (m_apu) {
-                            m_apu->writePort(0x01, value);
+                        if (m_audio) {
+                            m_audio->writePort(0x01, value);
                         }
                         return;
 
                     case 0xF002:
                         // MSM6295 command
-                        if (m_apu) {
-                            m_apu->writePort(0x02, value);
+                        if (m_audio) {
+                            m_audio->writePort(0x02, value);
                         }
                         return;
 
@@ -1032,7 +1032,7 @@ void Memory::writeZ80(u32 address, u8 value) {
             }
             if (address == 0xD002) {
                 // QSound command write
-                m_apu->writeQSound(value, (static_cast<u16>(m_qscCmd[0]) << 8) | m_qscCmd[1]);
+                m_audio->writeQSound(value, (static_cast<u16>(m_qscCmd[0]) << 8) | m_qscCmd[1]);
                 return;
             }
             if (address == 0xD003) {

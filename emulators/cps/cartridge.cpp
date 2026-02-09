@@ -1,6 +1,6 @@
 #include "cartridge.h"
 #include "cpu.h"
-#include "ppu.h"
+#include "video.h"
 #include "db.h"
 #include "decrypt.h"
 #include "zip_reader.h"
@@ -14,7 +14,7 @@ namespace cps {
 
 Cartridge::Cartridge()
     : m_cpu(nullptr)
-    , m_ppu(nullptr)
+    , m_video(nullptr)
     , m_cpsVer(1)
     , m_title("Unknown CPS Game")
     , m_romSetName("")
@@ -44,8 +44,8 @@ void Cartridge::initSepTable() {
     }
 }
 
-void Cartridge::setPPU(PPU* ppu) {
-    m_ppu = ppu;
+void Cartridge::setVideo(Video* video) {
+    m_video = video;
 }
 
 BoardConfig Cartridge::getBoardConfig() const {
@@ -345,8 +345,8 @@ bool Cartridge::loadROMsFromDatabase(const std::map<std::string, std::vector<u8>
     }
     // Decode graphics ROM (CPS1 and CPS2 use different decoding methods)
     decodeGraphicsROM(graphicsRomSizes);
-    if (m_ppu) {
-        m_ppu->setDecodedGraphics(m_decodedGraphicsRom);
+    if (m_video) {
+        m_video->setDecodedGraphics(m_decodedGraphicsRom);
     }
     
     return true;

@@ -1,6 +1,6 @@
 #include "cartridge.h"
 #include "cpu.h"
-#include "ppu.h"
+#include "video.h"
 #include "db.h"
 #include "protections.h"
 #include "../../utilities/zip_reader.h"
@@ -12,7 +12,7 @@ namespace neogeo {
 
 Cartridge::Cartridge()
     : m_cpu(nullptr)
-    , m_ppu(nullptr)
+    , m_video(nullptr)
     , m_gameInfo(nullptr)
     , m_biosVectorTableActive(true)  // Start with BIOS vector table active
     , m_programRomSize(0)

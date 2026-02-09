@@ -1,6 +1,6 @@
 #include "sound_cpu.h"
 #include "memory.h"
-#include "apu.h"
+#include "audio.h"
 #include "consts.h"
 #include "../components/cpu/z80/z80.h"
 #include <cstring>
@@ -34,9 +34,9 @@ static void z80_write_prog(u32 address, u8 value) {
 
 static u8 z80_read_io(u32 port) {
     if (g_soundCpuContext) {
-        APU* apu = g_soundCpuContext->getAPU();
-        if (apu) {
-            return apu->readPort(port);
+        Audio* audio = g_soundCpuContext->getAudio();
+        if (audio) {
+            return audio->readPort(port);
         }
     }
     return 0xFF;
@@ -44,9 +44,9 @@ static u8 z80_read_io(u32 port) {
 
 static void z80_write_io(u32 port, u8 value) {
     if (g_soundCpuContext) {
-        APU* apu = g_soundCpuContext->getAPU();
-        if (apu) {
-            apu->writePort(port, value);
+        Audio* audio = g_soundCpuContext->getAudio();
+        if (audio) {
+            audio->writePort(port, value);
         }
     }
 }
@@ -73,7 +73,7 @@ static u8 z80_read_op_arg(u32 address) {
 
 SoundCPU::SoundCPU()
     : m_memory(nullptr)
-    , m_apu(nullptr)
+    , m_audio(nullptr)
     , m_cycles(0)
     , m_cartridge(nullptr)
     , m_cpsVersion(1)

@@ -1,4 +1,4 @@
-#include "apu.h"
+#include "audio.h"
 #include "sound_cpu.h"
 #include "memory.h"
 #include "cartridge.h"
@@ -22,7 +22,7 @@ static void ym2151IrqHandler(s32 nStatus) {
     }
 }
 
-APU::APU()
+Audio::Audio()
     : m_soundCpu(nullptr)
     , m_memory(nullptr)
     , m_cartridge(nullptr)
@@ -32,7 +32,7 @@ APU::APU()
     , m_ym2151RegSelect(0) {
 }
 
-APU::~APU() {
+Audio::~Audio() {
     if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
         YM2151Shutdown();
         MSM6295Exit(0);
@@ -41,21 +41,21 @@ APU::~APU() {
     }
 }
 
-void APU::setSoundCPU(SoundCPU* soundCpu) {
+void Audio::setSoundCPU(SoundCPU* soundCpu) {
     m_soundCpu = soundCpu;
     // Update the static pointer in the IRQ handler so it can trigger Z80 interrupts
     s_ym2151SoundCpu = soundCpu;
 }
 
-void APU::setMemory(Memory* memory) {
+void Audio::setMemory(Memory* memory) {
     m_memory = memory;
 }
 
-void APU::setCartridge(Cartridge* cartridge) {
+void Audio::setCartridge(Cartridge* cartridge) {
     m_cartridge = cartridge;
 }
 
-void APU::reset() {
+void Audio::reset() {
     // Reset sound chips
     if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
          // Initialize YM2151
@@ -99,7 +99,7 @@ void APU::reset() {
     setROMData();
 }
 
-void APU::setROMData() {
+void Audio::setROMData() {
     if (!m_cartridge) {
         return;
     }
@@ -120,13 +120,13 @@ void APU::setROMData() {
     }
 }
 
-void APU::step(u32 cycles, double gameSpeed) {
+void Audio::step(u32 cycles, double gameSpeed) {
     if (cycles > 0) {
         generateSamples(cycles, gameSpeed);
     }
 }
 
-void APU::setSampleRate(u32 sampleRate) {
+void Audio::setSampleRate(u32 sampleRate) {
     m_sampleRate = sampleRate;
 
     if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
@@ -145,11 +145,11 @@ void APU::setSampleRate(u32 sampleRate) {
     }
 }
 
-void APU::setVolume(float volume) {
+void Audio::setVolume(float volume) {
     m_volume = volume;
 }
 
-u8 APU::readPort(u16 port) {
+u8 Audio::readPort(u16 port) {
     if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
         // CPS1: YM2151 and MSM6295
         // YM2151 status register (port 0x01)
@@ -170,11 +170,11 @@ u8 APU::readPort(u16 port) {
     return 0xFF;
 }
 
-u8 APU::readQSound() {
+u8 Audio::readQSound() {
     return QscRead();
 }
 
-void APU::writePort(u16 port, u8 value) {
+void Audio::writePort(u16 port, u8 value) {
     if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
         // CPS1: YM2151 and MSM6295
         // YM2151 register select (port 0x00)
@@ -195,11 +195,11 @@ void APU::writePort(u16 port, u8 value) {
     }
 }
 
-void APU::writeQSound(u16 port, u16 value) {
+void Audio::writeQSound(u16 port, u16 value) {
     QscWrite(port, value);
 }
 
-void APU::generateSamples(u32 cycles, double gameSpeed) {
+void Audio::generateSamples(u32 cycles, double gameSpeed) {
     if (!m_audioDevice) {
         return;
     }
@@ -257,7 +257,7 @@ void APU::generateSamples(u32 cycles, double gameSpeed) {
     m_audioDevice->writeSamples(samples, sizeof(samples));
 }
 
-void APU::saveState(Buffer* buf) {
+void Audio::saveState(Buffer* buf) {
     buffer_write(buf, &m_sampleRate, sizeof(m_sampleRate));
     buffer_write(buf, &m_volume, sizeof(m_volume));
     buffer_write(buf, &m_cycleAccumulator, sizeof(m_cycleAccumulator));
@@ -275,7 +275,7 @@ void APU::saveState(Buffer* buf) {
     }
 }
 
-void APU::loadState(Buffer* buf) {
+void Audio::loadState(Buffer* buf) {
     buffer_read(buf, &m_sampleRate, sizeof(m_sampleRate));
     buffer_read(buf, &m_volume, sizeof(m_volume));
     buffer_read(buf, &m_cycleAccumulator, sizeof(m_cycleAccumulator));

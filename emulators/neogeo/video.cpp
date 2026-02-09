@@ -1,4 +1,4 @@
-#include "ppu.h"
+#include "video.h"
 #include "cpu.h"
 #include "cartridge.h"
 #include "memory.h"
@@ -10,7 +10,7 @@
 
 namespace neogeo {
 
-PPU::PPU()
+Video::Video()
     : m_cpu(nullptr)
     , m_cartridge(nullptr)
     , m_memory(nullptr)
@@ -48,7 +48,7 @@ PPU::PPU()
     m_bankLookupShift.fill(0);
 }
 
-void PPU::reset() {
+void Video::reset() {
     m_graphicsRam.fill(0);
     m_scanline = 0;
     m_cycles = 0;
@@ -90,7 +90,7 @@ void PPU::reset() {
     initTextBankSwitching();
 }
 
-void PPU::initSpriteROM() {
+void Video::initSpriteROM() {
     if (!m_cartridge) {
         return;
     }
@@ -132,7 +132,7 @@ void PPU::initSpriteROM() {
     }
 }
 
-void PPU::initTextROM() {
+void Video::initTextROM() {
     if (!m_cartridge) {
         return;
     }
@@ -186,7 +186,7 @@ void PPU::initTextROM() {
     }
 }
 
-void PPU::initTextBankSwitching() {
+void Video::initTextBankSwitching() {
     if (!m_cartridge) {
         m_textBankMode = TextBankMode::NONE;
         return;
@@ -217,7 +217,7 @@ void PPU::initTextBankSwitching() {
     }
 }
 
-void PPU::step(u32 cycles) {
+void Video::step(u32 cycles) {
     m_cycles += cycles;
     
     if (m_cycles >= CPU_CYCLES_PER_SCANLINE) {
@@ -247,7 +247,7 @@ void PPU::step(u32 cycles) {
     }
 }
 
-void PPU::newFrame() {
+void Video::newFrame() {
     // Clear screen to backdrop color
     clearScreen();
 
@@ -263,14 +263,14 @@ void PPU::newFrame() {
     m_sliceEnd = 0xF0;
 }
 
-void PPU::clearScreen() {
+void Video::clearScreen() {
     // Clear to backdrop color (palette entry 0x0FFF - the last palette entry)
     // This is the standard Neo Geo backdrop color register
     u32 backdropColor = m_palette[0x0FFF];
     std::fill(m_frameBuffer.begin(), m_frameBuffer.end(), backdropColor);
 }
 
-void PPU::updatePalette() {
+void Video::updatePalette() {
     if (!m_memory) {
         return;
     }
@@ -285,7 +285,7 @@ void PPU::updatePalette() {
     }
 }
 
-u32 PPU::convertPaletteEntry(u16 entry, bool /* darken */) {
+u32 Video::convertPaletteEntry(u16 entry, bool /* darken */) {
     // Neo Geo palette format (16-bit):
     // Bits 11-8: Red (4 bits)
     // Bits 7-4: Green (4 bits)
@@ -318,7 +318,7 @@ u32 PPU::convertPaletteEntry(u16 entry, bool /* darken */) {
     return 0xFF000000 | (r << 16) | (g << 8) | b;
 }
 
-void PPU::renderSprites() {
+void Video::renderSprites() {
     if (!m_cartridge || !m_enableSprites) {
         return;
     }
@@ -391,7 +391,7 @@ void PPU::renderSprites() {
     m_sliceStart = m_sliceEnd;
 }
 
-void PPU::calcSpriteBankLimit() {
+void Video::calcSpriteBankLimit() {
     // Determine the highest sprite "bank" we might need to process, based on
     // the hardware per-scanline sprite strip limit (96).
     constexpr u32 MAX_SPRITE_BANKS = 0x17d;       // 381 sprite banks
@@ -448,7 +448,7 @@ void PPU::calcSpriteBankLimit() {
     m_maxSpriteBank = maxSpriteBank;
 }
 
-void PPU::renderSpriteBank(u32 bankIndex) {
+void Video::renderSpriteBank(u32 bankIndex) {
     if (!m_cartridge) {
         return;
     }
@@ -582,7 +582,7 @@ void PPU::renderSpriteBank(u32 bankIndex) {
     }
 }
 
-void PPU::renderSpriteLine(const u8* /* tileData */, u32* palette, s32 xPos, s32 yPos,
+void Video::renderSpriteLine(const u8* /* tileData */, u32* palette, s32 xPos, s32 yPos,
                           u32 tileNumber, u32 line, bool flipX, bool /* flipY */, u32 xZoom, u8 transparent) {
     if (!palette || !m_cartridge) {
         return;
@@ -677,7 +677,7 @@ void PPU::renderSpriteLine(const u8* /* tileData */, u32* palette, s32 xPos, s32
     }
 }
 
-void PPU::renderText() {
+void Video::renderText() {
     if (!m_cartridge || !m_memory || !m_enableText) {
         return;
     }
@@ -784,7 +784,7 @@ void PPU::renderText() {
     }
 }
 
-void PPU::renderTextTile(s32 x, s32 y, u32 tileNum, u32 paletteOffset, 
+void Video::renderTextTile(s32 x, s32 y, u32 tileNum, u32 paletteOffset, 
                         const u8* textRom, const u8* /* attrib */) {
     if (!textRom) {
         return;
@@ -841,7 +841,7 @@ void PPU::renderTextTile(s32 x, s32 y, u32 tileNum, u32 paletteOffset,
     }
 }
 
-u32 PPU::alphaBlend(u32 dst, u32 src, u32 alpha) {
+u32 Video::alphaBlend(u32 dst, u32 src, u32 alpha) {
     // Simple alpha blending
     u32 invAlpha = 255 - alpha;
     
@@ -861,7 +861,7 @@ u32 PPU::alphaBlend(u32 dst, u32 src, u32 alpha) {
 }
 
 // Sprite frame timing
-void PPU::updateSpriteFrame() {
+void Video::updateSpriteFrame() {
     if (m_memory && (m_memory->getIRQControl() & 0x08) == 0) {
         if (++m_spriteFrameTimer > m_spriteFrameSpeed) {
             m_spriteFrameTimer = 0;
@@ -873,12 +873,12 @@ void PPU::updateSpriteFrame() {
 // Video controller VRAM access
 // The video controller pointer can access both 64KB banks
 // Note: Reads do NOT auto-increment, only writes do
-u16 PPU::readVRAM() {
+u16 Video::readVRAM() {
     u32 fullAddress = m_graphicsRamBank + m_graphicsRamPointer;
     return readGraphicsRAM16(fullAddress);
 }
 
-void PPU::writeVRAM(u16 value) {
+void Video::writeVRAM(u16 value) {
     u32 fullAddress = m_graphicsRamBank + m_graphicsRamPointer;
 
     writeGraphicsRAM16(fullAddress, value);
@@ -886,24 +886,24 @@ void PPU::writeVRAM(u16 value) {
 }
 
 // Graphics RAM access
-u8 PPU::readGraphicsRAM8(u32 address) {
+u8 Video::readGraphicsRAM8(u32 address) {
     address &= 0x1FFFF;  // Wrap to 128KB (0x00000-0x1FFFF)
     return m_graphicsRam[address];
 }
 
-u16 PPU::readGraphicsRAM16(u32 address) {
+u16 Video::readGraphicsRAM16(u32 address) {
     address &= 0x1FFFE;  // Align to 16-bit and wrap to 128KB
     
     // Big endian
     return (m_graphicsRam[address] << 8) | m_graphicsRam[address + 1];
 }
 
-void PPU::writeGraphicsRAM8(u32 address, u8 value) {
+void Video::writeGraphicsRAM8(u32 address, u8 value) {
     address &= 0x1FFFF;  // Wrap to 128KB
     m_graphicsRam[address] = value;
 }
 
-void PPU::writeGraphicsRAM16(u32 address, u16 value) {
+void Video::writeGraphicsRAM16(u32 address, u16 value) {
     address &= 0x1FFFE;  // Align to 16-bit and wrap to 128KB
 
     // Big endian
@@ -911,7 +911,7 @@ void PPU::writeGraphicsRAM16(u32 address, u16 value) {
     m_graphicsRam[address + 1] = value & 0xFF;
 }
 
-void PPU::saveState(Buffer* buf) {
+void Video::saveState(Buffer* buf) {
     // Write graphics RAM
     buffer_write(buf, m_graphicsRam.data(), m_graphicsRam.size());
 
@@ -930,7 +930,7 @@ void PPU::saveState(Buffer* buf) {
     buffer_write(buf, &m_graphicsRamModulo, sizeof(m_graphicsRamModulo));
 }
 
-void PPU::loadState(Buffer* buf) {
+void Video::loadState(Buffer* buf) {
     // Read graphics RAM
     buffer_read(buf, m_graphicsRam.data(), m_graphicsRam.size());
 

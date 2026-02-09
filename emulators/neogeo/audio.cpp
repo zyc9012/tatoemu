@@ -1,4 +1,4 @@
-#include "apu.h"
+#include "audio.h"
 #include "sound_cpu.h"
 #include "memory.h"
 #include "cartridge.h"
@@ -20,8 +20,8 @@ static constexpr u32 YM2610_CLOCK = 8000000;
 // Static pointer to SoundCPU for interrupt handler callback
 static SoundCPU* s_ym2610SoundCpu = nullptr;
 
-// Static pointer to APU for timer handler callback
-static APU* s_ym2610Apu = nullptr;
+// Static pointer to Audio for timer handler callback
+static Audio* s_ym2610Audio = nullptr;
 
 // YM2610 IRQ handler - sets/clears Z80 IRQ line based on YM2610 timer interrupt status
 static void ym2610IrqHandler(int chip, int irq) {
@@ -35,22 +35,22 @@ static void ym2610IrqHandler(int chip, int irq) {
 // n: chip number, c: timer (0=A, 1=B), cnt: counter value (0=stop), stepTime: time per tick in seconds
 static void ym2610TimerHandler(int n, int c, int cnt, double stepTime) {
     (void)n;  // Unused, we only have one chip
-    if (!s_ym2610Apu) return;
+    if (!s_ym2610Audio) return;
     
     if (cnt == 0) {
         // Timer stopped
-        s_ym2610Apu->setTimer(c, -1);
+        s_ym2610Audio->setTimer(c, -1);
     } else {
         // Timer started
         // Calculate Z80 cycles until timer fires: cnt * stepTime * SOUND_CPU_FREQUENCY
         // stepTime is the time per timer tick in seconds (TimerBase from YM2610)
         double periodSeconds = cnt * stepTime;
         s32 cycles = static_cast<s32>(periodSeconds * SOUND_CPU_FREQUENCY);
-        s_ym2610Apu->setTimer(c, cycles);
+        s_ym2610Audio->setTimer(c, cycles);
     }
 }
 
-APU::APU()
+Audio::Audio()
     : m_soundCpu(nullptr)
     , m_memory(nullptr)
     , m_cartridge(nullptr)
@@ -67,22 +67,22 @@ APU::APU()
     , m_cyclesPerSample(0) {
 }
 
-APU::~APU() {
+Audio::~Audio() {
     YM2610Shutdown();
     AY8910Exit(0);
     
     s_ym2610SoundCpu = nullptr;
-    s_ym2610Apu = nullptr;
+    s_ym2610Audio = nullptr;
 }
 
-void APU::setSoundCPU(SoundCPU* soundCpu) {
+void Audio::setSoundCPU(SoundCPU* soundCpu) {
     m_soundCpu = soundCpu;
     // Update the static pointers so the IRQ/timer handlers can work
     s_ym2610SoundCpu = soundCpu;
-    s_ym2610Apu = this;
+    s_ym2610Audio = this;
 }
 
-void APU::init(u32 sampleRate) {
+void Audio::init(u32 sampleRate) {
     m_sampleRate = sampleRate;
     // Calculate cycles per sample based on Z80 frequency
     if (m_sampleRate > 0) {
@@ -119,7 +119,7 @@ void APU::init(u32 sampleRate) {
     YM2610ResetChip(0);
 }
 
-void APU::reset() {
+void Audio::reset() {
     m_soundCommand = 0;
     m_soundReply = 0;
     m_soundStatus = false;
@@ -133,13 +133,13 @@ void APU::reset() {
     init(m_sampleRate);
 }
 
-void APU::setSampleRate(u32 sampleRate) {
+void Audio::setSampleRate(u32 sampleRate) {
     m_sampleRate = sampleRate;
 
     init(sampleRate);
 }
 
-void APU::setTimer(int timer, s32 cycles) {
+void Audio::setTimer(int timer, s32 cycles) {
     if (timer == 0) {
         m_timerA = cycles;
     } else {
@@ -147,7 +147,7 @@ void APU::setTimer(int timer, s32 cycles) {
     }
 }
 
-void APU::updateTimers(u32 cycles) {
+void Audio::updateTimers(u32 cycles) {
     // Update Timer A
     if (m_timerA >= 0) {
         m_timerA -= static_cast<s32>(cycles);
@@ -165,7 +165,7 @@ void APU::updateTimers(u32 cycles) {
     }
 }
 
-void APU::step(u32 cycles, double gameSpeed) {
+void Audio::step(u32 cycles, double gameSpeed) {
     // Accumulate cycles and generate samples when needed
     m_cycleAccumulator += cycles;
     
@@ -204,7 +204,7 @@ void APU::step(u32 cycles, double gameSpeed) {
     }
 }
 
-u8 APU::readPort(u16 port) {
+u8 Audio::readPort(u16 port) {
     switch (port & 0xFF) {
         case 0x00:
             // Read sound command from 68000
@@ -228,7 +228,7 @@ u8 APU::readPort(u16 port) {
     }
 }
 
-void APU::writePort(u16 port, u8 value) {
+void Audio::writePort(u16 port, u8 value) {
     switch (port & 0xFF) {
         case 0x00:
             // Clear sound command (acknowledge)
@@ -270,7 +270,7 @@ void APU::writePort(u16 port, u8 value) {
     }
 }
 
-void APU::setSoundCommand(u8 command) {
+void Audio::setSoundCommand(u8 command) {
     m_soundCommand = command;
     m_soundStatus = false;
     
@@ -280,7 +280,7 @@ void APU::setSoundCommand(u8 command) {
     }
 }
 
-void APU::saveState(Buffer* buf) {
+void Audio::saveState(Buffer* buf) {
     buffer_write(buf, &m_soundCommand, sizeof(m_soundCommand));
     buffer_write(buf, &m_soundReply, sizeof(m_soundReply));
     buffer_write(buf, &m_soundStatus, sizeof(m_soundStatus));
@@ -292,7 +292,7 @@ void APU::saveState(Buffer* buf) {
     YM2610SaveContext(buf);
 }
 
-void APU::loadState(Buffer* buf) {
+void Audio::loadState(Buffer* buf) {
     buffer_read(buf, &m_soundCommand, sizeof(m_soundCommand));
     buffer_read(buf, &m_soundReply, sizeof(m_soundReply));
     buffer_read(buf, &m_soundStatus, sizeof(m_soundStatus));

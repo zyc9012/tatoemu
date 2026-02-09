@@ -13,8 +13,8 @@ bool Core::initialize() {
     m_cartridge = std::make_unique<Cartridge>();
     m_cpu = std::make_unique<CPU>();
     m_soundCpu = std::make_unique<SoundCPU>();
-    m_ppu = std::make_unique<PPU>();
-    m_apu = std::make_unique<APU>();
+    m_video = std::make_unique<Video>();
+    m_audio = std::make_unique<Audio>();
     m_memory = std::make_unique<Memory>();
     m_controller = std::make_unique<Controller>();
 
@@ -22,39 +22,39 @@ bool Core::initialize() {
     m_cpu->setMemory(m_memory.get());
     m_cpu->setCartridge(m_cartridge.get());
     m_soundCpu->setMemory(m_memory.get());
-    m_soundCpu->setAPU(m_apu.get());
+    m_soundCpu->setAudio(m_audio.get());
     m_soundCpu->setCartridge(m_cartridge.get());
 
-    m_ppu->setCPU(m_cpu.get());
-    m_ppu->setCartridge(m_cartridge.get());
-    m_ppu->setMemory(m_memory.get());
+    m_video->setCPU(m_cpu.get());
+    m_video->setCartridge(m_cartridge.get());
+    m_video->setMemory(m_memory.get());
     
-    m_apu->setSoundCPU(m_soundCpu.get());
-    m_apu->setMemory(m_memory.get());
-    m_apu->setCartridge(m_cartridge.get());
+    m_audio->setSoundCPU(m_soundCpu.get());
+    m_audio->setMemory(m_memory.get());
+    m_audio->setCartridge(m_cartridge.get());
     
     m_memory->setCPU(m_cpu.get());
     m_memory->setSoundCPU(m_soundCpu.get());
-    m_memory->setPPU(m_ppu.get());
-    m_memory->setAPU(m_apu.get());
+    m_memory->setVideo(m_video.get());
+    m_memory->setAudio(m_audio.get());
     m_memory->setCartridge(m_cartridge.get());
     m_memory->setController(m_controller.get());
     
     m_cartridge->setCPU(m_cpu.get());
-    m_cartridge->setPPU(m_ppu.get());
+    m_cartridge->setVideo(m_video.get());
 
     return true;
 }
 
 void Core::setVideoDevice(::VideoDevice* videoDevice) {
-    if (m_ppu) {
-        m_ppu->setVideoDevice(videoDevice);
+    if (m_video) {
+        m_video->setVideoDevice(videoDevice);
     }
 }
 
 void Core::setAudioDevice(::AudioDevice* audioDevice) {
-    if (m_apu) {
-        m_apu->setAudioDevice(audioDevice);
+    if (m_audio) {
+        m_audio->setAudioDevice(audioDevice);
     }
 }
 
@@ -84,8 +84,8 @@ bool Core::loadROM(const fs::path& filename) {
     m_cartridge->reset();
     m_cpu->reset();
     m_soundCpu->reset();
-    m_ppu->reset();
-    m_apu->reset();
+    m_video->reset();
+    m_audio->reset();
     m_memory->reset();
     m_controller->reset();
 
@@ -94,7 +94,7 @@ bool Core::loadROM(const fs::path& filename) {
 
 void Core::update() {
     // Run until we complete a frame
-    // The PPU will set frameComplete when VBlank starts
+    // The Video will set frameComplete when VBlank starts
 
     u32 nextCpuCycles = CPU_CYCLES_PER_STEP;
     
@@ -117,11 +117,11 @@ void Core::update() {
         // Execute Z80 and get actual cycles executed
         if (soundCpuCycles > 0) {
             u32 soundCpuCyclesActual = m_soundCpu->step(static_cast<u32>(soundCpuCycles));
-            m_apu->step(soundCpuCyclesActual, m_gameSpeed);
+            m_audio->step(soundCpuCyclesActual, m_gameSpeed);
         }
         
-        // Run PPU
-        m_ppu->step(cpuCycles);
+        // Run Video
+        m_video->step(cpuCycles);
 
         // Avoid overrunning the frame by too much
         u32 cyclesLeft = m_cpu->cyclesPerFrame() - m_cpu->frameCycles();
@@ -140,8 +140,8 @@ bool Core::saveState(const fs::path& filename) {
     // Save all component states
     m_cpu->saveState(&buf);
     m_soundCpu->saveState(&buf);
-    m_ppu->saveState(&buf);
-    m_apu->saveState(&buf);
+    m_video->saveState(&buf);
+    m_audio->saveState(&buf);
     m_memory->saveState(&buf);
     m_cartridge->saveState(&buf);
     m_controller->saveState(&buf);
@@ -156,8 +156,8 @@ bool Core::loadState(const fs::path& filename) {
     // Load all component states
     m_cpu->loadState(&buf);
     m_soundCpu->loadState(&buf);
-    m_ppu->loadState(&buf);
-    m_apu->loadState(&buf);
+    m_video->loadState(&buf);
+    m_audio->loadState(&buf);
     m_memory->loadState(&buf);
     m_cartridge->loadState(&buf);
     m_controller->loadState(&buf);
@@ -170,11 +170,11 @@ void Core::updateGameSpeed(double gameSpeed) {
 }
 
 void Core::setAudioSampleRate(u32 sampleRate) {
-    m_apu->setSampleRate(sampleRate);
+    m_audio->setSampleRate(sampleRate);
 }
 
 void Core::setAudioVolume(float volume) {
-    m_apu->setVolume(volume);
+    m_audio->setVolume(volume);
 }
 
 } // namespace cps
