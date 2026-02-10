@@ -116,8 +116,6 @@ void m6502_set_context (void *src)
 	if( src )
 	{
 		m6502 = *(m6502_Regs*)src;
-		if (m6502.subtype == SUBTYPE_6502)  insnActive = insn6502;
-		if (m6502.subtype == SUBTYPE_2A03)  insnActive = insn2a03;
 		change_pc(PCD);
 	}
 }
