@@ -52,7 +52,7 @@ private:
     std::unique_ptr<Cartridge> m_cartridge;
     std::unique_ptr<Controller> m_controller;
 
-    u32 m_cyclesThisFrame;
+    u32 m_cpuCycleCarry;
     
     // Frame timing
     double m_gameSpeed = 1.0;

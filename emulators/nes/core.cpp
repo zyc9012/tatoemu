@@ -5,7 +5,7 @@
 namespace nes {
 
 Core::Core()
-    : m_cyclesThisFrame(0) {
+    : m_cpuCycleCarry(0) {
 }
 
 bool Core::initialize() {
@@ -68,42 +68,44 @@ bool Core::loadROM(const fs::path& filename) {
 }
 
 void Core::update() {
-    while (m_cyclesThisFrame < CPU_CYCLES_PER_FRAME) {
-        // Track cycles before instruction
-        u32 cyclesBefore = m_cpu->getCycles();
+    // Scanline-based rendering: run CPU for one scanline's worth of cycles,
+    // then process the scanline in the PPU.
 
-        // Execute one CPU instruction (takes multiple cycles)
-        m_cpu->step(1);
+    for (u32 scanline = 0; scanline < SCANLINES_PER_FRAME; scanline++) {
+        // Exact CPU cycles for this scanline using integer division:
+        // total PPU cycles through end of this scanline vs start of this scanline
+        u32 cpuCyclesNeeded = ((scanline + 1) * CYCLES_PER_SCANLINE / PPU_CYCLES_PER_CPU)
+                            - (scanline * CYCLES_PER_SCANLINE / PPU_CYCLES_PER_CPU);
 
-        // Calculate how many CPU cycles the instruction took
-        u32 cpuCycles = m_cpu->getCycles() - cyclesBefore;
-        m_cyclesThisFrame += cpuCycles;
+        while (m_cpuCycleCarry < cpuCyclesNeeded) {
+            u32 cyclesBefore = m_cpu->getCycles();
+            m_cpu->step(1);
+            u32 cpuCycles = m_cpu->getCycles() - cyclesBefore;
+            m_cpuCycleCarry += cpuCycles;
 
-        // Run PPU for 3 PPU cycles per CPU cycle
-        u32 ppuCycles = cpuCycles * PPU_CYCLES_PER_CPU;
-        for (u32 i = 0; i < ppuCycles; i++) {
-            m_ppu->step();
+            // Run APU
+            m_apu->step(cpuCycles, m_gameSpeed);
+
+            // Check for mapper IRQ (VRC6 and similar)
+            if (m_cartridge->irqState()) {
+                m_cpu->irq();
+                m_cartridge->irqClear();
+            }
         }
 
-        // Run APU
-        m_apu->step(cpuCycles, m_gameSpeed);
+        // Carry over excess cycles to the next scanline
+        m_cpuCycleCarry -= cpuCyclesNeeded;
 
-        // Check for mapper IRQ (for VRC6 and similar mappers that clock IRQ on CPU cycles)
-        // This is needed because VRC6 IRQ is clocked during APU step, not at PPU cycle 260
-        if (m_cartridge->irqState()) {
-            m_cpu->irq();
-            m_cartridge->irqClear();
-        }
+        // Process this scanline in the PPU (renders entire scanline at once)
+        m_ppu->stepScanline();
     }
-
-    m_cyclesThisFrame -= CPU_CYCLES_PER_FRAME;
 }
 
 bool Core::saveState(const fs::path& filename) {
     Buffer buf = {};
     
     // Save all component states
-    buffer_write(&buf, &m_cyclesThisFrame, sizeof(m_cyclesThisFrame));
+    buffer_write(&buf, &m_cpuCycleCarry, sizeof(m_cpuCycleCarry));
     m_cpu->saveState(&buf);
     m_ppu->saveState(&buf);
     m_apu->saveState(&buf);
@@ -119,7 +121,7 @@ bool Core::loadState(const fs::path& filename) {
     buffer_load_from_file(&buf, filename);
     
     // Load all component states
-    buffer_read(&buf, &m_cyclesThisFrame, sizeof(m_cyclesThisFrame));
+    buffer_read(&buf, &m_cpuCycleCarry, sizeof(m_cpuCycleCarry));
     m_cpu->loadState(&buf);
     m_ppu->loadState(&buf);
     m_apu->loadState(&buf);

@@ -66,6 +66,13 @@ struct SpriteRenderData {
     u8 oamIndex;        // Original OAM index (for sprite 0 hit)
 };
 
+// Rendering phase indicator for mapper CHR bank switching
+enum class PPUFetchPhase : u8 {
+    IDLE,
+    BACKGROUND,
+    SPRITE
+};
+
 class PPU {
 public:
     PPU();
@@ -76,7 +83,9 @@ public:
     void setVideoDevice(VideoDevice* videoDevice) { m_videoDevice = videoDevice; }
     
     void reset();
-    void step();
+    
+    // Scanline-based rendering (replaces per-cycle step())
+    void stepScanline();
     
     // CPU register access ($2000-$2007, mirrored)
     u8 readRegister(u16 address);
@@ -93,8 +102,8 @@ public:
     u8 getSpriteHeight() const;
     
     // Helpers for MMC5 CHR banking
-    bool isFetchingBackgroundPattern() const;
-    bool isFetchingSpritePattern() const;
+    bool isFetchingBackgroundPattern() const { return m_fetchPhase == PPUFetchPhase::BACKGROUND; }
+    bool isFetchingSpritePattern() const { return m_fetchPhase == PPUFetchPhase::SPRITE; }
     
     // Framebuffer access
     const u32* getFramebuffer() const { return m_framebuffer.data(); }
@@ -115,23 +124,15 @@ private:
     // Nametable mirroring
     u16 mirrorNametableAddress(u16 address) const;
     
-    // Rendering pipeline
-    void renderPixel();
-    void evaluateSprites();
-    void loadSpriteTiles();
-    void fetchBackgroundTile();
-    void loadBackgroundShifters();
-    void updateShifters();
-    
-    // Sprite helpers
-    bool isSpriteInRange(const OAMEntry& sprite, u16 scanline) const;
+    // Scanline-based rendering pipeline
+    void renderVisibleScanline();
+    void renderBackgroundLine();
+    void evaluateSpritesForScanline();
+    void renderSpriteLine();
+    void compositeAndOutputLine();
+
+    // Sprite pattern fetch
     void fetchSpritePattern(u8 spriteIndex);
-    
-    // Background pixel
-    u8 getBackgroundPixel() const;
-    
-    // Sprite pixel (returns pixel color and sprite index)
-    u8 getSpritePixel(u8& spriteIndex, bool& priority) const;
     
     // Rendering state checks (private helpers)
     bool isBackgroundEnabled() const;
@@ -149,7 +150,7 @@ private:
     VideoDevice* m_videoDevice;
     
     // Timing
-    u16 m_cycle;        // Current PPU cycle (0-340)
+    u16 m_cycle;        // PPU cycle (set to appropriate values for mapper compat)
     u16 m_scanline;     // Current scanline (0-261)
     bool m_oddFrame;    // Odd/even frame flag (for skip cycle)
     
@@ -168,17 +169,8 @@ private:
     // Read buffer for PPUDATA
     u8 m_dataBuffer;
     
-    // Background rendering shift registers
-    u16 m_bgShiftPatternLow;
-    u16 m_bgShiftPatternHigh;
-    u16 m_bgShiftAttrLow;
-    u16 m_bgShiftAttrHigh;
-    
-    // Background latches (fetched during tile fetch)
-    u8 m_bgNextTileId;
-    u8 m_bgNextTileAttr;
-    u8 m_bgNextTileLow;
-    u8 m_bgNextTileHigh;
+    // Rendering phase
+    PPUFetchPhase m_fetchPhase;
     
     // Memory
     std::array<u8, VRAM_SIZE> m_vram;            // 2KB nametable RAM
@@ -190,13 +182,6 @@ private:
     u8 m_spriteCount;       // Number of sprites on current scanline
     std::array<SpriteRenderData, 8> m_spriteRenderData;  // Sprites to render
     bool m_sprite0OnScanline;   // Is sprite 0 on current scanline?
-    bool m_sprite0HitPossible;  // Can sprite 0 hit occur?
-    
-    // Sprite evaluation state
-    u8 m_spriteEvalN;       // OAM entry being evaluated
-    u8 m_spriteEvalM;       // OAM byte offset within entry
-    u8 m_secondaryOamAddr;  // Write pointer to secondary OAM
-    bool m_spriteEvalComplete;
     
     // NMI state
     bool m_nmiOccurred;
@@ -204,6 +189,12 @@ private:
     
     // Open bus behavior
     u8 m_openBus;
+    
+    // Scanline rendering buffers
+    std::array<u8, 256> m_bgLine;          // Background palette indices per pixel
+    std::array<u8, 256> m_sprLine;         // Sprite palette indices per pixel
+    std::array<bool, 256> m_sprBehindBg;   // Sprite priority (behind BG flag)
+    std::array<u8, 256> m_sprOamIndex;     // OAM index of sprite at each pixel
     
     // Framebuffer
     std::array<u32, SCREEN_WIDTH * SCREEN_HEIGHT> m_framebuffer;

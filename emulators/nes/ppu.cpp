@@ -42,21 +42,9 @@ PPU::PPU()
     , m_fineX(0)
     , m_writeToggle(false)
     , m_dataBuffer(0)
-    , m_bgShiftPatternLow(0)
-    , m_bgShiftPatternHigh(0)
-    , m_bgShiftAttrLow(0)
-    , m_bgShiftAttrHigh(0)
-    , m_bgNextTileId(0)
-    , m_bgNextTileAttr(0)
-    , m_bgNextTileLow(0)
-    , m_bgNextTileHigh(0)
+    , m_fetchPhase(PPUFetchPhase::IDLE)
     , m_spriteCount(0)
     , m_sprite0OnScanline(false)
-    , m_sprite0HitPossible(false)
-    , m_spriteEvalN(0)
-    , m_spriteEvalM(0)
-    , m_secondaryOamAddr(0)
-    , m_spriteEvalComplete(false)
     , m_nmiOccurred(false)
     , m_nmiOutput(false)
     , m_openBus(0) {
@@ -80,23 +68,10 @@ void PPU::reset() {
     
     m_dataBuffer = 0;
     
-    m_bgShiftPatternLow = 0;
-    m_bgShiftPatternHigh = 0;
-    m_bgShiftAttrLow = 0;
-    m_bgShiftAttrHigh = 0;
-    
-    m_bgNextTileId = 0;
-    m_bgNextTileAttr = 0;
-    m_bgNextTileLow = 0;
-    m_bgNextTileHigh = 0;
+    m_fetchPhase = PPUFetchPhase::IDLE;
     
     m_spriteCount = 0;
     m_sprite0OnScanline = false;
-    m_sprite0HitPossible = false;
-    m_spriteEvalN = 0;
-    m_spriteEvalM = 0;
-    m_secondaryOamAddr = 0;
-    m_spriteEvalComplete = false;
     
     m_nmiOccurred = false;
     m_nmiOutput = false;
@@ -106,8 +81,12 @@ void PPU::reset() {
     m_vram.fill(0);
     m_palette.fill(0);
     m_oam.fill(0);
-    m_secondaryOam.fill(0xFF);  // Secondary OAM clears to 0xFF
+    m_secondaryOam.fill(0xFF);
     m_framebuffer.fill(0xFF000000);
+    m_bgLine.fill(0);
+    m_sprLine.fill(0);
+    m_sprBehindBg.fill(false);
+    m_sprOamIndex.fill(0xFF);
     
     for (auto& sprite : m_spriteRenderData) {
         sprite = {};
@@ -147,8 +126,6 @@ u8 PPU::readRegister(u16 address) {
             break;
             
         case OAMDATA:   // $2004
-            // Reading during rendering returns 0xFF for bytes 0-1 of secondary OAM
-            // but we'll simplify and just return OAM data
             result = m_oam[m_oamAddr];
             
             // Bits 2-4 of sprite attributes are unimplemented and read back as 0
@@ -274,7 +251,6 @@ u8 PPU::ppuRead(u16 address) {
     }
     else if (address < 0x3F00) {
         // Nametables
-        // Check if mapper wants to handle nametable read
         u8 value;
         if (m_cartridge && m_cartridge->readNametable(address, value)) {
             return value;
@@ -305,41 +281,32 @@ void PPU::ppuWrite(u16 address, u8 value) {
     address &= 0x3FFF;
     
     if (address < 0x2000) {
-        // Pattern tables - write to cartridge CHR (if CHR RAM)
         if (m_cartridge) {
             m_cartridge->writeCHR(address, value);
         }
     }
     else if (address < 0x3F00) {
-        // Nametables
         if (m_cartridge && m_cartridge->writeNametable(address, value)) {
             return;
         }
         m_vram[mirrorNametableAddress(address)] = value;
     }
     else {
-        // Palette
         u16 paletteAddr = address & 0x1F;
-        
-        // Mirror sprite palette to background palette
         if ((paletteAddr & 0x13) == 0x10) {
             paletteAddr &= 0x0F;
         }
-        
         m_palette[paletteAddr] = value;
     }
 }
 
 u16 PPU::mirrorNametableAddress(u16 address) const {
-    // Remove base offset and mirror to 0-0xFFF range
     address = (address - 0x2000) & 0x0FFF;
     
     MirrorMode mirror = m_cartridge ? m_cartridge->getMirrorMode() : MirrorMode::HORIZONTAL;
     
     switch (mirror) {
         case MirrorMode::HORIZONTAL:
-            // $2000-$23FF and $2400-$27FF both map to first 0x400 bytes
-            // $2800-$2BFF and $2C00-$2FFF both map to second 0x400 bytes
             if (address < 0x0800) {
                 return address & 0x03FF;
             } else {
@@ -347,8 +314,6 @@ u16 PPU::mirrorNametableAddress(u16 address) const {
             }
             
         case MirrorMode::VERTICAL:
-            // $2000-$23FF and $2800-$2BFF both map to first 0x400 bytes
-            // $2400-$27FF and $2C00-$2FFF both map to second 0x400 bytes
             return address & 0x07FF;
             
         case MirrorMode::SINGLE_SCREEN_A:
@@ -359,7 +324,7 @@ u16 PPU::mirrorNametableAddress(u16 address) const {
             
         case MirrorMode::FOUR_SCREEN:
         default:
-            return address & 0x07FF;  // Limited to 2KB, but real 4-screen uses cart RAM
+            return address & 0x07FF;
     }
 }
 
@@ -379,17 +344,6 @@ u8 PPU::getSpriteHeight() const {
     return (m_ppuCtrl & PPUCTRL_SPRITE_SIZE) ? 16 : 8;
 }
 
-bool PPU::isFetchingBackgroundPattern() const {
-    // Background pattern fetches happen during cycles 1-256 and 321-336
-    return isRenderingEnabled() && ((m_cycle >= 1 && m_cycle <= 256) || 
-                                    (m_cycle >= 321 && m_cycle <= 336));
-}
-
-bool PPU::isFetchingSpritePattern() const {
-    // Sprite pattern fetches happen during cycles 257-320
-    return isRenderingEnabled() && (m_cycle >= 257 && m_cycle <= 320);
-}
-
 // ============================================================================
 // Address Manipulation (Loopy)
 // ============================================================================
@@ -397,10 +351,9 @@ bool PPU::isFetchingSpritePattern() const {
 void PPU::incrementX() {
     if (!isRenderingEnabled()) return;
     
-    // Increment coarse X
     if ((m_vramAddr & 0x001F) == 31) {
-        m_vramAddr &= ~0x001F;           // Reset coarse X to 0
-        m_vramAddr ^= 0x0400;            // Switch horizontal nametable
+        m_vramAddr &= ~0x001F;
+        m_vramAddr ^= 0x0400;
     } else {
         m_vramAddr++;
     }
@@ -409,19 +362,17 @@ void PPU::incrementX() {
 void PPU::incrementY() {
     if (!isRenderingEnabled()) return;
     
-    // Increment fine Y
     if ((m_vramAddr & 0x7000) != 0x7000) {
         m_vramAddr += 0x1000;
     } else {
-        m_vramAddr &= ~0x7000;           // Reset fine Y to 0
+        m_vramAddr &= ~0x7000;
         
-        // Increment coarse Y
         u16 coarseY = (m_vramAddr & 0x03E0) >> 5;
         if (coarseY == 29) {
             coarseY = 0;
-            m_vramAddr ^= 0x0800;        // Switch vertical nametable
+            m_vramAddr ^= 0x0800;
         } else if (coarseY == 31) {
-            coarseY = 0;                 // Don't switch nametable (out-of-bounds)
+            coarseY = 0;
         } else {
             coarseY++;
         }
@@ -432,193 +383,136 @@ void PPU::incrementY() {
 
 void PPU::transferX() {
     if (!isRenderingEnabled()) return;
-    
-    // Copy horizontal position from temp to vram address
-    // ....F.....EDCBA = ....F.....EDCBA
     m_vramAddr = (m_vramAddr & 0xFBE0) | (m_tempAddr & 0x041F);
 }
 
 void PPU::transferY() {
     if (!isRenderingEnabled()) return;
-    
-    // Copy vertical position from temp to vram address
-    // IHGF.ED CBA..... = IHGF.ED CBA.....
     m_vramAddr = (m_vramAddr & 0x841F) | (m_tempAddr & 0x7BE0);
 }
 
 // ============================================================================
-// Background Rendering
+// Scanline-Based Background Rendering
 // ============================================================================
 
-void PPU::fetchBackgroundTile() {
-    // This is called at specific cycles to fetch background tile data
-    // Cycles 1-256 and 321-336 do background fetches (every 8 cycles)
+void PPU::renderBackgroundLine() {
+    m_bgLine.fill(0);
     
-    switch (m_cycle & 0x07) {
-        case 1:
-            // Load shifters with previously fetched data
-            loadBackgroundShifters();
+    if (!isBackgroundEnabled()) return;
+    
+    m_fetchPhase = PPUFetchPhase::BACKGROUND;
+    
+    u16 savedAddr = m_vramAddr;
+    
+    // We need to render 256 pixels (32 tiles + potentially 1 extra for fine X scroll)
+    // Fine X determines the starting bit offset within the first tile
+    
+    u16 fineY = (m_vramAddr >> 12) & 0x07;
+    u16 bgTableBase = (m_ppuCtrl & PPUCTRL_BG_TABLE) ? 0x1000 : 0x0000;
+    
+    // Render 33 tiles (32 visible + 1 partial for fine X scroll)
+    for (int tile = 0; tile < 33; tile++) {
+        // Fetch nametable byte
+        u8 tileId = ppuRead(0x2000 | (m_vramAddr & 0x0FFF));
+        
+        // Fetch attribute byte
+        u16 attrAddr = 0x23C0 |
+                      (m_vramAddr & 0x0C00) |
+                      ((m_vramAddr >> 4) & 0x38) |
+                      ((m_vramAddr >> 2) & 0x07);
+        u8 attrByte = ppuRead(attrAddr);
+        
+        // Select the 2-bit palette for this tile
+        if (m_vramAddr & 0x0002) attrByte >>= 2;
+        if (m_vramAddr & 0x0040) attrByte >>= 4;
+        u8 palette = attrByte & 0x03;
+        
+        // Fetch pattern table bytes
+        u16 patternAddr = bgTableBase + (static_cast<u16>(tileId) << 4) + fineY;
+        u8 patternLow = ppuRead(patternAddr);
+        u8 patternHigh = ppuRead(patternAddr + 8);
+        
+        // Render 8 pixels from this tile
+        for (int bit = 0; bit < 8; bit++) {
+            int pixelX = tile * 8 + bit - m_fineX;
             
-            // Fetch nametable byte
-            m_bgNextTileId = ppuRead(0x2000 | (m_vramAddr & 0x0FFF));
-            break;
+            if (pixelX < 0 || pixelX >= 256) continue;
             
-        case 3:
-            // Fetch attribute byte
-            {
-                u16 attrAddr = 0x23C0 |
-                              (m_vramAddr & 0x0C00) |           // Nametable select
-                              ((m_vramAddr >> 4) & 0x38) |      // Coarse Y / 4 * 8
-                              ((m_vramAddr >> 2) & 0x07);       // Coarse X / 4
-                u8 attrByte = ppuRead(attrAddr);
-                
-                // Select the 2-bit palette for this tile
-                if (m_vramAddr & 0x0002) attrByte >>= 2;        // Right half
-                if (m_vramAddr & 0x0040) attrByte >>= 4;        // Bottom half
-                m_bgNextTileAttr = attrByte & 0x03;
+            // Check left 8 pixel masking
+            if (pixelX < 8 && !(m_ppuMask & PPUMASK_SHOW_BG_LEFT)) {
+                m_bgLine[pixelX] = 0;
+                continue;
             }
-            break;
             
-        case 5:
-            // Fetch pattern table low byte
-            {
-                u16 patternAddr = ((m_ppuCtrl & PPUCTRL_BG_TABLE) ? 0x1000 : 0x0000) +
-                                 (static_cast<u16>(m_bgNextTileId) << 4) +
-                                 ((m_vramAddr >> 12) & 0x07);   // Fine Y
-                m_bgNextTileLow = ppuRead(patternAddr);
+            u8 bitSelect = 7 - bit;
+            u8 pixel = 0;
+            if (patternLow & (1 << bitSelect)) pixel |= 0x01;
+            if (patternHigh & (1 << bitSelect)) pixel |= 0x02;
+            
+            if (pixel == 0) {
+                m_bgLine[pixelX] = 0;  // Transparent
+            } else {
+                m_bgLine[pixelX] = (palette << 2) | pixel;
             }
-            break;
-            
-        case 7:
-            // Fetch pattern table high byte
-            {
-                u16 patternAddr = ((m_ppuCtrl & PPUCTRL_BG_TABLE) ? 0x1000 : 0x0000) +
-                                 (static_cast<u16>(m_bgNextTileId) << 4) +
-                                 ((m_vramAddr >> 12) & 0x07) + 8;
-                m_bgNextTileHigh = ppuRead(patternAddr);
-            }
-            break;
-            
-        case 0:
-            // Increment horizontal position
-            incrementX();
-            break;
+        }
+        
+        // Increment horizontal scroll (coarse X)
+        if ((m_vramAddr & 0x001F) == 31) {
+            m_vramAddr &= ~0x001F;
+            m_vramAddr ^= 0x0400;
+        } else {
+            m_vramAddr++;
+        }
     }
-}
-
-void PPU::loadBackgroundShifters() {
-    // Load the new tile data into the shift registers
-    m_bgShiftPatternLow = (m_bgShiftPatternLow & 0xFF00) | m_bgNextTileLow;
-    m_bgShiftPatternHigh = (m_bgShiftPatternHigh & 0xFF00) | m_bgNextTileHigh;
     
-    // Attribute is same for all 8 pixels, so expand to 8 bits
-    m_bgShiftAttrLow = (m_bgShiftAttrLow & 0xFF00) | ((m_bgNextTileAttr & 0x01) ? 0xFF : 0x00);
-    m_bgShiftAttrHigh = (m_bgShiftAttrHigh & 0xFF00) | ((m_bgNextTileAttr & 0x02) ? 0xFF : 0x00);
-}
-
-void PPU::updateShifters() {
-    if (isBackgroundEnabled()) {
-        m_bgShiftPatternLow <<= 1;
-        m_bgShiftPatternHigh <<= 1;
-        m_bgShiftAttrLow <<= 1;
-        m_bgShiftAttrHigh <<= 1;
-    }
-}
-
-u8 PPU::getBackgroundPixel() const {
-    if (!isBackgroundEnabled()) return 0;
+    // Restore coarse X and nametable X from saved state (will be set properly by transferX)
+    m_vramAddr = savedAddr;
     
-    // Check left 8 pixel masking
-    if (m_cycle <= 8 && !(m_ppuMask & PPUMASK_SHOW_BG_LEFT)) return 0;
-    
-    // Select the bit from the shift register based on fine X
-    u16 bitSelect = 0x8000 >> m_fineX;
-    
-    u8 pixel = 0;
-    if (m_bgShiftPatternLow & bitSelect) pixel |= 0x01;
-    if (m_bgShiftPatternHigh & bitSelect) pixel |= 0x02;
-    
-    u8 palette = 0;
-    if (m_bgShiftAttrLow & bitSelect) palette |= 0x01;
-    if (m_bgShiftAttrHigh & bitSelect) palette |= 0x02;
-    
-    // Return full palette index (palette << 2 | pixel)
-    return (palette << 2) | pixel;
+    m_fetchPhase = PPUFetchPhase::IDLE;
 }
 
 // ============================================================================
-// Sprite Evaluation
+// Scanline-Based Sprite Evaluation & Rendering
 // ============================================================================
 
-void PPU::evaluateSprites() {
-    // Sprite evaluation happens during cycles 65-256 of visible scanlines
-    // But we simplify by doing it all at once at cycle 257
-    
+void PPU::evaluateSpritesForScanline() {
     m_spriteCount = 0;
     m_sprite0OnScanline = false;
     m_secondaryOam.fill(0xFF);
     
     u8 spriteHeight = getSpriteHeight();
     
-    // Clear sprite overflow flag for next scanline
-    // (actual overflow detection happens during evaluation)
-    
     for (u8 i = 0; i < 64 && m_spriteCount < 8; i++) {
         const OAMEntry* sprite = reinterpret_cast<const OAMEntry*>(&m_oam[i * 4]);
         
-        // Check if sprite is on next scanline
-        // Sprite Y is the Y position minus 1
         s16 diff = static_cast<s16>(m_scanline) - static_cast<s16>(sprite->y);
         
         if (diff >= 0 && diff < spriteHeight) {
-            // Copy to secondary OAM
             m_secondaryOam[m_spriteCount * 4 + 0] = sprite->y;
             m_secondaryOam[m_spriteCount * 4 + 1] = sprite->tileIndex;
             m_secondaryOam[m_spriteCount * 4 + 2] = sprite->attributes;
             m_secondaryOam[m_spriteCount * 4 + 3] = sprite->x;
             
-            // Track sprite 0 for hit detection
             if (i == 0) {
                 m_sprite0OnScanline = true;
             }
             
-            // Store OAM index for sprite 0 hit detection
             m_spriteRenderData[m_spriteCount].oamIndex = i;
-            
             m_spriteCount++;
         }
     }
     
-    // Check for sprite overflow (continue evaluation even after 8 sprites)
-    // This is a simplified implementation - real hardware has a bug
+    // Check for sprite overflow
     if (m_spriteCount == 8) {
         for (u8 i = 0; i < 64; i++) {
             const OAMEntry* sprite = reinterpret_cast<const OAMEntry*>(&m_oam[i * 4]);
             s16 diff = static_cast<s16>(m_scanline) - static_cast<s16>(sprite->y);
             
             if (diff >= 0 && diff < spriteHeight) {
-                // Set sprite overflow flag
                 m_ppuStatus |= PPUSTATUS_SPRITE_OVERFLOW;
                 break;
             }
         }
-    }
-}
-
-void PPU::loadSpriteTiles() {
-    // Load pattern data for each sprite found during evaluation
-    // This happens during cycles 257-320
-    
-    for (u8 i = 0; i < m_spriteCount; i++) {
-        fetchSpritePattern(i);
-    }
-    
-    // Fill remaining sprite slots with transparent data
-    for (u8 i = m_spriteCount; i < 8; i++) {
-        m_spriteRenderData[i].patternLow = 0;
-        m_spriteRenderData[i].patternHigh = 0;
-        m_spriteRenderData[i].attributes = 0xFF;
-        m_spriteRenderData[i].x = 0xFF;
     }
 }
 
@@ -630,10 +524,8 @@ void PPU::fetchSpritePattern(u8 spriteIndex) {
     
     u8 spriteHeight = getSpriteHeight();
     
-    // Calculate row within sprite
     s16 row = static_cast<s16>(m_scanline) - static_cast<s16>(y);
     
-    // Handle vertical flip
     if (attributes & OAM_FLIP_V) {
         row = spriteHeight - 1 - row;
     }
@@ -641,12 +533,9 @@ void PPU::fetchSpritePattern(u8 spriteIndex) {
     u16 patternAddr;
     
     if (spriteHeight == 16) {
-        // 8x16 sprites
-        // Tile index bit 0 selects pattern table
         u16 table = (tileIndex & 0x01) ? 0x1000 : 0x0000;
-        tileIndex &= 0xFE;  // Clear bit 0
+        tileIndex &= 0xFE;
         
-        // Select top or bottom tile
         if (row >= 8) {
             tileIndex++;
             row -= 8;
@@ -654,7 +543,6 @@ void PPU::fetchSpritePattern(u8 spriteIndex) {
         
         patternAddr = table + (static_cast<u16>(tileIndex) << 4) + row;
     } else {
-        // 8x8 sprites
         u16 table = (m_ppuCtrl & PPUCTRL_SPRITE_TABLE) ? 0x1000 : 0x0000;
         patternAddr = table + (static_cast<u16>(tileIndex) << 4) + row;
     }
@@ -662,9 +550,7 @@ void PPU::fetchSpritePattern(u8 spriteIndex) {
     u8 patternLow = ppuRead(patternAddr);
     u8 patternHigh = ppuRead(patternAddr + 8);
     
-    // Handle horizontal flip by reversing bits
     if (attributes & OAM_FLIP_H) {
-        // Reverse bits using lookup or bit manipulation
         auto reverseBits = [](u8 b) -> u8 {
             b = ((b & 0xF0) >> 4) | ((b & 0x0F) << 4);
             b = ((b & 0xCC) >> 2) | ((b & 0x33) << 2);
@@ -681,176 +567,212 @@ void PPU::fetchSpritePattern(u8 spriteIndex) {
     m_spriteRenderData[spriteIndex].x = x;
 }
 
-u8 PPU::getSpritePixel(u8& spriteIndex, bool& priority) const {
-    if (!isSpriteEnabled()) return 0;
+void PPU::renderSpriteLine() {
+    m_sprLine.fill(0);
+    m_sprBehindBg.fill(false);
+    m_sprOamIndex.fill(0xFF);
     
-    // Check left 8 pixel masking
-    if (m_cycle <= 8 && !(m_ppuMask & PPUMASK_SHOW_SPR_LEFT)) return 0;
+    if (!isSpriteEnabled()) return;
     
-    // Check each sprite to find the first non-transparent pixel
+    m_fetchPhase = PPUFetchPhase::SPRITE;
+    
+    // Evaluate sprites for this scanline
+    evaluateSpritesForScanline();
+    
+    // Fetch pattern data for sprites
     for (u8 i = 0; i < m_spriteCount; i++) {
-        // Calculate X offset within sprite
-        s16 offset = static_cast<s16>(m_cycle - 1) - static_cast<s16>(m_spriteRenderData[i].x);
+        fetchSpritePattern(i);
+    }
+    
+    // Render sprites into line buffer (reverse order for priority - lower index wins)
+    for (int i = m_spriteCount - 1; i >= 0; i--) {
+        const auto& spr = m_spriteRenderData[i];
+        u8 palette = spr.attributes & OAM_PALETTE;
+        bool behindBg = (spr.attributes & OAM_PRIORITY) != 0;
         
-        if (offset >= 0 && offset < 8) {
-            u8 bitSelect = 7 - offset;
+        for (int bit = 0; bit < 8; bit++) {
+            int pixelX = static_cast<int>(spr.x) + bit;
+            if (pixelX >= 256) break;
+            if (pixelX < 0) continue;
             
+            // Check left 8 pixel masking
+            if (pixelX < 8 && !(m_ppuMask & PPUMASK_SHOW_SPR_LEFT)) continue;
+            
+            u8 bitSelect = 7 - bit;
             u8 pixel = 0;
-            if (m_spriteRenderData[i].patternLow & (1 << bitSelect)) pixel |= 0x01;
-            if (m_spriteRenderData[i].patternHigh & (1 << bitSelect)) pixel |= 0x02;
+            if (spr.patternLow & (1 << bitSelect)) pixel |= 0x01;
+            if (spr.patternHigh & (1 << bitSelect)) pixel |= 0x02;
             
-            // Skip transparent pixels
-            if (pixel == 0) continue;
+            if (pixel == 0) continue;  // Transparent
             
-            spriteIndex = i;
-            priority = (m_spriteRenderData[i].attributes & OAM_PRIORITY) != 0;
-            
-            // Return full palette index (0x10 for sprite palette + palette number + pixel)
-            u8 palette = m_spriteRenderData[i].attributes & OAM_PALETTE;
-            return 0x10 | (palette << 2) | pixel;
+            // Lower-indexed sprites have higher priority (we render back to front)
+            m_sprLine[pixelX] = 0x10 | (palette << 2) | pixel;
+            m_sprBehindBg[pixelX] = behindBg;
+            m_sprOamIndex[pixelX] = spr.oamIndex;
         }
     }
     
-    return 0;
+    m_fetchPhase = PPUFetchPhase::IDLE;
 }
 
 // ============================================================================
-// Pixel Output
+// Composite Background + Sprites and Output
 // ============================================================================
 
-void PPU::renderPixel() {
-    if (m_cycle == 0 || m_cycle > 256 || m_scanline >= 240) return;
+void PPU::compositeAndOutputLine() {
+    u32* fbRow = &m_framebuffer[m_scanline * SCREEN_WIDTH];
     
-    u8 bgPixel = getBackgroundPixel();
-    u8 spriteIndex = 0;
-    bool spritePriority = false;
-    u8 spritePixel = getSpritePixel(spriteIndex, spritePriority);
+    bool bgEnabled = isBackgroundEnabled();
+    bool sprEnabled = isSpriteEnabled();
     
-    u8 finalPixel = 0;
-    
-    // Priority logic:
-    // BG pixel 0 means transparent (use background color)
-    // Sprite pixel 0 means transparent
-    // Priority bit determines front/back when both non-zero
-    
-    bool bgOpaque = (bgPixel & 0x03) != 0;
-    bool spriteOpaque = (spritePixel & 0x03) != 0;
-    
-    // Sprite 0 hit detection
-    // Hit occurs when both BG and sprite 0 are opaque, and rendering is enabled
-    if (m_sprite0OnScanline && spriteOpaque && bgOpaque &&
-        m_spriteRenderData[spriteIndex].oamIndex == 0 &&
-        m_cycle != 256 && isBackgroundEnabled() && isSpriteEnabled()) {
+    for (int x = 0; x < 256; x++) {
+        u8 bgPixel = m_bgLine[x];
+        u8 sprPixel = m_sprLine[x];
         
-        // Don't set sprite 0 hit in the leftmost 8 pixels if clipping is enabled
-        if (m_cycle > 8 || 
-            ((m_ppuMask & PPUMASK_SHOW_BG_LEFT) && (m_ppuMask & PPUMASK_SHOW_SPR_LEFT))) {
-            m_ppuStatus |= PPUSTATUS_SPRITE0_HIT;
+        bool bgOpaque = (bgPixel & 0x03) != 0;
+        bool sprOpaque = (sprPixel & 0x03) != 0;
+        
+        // Sprite 0 hit detection
+        if (m_sprite0OnScanline && sprOpaque && bgOpaque &&
+            m_sprOamIndex[x] == 0 && x != 255 && bgEnabled && sprEnabled) {
+            if (x >= 8 || 
+                ((m_ppuMask & PPUMASK_SHOW_BG_LEFT) && (m_ppuMask & PPUMASK_SHOW_SPR_LEFT))) {
+                m_ppuStatus |= PPUSTATUS_SPRITE0_HIT;
+            }
         }
-    }
-    
-    // Determine which pixel to render
-    if (!bgOpaque && !spriteOpaque) {
-        // Both transparent - use background color
-        finalPixel = 0;
-    } else if (bgOpaque && !spriteOpaque) {
-        // Only BG is opaque
-        finalPixel = bgPixel;
-    } else if (!bgOpaque && spriteOpaque) {
-        // Only sprite is opaque
-        finalPixel = spritePixel;
-    } else {
-        // Both opaque - use priority
-        if (spritePriority) {
-            // Sprite behind background
+        
+        // Priority multiplexer
+        u8 finalPixel = 0;
+        
+        if (!bgOpaque && !sprOpaque) {
+            finalPixel = 0;
+        } else if (bgOpaque && !sprOpaque) {
             finalPixel = bgPixel;
+        } else if (!bgOpaque && sprOpaque) {
+            finalPixel = sprPixel;
         } else {
-            // Sprite in front of background
-            finalPixel = spritePixel;
-        }
-    }
-    
-    // Look up color in palette
-    u8 colorIndex = ppuRead(0x3F00 + finalPixel) & 0x3F;
-    u32 color = s_nesPalette[colorIndex];
-    
-    // Apply color emphasis (simplified)
-    if (m_ppuMask & (PPUMASK_EMPHASIZE_R | PPUMASK_EMPHASIZE_G | PPUMASK_EMPHASIZE_B)) {
-        u8 r = (color >> 16) & 0xFF;
-        u8 g = (color >> 8) & 0xFF;
-        u8 b = color & 0xFF;
-        
-        if (m_ppuMask & PPUMASK_EMPHASIZE_R) {
-            r = std::min(255, static_cast<int>(r * 1.1));
-            g = static_cast<u8>(g * 0.9);
-            b = static_cast<u8>(b * 0.9);
-        }
-        if (m_ppuMask & PPUMASK_EMPHASIZE_G) {
-            r = static_cast<u8>(r * 0.9);
-            g = std::min(255, static_cast<int>(g * 1.1));
-            b = static_cast<u8>(b * 0.9);
-        }
-        if (m_ppuMask & PPUMASK_EMPHASIZE_B) {
-            r = static_cast<u8>(r * 0.9);
-            g = static_cast<u8>(g * 0.9);
-            b = std::min(255, static_cast<int>(b * 1.1));
+            // Both opaque - use priority
+            if (m_sprBehindBg[x]) {
+                finalPixel = bgPixel;
+            } else {
+                finalPixel = sprPixel;
+            }
         }
         
-        color = 0xFF000000 | (r << 16) | (g << 8) | b;
+        // Look up color in palette
+        u8 colorIndex = ppuRead(0x3F00 + finalPixel) & 0x3F;
+        u32 color = s_nesPalette[colorIndex];
+        
+        // Apply color emphasis
+        if (m_ppuMask & (PPUMASK_EMPHASIZE_R | PPUMASK_EMPHASIZE_G | PPUMASK_EMPHASIZE_B)) {
+            u8 r = (color >> 16) & 0xFF;
+            u8 g = (color >> 8) & 0xFF;
+            u8 b = color & 0xFF;
+            
+            if (m_ppuMask & PPUMASK_EMPHASIZE_R) {
+                r = std::min(255, static_cast<int>(r * 1.1));
+                g = static_cast<u8>(g * 0.9);
+                b = static_cast<u8>(b * 0.9);
+            }
+            if (m_ppuMask & PPUMASK_EMPHASIZE_G) {
+                r = static_cast<u8>(r * 0.9);
+                g = std::min(255, static_cast<int>(g * 1.1));
+                b = static_cast<u8>(b * 0.9);
+            }
+            if (m_ppuMask & PPUMASK_EMPHASIZE_B) {
+                r = static_cast<u8>(r * 0.9);
+                g = static_cast<u8>(g * 0.9);
+                b = std::min(255, static_cast<int>(b * 1.1));
+            }
+            
+            color = 0xFF000000 | (r << 16) | (g << 8) | b;
+        }
+        
+        fbRow[x] = color;
     }
-    
-    // Write to framebuffer
-    u32 x = m_cycle - 1;
-    u32 y = m_scanline;
-    m_framebuffer[y * SCREEN_WIDTH + x] = color;
 }
 
 // ============================================================================
-// Main Step Function
+// Visible Scanline Rendering (all-in-one)
 // ============================================================================
 
-void PPU::step() {
+void PPU::renderVisibleScanline() {
+    // Set cycle to beginning of visible area for mapper compatibility
+    m_cycle = 1;
+    
+    // Render background tiles for this scanline
+    renderBackgroundLine();
+    
+    // Set cycle to sprite fetch range for mapper compatibility
+    m_cycle = 257;
+    
+    // Render sprites for this scanline
+    renderSpriteLine();
+    
+    // Composite and output to framebuffer
+    compositeAndOutputLine();
+    
+    // Update VRAM address: increment Y at end of visible scanline
+    incrementY();
+    
+    // Transfer horizontal bits from temp to VRAM address
+    transferX();
+    
+    // Set cycle to mapper IRQ clock point
+    // MMC3 clocks on A12 rising edge around cycle 260
+    // MMC5 clocks at cycle 3 (attribute read)
+    u16 targetCycle = m_cartridge->getMapperNumber() == 5 ? 3 : 260;
+    m_cycle = targetCycle;
+    
+    if (isRenderingEnabled() && m_cartridge) {
+        m_cartridge->scanlineCounter();
+        if (m_cartridge->irqState()) {
+            if (m_cpu) {
+                m_cpu->irq();
+            }
+            m_cartridge->irqClear();
+        }
+    }
+    
+    // End of scanline
+    m_cycle = 340;
+}
+
+// ============================================================================
+// Main Scanline Step Function
+// ============================================================================
+
+void PPU::stepScanline() {
     // Visible scanlines (0-239)
     if (m_scanline < VISIBLE_SCANLINES) {
-        // Sprite evaluation at cycle 257
-        if (m_cycle == 257 && isRenderingEnabled()) {
-            evaluateSprites();
-            loadSpriteTiles();
-        }
-        
-        // Background fetching
-        if ((m_cycle >= 1 && m_cycle <= 256) || (m_cycle >= 321 && m_cycle <= 336)) {
-            updateShifters();
-            fetchBackgroundTile();
-        }
-        
-        // Render pixel
-        if (m_cycle >= 1 && m_cycle <= 256) {
-            renderPixel();
-        }
-        
-        // Increment Y at end of scanline
-        if (m_cycle == 256) {
-            incrementY();
-        }
-        
-        // Transfer horizontal position at cycle 257
-        if (m_cycle == 257) {
-            transferX();
+        if (isRenderingEnabled()) {
+            renderVisibleScanline();
+        } else {
+            // Rendering disabled - fill with background color
+            u8 colorIndex = ppuRead(0x3F00) & 0x3F;
+            u32 color = s_nesPalette[colorIndex];
+            u32* fbRow = &m_framebuffer[m_scanline * SCREEN_WIDTH];
+            for (int x = 0; x < 256; x++) {
+                fbRow[x] = color;
+            }
+            m_cycle = 340;
         }
     }
-    
     // Post-render scanline (240) - idle
-    
-    // VBlank scanlines (241-260)
-    if (m_scanline == 241 && m_cycle == 1) {
+    else if (m_scanline == 240) {
+        m_cycle = 340;
+        // Nothing to do
+    }
+    // VBlank start (241)
+    else if (m_scanline == 241) {
+        m_cycle = 1;
+        
         // Set VBlank flag
         m_ppuStatus |= PPUSTATUS_VBLANK;
         m_nmiOccurred = true;
         
         // Generate NMI if enabled
         if (m_nmiOutput) {
-            // Start NMI. CPU will delay NMI by 2 instructions.
             m_cpu->nmi();
         }
         
@@ -859,79 +781,63 @@ void PPU::step() {
             m_videoDevice->render(m_framebuffer.data());
         }
         
+        m_cycle = 340;
     }
-    
+    // VBlank scanlines (242-260) - idle
+    else if (m_scanline > 241 && m_scanline < PRE_RENDER_SCANLINE) {
+        m_cycle = 340;
+        // Nothing to do
+    }
     // Pre-render scanline (261)
-    if (m_scanline == PRE_RENDER_SCANLINE) {
-        // Clear VBlank, sprite 0 hit, and overflow at cycle 1
-        if (m_cycle == 1) {
-            m_ppuStatus &= ~(PPUSTATUS_VBLANK | PPUSTATUS_SPRITE0_HIT | PPUSTATUS_SPRITE_OVERFLOW);
-            m_nmiOccurred = false;
-        }
+    else if (m_scanline == PRE_RENDER_SCANLINE) {
+        m_cycle = 1;
         
-        // Background fetching (for next frame's first scanline)
-        if ((m_cycle >= 1 && m_cycle <= 256) || (m_cycle >= 321 && m_cycle <= 336)) {
-            updateShifters();
-            fetchBackgroundTile();
-        }
+        // Clear VBlank, sprite 0 hit, and overflow
+        m_ppuStatus &= ~(PPUSTATUS_VBLANK | PPUSTATUS_SPRITE0_HIT | PPUSTATUS_SPRITE_OVERFLOW);
+        m_nmiOccurred = false;
         
-        // Transfer vertical position during cycles 280-304
-        if (m_cycle >= 280 && m_cycle <= 304) {
-            transferY();
-        }
-        
-        // Increment Y at end of scanline
-        if (m_cycle == 256) {
-            incrementY();
-        }
-        
-        // Transfer horizontal position at cycle 257
-        if (m_cycle == 257) {
-            transferX();
-            // Also evaluate sprites for first visible scanline
-            if (isRenderingEnabled()) {
-                evaluateSprites();
-                loadSpriteTiles();
-            }
-        }
-    }
-    
-    // Check for scanline counter (for MMC3/MMC5 IRQ)
-    // MMC3 clocks on A12 rising edge, which happens during PPU rendering
-    // A12 only transitions when the PPU is fetching pattern data, which requires rendering to be enabled
-    // Must also clock on pre-render scanline (261) so CHR banks are correct for scanline 0
-    // MMC5 clocks at PPU cycle 4, when the PPU does the attribute table byte read
-    u16 targetCycle = m_cartridge->getMapperNumber() == 5 ? 3 : 260;
-    if (m_cycle == targetCycle && 
-        isRenderingEnabled() &&
-        (m_scanline < VISIBLE_SCANLINES || m_scanline == PRE_RENDER_SCANLINE)) {
-        if (m_cartridge) {
-            m_cartridge->scanlineCounter();
-            if (m_cartridge->irqState()) {
-                if (m_cpu) {
-                    m_cpu->irq();
-                }
-                m_cartridge->irqClear();
-            }
-        }
-    }
-    
-    // Increment cycle and scanline
-    m_cycle++;
-    
-    if (m_cycle > 340) {
-        m_cycle = 0;
-        m_scanline++;
-        
-        if (m_scanline > PRE_RENDER_SCANLINE) {
-            m_scanline = 0;
-            m_oddFrame = !m_oddFrame;
+        if (isRenderingEnabled()) {
+            // Perform background tile fetches for prefetch (updates VRAM addr)
+            m_fetchPhase = PPUFetchPhase::BACKGROUND;
             
-            // Skip cycle 0 on odd frames when rendering enabled
-            if (m_oddFrame && isRenderingEnabled()) {
-                m_cycle = 1;
+            // Increment Y (pre-render scanline behaves like visible for address ops)
+            incrementY();
+            
+            // Transfer horizontal position
+            transferX();
+            
+            // Transfer vertical position (cycles 280-304)
+            transferY();
+            
+            m_fetchPhase = PPUFetchPhase::IDLE;
+            
+            // Clock scanline counter for pre-render scanline too (MMC3 needs this)
+            u16 targetCycle = m_cartridge->getMapperNumber() == 5 ? 3 : 260;
+            m_cycle = targetCycle;
+            
+            if (m_cartridge) {
+                m_cartridge->scanlineCounter();
+                if (m_cartridge->irqState()) {
+                    if (m_cpu) {
+                        m_cpu->irq();
+                    }
+                    m_cartridge->irqClear();
+                }
             }
+            
+            // Evaluate sprites for first visible scanline
+            evaluateSpritesForScanline();
         }
+        
+        m_cycle = 340;
+    }
+    
+    // Advance to next scanline
+    m_scanline++;
+    
+    if (m_scanline > PRE_RENDER_SCANLINE) {
+        m_scanline = 0;
+        m_oddFrame = !m_oddFrame;
     }
 }
 
@@ -958,17 +864,19 @@ void PPU::saveState(Buffer* buf) {
     buffer_write(buf, &m_writeToggle, sizeof(m_writeToggle));
     buffer_write(buf, &m_dataBuffer, sizeof(m_dataBuffer));
     
-    // Background shift registers
-    buffer_write(buf, &m_bgShiftPatternLow, sizeof(m_bgShiftPatternLow));
-    buffer_write(buf, &m_bgShiftPatternHigh, sizeof(m_bgShiftPatternHigh));
-    buffer_write(buf, &m_bgShiftAttrLow, sizeof(m_bgShiftAttrLow));
-    buffer_write(buf, &m_bgShiftAttrHigh, sizeof(m_bgShiftAttrHigh));
+    // Background shift registers (write zeros for compatibility - not used in scanline mode)
+    u16 zero16 = 0;
+    buffer_write(buf, &zero16, sizeof(zero16));  // m_bgShiftPatternLow
+    buffer_write(buf, &zero16, sizeof(zero16));  // m_bgShiftPatternHigh
+    buffer_write(buf, &zero16, sizeof(zero16));  // m_bgShiftAttrLow
+    buffer_write(buf, &zero16, sizeof(zero16));  // m_bgShiftAttrHigh
     
-    // Background latches
-    buffer_write(buf, &m_bgNextTileId, sizeof(m_bgNextTileId));
-    buffer_write(buf, &m_bgNextTileAttr, sizeof(m_bgNextTileAttr));
-    buffer_write(buf, &m_bgNextTileLow, sizeof(m_bgNextTileLow));
-    buffer_write(buf, &m_bgNextTileHigh, sizeof(m_bgNextTileHigh));
+    // Background latches (write zeros for compatibility)
+    u8 zero8 = 0;
+    buffer_write(buf, &zero8, sizeof(zero8));    // m_bgNextTileId
+    buffer_write(buf, &zero8, sizeof(zero8));    // m_bgNextTileAttr
+    buffer_write(buf, &zero8, sizeof(zero8));    // m_bgNextTileLow
+    buffer_write(buf, &zero8, sizeof(zero8));    // m_bgNextTileHigh
     
     // Memory
     buffer_write(buf, m_vram.data(), m_vram.size());
@@ -979,7 +887,8 @@ void PPU::saveState(Buffer* buf) {
     // Sprite state
     buffer_write(buf, &m_spriteCount, sizeof(m_spriteCount));
     buffer_write(buf, &m_sprite0OnScanline, sizeof(m_sprite0OnScanline));
-    buffer_write(buf, &m_sprite0HitPossible, sizeof(m_sprite0HitPossible));
+    bool dummy = false;
+    buffer_write(buf, &dummy, sizeof(dummy));  // m_sprite0HitPossible (compat)
     
     // NMI state
     buffer_write(buf, &m_nmiOccurred, sizeof(m_nmiOccurred));
@@ -1007,17 +916,19 @@ void PPU::loadState(Buffer* buf) {
     buffer_read(buf, &m_writeToggle, sizeof(m_writeToggle));
     buffer_read(buf, &m_dataBuffer, sizeof(m_dataBuffer));
     
-    // Background shift registers
-    buffer_read(buf, &m_bgShiftPatternLow, sizeof(m_bgShiftPatternLow));
-    buffer_read(buf, &m_bgShiftPatternHigh, sizeof(m_bgShiftPatternHigh));
-    buffer_read(buf, &m_bgShiftAttrLow, sizeof(m_bgShiftAttrLow));
-    buffer_read(buf, &m_bgShiftAttrHigh, sizeof(m_bgShiftAttrHigh));
+    // Background shift registers (read and discard - not used in scanline mode)
+    u16 dummy16;
+    buffer_read(buf, &dummy16, sizeof(dummy16));
+    buffer_read(buf, &dummy16, sizeof(dummy16));
+    buffer_read(buf, &dummy16, sizeof(dummy16));
+    buffer_read(buf, &dummy16, sizeof(dummy16));
     
-    // Background latches
-    buffer_read(buf, &m_bgNextTileId, sizeof(m_bgNextTileId));
-    buffer_read(buf, &m_bgNextTileAttr, sizeof(m_bgNextTileAttr));
-    buffer_read(buf, &m_bgNextTileLow, sizeof(m_bgNextTileLow));
-    buffer_read(buf, &m_bgNextTileHigh, sizeof(m_bgNextTileHigh));
+    // Background latches (read and discard)
+    u8 dummy8;
+    buffer_read(buf, &dummy8, sizeof(dummy8));
+    buffer_read(buf, &dummy8, sizeof(dummy8));
+    buffer_read(buf, &dummy8, sizeof(dummy8));
+    buffer_read(buf, &dummy8, sizeof(dummy8));
     
     // Memory
     buffer_read(buf, m_vram.data(), m_vram.size());
@@ -1028,7 +939,8 @@ void PPU::loadState(Buffer* buf) {
     // Sprite state
     buffer_read(buf, &m_spriteCount, sizeof(m_spriteCount));
     buffer_read(buf, &m_sprite0OnScanline, sizeof(m_sprite0OnScanline));
-    buffer_read(buf, &m_sprite0HitPossible, sizeof(m_sprite0HitPossible));
+    bool dummy;
+    buffer_read(buf, &dummy, sizeof(dummy));  // m_sprite0HitPossible (compat)
     
     // NMI state
     buffer_read(buf, &m_nmiOccurred, sizeof(m_nmiOccurred));
