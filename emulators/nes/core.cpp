@@ -73,7 +73,7 @@ void Core::update() {
         u32 cyclesBefore = m_cpu->getCycles();
 
         // Execute one CPU instruction (takes multiple cycles)
-        m_cpu->step();
+        m_cpu->step(1);
 
         // Calculate how many CPU cycles the instruction took
         u32 cpuCycles = m_cpu->getCycles() - cyclesBefore;

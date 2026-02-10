@@ -16,7 +16,7 @@ public:
     Memory* getMemory() const { return m_memory; }
 
     void reset();
-    void step();
+    void step(u32 cycles);
 
     // Interrupt handling
     void nmi();

@@ -78,18 +78,14 @@ void CPU::reset() {
     m_stallCycles = 0;
 }
 
-void CPU::step() {
+void CPU::step(u32 cycles) {
     if (m_stallCycles > 0) {
         m_stallCycles--;
         m_cycles++;
         return;
     }
 
-    g_nesCpuContext = this;
-    int executed = m6502_execute(1);
-    if (executed < 0) {
-        executed = 0;
-    }
+    int executed = m6502_execute(cycles);
     m_cycles += static_cast<u32>(executed);
 }
 
