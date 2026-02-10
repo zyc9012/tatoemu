@@ -78,15 +78,25 @@ void CPU::reset() {
     m_stallCycles = 0;
 }
 
-void CPU::step(u32 cycles) {
+u32 CPU::step(u32 cycles) {
+    int executed = 0;
+
     if (m_stallCycles > 0) {
-        m_stallCycles--;
-        m_cycles++;
-        return;
+        if (m_stallCycles >= cycles) {
+            m_stallCycles -= cycles;
+            m_cycles += cycles;
+            return cycles;
+        } else {
+            m_stallCycles = 0;
+            cycles -= m_stallCycles;
+            executed += m_stallCycles;
+        }
     }
 
-    int executed = m6502_execute(cycles);
+    executed += m6502_execute(cycles);
     m_cycles += static_cast<u32>(executed);
+
+    return static_cast<u32>(executed);
 }
 
 void CPU::nmi() {

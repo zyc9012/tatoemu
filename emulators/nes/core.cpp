@@ -77,20 +77,19 @@ void Core::update() {
         u32 cpuCyclesNeeded = ((scanline + 1) * CYCLES_PER_SCANLINE / PPU_CYCLES_PER_CPU)
                             - (scanline * CYCLES_PER_SCANLINE / PPU_CYCLES_PER_CPU);
 
-        while (m_cpuCycleCarry < cpuCyclesNeeded) {
-            u32 cyclesBefore = m_cpu->getCycles();
-            m_cpu->step(1);
-            u32 cpuCycles = m_cpu->getCycles() - cyclesBefore;
-            m_cpuCycleCarry += cpuCycles;
+        u32 cpuCyclesRemaining = cpuCyclesNeeded - m_cpuCycleCarry;
+        u32 cpuCyclesExecuted = m_cpu->step(cpuCyclesRemaining);
+        m_cpuCycleCarry += cpuCyclesExecuted;
 
-            // Run APU
-            m_apu->step(cpuCycles, m_gameSpeed);
+        for (u32 i = 0; i < cpuCyclesExecuted; i++) {
+            // Run APU for each CPU cycle
+            m_apu->step(1, m_gameSpeed);
+        }
 
-            // Check for mapper IRQ (VRC6 and similar)
-            if (m_cartridge->irqState()) {
-                m_cpu->irq();
-                m_cartridge->irqClear();
-            }
+        // Check for mapper IRQ (VRC6 and similar)
+        if (m_cartridge->irqState()) {
+            m_cpu->irq();
+            m_cartridge->irqClear();
         }
 
         // Carry over excess cycles to the next scanline
