@@ -198,6 +198,8 @@ public:
         
         // Reference to memory for DMA reads
         Memory* memory;
+        // Reference to CPU for IRQ
+        CPU* cpu;
         
         void reset();
         void clockTimer();

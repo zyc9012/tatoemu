@@ -447,6 +447,7 @@ void APU::DMCChannel::readSampleByte() {
                 startSample();
             } else if (irqEnabled) {
                 irqFlag = true;
+                cpu->irq();
             }
         }
     }
@@ -484,7 +485,7 @@ void APU::FrameCounter::reset() {
     cycleCounter = 0;
     step = 0;
     mode = false;
-    irqInhibit = false;
+    irqInhibit = true;
     irqFlag = false;
     resetDelay = false;
     resetCounter = 0;
@@ -545,6 +546,8 @@ void APU::reset() {
     m_noise.reset();
     m_dmc.reset();
     m_frameCounter.reset();
+
+    m_dmc.cpu = m_cpu;
     
     m_pulse1.isPulse1 = true;
     m_pulse1.sweep.pulseChannel = true;
@@ -641,6 +644,10 @@ void APU::step(u32 cpuCycles, double gameSpeed) {
                         clockHalf = true;
                         m_frameCounter.cycleCounter = 0;
                         m_frameCounter.step = 0;
+                        if (!m_frameCounter.irqInhibit) {
+                            m_frameCounter.irqFlag = true;
+                            m_cpu->irq();
+                        }
                     }
                     break;
             }
@@ -794,6 +801,7 @@ u8 APU::readStatus() {
     
     // Reading status clears frame interrupt flag
     m_frameCounter.irqFlag = false;
+    m_dmc.irqFlag = false;
     
     return result;
 }
@@ -859,6 +867,10 @@ void APU::writeRegister(u16 address, u8 value) {
         // DMC
         case 0x4010:
             m_dmc.writeControl(value);
+            // Clear CPU IRQ line when DMC IRQ is disabled (bit 7 = 0)
+            if ((value & 0x80) == 0 && m_cpu) {
+                m_dmc.irqFlag = false;
+            }
             break;
         case 0x4011:
             m_dmc.writeDirectLoad(value);
