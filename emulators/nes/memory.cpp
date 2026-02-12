@@ -60,7 +60,6 @@ u8 Memory::cpuRead(u16 address) {
                 
             default:
                 // Other APU registers are write-only
-                log_error("[MEM] Read from write-only APU register $%x", address);
                 return 0;
         }
     }
@@ -128,7 +127,6 @@ void Memory::cpuWrite(u16 address, u8 value) {
                 break;
                 
             default:
-                log_error("[MEM] Write to unmapped APU/IO register $%x = $%x", address, value);
                 break;
         }
     }

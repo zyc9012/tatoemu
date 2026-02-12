@@ -128,12 +128,12 @@ bool Cartridge::load(const fs::path& filename) {
     size_t prgRamSize = m_prgRam.size();
     if (prgRamSize > 0) {
         if (prgRamSize >= 1024) {
-            log_info("  PRG RAM: %dKB", static_cast<int>(prgRamSize / 1024));
+            log_info_nn("  PRG RAM: %dKB", static_cast<int>(prgRamSize / 1024));
         } else {
-            log_info("  PRG RAM: %d bytes", static_cast<int>(prgRamSize));
+            log_info_nn("  PRG RAM: %d bytes", static_cast<int>(prgRamSize));
         }
         if (m_hasBattery) {
-            log_info(" (battery-backed)");
+            log_info_nn(" (battery-backed)");
         }
         log_info("");
     }
@@ -147,7 +147,6 @@ bool Cartridge::load(const fs::path& filename) {
             } else {
                 log_info("  CHR RAM: %d bytes", static_cast<int>(chrRamSize));
             }
-            log_info("");
         }
     }
     
