@@ -843,7 +843,7 @@ void PPU::step() {
     // Post-render scanline (240) - idle
     
     // VBlank scanlines (241-260)
-    if (m_scanline == 241 && m_cycle == 1) {
+    else if (m_scanline == 241 && m_cycle == 1) {
         // Set VBlank flag
         m_ppuStatus |= PPUSTATUS_VBLANK;
         m_nmiOccurred = true;
@@ -862,7 +862,7 @@ void PPU::step() {
     }
     
     // Pre-render scanline (261)
-    if (m_scanline == PRE_RENDER_SCANLINE) {
+    else if (m_scanline == PRE_RENDER_SCANLINE) {
         // Clear VBlank, sprite 0 hit, and overflow at cycle 1
         if (m_cycle == 1) {
             m_ppuStatus &= ~(PPUSTATUS_VBLANK | PPUSTATUS_SPRITE0_HIT | PPUSTATUS_SPRITE_OVERFLOW);
