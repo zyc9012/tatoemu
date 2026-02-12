@@ -17,7 +17,6 @@ void Mapper069::reset() {
     m_irqEnabled = false;
     m_irqCounterEnabled = false;
     m_irqCounter = 0;
-    m_irqActive = false;
     std::memset(m_chrBanks, 0, sizeof(m_chrBanks));
     std::memset(m_prgBanks, 0, sizeof(m_prgBanks));
     std::fill(m_workRam.begin(), m_workRam.end(), 0);
@@ -142,7 +141,7 @@ void Mapper069::cpuWrite(u16 address, u8 value) {
                 // IRQ control
                 m_irqEnabled = (value & 0x01) != 0;
                 m_irqCounterEnabled = (value & 0x80) != 0;
-                m_irqActive = false;
+                m_cartridge->getCPU()->irq(0);
                 break;
                 
             case 0xE:
@@ -184,7 +183,7 @@ void Mapper069::clockAudio() {
         // When counter wraps from 0 to 0xFFFF, trigger IRQ if enabled
         if (m_irqCounter == 0xFFFF) {
             if (m_irqEnabled) {
-                m_irqActive = true;
+                m_cartridge->getCPU()->irq(1);
             }
         }
     }

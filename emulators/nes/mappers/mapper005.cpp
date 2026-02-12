@@ -245,7 +245,6 @@ void Mapper005::reset() {
     m_scanlineCounter = 0;
     m_multiplicand = 0;
     m_multiplier = 0;
-    m_irqActive = false;
     
     m_capturedExRam = 0;
     m_ppuFetchState = 0;
@@ -503,7 +502,7 @@ u8 Mapper005::cpuRead(u16 address) {
                 {
                     u8 result = m_irqStatus;
                     m_irqStatus &= ~0x80;  // Clear pending flag on read
-                    m_irqActive = false;
+                    m_cartridge->getCPU()->irq(0);
                     return result;
                 }
             case 0x5205:  // Multiply result low
@@ -643,9 +642,11 @@ void Mapper005::cpuWrite(u16 address, u8 value) {
                 break;
             case 0x5203:  // IRQ scanline
                 m_irqScanline = value;
+                m_cartridge->getCPU()->irq(0);
                 break;
             case 0x5204:  // IRQ enable
                 m_irqEnable = (value & 0x80) != 0;
+                m_cartridge->getCPU()->irq(0);
                 break;
             case 0x5205:  // Multiplicand
                 m_multiplicand = value;
@@ -838,6 +839,7 @@ void Mapper005::scanlineCounter() {
             m_irqStatus |= 0x40;
             m_scanlineCounter = 0;
             m_ppuFetchState = 0;  // Reset fetch state for new frame
+            m_cartridge->getCPU()->irq(0);
         } else if (m_inFrame) {
             // Within frame - update scanline counter
             // Only count visible scanlines (0-239)
@@ -848,7 +850,7 @@ void Mapper005::scanlineCounter() {
                 if (m_scanlineCounter == m_irqScanline) {
                     m_irqStatus |= 0x80;
                     if (m_irqEnable) {
-                        m_irqActive = true;
+                        m_cartridge->getCPU()->irq(1);
                     }
                 }
             } else if (currentScanline >= 240) {

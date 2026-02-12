@@ -23,7 +23,6 @@ void Mapper025::reset() {
     m_irqEnable = false;
     m_irqEnableOnAck = false;
     m_irqMode = false;
-    m_irqActive = false;
     updateBanks();
 }
 
@@ -107,8 +106,10 @@ void Mapper025::cpuWrite(u16 address, u8 value) {
         updateBanks();
     } else if (reg == 0xF000) {
         m_irqLatch = (m_irqLatch & 0xF0) | (value & 0x0F);
+        m_cartridge->getCPU()->irq(0);
     } else if (reg == 0xF001) {
         m_irqLatch = (m_irqLatch & 0x0F) | ((value & 0x0F) << 4);
+        m_cartridge->getCPU()->irq(0);
     } else if (reg == 0xF002) {
         m_irqEnableOnAck = (value & 0x01) != 0;
         m_irqEnable = (value & 0x02) != 0;
@@ -117,10 +118,10 @@ void Mapper025::cpuWrite(u16 address, u8 value) {
             m_irqCounter = m_irqLatch;
             m_irqPrescalerCounter = 341;
         }
-        m_irqActive = false;
+        m_cartridge->getCPU()->irq(0);
     } else if (reg == 0xF003) {
         m_irqEnable = m_irqEnableOnAck;
-        m_irqActive = false;
+        m_cartridge->getCPU()->irq(0);
     }
 }
 
@@ -148,7 +149,7 @@ void Mapper025::clockAudio() {
         // Cycle mode: clock every CPU cycle.
         if (m_irqCounter == 0xFF) {
             m_irqCounter = m_irqLatch;
-            m_irqActive = true;
+            m_cartridge->getCPU()->irq(1);
         } else {
             m_irqCounter++;
         }
@@ -160,7 +161,7 @@ void Mapper025::clockAudio() {
             
             if (m_irqCounter == 0xFF) {
                 m_irqCounter = m_irqLatch;
-                m_irqActive = true;
+                m_cartridge->getCPU()->irq(1);
             } else {
                 m_irqCounter++;
             }

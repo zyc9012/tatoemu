@@ -78,18 +78,14 @@ void CPU::reset() {
     m_stallCycles = 0;
 }
 
-void CPU::step() {
+void CPU::step(u32 cycles) {
     if (m_stallCycles > 0) {
         m_stallCycles--;
         m_cycles++;
         return;
     }
 
-    g_nesCpuContext = this;
-    int executed = m6502_execute(1);
-    if (executed < 0) {
-        executed = 0;
-    }
+    int executed = m6502_execute(cycles);
     m_cycles += static_cast<u32>(executed);
 }
 
@@ -97,9 +93,8 @@ void CPU::nmi() {
     m6502_set_nmi_hold2();
 }
 
-void CPU::irq() {
-    m6502_set_irq_line(M6502_IRQ_LINE, M6502_ASSERT_LINE);
-    m6502_set_irq_hold();
+void CPU::irq(u32 state) {
+    m6502_set_irq_line(M6502_IRQ_LINE, state);
 }
 
 void CPU::triggerOAMDMA(u8 page) {

@@ -2,6 +2,7 @@
 
 #include "../types.h"
 #include "consts.h"
+#include "cpu.h"
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -68,8 +69,6 @@ public:
     
     // Mapper IRQ (for MMC3 etc.)
     void scanlineCounter();
-    bool irqState() const;
-    void irqClear();
     
     // Expansion audio (for VRC6, VRC7, etc.)
     void clockAudio();
@@ -96,6 +95,8 @@ public:
     
     // PPU access (for mappers that need scanline/cycle info)
     PPU* getPPU() const { return m_ppu; }
+    // CPU access (for mappers that need to trigger IRQ)
+    CPU* getCPU() const { return m_cpu; }
     
     // Save/Load state
     void saveState(Buffer* buf);
@@ -138,12 +139,11 @@ private:
 // Base mapper class
 class Mapper {
 public:
-    Mapper(Cartridge* cartridge) : m_cartridge(cartridge), m_irqActive(false) {}
+    Mapper(Cartridge* cartridge) : m_cartridge(cartridge) {}
     virtual ~Mapper() = default;
     
     virtual void reset() {
         m_mirrorMode = m_baseMirrorMode;
-        m_irqActive = false;
     }
     
     virtual u8 cpuRead(u16 address) = 0;
@@ -159,12 +159,8 @@ public:
     virtual MirrorMode getMirrorMode() const { return m_mirrorMode; }
     void setBaseMirrorMode(MirrorMode mode) { m_baseMirrorMode = mode; }
     
-    // Scanline counter (for MMC3)
+    // Scanline counter (for MMC3, MMC5, etc.)
     virtual void scanlineCounter() {}
-    
-    // IRQ handling
-    virtual bool irqState() const { return m_irqActive; }
-    virtual void irqClear() { m_irqActive = false; }
     
     // Expansion audio (for VRC6, VRC7, etc.)
     virtual void clockAudio() {}
@@ -173,19 +169,16 @@ public:
     
     // Save/Load state
     virtual void saveState(Buffer* buf) {
-        buffer_write(buf, &m_irqActive, sizeof(m_irqActive));
         buffer_write(buf, &m_baseMirrorMode, sizeof(m_baseMirrorMode));
         buffer_write(buf, &m_mirrorMode, sizeof(m_mirrorMode));
     }
     virtual void loadState(Buffer* buf) {
-        buffer_read(buf, &m_irqActive, sizeof(m_irqActive));
         buffer_read(buf, &m_baseMirrorMode, sizeof(m_baseMirrorMode));
         buffer_read(buf, &m_mirrorMode, sizeof(m_mirrorMode));
     }
     
 protected:
     Cartridge* m_cartridge;
-    bool m_irqActive;
     MirrorMode m_baseMirrorMode;
     MirrorMode m_mirrorMode;
 };

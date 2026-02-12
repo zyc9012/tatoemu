@@ -15,7 +15,6 @@ void Mapper073::reset() {
     m_irqEnable = false;
     m_irqEnableOnAck = false;
     m_irqMode = false;
-    m_irqActive = false;
 }
 
 u8 Mapper073::cpuRead(u16 address) {
@@ -66,12 +65,12 @@ void Mapper073::cpuWrite(u16 address, u8 value) {
             if (m_irqEnable) {
                 m_irqCounter = m_irqLatch;
             }
-            m_irqActive = false;
+            m_cartridge->getCPU()->irq(0);
             break;
         case 0xD000:
             // IRQ acknowledge
             m_irqEnable = m_irqEnableOnAck;
-            m_irqActive = false;
+            m_cartridge->getCPU()->irq(0);
             break;
         case 0xF000:
             // PRG bank select
@@ -106,7 +105,7 @@ void Mapper073::clockAudio() {
         if (low == 0x00) {
             // Overflow: reload low byte from latch and assert IRQ
             m_irqCounter = (m_irqCounter & 0xFF00) | (m_irqLatch & 0x00FF);
-            m_irqActive = true;
+            m_cartridge->getCPU()->irq(1);
         } else {
             m_irqCounter = (m_irqCounter & 0xFF00) | low;
         }
@@ -115,7 +114,7 @@ void Mapper073::clockAudio() {
         m_irqCounter++;
         if (m_irqCounter == 0x0000) {
             m_irqCounter = m_irqLatch;
-            m_irqActive = true;
+            m_cartridge->getCPU()->irq(1);
         }
     }
 }

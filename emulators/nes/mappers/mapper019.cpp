@@ -20,7 +20,6 @@ void Mapper019::reset() {
     
     m_irqCounter = 0;
     m_irqEnable = false;
-    m_irqActive = false;
 }
 
 u8 Mapper019::cpuRead(u16 address) {
@@ -67,14 +66,14 @@ void Mapper019::cpuWrite(u16 address, u8 value) {
         case 0x5000:
             // IRQ counter low byte
             m_irqCounter = (m_irqCounter & 0x7F00) | value;
-            m_irqActive = false;
+            m_cartridge->getCPU()->irq(0);
             break;
             
         case 0x5800:
             // IRQ counter high bits + enable (bit 7)
             m_irqCounter = (m_irqCounter & 0x00FF) | ((value & 0x7F) << 8);
             m_irqEnable = (value & 0x80) != 0;
-            m_irqActive = false;
+            m_cartridge->getCPU()->irq(0);
             break;
             
         case 0x8000: case 0x8800: case 0x9000: case 0x9800:
@@ -148,7 +147,7 @@ void Mapper019::clockAudio() {
         m_irqCounter++;
         m_irqCounter &= 0x7FFF;  // keep to 15 bits
         if (m_irqCounter == 0x7FFF) {
-            m_irqActive = true;
+            m_cartridge->getCPU()->irq(1);
         }
     }
 }

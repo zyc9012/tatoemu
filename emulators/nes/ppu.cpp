@@ -907,12 +907,6 @@ void PPU::step() {
         (m_scanline < VISIBLE_SCANLINES || m_scanline == PRE_RENDER_SCANLINE)) {
         if (m_cartridge) {
             m_cartridge->scanlineCounter();
-            if (m_cartridge->irqState()) {
-                if (m_cpu) {
-                    m_cpu->irq();
-                }
-                m_cartridge->irqClear();
-            }
         }
     }
     

@@ -73,7 +73,7 @@ void Core::update() {
         u32 cyclesBefore = m_cpu->getCycles();
 
         // Execute one CPU instruction (takes multiple cycles)
-        m_cpu->step();
+        m_cpu->step(1);
 
         // Calculate how many CPU cycles the instruction took
         u32 cpuCycles = m_cpu->getCycles() - cyclesBefore;
@@ -87,13 +87,6 @@ void Core::update() {
 
         // Run APU
         m_apu->step(cpuCycles, m_gameSpeed);
-
-        // Check for mapper IRQ (for VRC6 and similar mappers that clock IRQ on CPU cycles)
-        // This is needed because VRC6 IRQ is clocked during APU step, not at PPU cycle 260
-        if (m_cartridge->irqState()) {
-            m_cpu->irq();
-            m_cartridge->irqClear();
-        }
     }
 
     m_cyclesThisFrame -= CPU_CYCLES_PER_FRAME;

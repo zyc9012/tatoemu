@@ -524,19 +524,6 @@ void Cartridge::scanlineCounter() {
     }
 }
 
-bool Cartridge::irqState() const {
-    if (m_mapper) {
-        return m_mapper->irqState();
-    }
-    return false;
-}
-
-void Cartridge::irqClear() {
-    if (m_mapper) {
-        m_mapper->irqClear();
-    }
-}
-
 void Cartridge::clockAudio() {
     if (m_mapper) {
         m_mapper->clockAudio();

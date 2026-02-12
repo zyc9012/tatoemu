@@ -16,11 +16,11 @@ public:
     Memory* getMemory() const { return m_memory; }
 
     void reset();
-    void step();
+    void step(u32 cycles);
 
     // Interrupt handling
     void nmi();
-    void irq();
+    void irq(u32 state);
 
     // Cycle tracking
     u32 getCycles() const { return m_cycles; }

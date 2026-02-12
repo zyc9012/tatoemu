@@ -288,7 +288,6 @@ void Mapper024::reset() {
     m_irqEnableOnAck = false;
     m_irqCycleMode = false;
     m_irqPrescaler = 341;
-    m_irqActive = false;
     
     std::memset(m_chrBank, 0, sizeof(m_chrBank));
     std::memset(m_chrBankOffset, 0, sizeof(m_chrBankOffset));
@@ -530,6 +529,7 @@ void Mapper024::cpuWrite(u16 address, u8 value) {
         // IRQ Latch
         case 0xF000:
             m_irqLatch = value;
+            m_cartridge->getCPU()->irq(0);
             break;
             
         // IRQ Control
@@ -544,13 +544,13 @@ void Mapper024::cpuWrite(u16 address, u8 value) {
                 m_irqCounter = m_irqLatch;
                 m_irqPrescaler = 341;  // Reset prescaler
             }
-            m_irqActive = false;  // Acknowledge pending IRQ
+            m_cartridge->getCPU()->irq(0);  // Acknowledge pending IRQ
             break;
             
         // IRQ Acknowledge
         case 0xF002:
             m_irqEnable = m_irqEnableOnAck;
-            m_irqActive = false;
+            m_cartridge->getCPU()->irq(0);
             break;
     }
 }
@@ -558,7 +558,7 @@ void Mapper024::cpuWrite(u16 address, u8 value) {
 void Mapper024::clockIRQ() {
     if (m_irqCounter == 0xFF) {
         m_irqCounter = m_irqLatch;
-        m_irqActive = true;
+        m_cartridge->getCPU()->irq(1);
     } else {
         m_irqCounter++;
     }
@@ -597,7 +597,7 @@ void Mapper024::clockAudio() {
         if (m_irqCycleMode || (!m_irqCycleMode && m_irqPrescaler <= 0)) {
             if (m_irqCounter == 0xFF) {
                 m_irqCounter = m_irqLatch;
-                m_irqActive = true;
+                m_cartridge->getCPU()->irq(1);
             } else {
                 m_irqCounter++;
             }

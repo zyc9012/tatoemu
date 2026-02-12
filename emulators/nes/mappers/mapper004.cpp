@@ -14,7 +14,6 @@ void Mapper004::reset() {
     m_irqCounter = 0;
     m_irqEnable = false;
     m_irqReload = false;
-    m_irqActive = false;
     m_prgRamEnable = true;
     m_bankData[0] = 0;
     m_bankData[1] = 2;
@@ -136,7 +135,7 @@ void Mapper004::cpuWrite(u16 address, u8 value) {
             case 0xE000:
                 // IRQ disable
                 m_irqEnable = false;
-                m_irqActive = false;
+                m_cartridge->getCPU()->irq(0);
                 break;
                 
             case 0xE001:
@@ -169,7 +168,7 @@ void Mapper004::scanlineCounter() {
     }
     
     if (m_irqCounter == 0 && m_irqEnable) {
-        m_irqActive = true;
+        m_cartridge->getCPU()->irq(1);
     }
 }
 
@@ -181,7 +180,6 @@ void Mapper004::saveState(Buffer* buf) {
     buffer_write(buf, &m_irqCounter, sizeof(m_irqCounter));
     buffer_write(buf, &m_irqEnable, sizeof(m_irqEnable));
     buffer_write(buf, &m_irqReload, sizeof(m_irqReload));
-    buffer_write(buf, &m_irqActive, sizeof(m_irqActive));
     buffer_write(buf, &m_prgRamEnable, sizeof(m_prgRamEnable));
 }
 
@@ -193,7 +191,6 @@ void Mapper004::loadState(Buffer* buf) {
     buffer_read(buf, &m_irqCounter, sizeof(m_irqCounter));
     buffer_read(buf, &m_irqEnable, sizeof(m_irqEnable));
     buffer_read(buf, &m_irqReload, sizeof(m_irqReload));
-    buffer_read(buf, &m_irqActive, sizeof(m_irqActive));
     buffer_read(buf, &m_prgRamEnable, sizeof(m_prgRamEnable));
     updateBanks();
 }
