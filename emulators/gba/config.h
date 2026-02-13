@@ -1,0 +1,23 @@
+#pragma once
+
+#include <SDL3/SDL.h>
+#include "types.h"
+
+namespace gba {
+
+namespace Config {
+namespace Key {
+    inline SDL_Keycode ButtonA = SDLK_Z;
+    inline SDL_Keycode ButtonB = SDLK_X;
+    inline SDL_Keycode ButtonL = SDLK_A;
+    inline SDL_Keycode ButtonR = SDLK_S;
+    inline SDL_Keycode Start = SDLK_RETURN;
+    inline SDL_Keycode Select = SDLK_RSHIFT;
+    inline SDL_Keycode DpadUp = SDLK_UP;
+    inline SDL_Keycode DpadDown = SDLK_DOWN;
+    inline SDL_Keycode DpadLeft = SDLK_LEFT;
+    inline SDL_Keycode DpadRight = SDLK_RIGHT;
+}
+} // namespace Config
+
+} // namespace gba

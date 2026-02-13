@@ -59,7 +59,16 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/upd4990a.cpp
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/db.cpp
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/protections.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gba/cpu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gba/memory.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gba/ppu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gba/joypad.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gba/timer.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gba/dma.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gba/cartridge.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gba/core.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/eeprom/eeprom.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/arm7/arm7.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m6502/m6502.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kcpu.c
@@ -122,6 +131,16 @@ set(COMMON_HEADERS
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/protections.h
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/config.h
     ${CMAKE_SOURCE_DIR}/emulators/neogeo/consts.h
+    ${CMAKE_SOURCE_DIR}/emulators/gba/cpu.h
+    ${CMAKE_SOURCE_DIR}/emulators/gba/memory.h
+    ${CMAKE_SOURCE_DIR}/emulators/gba/ppu.h
+    ${CMAKE_SOURCE_DIR}/emulators/gba/joypad.h
+    ${CMAKE_SOURCE_DIR}/emulators/gba/timer.h
+    ${CMAKE_SOURCE_DIR}/emulators/gba/dma.h
+    ${CMAKE_SOURCE_DIR}/emulators/gba/cartridge.h
+    ${CMAKE_SOURCE_DIR}/emulators/gba/core.h
+    ${CMAKE_SOURCE_DIR}/emulators/gba/config.h
+    ${CMAKE_SOURCE_DIR}/emulators/gba/consts.h
     ${CMAKE_SOURCE_DIR}/emulators/emulator.h
     ${CMAKE_SOURCE_DIR}/emulators/core.h
     ${CMAKE_SOURCE_DIR}/emulators/types.h
@@ -138,6 +157,7 @@ function(apply_common_target_settings target_name)
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m6502
+        ${CMAKE_SOURCE_DIR}/emulators/components/cpu/arm7
         ${CMAKE_SOURCE_DIR}/emulators/components/sound
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/ym2151
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/msm6295
@@ -170,6 +190,7 @@ function(apply_common_target_settings target_name)
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/fm/ymdeltat.c
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80.cpp
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/ay8910/ay8910.c
+        ${CMAKE_SOURCE_DIR}/emulators/components/cpu/arm7/arm7.cpp
         PROPERTIES COMPILE_OPTIONS "-Wno-unused-variable;-Wno-unused-const-variable;-Wno-unused-parameter;-Wno-unused-function;-Wno-sign-compare;-Wno-strict-prototypes"
     )
     

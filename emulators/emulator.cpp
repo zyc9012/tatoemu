@@ -5,6 +5,7 @@
 #include "cps/db.h"
 #include "neogeo/core.h"
 #include "neogeo/db.h"
+#include "gba/core.h"
 #include "../utilities/zip_reader.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -67,6 +68,8 @@ CoreType determineCoreType(const fs::path& romFilename) {
         return CoreType::GB;
     } else if (ext == ".nes") {
         return CoreType::NES;
+    } else if (ext == ".gba") {
+        return CoreType::GBA;
     } else if (ext == ".zip") {
         // Check ZIP contents for GB/GBC/NES files
         util::ZipReader zip;
@@ -87,6 +90,8 @@ CoreType determineCoreType(const fs::path& romFilename) {
                 return CoreType::GB;
             } else if (fileExt == ".nes") {
                 return CoreType::NES;
+            } else if (fileExt == ".gba") {
+                return CoreType::GBA;
             }
         }
 
@@ -202,6 +207,9 @@ bool Emulator::initialize() {
         case CoreType::NEOGEO:
             m_core = std::make_unique<neogeo::Core>();
             break;
+        case CoreType::GBA:
+            m_core = std::make_unique<gba::Core>();
+            break;
         case CoreType::UNKNOWN:
         default:
             log_error("Unsupported ROM file or unknown game: %s", m_romFilename.string().c_str());
@@ -219,12 +227,14 @@ bool Emulator::initialize() {
         return false;
     }
 
-    // Load bootrom if provided (optional, GB only)
+    // Load bootrom/BIOS if provided (optional, GB and GBA)
     if (!m_bootromFilename.empty()) {
         log_info("Loading bootrom: %s", m_bootromFilename.string().c_str());
         m_core->loadBootrom(m_bootromFilename);
     } else if (coreType == CoreType::GB) {
         log_info("No bootrom provided, starting with post-boot state");
+    } else if (coreType == CoreType::GBA) {
+        log_info("No GBA BIOS provided, using HLE (high-level emulation)");
     }
     
     if (!m_core->loadROM(m_romFilename)) {

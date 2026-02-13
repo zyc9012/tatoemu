@@ -1,0 +1,96 @@
+#pragma once
+
+#include "types.h"
+#include "consts.h"
+#include "../components/buffer.h"
+#include <cstdint>
+
+namespace gba {
+
+class Cartridge;
+class PPU;
+class Joypad;
+class Timer;
+class DMA;
+
+class Memory {
+public:
+    Memory();
+    ~Memory();
+
+    void setCartridge(Cartridge* cart) { m_cartridge = cart; }
+    void setPPU(PPU* ppu) { m_ppu = ppu; }
+    void setJoypad(Joypad* joypad) { m_joypad = joypad; }
+    void setTimer(Timer* timer) { m_timer = timer; }
+    void setDMA(DMA* dma) { m_dma = dma; }
+
+    void reset();
+    bool loadBIOS(const u8* data, u32 size);
+    bool hasBIOS() const { return m_hasBIOS; }
+
+    // Halt state (set by BIOS HLE or HALTCNT writes)
+    bool isHalted() const { return m_halted; }
+    void setHalted(bool halted) { m_halted = halted; }
+
+    // Memory access
+    u8 read8(u32 address);
+    u16 read16(u32 address);
+    u32 read32(u32 address);
+    void write8(u32 address, u8 value);
+    void write16(u32 address, u16 value);
+    void write32(u32 address, u32 value);
+
+    // Instruction fetch (separate for HLE interception)
+    u16 fetch16(u32 address);
+    u32 fetch32(u32 address);
+
+    // Direct memory access (for DMA, PPU, etc.)
+    u8* getEWRAM() { return m_ewram; }
+    u8* getIWRAM() { return m_iwram; }
+    u8* getPalette() { return m_palette; }
+    u8* getVRAM() { return m_vram; }
+    u8* getOAM() { return m_oam; }
+    u8* getIO() { return m_io; }
+
+    // IO register helpers
+    u16 readIO16(u32 offset) const;
+    void writeIO16(u32 offset, u16 value);
+    u32 readIO32(u32 offset) const;
+
+    // IRQ management
+    void requestIRQ(u16 irqBit);
+
+    // Save/Load state
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
+
+private:
+    u8 readIO(u32 address);
+    void writeIO(u32 address, u8 value);
+
+    // SWI HLE
+    void handleSWI();
+
+    // Embedded BIOS for when no real BIOS is loaded
+    void initEmbeddedBIOS();
+
+    Cartridge* m_cartridge = nullptr;
+    PPU* m_ppu = nullptr;
+    Joypad* m_joypad = nullptr;
+    Timer* m_timer = nullptr;
+    DMA* m_dma = nullptr;
+
+    u8 m_bios[BIOS_SIZE];
+    u8 m_ewram[EWRAM_SIZE];
+    u8 m_iwram[IWRAM_SIZE];
+    u8 m_io[IO_SIZE];
+    u8 m_palette[PALETTE_SIZE];
+    u8 m_vram[VRAM_SIZE];
+    u8 m_oam[OAM_SIZE];
+
+    bool m_hasBIOS = false;
+    bool m_halted = false;
+    u32 m_openBus = 0;
+};
+
+} // namespace gba

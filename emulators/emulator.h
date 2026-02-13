@@ -10,6 +10,7 @@
 
 enum class CoreType {
     GB,
+    GBA,
     NES,
     CPS,
     NEOGEO,

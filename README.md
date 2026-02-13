@@ -2,7 +2,7 @@
 
 # TatoEmu - Multi-System Retro Game Emulator
 
-TatoEmu is a multi-system retro game emulator written in C++ with SDL3 and WebAssembly targets. It currently supports GB/GBC, NES, CPS1, CPS2, and NeoGeo ROMs.
+TatoEmu is a multi-system retro game emulator written in C++ with SDL3 and WebAssembly targets. It currently supports GB/GBC, GBA, NES, CPS1, CPS2, and NeoGeo ROMs.
 
 This project is just for fun. It aims to build minimal emulators that work for most games, with only basic features like saving and loading states. It prioritizes playability over accuracy.
 
@@ -82,7 +82,7 @@ The following options and control mappings can be customized within this config 
 - `--scale-mode <mode>` - Scale mode: `linear` or `nearest` (default: linear)
 - `--sample-rate <hz>` - Audio sample rate in Hz (default: 44100)
 - `--volume <0-100>` - Audio volume level (default: 60)
-- `--bootrom <path>` - Path to bootrom file (Game Boy only)
+- `--bootrom <path>` - Path to bootrom/BIOS file (Game Boy and GBA)
 - `--neo-sys <system>` - NeoGeo system type: `aes` or `mvs` (default: mvs)
 - `--neo-bios <index>` - NeoGeo BIOS index: 0 ~ 34 (default: 19 - Universe BIOS 4.0)
 
@@ -94,6 +94,15 @@ The following options and control mappings can be customized within this config 
 - **X** - B Button
 - **Enter** - Start Button
 - **Shift** - Select Button
+
+#### Game Boy Advance
+- **Arrow Keys** - D-Pad (Up/Down/Left/Right)
+- **Z** - A Button
+- **X** - B Button
+- **A** - L Button
+- **S** - R Button
+- **Enter** - Start Button
+- **Right Shift** - Select Button
 
 #### CPS1 / CPS2
 - **Player 1:**
@@ -153,6 +162,14 @@ The following options and control mappings can be customized within this config 
 - MBC5 + RAM (0x1A-0x1B) - MBC5 with external RAM
 - MBC5 + Rumble (0x1C-0x1E) - MBC5 with rumble motor support
 - MBC7 (0x22) - Accelerometer support with 256KB RAM
+
+### Game Boy Advance
+
+- SRAM - Static RAM saves (32KB)
+- Flash 64K - Flash memory saves (64KB)
+- Flash 128K - Flash memory saves (128KB)
+- EEPROM 512 - EEPROM saves (512 bytes)
+- EEPROM 8K - EEPROM saves (8KB)
 
 ### Nintendo Entertainment System
 
