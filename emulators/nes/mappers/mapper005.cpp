@@ -247,10 +247,10 @@ void Mapper005::reset() {
     m_multiplier = 0;
     
     m_capturedExRam = 0;
-    m_ppuFetchState = 0;
     m_splitMode = 0;
     m_splitScroll = 0;
     m_splitBank = 0;
+    m_inSplitRegion = false;
     m_lastScanline = 0;
     
     std::memset(m_prgBankRegs, 0xFF, sizeof(m_prgBankRegs));
@@ -491,6 +491,29 @@ s8 Mapper005::getPRGRamBank(u16 address) {
     }
 }
 
+bool Mapper005::isInSplitRegion() const {
+    if ((m_splitMode & 0x80) && m_exRamMode < 2) {
+        u16 cycle = m_cartridge->getPPU()->getCycle();
+        
+        // Calculate which screen column is being rendered (0-31)
+        // The PPU fetches tiles ahead of rendering, hence the offset
+        u8 screenColumn = ((cycle >> 3) + 2) % 32;
+        u8 splitPosition = m_splitMode & 0x1F;
+        
+        // Get split side (bit 6: 0=left, 1=right)
+        bool splitRight = (m_splitMode & 0x40) != 0;
+        
+        // Check if we're in the split region based on screen position
+        if (splitRight) {
+            return screenColumn >= splitPosition;
+        } else {
+            return screenColumn < splitPosition;
+        }
+    }
+
+    return false;
+}
+
 u8 Mapper005::cpuRead(u16 address) {
     if (address >= 0x5000 && address < 0x5C00) {
         // MMC5 registers
@@ -634,11 +657,11 @@ void Mapper005::cpuWrite(u16 address, u8 value) {
             case 0x5200: // Split Mode
                 m_splitMode = value;
                 break;
-            case 0x5201: // Split Scroll
-                m_splitScroll = value;
+            case 0x5201: // Split Scroll (in pixels, convert to tile units)
+                m_splitScroll = (value >> 3) & 0x1F;
                 break;
             case 0x5202: // Split Bank
-                m_splitBank = value;
+                m_splitBank = value & 0x3F;  // 6-bit bank number
                 break;
             case 0x5203:  // IRQ scanline
                 m_irqScanline = value;
@@ -696,6 +719,14 @@ u32 Mapper005::mapCHR(u16 address) {
     PPU* ppu = m_cartridge->getPPU();
     bool isBgFetch = ppu->isFetchingBackgroundPattern();
     
+    // Handle split screen mode CHR banking (highest priority)
+    if (isBgFetch && m_inSplitRegion) {
+        // Use split CHR bank (4KB bank from $5202)
+        u32 bankIndex = m_splitBank & 0x3F;  // 6-bit bank number
+        
+        return bankIndex * 0x1000 + (address & 0x0FFF);
+    }
+    
     // Handle ExRAM Mode 1 banking (uses captured ExRAM byte for bank selection)
     if (isBgFetch && m_exRamMode == 1) {
         // MMC5 ExRAM Mode 1 (Extended Attributes):
@@ -739,12 +770,45 @@ void Mapper005::writeCHR(u16 address, u8 value) {
 bool Mapper005::readNametable(u16 address, u8& value) {
     bool isAttribute = ((address & 0x03C0) == 0x03C0);
     
+    // Only check split region for nametable fetches
+    if (!isAttribute) {
+        m_inSplitRegion = isInSplitRegion();
+    }
+    
+    // Handle split screen
+    if (m_inSplitRegion) {
+        u16 scanline = m_cartridge->getPPU()->getScanline();
+        u16 cycle = m_cartridge->getPPU()->getCycle();
+        u8 screenColumn = ((cycle >> 3) + 2) % 32;
+
+        // Calculate tile row with split scroll applied
+        // Split scroll is in tile units, and we adjust by scanline
+        u8 splitScrollMod = m_splitScroll < 30 ? 30 : 32;
+        u16 lineTile = (scanline / 8 + m_splitScroll) % splitScrollMod;
+        
+        if (isAttribute) {
+            // Attribute table fetch
+            // Build address using screen column and adjusted vertical tile position
+            // Attribute address: 0x23C0 + ((vt & 0x1C) << 1) + ((ht & 0x1C) >> 2)
+            u16 exRamAddr = 0x3C0 | ((lineTile & 0x1C) << 1) | ((screenColumn & 0x1C) >> 2);
+            value = m_exRam[exRamAddr & 0x3FF];
+            return true;
+        } else {
+            // Nametable fetch
+            // Build address using screen column and adjusted vertical tile position
+            // Nametable address: (vt << 5) | ht  (ignoring nametable select)
+            u16 exRamAddr = ((lineTile & 31) << 5) | (screenColumn & 31);
+            value = m_exRam[exRamAddr & 0x3FF];
+            // Capture for ExRAM mode 1 if needed
+            m_capturedExRam = value;
+            return true;
+        }
+    }
+    
     u8 nt = (address >> 10) & 0x03;
     u8 mode = (m_nametableMapping >> (nt * 2)) & 0x03;
 
     if (isAttribute) {
-        m_ppuFetchState = 2; // Next is Pattern Low
-        
         if (m_exRamMode == 1) {
             // ExRAM Mode 1: Use ExRAM for attributes
             // MMC5 provides per-tile palette in bits 6-7 of captured ExRAM.
@@ -774,8 +838,6 @@ bool Mapper005::readNametable(u16 address, u8& value) {
     } 
     else {
         // Nametable Fetch
-        m_ppuFetchState = 1; // Next is Attribute
-        
         // Capture ExRAM for next steps
         m_capturedExRam = m_exRam[address & 0x03FF];
         
@@ -838,7 +900,6 @@ void Mapper005::scanlineCounter() {
             m_inFrame = true;
             m_irqStatus |= 0x40;
             m_scanlineCounter = 0;
-            m_ppuFetchState = 0;  // Reset fetch state for new frame
             m_cartridge->getCPU()->irq(0);
         } else if (m_inFrame) {
             // Within frame - update scanline counter
@@ -897,7 +958,6 @@ void Mapper005::saveState(Buffer* buf) {
     buffer_write(buf, &m_multiplier, sizeof(m_multiplier));
     buffer_write(buf, m_prgRamExt.data(), m_prgRamExt.size());
     buffer_write(buf, &m_capturedExRam, sizeof(m_capturedExRam));
-    buffer_write(buf, &m_ppuFetchState, sizeof(m_ppuFetchState));
     buffer_write(buf, &m_splitMode, sizeof(m_splitMode));
     buffer_write(buf, &m_splitScroll, sizeof(m_splitScroll));
     buffer_write(buf, &m_splitBank, sizeof(m_splitBank));
@@ -931,7 +991,6 @@ void Mapper005::loadState(Buffer* buf) {
     buffer_read(buf, &m_multiplier, sizeof(m_multiplier));
     buffer_read(buf, m_prgRamExt.data(), m_prgRamExt.size());
     buffer_read(buf, &m_capturedExRam, sizeof(m_capturedExRam));
-    buffer_read(buf, &m_ppuFetchState, sizeof(m_ppuFetchState));
     buffer_read(buf, &m_splitMode, sizeof(m_splitMode));
     buffer_read(buf, &m_splitScroll, sizeof(m_splitScroll));
     buffer_read(buf, &m_splitBank, sizeof(m_splitBank));

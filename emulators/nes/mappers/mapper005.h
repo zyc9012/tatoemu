@@ -98,6 +98,7 @@ private:
     u8 readExRAM(u16 address);
     void writeExRAM(u16 address, u8 value);
     s8 getPRGRamBank(u16 address);  // Returns RAM bank (0-7) or -1 for ROM
+    bool isInSplitRegion() const;   // Check if nametable address is in split screen region
     
     // PRG mode and banks
     u8 m_prgMode;           // PRG banking mode (0-3)
@@ -139,12 +140,12 @@ private:
 
     // PPU Fetch State
     u8 m_capturedExRam;
-    u8 m_ppuFetchState; // 0: Idle, 1: Attr, 2: PatternLow, 3: PatternHigh
     
     // Split screen registers ($5200-$5202)
     u8 m_splitMode;
     u8 m_splitScroll;
     u8 m_splitBank;
+    bool m_inSplitRegion;  // Track if current tile is from split region
     
     // Internal tracking for scanline detection
     u16 m_lastScanline;     // Last scanline we processed (to detect changes)
