@@ -175,6 +175,38 @@ void DMA::runVBlank() {
     }
 }
 
+void DMA::runFIFO(int fifoIndex) {
+    // FIFO A uses DMA 1 or 2, FIFO B uses DMA 1 or 2
+    // SPECIAL timing DMA channels 1 and 2 can feed FIFOs
+    // fifoIndex 0 = FIFO A (dest 0x040000A0), 1 = FIFO B (dest 0x040000A4)
+    constexpr u32 FIFO_ADDR[2] = { 0x040000A0, 0x040000A4 };
+    u32 targetAddr = FIFO_ADDR[fifoIndex];
+
+    for (int i = 1; i <= 2; i++) {
+        if (!m_channels[i].active) continue;
+        int timing = (m_channels[i].control >> 12) & 3;
+        if (timing != DMA_TIMING::SPECIAL) continue;
+        if (m_channels[i].dest != targetAddr) continue;
+
+        // FIFO DMA: always transfers 4 words (16 bytes), 32-bit, fixed dest
+        u32 src = m_channels[i].internalSource;
+        for (int j = 0; j < 4; j++) {
+            u32 data = m_memory->read32(src);
+            m_memory->write32(targetAddr, data);
+            src += 4;
+        }
+        m_channels[i].internalSource = src;
+
+        // Handle completion
+        bool irq = (m_channels[i].control & (1 << 14)) != 0;
+        if (irq && m_memory) {
+            m_memory->requestIRQ(IRQ::DMA0 << i);
+        }
+        // FIFO DMA always repeats until disabled
+        break;
+    }
+}
+
 bool DMA::isActive() const {
     for (int i = 0; i < 4; i++) {
         if (m_channels[i].active) return true;

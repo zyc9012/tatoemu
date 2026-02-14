@@ -111,6 +111,25 @@ namespace IO {
     constexpr u32 DMA3CNT_L = 0x0DC;
     constexpr u32 DMA3CNT_H = 0x0DE;
 
+    // Sound
+    constexpr u32 SOUND1CNT_L = 0x060;
+    constexpr u32 SOUND1CNT_H = 0x062;
+    constexpr u32 SOUND1CNT_X = 0x064;
+    constexpr u32 SOUND2CNT_L = 0x068;
+    constexpr u32 SOUND2CNT_H = 0x06C;
+    constexpr u32 SOUND3CNT_L = 0x070;
+    constexpr u32 SOUND3CNT_H = 0x072;
+    constexpr u32 SOUND3CNT_X = 0x074;
+    constexpr u32 SOUND4CNT_L = 0x078;
+    constexpr u32 SOUND4CNT_H = 0x07C;
+    constexpr u32 SOUNDCNT_L  = 0x080;
+    constexpr u32 SOUNDCNT_H  = 0x082;
+    constexpr u32 SOUNDCNT_X  = 0x084;
+    constexpr u32 SOUNDBIAS   = 0x088;
+    constexpr u32 WAVE_RAM    = 0x090;
+    constexpr u32 FIFO_A      = 0x0A0;
+    constexpr u32 FIFO_B      = 0x0A4;
+
     // Timers
     constexpr u32 TM0CNT_L  = 0x100;
     constexpr u32 TM0CNT_H  = 0x102;

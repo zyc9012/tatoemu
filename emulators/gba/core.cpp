@@ -19,6 +19,7 @@ bool Core::initialize() {
     m_joypad = std::make_unique<Joypad>();
     m_timer = std::make_unique<Timer>();
     m_dma = std::make_unique<DMA>();
+    m_apu = std::make_unique<APU>();
 
     // Wire up components
     m_memory->setCartridge(m_cartridge.get());
@@ -26,13 +27,18 @@ bool Core::initialize() {
     m_memory->setJoypad(m_joypad.get());
     m_memory->setTimer(m_timer.get());
     m_memory->setDMA(m_dma.get());
+    m_memory->setAPU(m_apu.get());
     
     m_cpu->setMemory(m_memory.get());
     m_ppu->setMemory(m_memory.get());
     m_ppu->setDMA(m_dma.get());
     m_joypad->setMemory(m_memory.get());
     m_timer->setMemory(m_memory.get());
+    m_timer->setAPU(m_apu.get());
     m_dma->setMemory(m_memory.get());
+    m_apu->setMemory(m_memory.get());
+    m_apu->setTimer(m_timer.get());
+    m_apu->setDMA(m_dma.get());
 
     return true;
 }
@@ -44,8 +50,9 @@ void Core::setVideoDevice(VideoDevice* videoDevice) {
 }
 
 void Core::setAudioDevice(AudioDevice* audioDevice) {
-    (void)audioDevice;
-    // TODO: Implement audio
+    if (m_apu) {
+        m_apu->setAudioDevice(audioDevice);
+    }
 }
 
 bool Core::loadBootrom(const fs::path& filename) {
@@ -99,6 +106,7 @@ bool Core::loadROM(const fs::path& filename) {
     m_ppu->reset();
     m_timer->reset();
     m_dma->reset();
+    m_apu->reset();
 
     return true;
 }
@@ -114,6 +122,7 @@ void Core::update() {
         // Step other components
         m_ppu->step(cycles);
         m_timer->step(cycles);
+        m_apu->step(cycles);
         
         // Run any triggered DMAs
         m_dma->runImmediate();
@@ -135,6 +144,7 @@ bool Core::saveState(const fs::path& filename) {
     m_timer->saveState(&buf);
     m_joypad->saveState(&buf);
     m_dma->saveState(&buf);
+    m_apu->saveState(&buf);
     m_cartridge->saveState(&buf);
     
     return buffer_save_to_file(&buf, filename);
@@ -152,6 +162,7 @@ bool Core::loadState(const fs::path& filename) {
     m_timer->loadState(&buf);
     m_joypad->loadState(&buf);
     m_dma->loadState(&buf);
+    m_apu->loadState(&buf);
     m_cartridge->loadState(&buf);
 
     return true;

@@ -1,5 +1,6 @@
 #include "timer.h"
 #include "memory.h"
+#include "apu.h"
 
 namespace gba {
 
@@ -68,6 +69,11 @@ void Timer::checkOverflow(int channel) {
         if (m_memory) {
             m_memory->requestIRQ(IRQ::TIMER0 << channel);
         }
+    }
+
+    // Notify APU of timer overflow (for DMA sound / FIFO channels)
+    if (m_apu && (channel == 0 || channel == 1)) {
+        m_apu->onTimerOverflow(channel);
     }
 }
 

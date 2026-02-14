@@ -4,6 +4,7 @@
 #include "joypad.h"
 #include "timer.h"
 #include "dma.h"
+#include "apu.h"
 #include "cpu.h"
 #include <cstring>
 
@@ -289,6 +290,11 @@ u32 Memory::fetch32(u32 address) {
 u8 Memory::readIO(u32 address) {
     if (address >= IO_SIZE) return 0;
     
+    // Sound registers — route to APU
+    if (m_apu && address >= IO::SOUND1CNT_L && address <= IO::WAVE_RAM + 0xF) {
+        return m_apu->readRegister(address);
+    }
+
     // Handle special read-only registers
     switch (address) {
         case IO::KEYINPUT:
@@ -372,7 +378,12 @@ void Memory::writeIO16(u32 offset, u16 value) {
     if (offset >= IO_SIZE - 1) return;
     
     // Forward to subsystems
-    if (m_ppu && offset >= IO::DISPCNT && offset < IO::DMA0SAD) {
+    if (m_apu && offset >= IO::SOUND1CNT_L && offset <= IO::FIFO_B + 3) {
+        m_apu->writeRegister(offset, value);
+        // Also store to IO array for reads that bypass APU
+        *reinterpret_cast<u16*>(&m_io[offset]) = value;
+        return;
+    } else if (m_ppu && offset >= IO::DISPCNT && offset < IO::SOUND1CNT_L) {
         m_ppu->writeRegister(offset, value);
     } else if (m_timer && offset >= IO::TM0CNT_L && offset <= IO::TM3CNT_H) {
         m_timer->writeRegister(offset, value);

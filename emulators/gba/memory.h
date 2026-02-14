@@ -12,6 +12,7 @@ class PPU;
 class Joypad;
 class Timer;
 class DMA;
+class APU;
 
 class Memory {
 public:
@@ -23,6 +24,7 @@ public:
     void setJoypad(Joypad* joypad) { m_joypad = joypad; }
     void setTimer(Timer* timer) { m_timer = timer; }
     void setDMA(DMA* dma) { m_dma = dma; }
+    void setAPU(APU* apu) { m_apu = apu; }
 
     void reset();
     bool loadBIOS(const u8* data, u32 size);
@@ -79,6 +81,7 @@ private:
     Joypad* m_joypad = nullptr;
     Timer* m_timer = nullptr;
     DMA* m_dma = nullptr;
+    APU* m_apu = nullptr;
 
     u8 m_bios[BIOS_SIZE];
     u8 m_ewram[EWRAM_SIZE];

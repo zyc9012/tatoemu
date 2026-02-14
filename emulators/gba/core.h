@@ -8,6 +8,7 @@
 #include "joypad.h"
 #include "timer.h"
 #include "dma.h"
+#include "apu.h"
 #include "cartridge.h"
 #include "config.h"
 #include <filesystem>
@@ -30,8 +31,8 @@ public:
     bool handleInput(SDL_Event& event) override { return m_joypad->handleInput(event); }
     void update() override;
     void updateGameSpeed(double gameSpeed) override;
-    void setAudioSampleRate(u32 sampleRate) override { (void)sampleRate; /* TODO: sound */ }
-    void setAudioVolume(float volume) override { (void)volume; /* TODO: sound */ }
+    void setAudioSampleRate(u32 sampleRate) override { if (m_apu) m_apu->setSampleRate(sampleRate); }
+    void setAudioVolume(float volume) override { if (m_apu) m_apu->setVolume(volume); }
 
     // Constants
     double getTargetFPS() const override { return TARGET_FPS; }
@@ -52,6 +53,7 @@ private:
     std::unique_ptr<Joypad> m_joypad;
     std::unique_ptr<Timer> m_timer;
     std::unique_ptr<DMA> m_dma;
+    std::unique_ptr<APU> m_apu;
     std::unique_ptr<Cartridge> m_cartridge;
     
     u32 m_cyclesThisFrame;

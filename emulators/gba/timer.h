@@ -7,6 +7,7 @@
 namespace gba {
 
 class Memory;
+class APU;
 
 struct TimerChannel {
     u16 reload;
@@ -24,6 +25,7 @@ public:
     ~Timer();
 
     void setMemory(Memory* memory) { m_memory = memory; }
+    void setAPU(APU* apu) { m_apu = apu; }
     
     void reset();
     void step(int cycles);
@@ -40,6 +42,7 @@ private:
     void checkOverflow(int channel);
     
     Memory* m_memory = nullptr;
+    APU* m_apu = nullptr;
     TimerChannel m_timers[4];
 };
 

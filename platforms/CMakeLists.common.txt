@@ -65,6 +65,7 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/gba/joypad.cpp
     ${CMAKE_SOURCE_DIR}/emulators/gba/timer.cpp
     ${CMAKE_SOURCE_DIR}/emulators/gba/dma.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gba/apu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/gba/cartridge.cpp
     ${CMAKE_SOURCE_DIR}/emulators/gba/core.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/eeprom/eeprom.cpp
@@ -137,6 +138,7 @@ set(COMMON_HEADERS
     ${CMAKE_SOURCE_DIR}/emulators/gba/joypad.h
     ${CMAKE_SOURCE_DIR}/emulators/gba/timer.h
     ${CMAKE_SOURCE_DIR}/emulators/gba/dma.h
+    ${CMAKE_SOURCE_DIR}/emulators/gba/apu.h
     ${CMAKE_SOURCE_DIR}/emulators/gba/cartridge.h
     ${CMAKE_SOURCE_DIR}/emulators/gba/core.h
     ${CMAKE_SOURCE_DIR}/emulators/gba/config.h

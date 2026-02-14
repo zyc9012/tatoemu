@@ -34,6 +34,7 @@ public:
     void runImmediate();
     void runHBlank();
     void runVBlank();
+    void runFIFO(int fifoIndex);
     
     bool isActive() const;
     
