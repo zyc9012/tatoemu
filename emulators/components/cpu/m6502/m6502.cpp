@@ -290,6 +290,7 @@ void M6502::op_STY(uint16_t addr) {
  * Flags: N, Z
  */
 void M6502::op_TAX() {
+    read(m_pc);  // Dummy read for cycle accuracy
     m_x = m_a;
     updateNZ(m_x);
 }
@@ -300,6 +301,7 @@ void M6502::op_TAX() {
  * Flags: N, Z
  */
 void M6502::op_TAY() {
+    read(m_pc);  // Dummy read for cycle accuracy
     m_y = m_a;
     updateNZ(m_y);
 }
@@ -310,6 +312,7 @@ void M6502::op_TAY() {
  * Flags: N, Z
  */
 void M6502::op_TXA() {
+    read(m_pc);  // Dummy read for cycle accuracy
     m_a = m_x;
     updateNZ(m_a);
 }
@@ -320,6 +323,7 @@ void M6502::op_TXA() {
  * Flags: N, Z
  */
 void M6502::op_TYA() {
+    read(m_pc);  // Dummy read for cycle accuracy
     m_a = m_y;
     updateNZ(m_a);
 }
@@ -330,6 +334,7 @@ void M6502::op_TYA() {
  * Flags: N, Z
  */
 void M6502::op_TSX() {
+    read(m_pc);  // Dummy read for cycle accuracy
     m_x = m_s;
     updateNZ(m_x);
 }
@@ -340,6 +345,7 @@ void M6502::op_TSX() {
  * No flags affected.
  */
 void M6502::op_TXS() {
+    read(m_pc);  // Dummy read for cycle accuracy
     m_s = m_x;
 }
 
