@@ -2,11 +2,21 @@
 
 #include "../types.h"
 #include "../components/buffer.h"
+#include <memory>
+
+class M6502;
 
 namespace nes {
 
 class Memory;
 
+/**
+ * @brief NES CPU wrapper for the 2A03 processor
+ * 
+ * The 2A03 is a modified 6502 without decimal mode support.
+ * This class wraps the modern m6502 implementation and provides
+ * NES-specific functionality like DMA cycles and save states.
+ */
 class CPU {
 public:
     CPU();
@@ -37,6 +47,7 @@ public:
 
 private:
     Memory* m_memory;
+    std::unique_ptr<M6502> m_cpu;
 
     u32 m_cycles;
     u32 m_stallCycles;

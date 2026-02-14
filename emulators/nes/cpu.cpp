@@ -3,100 +3,97 @@
 #include "../components/cpu/m6502/m6502.h"
 #include <cstddef>
 #include <cstring>
-#include <vector>
-
-namespace {
-static nes::CPU* g_nesCpuContext = nullptr;
-
-static nes::Memory* getMemory() {
-    if (g_nesCpuContext) {
-        return g_nesCpuContext->getMemory();
-    }
-    return nullptr;
-}
-}
-
-unsigned char M6502ReadPort(unsigned short address) {
-    nes::Memory* memory = getMemory();
-    if (memory) {
-        return memory->cpuRead(address);
-    }
-    return 0;
-}
-
-void M6502WritePort(unsigned short address, unsigned char data) {
-    nes::Memory* memory = getMemory();
-    if (memory) {
-        memory->cpuWrite(address, data);
-    }
-}
-
-unsigned char M6502ReadByte(unsigned short address) {
-    nes::Memory* memory = getMemory();
-    if (memory) {
-        return memory->cpuRead(address);
-    }
-    return 0;
-}
-
-void M6502WriteByte(unsigned short address, unsigned char data) {
-    nes::Memory* memory = getMemory();
-    if (memory) {
-        memory->cpuWrite(address, data);
-    }
-}
-
-unsigned char M6502ReadOp(unsigned short address) {
-    return M6502ReadByte(address);
-}
-
-unsigned char M6502ReadOpArg(unsigned short address) {
-    return M6502ReadByte(address);
-}
 
 namespace nes {
 
+/**
+ * @brief Construct a new NES CPU
+ * 
+ * Creates a 2A03 CPU (6502 variant without decimal mode)
+ * and sets up memory access callbacks.
+ */
 CPU::CPU()
     : m_memory(nullptr)
+    , m_cpu(std::make_unique<M6502>(M6502::Variant::NMOS_2A03))
     , m_cycles(0)
     , m_stallCycles(0) {
-
-    n2a03_init();
-    g_nesCpuContext = this;
+    
+    // Set up memory read callback
+    m_cpu->setReadCallback([this](uint16_t addr) -> uint8_t {
+        if (m_memory) {
+            return m_memory->cpuRead(addr);
+        }
+        return 0;
+    });
+    
+    // Set up memory write callback
+    m_cpu->setWriteCallback([this](uint16_t addr, uint8_t data) {
+        if (m_memory) {
+            m_memory->cpuWrite(addr, data);
+        }
+    });
 }
 
-CPU::~CPU() {
-    if (g_nesCpuContext == this) {
-        g_nesCpuContext = nullptr;
-    }
-}
+CPU::~CPU() = default;
 
+/**
+ * @brief Reset the CPU
+ * 
+ * Resets the 2A03 CPU to initial state and clears cycle counters.
+ */
 void CPU::reset() {
-    g_nesCpuContext = this;
-    m6502_reset();
+    m_cpu->reset();
     m_cycles = 0;
     m_stallCycles = 0;
 }
 
+/**
+ * @brief Execute CPU for specified number of cycles
+ * @param cycles Number of cycles to execute
+ * 
+ * Handles DMA stalling and executes CPU instructions.
+ */
 void CPU::step(u32 cycles) {
+    // Handle DMA stalls
     if (m_stallCycles > 0) {
         m_stallCycles--;
         m_cycles++;
         return;
     }
 
-    int executed = m6502_execute(cycles);
+    // Execute CPU
+    int executed = m_cpu->execute(static_cast<int>(cycles));
     m_cycles += static_cast<u32>(executed);
 }
 
+/**
+ * @brief Trigger NMI (Non-Maskable Interrupt)
+ * 
+ * NES-specific: NMI is delayed by 2 cycles when triggered during VBLANK.
+ */
 void CPU::nmi() {
-    m6502_set_nmi_hold2();
+    m_cpu->setNMIDelay(2);
+    m_cpu->setHoldNMI(true);
 }
 
+/**
+ * @brief Set IRQ (Interrupt Request) line state
+ * @param state 1 = assert, 0 = clear
+ */
 void CPU::irq(u32 state) {
-    m6502_set_irq_line(M6502_IRQ_LINE, state);
+    m_cpu->setInterruptLine(
+        M6502::InterruptLine::IRQ,
+        state ? M6502::LineState::ASSERT 
+              : M6502::LineState::CLEAR
+    );
 }
 
+/**
+ * @brief Trigger OAM DMA transfer
+ * @param page High byte of source address
+ * 
+ * OAM DMA takes 513 cycles, or 514 if starting on an odd cycle.
+ */
 void CPU::triggerOAMDMA(u8 page) {
     (void)page;
 
@@ -107,44 +104,30 @@ void CPU::triggerOAMDMA(u8 page) {
     m_stallCycles += dmaCycles;
 }
 
+/**
+ * @brief Save CPU state to buffer
+ * @param buf Buffer to write state to
+ */
 void CPU::saveState(Buffer* buf) {
-    m6502_Regs regs = {};
-    m6502_get_context(&regs);
-
-    size_t sizeNoPointers = offsetof(m6502_Regs, irq_callback);
-    buffer_write(buf, &sizeNoPointers, sizeof(sizeNoPointers));
-    buffer_write(buf, &regs, sizeNoPointers);
-    buffer_write(buf, &regs.fetching_opcode, sizeof(regs.fetching_opcode));
+    M6502::State state;
+    m_cpu->saveState(state);
+    
+    buffer_write(buf, &state, sizeof(state));
     buffer_write(buf, &m_cycles, sizeof(m_cycles));
     buffer_write(buf, &m_stallCycles, sizeof(m_stallCycles));
 }
 
+/**
+ * @brief Load CPU state from buffer
+ * @param buf Buffer to read state from
+ */
 void CPU::loadState(Buffer* buf) {
-    size_t sizeNoPointers = 0;
-    buffer_read(buf, &sizeNoPointers, sizeof(sizeNoPointers));
-
-    if (sizeNoPointers != offsetof(m6502_Regs, irq_callback)) {
-        log_error("Error: Saved CPU context size mismatch");
-        return;
-    }
-
-    std::vector<char> savedContext(sizeNoPointers);
-    buffer_read(buf, savedContext.data(), sizeNoPointers);
-
-    int fetchingOpcode = 0;
-    buffer_read(buf, &fetchingOpcode, sizeof(fetchingOpcode));
-
-    m6502_Regs current = {};
-    m6502_get_context(&current);
-    std::memcpy(&current, savedContext.data(), sizeNoPointers);
-    current.irq_callback = nullptr;
-    current.fetching_opcode = fetchingOpcode;
-    m6502_set_context(&current);
-
+    M6502::State state;
+    buffer_read(buf, &state, sizeof(state));
+    m_cpu->loadState(state);
+    
     buffer_read(buf, &m_cycles, sizeof(m_cycles));
     buffer_read(buf, &m_stallCycles, sizeof(m_stallCycles));
-
-    g_nesCpuContext = this;
 }
 
 } // namespace nes
