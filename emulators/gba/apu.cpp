@@ -78,11 +78,11 @@ void APU::reset() {
 // ---------------------------------------------------------------
 // step() — called every CPU cycle batch
 // ---------------------------------------------------------------
-void APU::step(u32 cycles) {
+void APU::step(u32 cycles, double gameSpeed) {
     if (!m_masterEnable) {
         // Still generate silence to keep the audio buffer filled
         m_sampleTimer += cycles;
-        u32 cyclesPerSample = CPU_FREQUENCY / m_sampleRate;
+        u32 cyclesPerSample = (CPU_FREQUENCY * gameSpeed) / m_sampleRate;
         while (m_sampleTimer >= cyclesPerSample) {
             m_sampleTimer -= cyclesPerSample;
             // Push silence
@@ -150,7 +150,7 @@ void APU::step(u32 cycles) {
         }
 
         // Generate output sample at the configured sample rate
-        generateSample();
+        generateSample(gameSpeed);
     }
 }
 
@@ -186,9 +186,9 @@ void APU::clockFrameSequencer() {
 // ---------------------------------------------------------------
 // Sample generation and mixing
 // ---------------------------------------------------------------
-void APU::generateSample() {
+void APU::generateSample(double gameSpeed) {
     m_sampleTimer++;
-    u32 cyclesPerSample = CPU_FREQUENCY / m_sampleRate;
+    u32 cyclesPerSample = (CPU_FREQUENCY * gameSpeed) / m_sampleRate;
 
     if (m_sampleTimer < cyclesPerSample) return;
     m_sampleTimer -= cyclesPerSample;

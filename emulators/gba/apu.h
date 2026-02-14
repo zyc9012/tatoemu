@@ -22,7 +22,7 @@ public:
     void setAudioDevice(AudioDevice* device) { m_audioDevice = device; }
 
     void reset();
-    void step(u32 cycles);
+    void step(u32 cycles, double gameSpeed = 1.0);
 
     // IO register access
     u8 readRegister(u32 offset) const;
@@ -153,7 +153,7 @@ private:
     void clockFrameSequencer();
 
     // Sample generation and output
-    void generateSample();
+    void generateSample(double gameSpeed);
 
     // Duty cycle patterns (same as GB)
     static constexpr u8 DUTY_PATTERNS[4][8] = {

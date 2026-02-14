@@ -113,16 +113,14 @@ bool Core::loadROM(const fs::path& filename) {
 
 void Core::update() {
     // Run until we've executed enough cycles for one frame
-    u32 targetCycles = static_cast<u32>(CYCLES_PER_FRAME / m_gameSpeed);
-    
-    while (m_cyclesThisFrame < targetCycles) {
+    while (m_cyclesThisFrame < CYCLES_PER_FRAME) {
         // Step CPU
         u32 cycles = m_cpu->step();
         
         // Step other components
         m_ppu->step(cycles);
         m_timer->step(cycles);
-        m_apu->step(cycles);
+        m_apu->step(cycles, m_gameSpeed);
         
         // Run any triggered DMAs
         m_dma->runImmediate();
@@ -130,7 +128,7 @@ void Core::update() {
         m_cyclesThisFrame += cycles;
     }
     
-    m_cyclesThisFrame -= targetCycles;
+    m_cyclesThisFrame -= CYCLES_PER_FRAME;
 }
 
 bool Core::saveState(const fs::path& filename) {
