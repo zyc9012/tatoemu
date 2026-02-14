@@ -115,7 +115,12 @@ u16 Memory::read16(u32 address) {
         case REGION_ROM1H:
         case REGION_ROM2:
         case REGION_ROM2H:
-            if (m_cartridge && offset < m_cartridge->getROMSize()) {
+            // Check for EEPROM access in ROM2_EX region  (0x0D000000)
+            if (region == REGION_ROM2H && m_cartridge->hasEEPROM()) {
+                u16 data = m_cartridge->readEEPROM();
+                return data | (data << 8); // Replicate to full 16-bit
+            }
+            if (offset < m_cartridge->getROMSize()) {
                 offset &= (m_cartridge->getROMSize() - 1);
                 return *reinterpret_cast<u16*>(&m_cartridge->getROM()[offset]);
             }

@@ -25,6 +25,8 @@ public:
     void setTimer(Timer* timer) { m_timer = timer; }
     void setDMA(DMA* dma) { m_dma = dma; }
     void setAPU(APU* apu) { m_apu = apu; }
+    
+    Cartridge* getCartridge() const { return m_cartridge; }
 
     void reset();
     bool loadBIOS(const u8* data, u32 size);

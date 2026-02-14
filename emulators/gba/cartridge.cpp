@@ -1,4 +1,5 @@
 #include "cartridge.h"
+#include "eeprom.h"
 #include "../../utilities/zip_reader.h"
 #include <algorithm>
 #include <cstring>
@@ -79,10 +80,10 @@ bool Cartridge::load(const fs::path& filename) {
             m_sram.resize(0x20000, 0xFF); // 128KB
             break;
         case SaveType::EEPROM_512:
-            m_sram.resize(0x200, 0xFF); // 512 bytes
+            m_eeprom.init(false); // 512 bytes
             break;
         case SaveType::EEPROM_8K:
-            m_sram.resize(0x2000, 0xFF); // 8KB
+            m_eeprom.init(true); // 8KB
             break;
         default:
             break;
@@ -138,7 +139,9 @@ void Cartridge::detectSaveType() {
         m_saveType = SaveType::SRAM;
     } else if (romStr.find(eepromStr) != std::string::npos) {
         // EEPROM size depends on the ROM size
-        m_saveType = (m_rom.size() > 0x1000000) ? SaveType::EEPROM_8K : SaveType::EEPROM_512;
+        // ROMs >= 16MB use 8K EEPROM, smaller use 512B
+        bool use8K = m_rom.size() >= 0x1000000;
+        m_saveType = use8K ? SaveType::EEPROM_8K : SaveType::EEPROM_512;
     } else {
         m_saveType = SaveType::NONE;
     }
@@ -239,23 +242,78 @@ void Cartridge::writeSave(u32 address, u8 value) {
     }
 }
 
+u16 Cartridge::readEEPROM() {
+    if (hasEEPROM() && m_eeprom.isInitialized()) {
+        return m_eeprom.read();
+    }
+    return 1; // Ready/idle state
+}
+
+void Cartridge::writeEEPROM(u16 value, u32 writeSize) {
+    if (!hasEEPROM()) {
+        // Auto-detect EEPROM if not already detected
+        if (m_saveType == SaveType::NONE) {
+            // Default to 512B, will auto-upgrade to 8K if needed
+            m_saveType = SaveType::EEPROM_512;
+            m_eeprom.init(false);
+            log_info("Auto-detected EEPROM save type");
+        } else {
+            return;
+        }
+    }
+    
+    if (!m_eeprom.isInitialized()) {
+        m_eeprom.init(m_saveType == SaveType::EEPROM_8K);
+    }
+    
+    m_eeprom.write(value, writeSize);
+}
+
 void Cartridge::saveBattery() const {
-    if (m_sram.empty() || m_savePath.empty()) return;
-    FILE* file = fopen(m_savePath.string().c_str(), "wb");
-    if (file) {
-        fwrite(m_sram.data(), 1, m_sram.size(), file);
-        fclose(file);
-        log_info("Battery saved: %s", m_savePath.string().c_str());
+    if (hasEEPROM() && m_eeprom.isInitialized()) {
+        // Save EEPROM data
+        FILE* file = fopen(m_savePath.string().c_str(), "wb");
+        if (file) {
+            fwrite(m_eeprom.getData(), 1, m_eeprom.getSize(), file);
+            fclose(file);
+            log_info("Battery saved (EEPROM): %s", m_savePath.string().c_str());
+        }
+    } else if (!m_sram.empty() && !m_savePath.empty()) {
+        FILE* file = fopen(m_savePath.string().c_str(), "wb");
+        if (file) {
+            fwrite(m_sram.data(), 1, m_sram.size(), file);
+            fclose(file);
+            log_info("Battery saved: %s", m_savePath.string().c_str());
+        }
     }
 }
 
 void Cartridge::loadBattery() {
-    if (m_sram.empty() || m_savePath.empty()) return;
-    FILE* file = fopen(m_savePath.string().c_str(), "rb");
-    if (file) {
-        fread(m_sram.data(), 1, m_sram.size(), file);
-        fclose(file);
-        log_info("Battery loaded: %s", m_savePath.string().c_str());
+    if (hasEEPROM() && m_eeprom.isInitialized()) {
+        // Load EEPROM data
+        FILE* file = fopen(m_savePath.string().c_str(), "rb");
+        if (file) {
+            fseek(file, 0, SEEK_END);
+            long size = ftell(file);
+            fseek(file, 0, SEEK_SET);
+            
+            // Auto-upgrade to 8K if file is larger than 512 bytes
+            if (size > 0x200 && !m_eeprom.is8K()) {
+                m_eeprom.upgradeTo8K();
+                m_saveType = SaveType::EEPROM_8K;
+            }
+            
+            fread(m_eeprom.getData(), 1, std::min(static_cast<long>(m_eeprom.getSize()), size), file);
+            fclose(file);
+            log_info("Battery loaded (EEPROM): %s", m_savePath.string().c_str());
+        }
+    } else if (!m_sram.empty() && !m_savePath.empty()) {
+        FILE* file = fopen(m_savePath.string().c_str(), "rb");
+        if (file) {
+            fread(m_sram.data(), 1, m_sram.size(), file);
+            fclose(file);
+            log_info("Battery loaded: %s", m_savePath.string().c_str());
+        }
     }
 }
 
@@ -271,6 +329,9 @@ void Cartridge::saveState(Buffer* buf) {
     buffer_write(buf, &m_flashState, sizeof(m_flashState));
     buffer_write(buf, &m_flashBank, sizeof(m_flashBank));
     buffer_write(buf, &m_flashIdMode, sizeof(m_flashIdMode));
+    
+    // Save EEPROM state
+    m_eeprom.saveState(buf);
 }
 
 void Cartridge::loadState(Buffer* buf) {
@@ -286,6 +347,9 @@ void Cartridge::loadState(Buffer* buf) {
     buffer_read(buf, &m_flashState, sizeof(m_flashState));
     buffer_read(buf, &m_flashBank, sizeof(m_flashBank));
     buffer_read(buf, &m_flashIdMode, sizeof(m_flashIdMode));
+    
+    // Load EEPROM state
+    m_eeprom.loadState(buf);
 }
 
 } // namespace gba

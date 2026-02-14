@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include "consts.h"
+#include "eeprom.h"
 #include "../components/buffer.h"
 #include <filesystem>
 #include <string>
@@ -27,6 +28,12 @@ public:
     // SRAM/Flash access
     u8 readSave(u32 address) const;
     void writeSave(u32 address, u8 value);
+    
+    // EEPROM access (called by DMA when accessing ROM2_EX region)
+    u16 readEEPROM();
+    void writeEEPROM(u16 value, u32 writeSize);
+    bool hasEEPROM() const { return m_saveType == SaveType::EEPROM_512 || m_saveType == SaveType::EEPROM_8K; }
+    EEPROM* getEEPROM() { return &m_eeprom; }
 
     // Battery save/load
     void saveBattery() const;
@@ -55,6 +62,9 @@ private:
     FlashState m_flashState = FlashState::READY;
     u8 m_flashBank = 0;
     bool m_flashIdMode = false;
+    
+    // EEPROM
+    EEPROM m_eeprom;
 };
 
 } // namespace gba

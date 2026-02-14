@@ -1,5 +1,6 @@
 #include "dma.h"
 #include "memory.h"
+#include "cartridge.h"
 
 namespace gba {
 
@@ -88,6 +89,11 @@ void DMA::run(int channel) {
     u32 dst = m_channels[channel].internalDest;
     u16 count = m_channels[channel].internalCount;
     
+    // Check for EEPROM access (ROM2_EX region = 0x0D000000)
+    u32 srcRegion = (src >> 24) & 0xF;
+    u32 dstRegion = (dst >> 24) & 0xF;
+    Cartridge* cart = m_memory->getCartridge();
+    
     for (u16 i = 0; i < count; i++) {
         if (is32bit) {
             u32 data = m_memory->read32(src);
@@ -103,8 +109,23 @@ void DMA::run(int channel) {
             else if (dstCtrl == 1) dst -= 4;
             else if (dstCtrl == 3) dst += 4; // Increment+reload
         } else {
-            u16 data = m_memory->read16(src);
-            m_memory->write16(dst, data);
+            u16 data;
+            u16 remainingCount = count - i;
+            
+            // EEPROM read through DMA from ROM2_EX region (0x0D000000)
+            if (srcRegion == REGION_ROM2H && cart->hasEEPROM()) {
+                data = cart->readEEPROM();
+                data |= data << 8; // Replicate to full 16-bit
+            } else {
+                data = m_memory->read16(src);
+            }
+            
+            // EEPROM write through DMA to ROM2_EX region (0x0D000000)
+            if (dstRegion == REGION_ROM2H) {
+                cart->writeEEPROM(data, remainingCount);
+            } else {
+                m_memory->write16(dst, data);
+            }
             
             if (srcCtrl == 0) src += 2;
             else if (srcCtrl == 1) src -= 2;
