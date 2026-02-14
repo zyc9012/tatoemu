@@ -62,23 +62,33 @@ private:
         }
     }
     
+    // Window support
+    // Window flags per pixel: bit layout matches WININ/WINOUT
+    //   bit 0: BG0, bit 1: BG1, bit 2: BG2, bit 3: BG3, bit 4: OBJ, bit 5: SFX
+    void computeWindowFlags(u16 dispcnt, int y, u8* oam, u8* vram, u8* windowFlags);
+    
     // Rendering helpers
     void renderTextBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram,
-                      ScanPixel* top, ScanPixel* bot);
+                      ScanPixel* top, ScanPixel* bot, const u8* windowFlags);
     void renderAffineBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram,
-                        ScanPixel* top, ScanPixel* bot);
+                        ScanPixel* top, ScanPixel* bot, const u8* windowFlags);
     void renderBitmapMode3(int y, u8* vram,
-                           ScanPixel* top, ScanPixel* bot);
+                           ScanPixel* top, ScanPixel* bot, const u8* windowFlags);
     void renderBitmapMode4(int y, u16 dispcnt, u8* palette, u8* vram,
-                           ScanPixel* top, ScanPixel* bot);
+                           ScanPixel* top, ScanPixel* bot, const u8* windowFlags);
     void renderBitmapMode5(int y, u16 dispcnt, u8* vram,
-                           ScanPixel* top, ScanPixel* bot);
+                           ScanPixel* top, ScanPixel* bot, const u8* windowFlags);
     void renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam,
-                       ScanPixel* top, ScanPixel* bot, bool* objSemiTransparent);
+                       ScanPixel* top, ScanPixel* bot, bool* objSemiTransparent,
+                       const u8* windowFlags);
     u8 getObjPixel(int tileIndex, int x, int y, int objWidth, bool is8bpp, bool mapping1D, u8* objVram);
     
+    // OBJ window mask (which pixels have OBJ window sprites)
+    void computeObjWindowMask(int y, u16 dispcnt, u8* oam, u8* vram, bool* mask);
+    
     // Blending / color special effects
-    void composeScanline(u32* line, ScanPixel* top, ScanPixel* bot, bool* objSemiTransparent);
+    void composeScanline(u32* line, ScanPixel* top, ScanPixel* bot,
+                         bool* objSemiTransparent, const u8* windowFlags);
     
     Memory* m_memory = nullptr;
     DMA* m_dma = nullptr;

@@ -106,6 +106,181 @@ static const u8 OBJ_SIZES[3][4][2] = {
     {{8,16}, {8,32}, {16,32}, {32,64}},
 };
 
+void PPU::computeObjWindowMask(int y, u16 dispcnt, u8* oam, u8* vram, bool* mask) {
+    // Initialize mask to false
+    for (int x = 0; x < SCREEN_WIDTH; x++) mask[x] = false;
+    
+    bool objMapping1D = (dispcnt & (1 << 6)) != 0;
+    u8* objVram = &vram[0x10000];
+    
+    for (int i = 127; i >= 0; i--) {
+        u16 attr0 = *reinterpret_cast<u16*>(&oam[i * 8]);
+        u16 attr1 = *reinterpret_cast<u16*>(&oam[i * 8 + 2]);
+        u16 attr2 = *reinterpret_cast<u16*>(&oam[i * 8 + 4]);
+        
+        bool isAffine = (attr0 & (1 << 8)) != 0;
+        if (!isAffine && (attr0 & (1 << 9))) continue; // Disabled
+        
+        int objMode = (attr0 >> 10) & 3;
+        if (objMode != 2) continue; // Only OBJ window sprites
+        
+        int shape = (attr0 >> 14) & 3;
+        if (shape == 3) continue;
+        int size = (attr1 >> 14) & 3;
+        
+        int objWidth = OBJ_SIZES[shape][size][0];
+        int objHeight = OBJ_SIZES[shape][size][1];
+        
+        int objY = attr0 & 0xFF;
+        int objX = attr1 & 0x1FF;
+        if (objX >= 240) objX -= 512;
+        if (objY >= 160) objY -= 256;
+        
+        int tileIndex = attr2 & 0x3FF;
+        bool is8bpp = (attr0 & (1 << 13)) != 0;
+        
+        int renderWidth = objWidth;
+        int renderHeight = objHeight;
+        if (isAffine && (attr0 & (1 << 9))) {
+            renderWidth *= 2;
+            renderHeight *= 2;
+        }
+        
+        int localY = y - objY;
+        if (localY < 0 || localY >= renderHeight) continue;
+        
+        if (isAffine) {
+            int affineIndex = (attr1 >> 9) & 0x1F;
+            s16 pa = *reinterpret_cast<s16*>(&oam[affineIndex * 32 + 6]);
+            s16 pb = *reinterpret_cast<s16*>(&oam[affineIndex * 32 + 14]);
+            s16 pc = *reinterpret_cast<s16*>(&oam[affineIndex * 32 + 22]);
+            s16 pd = *reinterpret_cast<s16*>(&oam[affineIndex * 32 + 30]);
+            int halfW = renderWidth / 2;
+            int halfH = renderHeight / 2;
+            
+            for (int sx = 0; sx < renderWidth; sx++) {
+                int screenX = objX + sx;
+                if (screenX < 0 || screenX >= SCREEN_WIDTH) continue;
+                int dx = sx - halfW;
+                int dy = localY - halfH;
+                int texX = ((pa * dx + pb * dy) >> 8) + objWidth / 2;
+                int texY = ((pc * dx + pd * dy) >> 8) + objHeight / 2;
+                if (texX < 0 || texX >= objWidth || texY < 0 || texY >= objHeight) continue;
+                u8 ci = getObjPixel(tileIndex, texX, texY, objWidth, is8bpp, objMapping1D, objVram);
+                if (ci != 0) mask[screenX] = true;
+            }
+        } else {
+            bool hFlip = (attr1 & (1 << 12)) != 0;
+            bool vFlip = (attr1 & (1 << 13)) != 0;
+            int texY = vFlip ? (objHeight - 1 - localY) : localY;
+            for (int sx = 0; sx < objWidth; sx++) {
+                int screenX = objX + sx;
+                if (screenX < 0 || screenX >= SCREEN_WIDTH) continue;
+                int texX = hFlip ? (objWidth - 1 - sx) : sx;
+                u8 ci = getObjPixel(tileIndex, texX, texY, objWidth, is8bpp, objMapping1D, objVram);
+                if (ci != 0) mask[screenX] = true;
+            }
+        }
+    }
+}
+
+void PPU::computeWindowFlags(u16 dispcnt, int y, u8* oam, u8* vram, u8* windowFlags) {
+    bool win0Enable = (dispcnt & (1 << 13)) != 0;
+    bool win1Enable = (dispcnt & (1 << 14)) != 0;
+    bool objWinEnable = (dispcnt & (1 << 15)) != 0;
+    
+    // If no windows are enabled, all layers and SFX are fully enabled
+    if (!win0Enable && !win1Enable && !objWinEnable) {
+        for (int x = 0; x < SCREEN_WIDTH; x++) {
+            windowFlags[x] = 0x3F; // All bits set (BG0-3, OBJ, SFX)
+        }
+        return;
+    }
+    
+    // Read window registers
+    u16 win0h = m_memory->readIO16(IO::WIN0H);
+    u16 win1h = m_memory->readIO16(IO::WIN1H);
+    u16 win0v = m_memory->readIO16(IO::WIN0V);
+    u16 win1v = m_memory->readIO16(IO::WIN1V);
+    u16 winin = m_memory->readIO16(IO::WININ);
+    u16 winout = m_memory->readIO16(IO::WINOUT);
+    
+    // Window boundaries
+    int win0Left  = (win0h >> 8) & 0xFF;
+    int win0Right = win0h & 0xFF;
+    int win0Top   = (win0v >> 8) & 0xFF;
+    int win0Bot   = win0v & 0xFF;
+    
+    int win1Left  = (win1h >> 8) & 0xFF;
+    int win1Right = win1h & 0xFF;
+    int win1Top   = (win1v >> 8) & 0xFF;
+    int win1Bot   = win1v & 0xFF;
+    
+    // Check vertical range for WIN0 and WIN1
+    // Handle wrapping: if top > bottom, window covers [top..227] and [0..bottom)
+    bool win0InY;
+    if (win0Top <= win0Bot) {
+        win0InY = (y >= win0Top && y < win0Bot);
+    } else {
+        win0InY = (y >= win0Top || y < win0Bot);
+    }
+    
+    bool win1InY;
+    if (win1Top <= win1Bot) {
+        win1InY = (y >= win1Top && y < win1Bot);
+    } else {
+        win1InY = (y >= win1Top || y < win1Bot);
+    }
+    
+    // Control bits for each window region (6 bits each)
+    u8 win0Flags = winin & 0x3F;
+    u8 win1Flags = (winin >> 8) & 0x3F;
+    u8 outsideFlags = winout & 0x3F;
+    u8 objWinFlags = (winout >> 8) & 0x3F;
+    
+    // Compute OBJ window mask if needed
+    bool objWinMask[SCREEN_WIDTH];
+    if (objWinEnable) {
+        computeObjWindowMask(y, dispcnt, oam, vram, objWinMask);
+    }
+    
+    for (int x = 0; x < SCREEN_WIDTH; x++) {
+        // Priority: WIN0 > WIN1 > OBJ WIN > Outside
+        if (win0Enable && win0InY) {
+            bool inX;
+            if (win0Left <= win0Right) {
+                inX = (x >= win0Left && x < win0Right);
+            } else {
+                inX = (x >= win0Left || x < win0Right);
+            }
+            if (inX) {
+                windowFlags[x] = win0Flags;
+                continue;
+            }
+        }
+        
+        if (win1Enable && win1InY) {
+            bool inX;
+            if (win1Left <= win1Right) {
+                inX = (x >= win1Left && x < win1Right);
+            } else {
+                inX = (x >= win1Left || x < win1Right);
+            }
+            if (inX) {
+                windowFlags[x] = win1Flags;
+                continue;
+            }
+        }
+        
+        if (objWinEnable && objWinMask[x]) {
+            windowFlags[x] = objWinFlags;
+            continue;
+        }
+        
+        windowFlags[x] = outsideFlags;
+    }
+}
+
 void PPU::renderScanline() {
     if (!m_memory || m_vcount >= VISIBLE_LINES) return;
     
@@ -140,6 +315,10 @@ void PPU::renderScanline() {
         objSemiTransparent[x] = false;
     }
     
+    // Compute per-pixel window flags
+    u8 windowFlags[SCREEN_WIDTH];
+    computeWindowFlags(dispcnt, y, oam, vram, windowFlags);
+    
     // Render backgrounds from lowest priority to highest
     // Within same priority, BG3 < BG2 < BG1 < BG0 (BG0 wins)
     
@@ -148,48 +327,49 @@ void PPU::renderScanline() {
             // Mode 0: 4 text BGs
             for (int bg = 3; bg >= 0; bg--) {
                 if (!(dispcnt & (1 << (8 + bg)))) continue;
-                renderTextBG(bg, y, dispcnt, palette, vram, top, bot);
+                renderTextBG(bg, y, dispcnt, palette, vram, top, bot, windowFlags);
             }
             break;
         case 1:
             // Mode 1: BG0,BG1 text, BG2 affine
-            if (dispcnt & (1 << 10)) renderAffineBG(2, y, dispcnt, palette, vram, top, bot);
-            if (dispcnt & (1 << 9)) renderTextBG(1, y, dispcnt, palette, vram, top, bot);
-            if (dispcnt & (1 << 8)) renderTextBG(0, y, dispcnt, palette, vram, top, bot);
+            if (dispcnt & (1 << 10)) renderAffineBG(2, y, dispcnt, palette, vram, top, bot, windowFlags);
+            if (dispcnt & (1 << 9)) renderTextBG(1, y, dispcnt, palette, vram, top, bot, windowFlags);
+            if (dispcnt & (1 << 8)) renderTextBG(0, y, dispcnt, palette, vram, top, bot, windowFlags);
             break;
         case 2:
             // Mode 2: BG2, BG3 affine
-            if (dispcnt & (1 << 11)) renderAffineBG(3, y, dispcnt, palette, vram, top, bot);
-            if (dispcnt & (1 << 10)) renderAffineBG(2, y, dispcnt, palette, vram, top, bot);
+            if (dispcnt & (1 << 11)) renderAffineBG(3, y, dispcnt, palette, vram, top, bot, windowFlags);
+            if (dispcnt & (1 << 10)) renderAffineBG(2, y, dispcnt, palette, vram, top, bot, windowFlags);
             break;
         case 3:
             // Mode 3: BG2 bitmap, 240x160 16bpp direct color
-            if (dispcnt & (1 << 10)) renderBitmapMode3(y, vram, top, bot);
+            if (dispcnt & (1 << 10)) renderBitmapMode3(y, vram, top, bot, windowFlags);
             break;
         case 4:
             // Mode 4: BG2 bitmap, 240x160 8bpp paletted
-            if (dispcnt & (1 << 10)) renderBitmapMode4(y, dispcnt, palette, vram, top, bot);
+            if (dispcnt & (1 << 10)) renderBitmapMode4(y, dispcnt, palette, vram, top, bot, windowFlags);
             break;
         case 5:
             // Mode 5: BG2 bitmap, 160x128 16bpp direct color
-            if (dispcnt & (1 << 10)) renderBitmapMode5(y, dispcnt, vram, top, bot);
+            if (dispcnt & (1 << 10)) renderBitmapMode5(y, dispcnt, vram, top, bot, windowFlags);
             break;
     }
     
     // Render sprites (OBJ)
     if (dispcnt & (1 << 12)) {
-        renderSprites(y, dispcnt, palette, vram, oam, top, bot, objSemiTransparent);
+        renderSprites(y, dispcnt, palette, vram, oam, top, bot, objSemiTransparent, windowFlags);
     }
     
     // Apply color special effects (blending) and write final pixels
-    composeScanline(line, top, bot, objSemiTransparent);
+    composeScanline(line, top, bot, objSemiTransparent, windowFlags);
 }
 
 void PPU::renderTextBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram,
-                       ScanPixel* top, ScanPixel* bot) {
+                       ScanPixel* top, ScanPixel* bot, const u8* windowFlags) {
     u16 bgcnt = m_memory->readIO16(IO::BG0CNT + bg * 2);
     int priority = bgcnt & 3;
     u8 layer = LAYER_BG0 + bg;
+    u8 layerBit = 1 << bg; // Window flag bit for this BG
     u32 charBase = ((bgcnt >> 2) & 3) * 0x4000;
     bool is8bpp = (bgcnt & (1 << 7)) != 0;
     u32 screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
@@ -253,6 +433,9 @@ void PPU::renderTextBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram,
         
         if (colorIndex == 0) continue; // Transparent
         
+        // Check window visibility for this BG layer
+        if (!(windowFlags[x] & layerBit)) continue;
+        
         // Place pixel into compositing buffers
         u16 color555 = *reinterpret_cast<u16*>(&palette[colorIndex * 2]);
         placePixel(top, bot, x, color555, layer, priority);
@@ -260,10 +443,11 @@ void PPU::renderTextBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram,
 }
 
 void PPU::renderAffineBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram,
-                         ScanPixel* top, ScanPixel* bot) {
+                         ScanPixel* top, ScanPixel* bot, const u8* windowFlags) {
     u16 bgcnt = m_memory->readIO16(IO::BG0CNT + bg * 2);
     int priority = bgcnt & 3;
     u8 layer = LAYER_BG0 + bg;
+    u8 layerBit = 1 << bg;
     u32 charBase = ((bgcnt >> 2) & 3) * 0x4000;
     u32 screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
     int bgSize = (bgcnt >> 14) & 3;
@@ -318,17 +502,20 @@ void PPU::renderAffineBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram,
         
         if (colorIndex == 0) continue;
         
+        if (!(windowFlags[x] & layerBit)) continue;
+        
         u16 color555 = *reinterpret_cast<u16*>(&palette[colorIndex * 2]);
         placePixel(top, bot, x, color555, layer, priority);
     }
 }
 
 void PPU::renderBitmapMode3(int y, u8* vram,
-                            ScanPixel* top, ScanPixel* bot) {
+                            ScanPixel* top, ScanPixel* bot, const u8* windowFlags) {
     u16 bgcnt = m_memory->readIO16(IO::BG2CNT);
     int priority = bgcnt & 3;
     
     for (int x = 0; x < SCREEN_WIDTH; x++) {
+        if (!(windowFlags[x] & (1 << 2))) continue; // BG2 window check
         u32 addr = (y * SCREEN_WIDTH + x) * 2;
         u16 color555 = *reinterpret_cast<u16*>(&vram[addr]);
         placePixel(top, bot, x, color555, LAYER_BG2, priority);
@@ -336,12 +523,13 @@ void PPU::renderBitmapMode3(int y, u8* vram,
 }
 
 void PPU::renderBitmapMode4(int y, u16 dispcnt, u8* palette, u8* vram,
-                            ScanPixel* top, ScanPixel* bot) {
+                            ScanPixel* top, ScanPixel* bot, const u8* windowFlags) {
     u16 bgcnt = m_memory->readIO16(IO::BG2CNT);
     int priority = bgcnt & 3;
     u32 base = (dispcnt & (1 << 4)) ? 0xA000 : 0;
     
     for (int x = 0; x < SCREEN_WIDTH; x++) {
+        if (!(windowFlags[x] & (1 << 2))) continue; // BG2 window check
         u8 colorIndex = vram[base + y * SCREEN_WIDTH + x];
         if (colorIndex == 0) continue;
         
@@ -351,7 +539,7 @@ void PPU::renderBitmapMode4(int y, u16 dispcnt, u8* palette, u8* vram,
 }
 
 void PPU::renderBitmapMode5(int y, u16 dispcnt, u8* vram,
-                            ScanPixel* top, ScanPixel* bot) {
+                            ScanPixel* top, ScanPixel* bot, const u8* windowFlags) {
     if (y >= 128) return; // Mode 5 is only 160x128
     
     u16 bgcnt = m_memory->readIO16(IO::BG2CNT);
@@ -359,6 +547,7 @@ void PPU::renderBitmapMode5(int y, u16 dispcnt, u8* vram,
     u32 base = (dispcnt & (1 << 4)) ? 0xA000 : 0;
     
     for (int x = 0; x < 160 && x < SCREEN_WIDTH; x++) {
+        if (!(windowFlags[x] & (1 << 2))) continue; // BG2 window check
         u32 addr = base + (y * 160 + x) * 2;
         u16 color555 = *reinterpret_cast<u16*>(&vram[addr]);
         placePixel(top, bot, x, color555, LAYER_BG2, priority);
@@ -366,7 +555,8 @@ void PPU::renderBitmapMode5(int y, u16 dispcnt, u8* vram,
 }
 
 void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam,
-                        ScanPixel* top, ScanPixel* bot, bool* objSemiTransparent) {
+                        ScanPixel* top, ScanPixel* bot, bool* objSemiTransparent,
+                        const u8* windowFlags) {
     bool objMapping1D = (dispcnt & (1 << 6)) != 0;
     int mode = dispcnt & 7;
     
@@ -458,6 +648,7 @@ void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam,
                 } else {
                     color555 = *reinterpret_cast<u16*>(&objPalette[(palNum * 16 + colorIndex) * 2]);
                 }
+                if (!(windowFlags[screenX] & (1 << 4))) continue; // OBJ window check
                 placePixel(top, bot, screenX, color555, LAYER_OBJ, priority);
                 if (isSemiTransparent && top[screenX].layer == LAYER_OBJ) {
                     objSemiTransparent[screenX] = true;
@@ -485,6 +676,7 @@ void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam,
                 } else {
                     color555 = *reinterpret_cast<u16*>(&objPalette[(palNum * 16 + colorIndex) * 2]);
                 }
+                if (!(windowFlags[screenX] & (1 << 4))) continue; // OBJ window check
                 placePixel(top, bot, screenX, color555, LAYER_OBJ, priority);
                 if (isSemiTransparent && top[screenX].layer == LAYER_OBJ) {
                     objSemiTransparent[screenX] = true;
@@ -529,7 +721,8 @@ u8 PPU::getObjPixel(int tileIndex, int x, int y, int objWidth, bool is8bpp, bool
     }
 }
 
-void PPU::composeScanline(u32* line, ScanPixel* top, ScanPixel* bot, bool* objSemiTransparent) {
+void PPU::composeScanline(u32* line, ScanPixel* top, ScanPixel* bot,
+                         bool* objSemiTransparent, const u8* windowFlags) {
     u16 bldcnt = m_memory->readIO16(IO::BLDCNT);
     u16 bldalpha = m_memory->readIO16(IO::BLDALPHA);
     u16 bldy = m_memory->readIO16(IO::BLDY);
@@ -555,8 +748,12 @@ void PPU::composeScanline(u32* line, ScanPixel* top, ScanPixel* bot, bool* objSe
         bool is1stTarget = (bldcnt >> layer1) & 1;
         bool is2ndTarget = (bldcnt >> (8 + layer2)) & 1;
         
+        // Check if color effects are enabled for this pixel's window region
+        bool sfxEnabled = (windowFlags[x] >> 5) & 1;
+        
         // Semi-transparent OBJ: forces alpha blending regardless of BLDCNT mode
         // The OBJ is always treated as 1st target; 2nd target check still applies
+        // Semi-transparent OBJ always applies even when SFX is disabled by window
         if (objSemiTransparent[x] && is2ndTarget) {
             // Alpha blend with EVA/EVB
             u16 color2 = bot[x].color;
@@ -570,7 +767,7 @@ void PPU::composeScanline(u32* line, ScanPixel* top, ScanPixel* bot, bool* objSe
             int g = std::min(31, (g1 * eva + g2 * evb) / 16);
             int b = std::min(31, (b1 * eva + b2 * evb) / 16);
             color = (u16)(r | (g << 5) | (b << 10));
-        } else {
+        } else if (sfxEnabled) {
             switch (blendMode) {
                 case 1: // Alpha blending
                     if (is1stTarget && is2ndTarget) {
