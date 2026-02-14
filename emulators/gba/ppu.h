@@ -3,11 +3,29 @@
 #include "types.h"
 #include "consts.h"
 #include "../components/buffer.h"
+#include <algorithm>
 
 namespace gba {
 
 class Memory;
 class DMA;
+
+// Layer identifiers for blending target checks
+enum Layer : u8 {
+    LAYER_BG0 = 0,
+    LAYER_BG1 = 1,
+    LAYER_BG2 = 2,
+    LAYER_BG3 = 3,
+    LAYER_OBJ = 4,
+    LAYER_BD  = 5,
+};
+
+// Per-pixel compositing data
+struct ScanPixel {
+    u16 color;     // RGB555
+    u8  layer;     // Layer enum
+    u8  priority;  // 0-3 (BG/OBJ), 4 (backdrop)
+};
 
 class PPU {
 public:
@@ -33,14 +51,34 @@ private:
     void enterHBlank();
     void enterVBlank();
     
+    // Pixel placement for two-layer compositing
+    static inline void placePixel(ScanPixel* top, ScanPixel* bot, int x,
+                                  u16 color, u8 layer, u8 priority) {
+        if (priority <= top[x].priority) {
+            bot[x] = top[x];
+            top[x] = { color, layer, priority };
+        } else if (priority <= bot[x].priority) {
+            bot[x] = { color, layer, priority };
+        }
+    }
+    
     // Rendering helpers
-    void renderTextBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram, u32* line, u8* priorityBuf);
-    void renderAffineBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram, u32* line, u8* priorityBuf);
-    void renderBitmapMode3(int y, u8* vram, u32* line, u8* priorityBuf);
-    void renderBitmapMode4(int y, u16 dispcnt, u8* palette, u8* vram, u32* line, u8* priorityBuf);
-    void renderBitmapMode5(int y, u16 dispcnt, u8* vram, u32* line, u8* priorityBuf);
-    void renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam, u32* line, u8* priorityBuf);
+    void renderTextBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram,
+                      ScanPixel* top, ScanPixel* bot);
+    void renderAffineBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram,
+                        ScanPixel* top, ScanPixel* bot);
+    void renderBitmapMode3(int y, u8* vram,
+                           ScanPixel* top, ScanPixel* bot);
+    void renderBitmapMode4(int y, u16 dispcnt, u8* palette, u8* vram,
+                           ScanPixel* top, ScanPixel* bot);
+    void renderBitmapMode5(int y, u16 dispcnt, u8* vram,
+                           ScanPixel* top, ScanPixel* bot);
+    void renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam,
+                       ScanPixel* top, ScanPixel* bot, bool* objSemiTransparent);
     u8 getObjPixel(int tileIndex, int x, int y, int objWidth, bool is8bpp, bool mapping1D, u8* objVram);
+    
+    // Blending / color special effects
+    void composeScanline(u32* line, ScanPixel* top, ScanPixel* bot, bool* objSemiTransparent);
     
     Memory* m_memory = nullptr;
     DMA* m_dma = nullptr;

@@ -2,6 +2,7 @@
 #include "memory.h"
 #include "dma.h"
 #include <cstring>
+#include <algorithm>
 
 namespace gba {
 
@@ -127,14 +128,16 @@ void PPU::renderScanline() {
     
     // Initialize scanline with backdrop color
     u16 backdrop = *reinterpret_cast<u16*>(&palette[0]);
-    u32 backdropColor = rgb555ToARGB(backdrop);
     
-    // Priority buffer: stores priority (0-3 for BG, 4 for backdrop, 5 for none)
-    // Lower = higher priority
-    u8 priorityBuf[SCREEN_WIDTH];
+    // Two-pixel compositing buffers
+    ScanPixel top[SCREEN_WIDTH];
+    ScanPixel bot[SCREEN_WIDTH];
+    bool objSemiTransparent[SCREEN_WIDTH];
+    
     for (int x = 0; x < SCREEN_WIDTH; x++) {
-        line[x] = backdropColor;
-        priorityBuf[x] = 4; // backdrop priority
+        top[x] = { backdrop, LAYER_BD, 4 };
+        bot[x] = { backdrop, LAYER_BD, 4 };
+        objSemiTransparent[x] = false;
     }
     
     // Render backgrounds from lowest priority to highest
@@ -145,43 +148,48 @@ void PPU::renderScanline() {
             // Mode 0: 4 text BGs
             for (int bg = 3; bg >= 0; bg--) {
                 if (!(dispcnt & (1 << (8 + bg)))) continue;
-                renderTextBG(bg, y, dispcnt, palette, vram, line, priorityBuf);
+                renderTextBG(bg, y, dispcnt, palette, vram, top, bot);
             }
             break;
         case 1:
             // Mode 1: BG0,BG1 text, BG2 affine
-            if (dispcnt & (1 << 10)) renderAffineBG(2, y, dispcnt, palette, vram, line, priorityBuf);
-            if (dispcnt & (1 << 9)) renderTextBG(1, y, dispcnt, palette, vram, line, priorityBuf);
-            if (dispcnt & (1 << 8)) renderTextBG(0, y, dispcnt, palette, vram, line, priorityBuf);
+            if (dispcnt & (1 << 10)) renderAffineBG(2, y, dispcnt, palette, vram, top, bot);
+            if (dispcnt & (1 << 9)) renderTextBG(1, y, dispcnt, palette, vram, top, bot);
+            if (dispcnt & (1 << 8)) renderTextBG(0, y, dispcnt, palette, vram, top, bot);
             break;
         case 2:
             // Mode 2: BG2, BG3 affine
-            if (dispcnt & (1 << 11)) renderAffineBG(3, y, dispcnt, palette, vram, line, priorityBuf);
-            if (dispcnt & (1 << 10)) renderAffineBG(2, y, dispcnt, palette, vram, line, priorityBuf);
+            if (dispcnt & (1 << 11)) renderAffineBG(3, y, dispcnt, palette, vram, top, bot);
+            if (dispcnt & (1 << 10)) renderAffineBG(2, y, dispcnt, palette, vram, top, bot);
             break;
         case 3:
             // Mode 3: BG2 bitmap, 240x160 16bpp direct color
-            if (dispcnt & (1 << 10)) renderBitmapMode3(y, vram, line, priorityBuf);
+            if (dispcnt & (1 << 10)) renderBitmapMode3(y, vram, top, bot);
             break;
         case 4:
             // Mode 4: BG2 bitmap, 240x160 8bpp paletted
-            if (dispcnt & (1 << 10)) renderBitmapMode4(y, dispcnt, palette, vram, line, priorityBuf);
+            if (dispcnt & (1 << 10)) renderBitmapMode4(y, dispcnt, palette, vram, top, bot);
             break;
         case 5:
             // Mode 5: BG2 bitmap, 160x128 16bpp direct color
-            if (dispcnt & (1 << 10)) renderBitmapMode5(y, dispcnt, vram, line, priorityBuf);
+            if (dispcnt & (1 << 10)) renderBitmapMode5(y, dispcnt, vram, top, bot);
             break;
     }
     
     // Render sprites (OBJ)
     if (dispcnt & (1 << 12)) {
-        renderSprites(y, dispcnt, palette, vram, oam, line, priorityBuf);
+        renderSprites(y, dispcnt, palette, vram, oam, top, bot, objSemiTransparent);
     }
+    
+    // Apply color special effects (blending) and write final pixels
+    composeScanline(line, top, bot, objSemiTransparent);
 }
 
-void PPU::renderTextBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram, u32* line, u8* priorityBuf) {
+void PPU::renderTextBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram,
+                       ScanPixel* top, ScanPixel* bot) {
     u16 bgcnt = m_memory->readIO16(IO::BG0CNT + bg * 2);
     int priority = bgcnt & 3;
+    u8 layer = LAYER_BG0 + bg;
     u32 charBase = ((bgcnt >> 2) & 3) * 0x4000;
     bool is8bpp = (bgcnt & (1 << 7)) != 0;
     u32 screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
@@ -245,18 +253,17 @@ void PPU::renderTextBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram, u32* l
         
         if (colorIndex == 0) continue; // Transparent
         
-        // Only draw if this BG has equal or better priority
-        if (priority <= priorityBuf[x]) {
-            u16 color555 = *reinterpret_cast<u16*>(&palette[colorIndex * 2]);
-            line[x] = rgb555ToARGB(color555);
-            priorityBuf[x] = priority;
-        }
+        // Place pixel into compositing buffers
+        u16 color555 = *reinterpret_cast<u16*>(&palette[colorIndex * 2]);
+        placePixel(top, bot, x, color555, layer, priority);
     }
 }
 
-void PPU::renderAffineBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram, u32* line, u8* priorityBuf) {
+void PPU::renderAffineBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram,
+                         ScanPixel* top, ScanPixel* bot) {
     u16 bgcnt = m_memory->readIO16(IO::BG0CNT + bg * 2);
     int priority = bgcnt & 3;
+    u8 layer = LAYER_BG0 + bg;
     u32 charBase = ((bgcnt >> 2) & 3) * 0x4000;
     u32 screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
     int bgSize = (bgcnt >> 14) & 3;
@@ -311,29 +318,25 @@ void PPU::renderAffineBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram, u32*
         
         if (colorIndex == 0) continue;
         
-        if (priority <= priorityBuf[x]) {
-            u16 color555 = *reinterpret_cast<u16*>(&palette[colorIndex * 2]);
-            line[x] = rgb555ToARGB(color555);
-            priorityBuf[x] = priority;
-        }
+        u16 color555 = *reinterpret_cast<u16*>(&palette[colorIndex * 2]);
+        placePixel(top, bot, x, color555, layer, priority);
     }
 }
 
-void PPU::renderBitmapMode3(int y, u8* vram, u32* line, u8* priorityBuf) {
+void PPU::renderBitmapMode3(int y, u8* vram,
+                            ScanPixel* top, ScanPixel* bot) {
     u16 bgcnt = m_memory->readIO16(IO::BG2CNT);
     int priority = bgcnt & 3;
     
     for (int x = 0; x < SCREEN_WIDTH; x++) {
         u32 addr = (y * SCREEN_WIDTH + x) * 2;
         u16 color555 = *reinterpret_cast<u16*>(&vram[addr]);
-        if (priority <= priorityBuf[x]) {
-            line[x] = rgb555ToARGB(color555);
-            priorityBuf[x] = priority;
-        }
+        placePixel(top, bot, x, color555, LAYER_BG2, priority);
     }
 }
 
-void PPU::renderBitmapMode4(int y, u16 dispcnt, u8* palette, u8* vram, u32* line, u8* priorityBuf) {
+void PPU::renderBitmapMode4(int y, u16 dispcnt, u8* palette, u8* vram,
+                            ScanPixel* top, ScanPixel* bot) {
     u16 bgcnt = m_memory->readIO16(IO::BG2CNT);
     int priority = bgcnt & 3;
     u32 base = (dispcnt & (1 << 4)) ? 0xA000 : 0;
@@ -342,15 +345,13 @@ void PPU::renderBitmapMode4(int y, u16 dispcnt, u8* palette, u8* vram, u32* line
         u8 colorIndex = vram[base + y * SCREEN_WIDTH + x];
         if (colorIndex == 0) continue;
         
-        if (priority <= priorityBuf[x]) {
-            u16 color555 = *reinterpret_cast<u16*>(&palette[colorIndex * 2]);
-            line[x] = rgb555ToARGB(color555);
-            priorityBuf[x] = priority;
-        }
+        u16 color555 = *reinterpret_cast<u16*>(&palette[colorIndex * 2]);
+        placePixel(top, bot, x, color555, LAYER_BG2, priority);
     }
 }
 
-void PPU::renderBitmapMode5(int y, u16 dispcnt, u8* vram, u32* line, u8* priorityBuf) {
+void PPU::renderBitmapMode5(int y, u16 dispcnt, u8* vram,
+                            ScanPixel* top, ScanPixel* bot) {
     if (y >= 128) return; // Mode 5 is only 160x128
     
     u16 bgcnt = m_memory->readIO16(IO::BG2CNT);
@@ -360,14 +361,12 @@ void PPU::renderBitmapMode5(int y, u16 dispcnt, u8* vram, u32* line, u8* priorit
     for (int x = 0; x < 160 && x < SCREEN_WIDTH; x++) {
         u32 addr = base + (y * 160 + x) * 2;
         u16 color555 = *reinterpret_cast<u16*>(&vram[addr]);
-        if (priority <= priorityBuf[x]) {
-            line[x] = rgb555ToARGB(color555);
-            priorityBuf[x] = priority;
-        }
+        placePixel(top, bot, x, color555, LAYER_BG2, priority);
     }
 }
 
-void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam, u32* line, u8* priorityBuf) {
+void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam,
+                        ScanPixel* top, ScanPixel* bot, bool* objSemiTransparent) {
     bool objMapping1D = (dispcnt & (1 << 6)) != 0;
     int mode = dispcnt & 7;
     
@@ -384,6 +383,13 @@ void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam, u32*
         // Check if disabled
         bool isAffine = (attr0 & (1 << 8)) != 0;
         if (!isAffine && (attr0 & (1 << 9))) continue; // Disabled
+        
+        // OBJ mode: 0=normal, 1=semi-transparent, 2=OBJ window, 3=invalid
+        int objMode = (attr0 >> 10) & 3;
+        if (objMode == 3) continue; // Invalid mode
+        // TODO: OBJ window (mode 2) not implemented yet
+        if (objMode == 2) continue;
+        bool isSemiTransparent = (objMode == 1);
         
         int shape = (attr0 >> 14) & 3;
         if (shape == 3) continue; // Invalid
@@ -446,15 +452,15 @@ void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam, u32*
                 u8 colorIndex = getObjPixel(tileIndex, texX, texY, objWidth, is8bpp, objMapping1D, objVram);
                 if (colorIndex == 0) continue;
                 
-                if (priority <= priorityBuf[screenX]) {
-                    u16 color555;
-                    if (is8bpp) {
-                        color555 = *reinterpret_cast<u16*>(&objPalette[colorIndex * 2]);
-                    } else {
-                        color555 = *reinterpret_cast<u16*>(&objPalette[(palNum * 16 + colorIndex) * 2]);
-                    }
-                    line[screenX] = rgb555ToARGB(color555);
-                    priorityBuf[screenX] = priority;
+                u16 color555;
+                if (is8bpp) {
+                    color555 = *reinterpret_cast<u16*>(&objPalette[colorIndex * 2]);
+                } else {
+                    color555 = *reinterpret_cast<u16*>(&objPalette[(palNum * 16 + colorIndex) * 2]);
+                }
+                placePixel(top, bot, screenX, color555, LAYER_OBJ, priority);
+                if (isSemiTransparent && top[screenX].layer == LAYER_OBJ) {
+                    objSemiTransparent[screenX] = true;
                 }
             }
         } else {
@@ -473,15 +479,15 @@ void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam, u32*
                 u8 colorIndex = getObjPixel(tileIndex, texX, texY, objWidth, is8bpp, objMapping1D, objVram);
                 if (colorIndex == 0) continue;
                 
-                if (priority <= priorityBuf[screenX]) {
-                    u16 color555;
-                    if (is8bpp) {
-                        color555 = *reinterpret_cast<u16*>(&objPalette[colorIndex * 2]);
-                    } else {
-                        color555 = *reinterpret_cast<u16*>(&objPalette[(palNum * 16 + colorIndex) * 2]);
-                    }
-                    line[screenX] = rgb555ToARGB(color555);
-                    priorityBuf[screenX] = priority;
+                u16 color555;
+                if (is8bpp) {
+                    color555 = *reinterpret_cast<u16*>(&objPalette[colorIndex * 2]);
+                } else {
+                    color555 = *reinterpret_cast<u16*>(&objPalette[(palNum * 16 + colorIndex) * 2]);
+                }
+                placePixel(top, bot, screenX, color555, LAYER_OBJ, priority);
+                if (isSemiTransparent && top[screenX].layer == LAYER_OBJ) {
+                    objSemiTransparent[screenX] = true;
                 }
             }
         }
@@ -520,6 +526,95 @@ u8 PPU::getObjPixel(int tileIndex, int x, int y, int objWidth, bool is8bpp, bool
         if (addr >= 0x8000) return 0;
         u8 byte = objVram[addr];
         return (pixelX & 1) ? (byte >> 4) : (byte & 0xF);
+    }
+}
+
+void PPU::composeScanline(u32* line, ScanPixel* top, ScanPixel* bot, bool* objSemiTransparent) {
+    u16 bldcnt = m_memory->readIO16(IO::BLDCNT);
+    u16 bldalpha = m_memory->readIO16(IO::BLDALPHA);
+    u16 bldy = m_memory->readIO16(IO::BLDY);
+    
+    int blendMode = (bldcnt >> 6) & 3;
+    int eva = bldalpha & 0x1F;
+    int evb = (bldalpha >> 8) & 0x1F;
+    int evy = bldy & 0x1F;
+    
+    // Clamp coefficients to 16
+    if (eva > 16) eva = 16;
+    if (evb > 16) evb = 16;
+    if (evy > 16) evy = 16;
+    
+    for (int x = 0; x < SCREEN_WIDTH; x++) {
+        u16 color = top[x].color;
+        u8 layer1 = top[x].layer;
+        u8 layer2 = bot[x].layer;
+        
+        // Check 1st and 2nd target flags in BLDCNT
+        // Bits 0-5: 1st target (BG0, BG1, BG2, BG3, OBJ, BD)
+        // Bits 8-13: 2nd target (BG0, BG1, BG2, BG3, OBJ, BD)
+        bool is1stTarget = (bldcnt >> layer1) & 1;
+        bool is2ndTarget = (bldcnt >> (8 + layer2)) & 1;
+        
+        // Semi-transparent OBJ: forces alpha blending regardless of BLDCNT mode
+        // The OBJ is always treated as 1st target; 2nd target check still applies
+        if (objSemiTransparent[x] && is2ndTarget) {
+            // Alpha blend with EVA/EVB
+            u16 color2 = bot[x].color;
+            int r1 = color & 0x1F;
+            int g1 = (color >> 5) & 0x1F;
+            int b1 = (color >> 10) & 0x1F;
+            int r2 = color2 & 0x1F;
+            int g2 = (color2 >> 5) & 0x1F;
+            int b2 = (color2 >> 10) & 0x1F;
+            int r = std::min(31, (r1 * eva + r2 * evb) / 16);
+            int g = std::min(31, (g1 * eva + g2 * evb) / 16);
+            int b = std::min(31, (b1 * eva + b2 * evb) / 16);
+            color = (u16)(r | (g << 5) | (b << 10));
+        } else {
+            switch (blendMode) {
+                case 1: // Alpha blending
+                    if (is1stTarget && is2ndTarget) {
+                        u16 color2 = bot[x].color;
+                        int r1 = color & 0x1F;
+                        int g1 = (color >> 5) & 0x1F;
+                        int b1 = (color >> 10) & 0x1F;
+                        int r2 = color2 & 0x1F;
+                        int g2 = (color2 >> 5) & 0x1F;
+                        int b2 = (color2 >> 10) & 0x1F;
+                        int r = std::min(31, (r1 * eva + r2 * evb) / 16);
+                        int g = std::min(31, (g1 * eva + g2 * evb) / 16);
+                        int b = std::min(31, (b1 * eva + b2 * evb) / 16);
+                        color = (u16)(r | (g << 5) | (b << 10));
+                    }
+                    break;
+                case 2: // Brightness increase (fade to white)
+                    if (is1stTarget) {
+                        int r = color & 0x1F;
+                        int g = (color >> 5) & 0x1F;
+                        int b = (color >> 10) & 0x1F;
+                        r += (31 - r) * evy / 16;
+                        g += (31 - g) * evy / 16;
+                        b += (31 - b) * evy / 16;
+                        color = (u16)(r | (g << 5) | (b << 10));
+                    }
+                    break;
+                case 3: // Brightness decrease (fade to black)
+                    if (is1stTarget) {
+                        int r = color & 0x1F;
+                        int g = (color >> 5) & 0x1F;
+                        int b = (color >> 10) & 0x1F;
+                        r -= r * evy / 16;
+                        g -= g * evy / 16;
+                        b -= b * evy / 16;
+                        color = (u16)(r | (g << 5) | (b << 10));
+                    }
+                    break;
+                default: // Mode 0: no blending
+                    break;
+            }
+        }
+        
+        line[x] = rgb555ToARGB(color);
     }
 }
 
