@@ -364,7 +364,7 @@ void PPU::renderScanline() {
     composeScanline(line, top, bot, objSemiTransparent, windowFlags);
 }
 
-void PPU::renderTextBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram,
+void PPU::renderTextBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palette, u8* vram,
                        ScanPixel* top, ScanPixel* bot, const u8* windowFlags) {
     u16 bgcnt = m_memory->readIO16(IO::BG0CNT + bg * 2);
     int priority = bgcnt & 3;
@@ -442,7 +442,7 @@ void PPU::renderTextBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram,
     }
 }
 
-void PPU::renderAffineBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram,
+void PPU::renderAffineBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palette, u8* vram,
                          ScanPixel* top, ScanPixel* bot, const u8* windowFlags) {
     u16 bgcnt = m_memory->readIO16(IO::BG0CNT + bg * 2);
     int priority = bgcnt & 3;
@@ -605,9 +605,7 @@ void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam,
         int renderHeight = objHeight;
         
         // Affine double-size
-        bool doubleSize = false;
         if (isAffine && (attr0 & (1 << 9))) {
-            doubleSize = true;
             renderWidth *= 2;
             renderHeight *= 2;
         }

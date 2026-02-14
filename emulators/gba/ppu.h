@@ -68,9 +68,9 @@ private:
     void computeWindowFlags(u16 dispcnt, int y, u8* oam, u8* vram, u8* windowFlags);
     
     // Rendering helpers
-    void renderTextBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram,
+    void renderTextBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palette, u8* vram,
                       ScanPixel* top, ScanPixel* bot, const u8* windowFlags);
-    void renderAffineBG(int bg, int y, u16 dispcnt, u8* palette, u8* vram,
+    void renderAffineBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palette, u8* vram,
                         ScanPixel* top, ScanPixel* bot, const u8* windowFlags);
     void renderBitmapMode3(int y, u8* vram,
                            ScanPixel* top, ScanPixel* bot, const u8* windowFlags);
