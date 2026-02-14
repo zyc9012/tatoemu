@@ -23,6 +23,11 @@ void Timer::reset() {
 }
 
 void Timer::step(int cycles) {
+    // Clear overflow flags from previous step
+    for (int i = 0; i < 4; i++) {
+        m_timers[i].overflow = false;
+    }
+    
     for (int i = 0; i < 4; i++) {
         if (!m_timers[i].enabled) continue;
         
@@ -47,8 +52,6 @@ void Timer::step(int cycles) {
                 }
             }
         }
-        
-        m_timers[i].overflow = false;
     }
 }
 

@@ -132,6 +132,13 @@ void DMA::run(int channel) {
     if (!m_channels[channel].repeat) {
         m_channels[channel].active = false;
         m_channels[channel].control &= ~(1 << 15); // Disable
+        // Update the IO register to reflect DMA completion
+        // Games poll DMA CNT_H bit 15 to wait for transfer to finish
+        if (m_memory) {
+            u32 cntHOffset = IO::DMA0CNT_H + channel * 12;
+            u16* reg = reinterpret_cast<u16*>(&m_memory->getIO()[cntHOffset]);
+            *reg &= ~(1 << 15);
+        }
     }
 }
 

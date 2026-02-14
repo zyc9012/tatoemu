@@ -279,7 +279,6 @@ void Memory::write32(u32 address, u32 value) {
 }
 
 u16 Memory::fetch16(u32 address) {
-    // Check for SWI instruction (could add HLE here)
     return read16(address);
 }
 
@@ -299,6 +298,18 @@ u8 Memory::readIO(u32 address) {
         case IO::VCOUNT:
         case IO::VCOUNT + 1:
             if (m_ppu) return m_ppu->getVCount() >> ((address & 1) * 8);
+            break;
+        case IO::TM0CNT_L: case IO::TM0CNT_L + 1:
+            if (m_timer) return m_timer->readCounter(0) >> ((address & 1) * 8);
+            break;
+        case IO::TM1CNT_L: case IO::TM1CNT_L + 1:
+            if (m_timer) return m_timer->readCounter(1) >> ((address & 1) * 8);
+            break;
+        case IO::TM2CNT_L: case IO::TM2CNT_L + 1:
+            if (m_timer) return m_timer->readCounter(2) >> ((address & 1) * 8);
+            break;
+        case IO::TM3CNT_L: case IO::TM3CNT_L + 1:
+            if (m_timer) return m_timer->readCounter(3) >> ((address & 1) * 8);
             break;
     }
     
@@ -340,6 +351,18 @@ u16 Memory::readIO16(u32 offset) const {
         case IO::KEYINPUT:
             if (m_joypad) return m_joypad->read();
             break;
+        case IO::TM0CNT_L:
+            if (m_timer) return m_timer->readCounter(0);
+            break;
+        case IO::TM1CNT_L:
+            if (m_timer) return m_timer->readCounter(1);
+            break;
+        case IO::TM2CNT_L:
+            if (m_timer) return m_timer->readCounter(2);
+            break;
+        case IO::TM3CNT_L:
+            if (m_timer) return m_timer->readCounter(3);
+            break;
     }
     
     return *reinterpret_cast<const u16*>(&m_io[offset]);
@@ -354,7 +377,11 @@ void Memory::writeIO16(u32 offset, u16 value) {
     } else if (m_timer && offset >= IO::TM0CNT_L && offset <= IO::TM3CNT_H) {
         m_timer->writeRegister(offset, value);
     } else if (m_dma && offset >= IO::DMA0SAD && offset <= IO::DMA3CNT_H + 1) {
+        // Write to IO array FIRST, then let DMA subsystem process
+        // DMA::run() may clear the enable bit in the IO array when completing immediately
+        *reinterpret_cast<u16*>(&m_io[offset]) = value;
         m_dma->writeRegister(offset, value);
+        return; // Don't overwrite IO array again — DMA may have modified it
     }
     
     // Special handling
@@ -373,6 +400,30 @@ void Memory::writeIO16(u32 offset, u16 value) {
 
 u32 Memory::readIO32(u32 offset) const {
     if (offset >= IO_SIZE - 3) return 0;
+    
+    // Handle registers that need special read handling
+    switch (offset) {
+        case IO::VCOUNT:
+            // DISPSTAT (low 16) | VCOUNT (high 16)
+            return *reinterpret_cast<const u16*>(&m_io[IO::DISPSTAT]) |
+                   (m_ppu ? (static_cast<u32>(m_ppu->getVCount()) << 16) : 0);
+        case IO::KEYINPUT:
+            return (m_joypad ? m_joypad->read() : 0xFFFF) |
+                   (static_cast<u32>(*reinterpret_cast<const u16*>(&m_io[IO::KEYCNT])) << 16);
+        case IO::TM0CNT_L:
+            return (m_timer ? m_timer->readCounter(0) : 0) |
+                   (static_cast<u32>(*reinterpret_cast<const u16*>(&m_io[IO::TM0CNT_H])) << 16);
+        case IO::TM1CNT_L:
+            return (m_timer ? m_timer->readCounter(1) : 0) |
+                   (static_cast<u32>(*reinterpret_cast<const u16*>(&m_io[IO::TM1CNT_H])) << 16);
+        case IO::TM2CNT_L:
+            return (m_timer ? m_timer->readCounter(2) : 0) |
+                   (static_cast<u32>(*reinterpret_cast<const u16*>(&m_io[IO::TM2CNT_H])) << 16);
+        case IO::TM3CNT_L:
+            return (m_timer ? m_timer->readCounter(3) : 0) |
+                   (static_cast<u32>(*reinterpret_cast<const u16*>(&m_io[IO::TM3CNT_H])) << 16);
+    }
+    
     return *reinterpret_cast<const u32*>(&m_io[offset]);
 }
 
