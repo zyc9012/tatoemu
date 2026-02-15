@@ -50,6 +50,7 @@ private:
     void renderScanline();
     void enterHBlank();
     void enterVBlank();
+    void updateDispstat();
     
     // Pixel placement for two-layer compositing
     // Returns true if the pixel was placed on top (for semi-transparency tracking)

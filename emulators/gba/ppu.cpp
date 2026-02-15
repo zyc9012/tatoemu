@@ -40,20 +40,7 @@ void PPU::step(int cycles) {
                 enterVBlank();
             }
             
-            // Update DISPSTAT
-            u16 dispstat = m_memory->readIO16(IO::DISPSTAT);
-            dispstat &= ~(DISPSTAT::HBLANK_FLAG | DISPSTAT::VBLANK_FLAG | DISPSTAT::VCOUNTER_FLAG);
-            if (m_inVBlank) dispstat |= DISPSTAT::VBLANK_FLAG;
-            
-            u16 vcountSetting = (dispstat >> DISPSTAT::VCOUNT_SETTING_SHIFT) & 0xFF;
-            if (m_vcount == vcountSetting) {
-                dispstat |= DISPSTAT::VCOUNTER_FLAG;
-                if (dispstat & DISPSTAT::VCOUNTER_IRQ) {
-                    m_memory->requestIRQ(IRQ::VCOUNTER);
-                }
-            }
-            
-            m_memory->writeIO16(IO::DISPSTAT, dispstat);
+            updateDispstat();
         }
     } else {
         // VBlank scanlines
@@ -71,22 +58,25 @@ void PPU::step(int cycles) {
                 }
             }
             
-            // Update DISPSTAT
-            u16 dispstat = m_memory->readIO16(IO::DISPSTAT);
-            dispstat &= ~(DISPSTAT::HBLANK_FLAG | DISPSTAT::VBLANK_FLAG | DISPSTAT::VCOUNTER_FLAG);
-            if (m_inVBlank) dispstat |= DISPSTAT::VBLANK_FLAG;
-            
-            u16 vcountSetting = (dispstat >> DISPSTAT::VCOUNT_SETTING_SHIFT) & 0xFF;
-            if (m_vcount == vcountSetting) {
-                dispstat |= DISPSTAT::VCOUNTER_FLAG;
-                if (dispstat & DISPSTAT::VCOUNTER_IRQ) {
-                    m_memory->requestIRQ(IRQ::VCOUNTER);
-                }
-            }
-            
-            m_memory->writeIO16(IO::DISPSTAT, dispstat);
+            updateDispstat();
         }
     }
+}
+
+void PPU::updateDispstat() {
+    u16 dispstat = m_memory->readIO16(IO::DISPSTAT);
+    dispstat &= ~(DISPSTAT::HBLANK_FLAG | DISPSTAT::VBLANK_FLAG | DISPSTAT::VCOUNTER_FLAG);
+    if (m_inVBlank) dispstat |= DISPSTAT::VBLANK_FLAG;
+    
+    u16 vcountSetting = (dispstat >> DISPSTAT::VCOUNT_SETTING_SHIFT) & 0xFF;
+    if (m_vcount == vcountSetting) {
+        dispstat |= DISPSTAT::VCOUNTER_FLAG;
+        if (dispstat & DISPSTAT::VCOUNTER_IRQ) {
+            m_memory->requestIRQ(IRQ::VCOUNTER);
+        }
+    }
+    
+    m_memory->writeIO16(IO::DISPSTAT, dispstat);
 }
 
 static inline u32 rgb555ToARGB(u16 color555) {
@@ -94,6 +84,13 @@ static inline u32 rgb555ToARGB(u16 color555) {
     u32 g = ((color555 >> 5) & 0x1F) << 3;
     u32 b = ((color555 >> 10) & 0x1F) << 3;
     return 0xFF000000 | (r << 16) | (g << 8) | b;
+}
+
+static inline u16 blendAlpha(u16 ca, u16 cb, int eva, int evb) {
+    int r = std::min(31, ((ca & 0x1F) * eva + (cb & 0x1F) * evb) / 16);
+    int g = std::min(31, (((ca >> 5) & 0x1F) * eva + ((cb >> 5) & 0x1F) * evb) / 16);
+    int b = std::min(31, (((ca >> 10) & 0x1F) * eva + ((cb >> 10) & 0x1F) * evb) / 16);
+    return (u16)(r | (g << 5) | (b << 10));
 }
 
 // Sprite size lookup table: [shape][size] = {width, height}
@@ -670,6 +667,18 @@ void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam,
             localY = std::max(0, localY - mosaicCounterY);
         }
         
+        // Shared per-pixel OBJ emit: palette lookup, window check, compositing
+        auto emitObjPixel = [&](int screenX, u8 colorIndex) {
+            if (colorIndex == 0) return;
+            u16 color555 = is8bpp
+                ? *reinterpret_cast<u16*>(&objPalette[colorIndex * 2])
+                : *reinterpret_cast<u16*>(&objPalette[(palNum * 16 + colorIndex) * 2]);
+            if (!(windowFlags[screenX] & (1 << 4))) return;
+            if (placePixel(top, bot, screenX, color555, LAYER_OBJ, priority)) {
+                objSemiTransparent[screenX] = isSemiTransparent;
+            }
+        };
+        
         if (isAffine) {
             // Affine sprite
             int affineIndex = (attr1 >> 9) & 0x1F;
@@ -687,7 +696,6 @@ void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam,
                 
                 // Apply OBJ H-mosaic: snap screen X to mosaic grid
                 int lookupSX = sx;
-                int lookupLocalY = localY;
                 if (hasMosaic && objMosaicH > 1) {
                     int mosaicCounterX = screenX % objMosaicH;
                     lookupSX = std::max(0, sx - mosaicCounterX);
@@ -695,25 +703,14 @@ void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam,
                 
                 // Transform to texture coordinates
                 int dx = lookupSX - halfW;
-                int dy = lookupLocalY - halfH;
+                int dy = localY - halfH;
                 int texX = ((pa * dx + pb * dy) >> 8) + objWidth / 2;
                 int texY = ((pc * dx + pd * dy) >> 8) + objHeight / 2;
                 
                 if (texX < 0 || texX >= objWidth || texY < 0 || texY >= objHeight) continue;
                 
                 u8 colorIndex = getObjPixel(tileIndex, texX, texY, objWidth, is8bpp, objMapping1D, objVram);
-                if (colorIndex == 0) continue;
-                
-                u16 color555;
-                if (is8bpp) {
-                    color555 = *reinterpret_cast<u16*>(&objPalette[colorIndex * 2]);
-                } else {
-                    color555 = *reinterpret_cast<u16*>(&objPalette[(palNum * 16 + colorIndex) * 2]);
-                }
-                if (!(windowFlags[screenX] & (1 << 4))) continue; // OBJ window check
-                if (placePixel(top, bot, screenX, color555, LAYER_OBJ, priority)) {
-                    objSemiTransparent[screenX] = isSemiTransparent;
-                }
+                emitObjPixel(screenX, colorIndex);
             }
         } else {
             // Normal sprite
@@ -736,18 +733,7 @@ void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam,
                 int texX = hFlip ? (objWidth - 1 - lookupSX) : lookupSX;
                 
                 u8 colorIndex = getObjPixel(tileIndex, texX, texY, objWidth, is8bpp, objMapping1D, objVram);
-                if (colorIndex == 0) continue;
-                
-                u16 color555;
-                if (is8bpp) {
-                    color555 = *reinterpret_cast<u16*>(&objPalette[colorIndex * 2]);
-                } else {
-                    color555 = *reinterpret_cast<u16*>(&objPalette[(palNum * 16 + colorIndex) * 2]);
-                }
-                if (!(windowFlags[screenX] & (1 << 4))) continue; // OBJ window check
-                if (placePixel(top, bot, screenX, color555, LAYER_OBJ, priority)) {
-                    objSemiTransparent[screenX] = isSemiTransparent;
-                }
+                emitObjPixel(screenX, colorIndex);
             }
         }
     }
@@ -822,33 +808,12 @@ void PPU::composeScanline(u32* line, ScanPixel* top, ScanPixel* bot,
         // The OBJ is always treated as 1st target; 2nd target check still applies
         // Semi-transparent OBJ always applies even when SFX is disabled by window
         if (objSemiTransparent[x] && is2ndTarget) {
-            // Alpha blend with EVA/EVB
-            u16 color2 = bot[x].color;
-            int r1 = color & 0x1F;
-            int g1 = (color >> 5) & 0x1F;
-            int b1 = (color >> 10) & 0x1F;
-            int r2 = color2 & 0x1F;
-            int g2 = (color2 >> 5) & 0x1F;
-            int b2 = (color2 >> 10) & 0x1F;
-            int r = std::min(31, (r1 * eva + r2 * evb) / 16);
-            int g = std::min(31, (g1 * eva + g2 * evb) / 16);
-            int b = std::min(31, (b1 * eva + b2 * evb) / 16);
-            color = (u16)(r | (g << 5) | (b << 10));
+            color = blendAlpha(color, bot[x].color, eva, evb);
         } else if (sfxEnabled) {
             switch (blendMode) {
                 case 1: // Alpha blending
                     if (is1stTarget && is2ndTarget) {
-                        u16 color2 = bot[x].color;
-                        int r1 = color & 0x1F;
-                        int g1 = (color >> 5) & 0x1F;
-                        int b1 = (color >> 10) & 0x1F;
-                        int r2 = color2 & 0x1F;
-                        int g2 = (color2 >> 5) & 0x1F;
-                        int b2 = (color2 >> 10) & 0x1F;
-                        int r = std::min(31, (r1 * eva + r2 * evb) / 16);
-                        int g = std::min(31, (g1 * eva + g2 * evb) / 16);
-                        int b = std::min(31, (b1 * eva + b2 * evb) / 16);
-                        color = (u16)(r | (g << 5) | (b << 10));
+                        color = blendAlpha(color, bot[x].color, eva, evb);
                     }
                     break;
                 case 2: // Brightness increase (fade to white)
