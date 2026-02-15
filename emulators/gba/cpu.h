@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include "../components/buffer.h"
+#include "../components/cpu/arm7_new/arm7tdmi.h"
 
 namespace gba {
 
@@ -12,22 +13,21 @@ public:
     CPU();
     ~CPU();
 
-    void setMemory(Memory* memory) { m_memory = memory; }
-    
+    void setMemory(Memory* memory);
+
     void reset();
     int step();
-    
+
     void raiseIRQ();
     void checkIRQ();
-    
+
     // Save/Load state
     void saveState(Buffer* buf);
     void loadState(Buffer* buf);
 
-    // Public for ARM7 callbacks
-    Memory* m_memory = nullptr;
-
 private:
+    ARM7TDMI m_cpu;
+    Memory* m_memory = nullptr;
     int m_cycles = 0;
 };
 

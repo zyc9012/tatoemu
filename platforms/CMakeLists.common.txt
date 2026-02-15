@@ -70,7 +70,7 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/gba/eeprom.cpp
     ${CMAKE_SOURCE_DIR}/emulators/gba/core.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/eeprom/eeprom.cpp
-    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/arm7/arm7.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/arm7_new/arm7tdmi.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m6502/m6502.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kcpu.c
@@ -161,7 +161,7 @@ function(apply_common_target_settings target_name)
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m6502
-        ${CMAKE_SOURCE_DIR}/emulators/components/cpu/arm7
+        ${CMAKE_SOURCE_DIR}/emulators/components/cpu/arm7_new
         ${CMAKE_SOURCE_DIR}/emulators/components/sound
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/ym2151
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/msm6295
@@ -194,7 +194,6 @@ function(apply_common_target_settings target_name)
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/fm/ymdeltat.c
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80.cpp
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/ay8910/ay8910.c
-        ${CMAKE_SOURCE_DIR}/emulators/components/cpu/arm7/arm7.cpp
         PROPERTIES COMPILE_OPTIONS "-Wno-unused-variable;-Wno-unused-const-variable;-Wno-unused-parameter;-Wno-unused-function;-Wno-sign-compare;-Wno-strict-prototypes"
     )
     
