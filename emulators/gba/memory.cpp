@@ -193,16 +193,29 @@ void Memory::write8(u32 address, u8 value) {
         case REGION_IO:
             writeIO(offset & 0x3FF, value);
             break;
-        case REGION_PALETTE:
-            m_palette[offset & 0x3FF] = value;
+        case REGION_PALETTE: {
+            // Byte writes to palette RAM expand to both bytes of the halfword
+            u32 palOffset = offset & 0x3FE;
+            m_palette[palOffset] = value;
+            m_palette[palOffset + 1] = value;
             break;
-        case REGION_VRAM:
+        }
+        case REGION_VRAM: {
             offset &= 0x1FFFF;
             if (offset >= 0x18000) offset &= 0x17FFF;
-            if (offset < 0x14000 || (offset >= 0x14000 && (offset & 1) == 0)) {
+            // BG/OBJ VRAM boundary depends on video mode
+            u16 dispcnt = *reinterpret_cast<u16*>(&m_io[0]);
+            int mode = dispcnt & 7;
+            u32 objBoundary = (mode >= 3) ? 0x14000 : 0x10000;
+            if (offset < objBoundary) {
+                // BG VRAM: byte writes expand to both bytes of the halfword
+                offset &= ~1;
                 m_vram[offset] = value;
+                m_vram[offset + 1] = value;
             }
+            // OBJ VRAM: byte writes are ignored
             break;
+        }
         case REGION_SRAM:
             if (m_cartridge) m_cartridge->writeSave(offset, value);
             break;
