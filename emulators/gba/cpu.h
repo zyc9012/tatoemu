@@ -2,7 +2,7 @@
 
 #include "types.h"
 #include "../components/buffer.h"
-#include "../components/cpu/arm7_new/arm7tdmi.h"
+#include "../components/cpu/arm7tdmi/arm7tdmi.h"
 
 namespace gba {
 
