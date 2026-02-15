@@ -4,6 +4,7 @@
 #include "nes/config.h"
 #include "gb/config.h"
 #include "cps/config.h"
+#include "gba/config.h"
 #include "neogeo/config.h"
 #include "inih/ini.h"
 #include <algorithm>
@@ -115,6 +116,18 @@ static void createDefaultIni(const fs::path& iniPath) {
     fprintf(out, "Down=%s\n", SDL_GetKeyName(gb::Config::Key::DpadDown));
     fprintf(out, "Left=%s\n", SDL_GetKeyName(gb::Config::Key::DpadLeft));
     fprintf(out, "Right=%s\n", SDL_GetKeyName(gb::Config::Key::DpadRight));
+    fprintf(out, "\n");
+    fprintf(out, "[GBA]\n");
+    fprintf(out, "A=%s\n", SDL_GetKeyName(gba::Config::Key::ButtonA));
+    fprintf(out, "B=%s\n", SDL_GetKeyName(gba::Config::Key::ButtonB));
+    fprintf(out, "L=%s\n", SDL_GetKeyName(gba::Config::Key::ButtonL));
+    fprintf(out, "R=%s\n", SDL_GetKeyName(gba::Config::Key::ButtonR));
+    fprintf(out, "Start=%s\n", SDL_GetKeyName(gba::Config::Key::Start));
+    fprintf(out, "Select=%s\n", SDL_GetKeyName(gba::Config::Key::Select));
+    fprintf(out, "Up=%s\n", SDL_GetKeyName(gba::Config::Key::DpadUp));
+    fprintf(out, "Down=%s\n", SDL_GetKeyName(gba::Config::Key::DpadDown));
+    fprintf(out, "Left=%s\n", SDL_GetKeyName(gba::Config::Key::DpadLeft));
+    fprintf(out, "Right=%s\n", SDL_GetKeyName(gba::Config::Key::DpadRight));
     fprintf(out, "\n");
     fprintf(out, "[CPS]\n");
     fprintf(out, "P1_Up=%s\n", SDL_GetKeyName(cps::Config::Key::P1_Up));
@@ -246,6 +259,17 @@ static int configHandler(void* /*user*/, const char* section, const char* name, 
         else if (key == "Down") set_key(gb::Config::Key::DpadDown);
         else if (key == "Left") set_key(gb::Config::Key::DpadLeft);
         else if (key == "Right") set_key(gb::Config::Key::DpadRight);
+    } else if (sec == "GBA") {
+        if (key == "A") set_key(gba::Config::Key::ButtonA);
+        else if (key == "B") set_key(gba::Config::Key::ButtonB);
+        else if (key == "L") set_key(gba::Config::Key::ButtonL);
+        else if (key == "R") set_key(gba::Config::Key::ButtonR);
+        else if (key == "Start") set_key(gba::Config::Key::Start);
+        else if (key == "Select") set_key(gba::Config::Key::Select);
+        else if (key == "Up") set_key(gba::Config::Key::DpadUp);
+        else if (key == "Down") set_key(gba::Config::Key::DpadDown);
+        else if (key == "Left") set_key(gba::Config::Key::DpadLeft);
+        else if (key == "Right") set_key(gba::Config::Key::DpadRight);
     } else if (sec == "CPS") {
         if (key == "P1_Up") set_key(cps::Config::Key::P1_Up);
         else if (key == "P1_Down") set_key(cps::Config::Key::P1_Down);
