@@ -100,6 +100,22 @@ bool Core::loadROM(const fs::path& filename) {
         return false;
     }
 
+    if (!m_memory->hasBIOS()) {
+        fs::path biosPath = filename.parent_path() / "gba_bios.bin";
+        if (fs::exists(biosPath)) {
+            loadBootrom(biosPath);
+        }
+    }
+
+    if (!m_memory->hasBIOS()) {
+        #ifdef __EMSCRIPTEN__
+        log_error("Failed to load BIOS. Upload gba_bios.bin and try again.");
+        #else
+        log_error("Failed to load BIOS. Put specify --bios and try again.");
+        #endif
+        return false;
+    }
+
     // Reset all components
     m_memory->reset();
     m_cpu->reset();

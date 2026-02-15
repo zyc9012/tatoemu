@@ -38,8 +38,9 @@ int main(int argc, char* argv[]) {
     const char** argv_narrow = const_cast<const char**>(argv);
 #endif
     if (argc < 2) {
-        log_info("Usage: %s <rom_file> [bootrom_file] [options]", argv_narrow[0]);
+        log_info("Usage: %s <rom_file> [options]", argv_narrow[0]);
         log_info("Options:");
+        log_info("  --bios <path>         Path to BIOS file (Game Boy and GBA)");
         log_info("  --scale <n>           Window scale factor (default: 0, auto)");
         log_info("  --scale-mode <mode>   Scale mode: linear, nearest (default: linear)");
         log_info("  --sample-rate <hz>    Audio sample rate (default: %d)", Config::Audio::SampleRate);
@@ -79,7 +80,7 @@ int main(int argc, char* argv[]) {
                 volume = (volume < 0) ? 0 : 100;
             }
             Config::Audio::Volume = static_cast<u32>(volume);
-        } else if (arg == "--bootrom" && i + 1 < argc) {
+        } else if ((arg == "--bootrom" || arg == "--bios") && i + 1 < argc) {
             bootromFile = fs::path(argv[++i]);
         } else if (arg == "--neo-sys" && i + 1 < argc) {
             std::string system = argv_narrow[++i];

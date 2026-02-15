@@ -46,27 +46,9 @@ void CPU::setMemory(Memory* memory) {
 void CPU::reset() {
     m_cpu.reset();
 
-    if (m_memory && m_memory->hasBIOS()) {
-        // Boot through BIOS: start at the reset vector
-        m_cpu.setReg(R15, 0x00000000);
-        m_cpu.setCPSR(0x13 | 0xC0); // SVC mode, IRQ/FIQ disabled
-    } else {
-        // Skip BIOS: set up post-boot register state
-        m_cpu.setReg(R13, SP_USR);       // SP_usr
-        m_cpu.setReg(R15, 0x08000000);   // PC = ROM start
-
-        // Set IRQ-mode stack pointer
-        m_cpu.setCPSR(0x12 | 0xC0); // IRQ mode
-        m_cpu.setReg(R13, SP_IRQ);
-
-        // Set SVC-mode stack pointer
-        m_cpu.setCPSR(0x13 | 0xC0); // SVC mode
-        m_cpu.setReg(R13, SP_SVC);
-
-        // Switch to System mode for normal execution
-        m_cpu.setCPSR(0x1F | 0xC0); // System mode, IRQ/FIQ disabled
-        m_cpu.setReg(R13, SP_USR);
-    }
+    // Boot through BIOS: start at the reset vector
+    m_cpu.setReg(R15, 0x00000000);
+    m_cpu.setCPSR(0x13 | 0xC0); // SVC mode, IRQ/FIQ disabled
 }
 
 int CPU::step() {

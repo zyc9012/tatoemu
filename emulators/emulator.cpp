@@ -233,8 +233,6 @@ bool Emulator::initialize() {
         m_core->loadBootrom(m_bootromFilename);
     } else if (coreType == CoreType::GB) {
         log_info("No bootrom provided, starting with post-boot state");
-    } else if (coreType == CoreType::GBA) {
-        log_info("No GBA BIOS provided, using HLE (high-level emulation)");
     }
     
     if (!m_core->loadROM(m_romFilename)) {

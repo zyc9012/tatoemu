@@ -75,9 +75,6 @@ private:
     // SWI HLE
     void handleSWI();
 
-    // Embedded BIOS for when no real BIOS is loaded
-    void initEmbeddedBIOS();
-
     Cartridge* m_cartridge = nullptr;
     PPU* m_ppu = nullptr;
     Joypad* m_joypad = nullptr;

@@ -1041,7 +1041,7 @@
                     <i class="fas fa-upload"></i> Upload
                 </button>
                 <small class="upload-note">
-                    Supports game ROMs (.gb, .gbc, .gba, .nes, .zip), save files (.sav, .state) and BIOS files (neogeo.zip). ROMs can be found at <a href="https://r-roms.github.io/" target="_blank">r/ROMs</a>.
+                    Supports game ROMs (.gb, .gbc, .gba, .nes, .zip), save files (.sav, .state) and BIOS files (neogeo.zip, gba_bios.bin). ROMs can be found at <a href="https://r-roms.github.io/" target="_blank">r/ROMs</a>.
                 </small>
             </div>
             <div class="file-manager-files-section">
@@ -1464,7 +1464,7 @@
         async function loadGameFile(filepath, filename, isUpload = false) {
             try {
                 const ext = filename.split('.').pop().toLowerCase();
-                if (ext === 'sav' || ext === 'state' || filename === 'neogeo.zip') {
+                if (ext === 'sav' || ext === 'state' || filename === 'neogeo.zip' || filename === 'gba_bios.bin') {
                     if (isUpload) {
                         refreshFileList();
                     } else {

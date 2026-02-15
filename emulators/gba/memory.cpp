@@ -11,7 +11,6 @@
 namespace gba {
 
 Memory::Memory() {
-    reset();
 }
 
 Memory::~Memory() {}
@@ -25,9 +24,6 @@ void Memory::reset() {
     std::memset(m_oam, 0, sizeof(m_oam));
     m_halted = false;
     m_openBus = 0;
-    if (!m_hasBIOS) {
-        initEmbeddedBIOS();
-    }
 }
 
 bool Memory::loadBIOS(const u8* data, u32 size) {
@@ -35,13 +31,6 @@ bool Memory::loadBIOS(const u8* data, u32 size) {
     std::memcpy(m_bios, data, BIOS_SIZE);
     m_hasBIOS = true;
     return true;
-}
-
-void Memory::initEmbeddedBIOS() {
-    // Minimal embedded BIOS - just enough to skip the intro
-    // Set up a simple jump table at the SWI vector locations
-    // Real BIOS emulation would be much more complex
-    m_hasBIOS = false;
 }
 
 u8 Memory::read8(u32 address) {
