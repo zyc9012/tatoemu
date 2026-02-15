@@ -16,7 +16,7 @@ public:
     void setMemory(Memory* memory);
 
     void reset();
-    int step();
+    int step(int cycles);
 
     void raiseIRQ();
     void checkIRQ();

@@ -51,13 +51,13 @@ void CPU::reset() {
     m_cpu.setCPSR(0x13 | 0xC0); // SVC mode, IRQ/FIQ disabled
 }
 
-int CPU::step() {
+int CPU::step(int cycles) {
     if (m_memory && m_memory->isHalted())
         return 1; // Halted — return minimal cycles
 
-    int cycles = m_cpu.run(1);
+    int executed = m_cpu.run(cycles);
     checkIRQ();
-    return cycles;
+    return executed;
 }
 
 void CPU::raiseIRQ() {

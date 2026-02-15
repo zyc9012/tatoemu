@@ -131,7 +131,7 @@ void Core::update() {
     // Run until we've executed enough cycles for one frame
     while (m_cyclesThisFrame < CYCLES_PER_FRAME) {
         // Step CPU
-        u32 cycles = m_cpu->step();
+        u32 cycles = m_cpu->step(1);
         
         // Step other components
         m_ppu->step(cycles);
