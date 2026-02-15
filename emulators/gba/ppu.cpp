@@ -577,7 +577,7 @@ void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam,
         // OBJ mode: 0=normal, 1=semi-transparent, 2=OBJ window, 3=invalid
         int objMode = (attr0 >> 10) & 3;
         if (objMode == 3) continue; // Invalid mode
-        // TODO: OBJ window (mode 2) not implemented yet
+        // (handled in computeObjWindowMask)
         if (objMode == 2) continue;
         bool isSemiTransparent = (objMode == 1);
         
