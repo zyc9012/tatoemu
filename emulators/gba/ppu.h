@@ -78,18 +78,23 @@ private:
     
     // Rendering helpers
     void renderTextBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palette, u8* vram,
-                      ScanPixel* top, ScanPixel* bot, const u8* windowFlags);
+                      ScanPixel* top, ScanPixel* bot, const u8* windowFlags,
+                      int bgMosaicH, int bgMosaicV);
     void renderAffineBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palette, u8* vram,
-                        ScanPixel* top, ScanPixel* bot, const u8* windowFlags);
+                        ScanPixel* top, ScanPixel* bot, const u8* windowFlags,
+                        int bgMosaicH, int bgMosaicV);
     void renderBitmapMode3(int y, u8* vram,
-                           ScanPixel* top, ScanPixel* bot, const u8* windowFlags);
+                           ScanPixel* top, ScanPixel* bot, const u8* windowFlags,
+                           int bgMosaicH, int bgMosaicV);
     void renderBitmapMode4(int y, u16 dispcnt, u8* palette, u8* vram,
-                           ScanPixel* top, ScanPixel* bot, const u8* windowFlags);
+                           ScanPixel* top, ScanPixel* bot, const u8* windowFlags,
+                           int bgMosaicH, int bgMosaicV);
     void renderBitmapMode5(int y, u16 dispcnt, u8* vram,
-                           ScanPixel* top, ScanPixel* bot, const u8* windowFlags);
+                           ScanPixel* top, ScanPixel* bot, const u8* windowFlags,
+                           int bgMosaicH, int bgMosaicV);
     void renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam,
                        ScanPixel* top, ScanPixel* bot, bool* objSemiTransparent,
-                       const u8* windowFlags);
+                       const u8* windowFlags, int objMosaicH, int objMosaicV);
     u8 getObjPixel(int tileIndex, int x, int y, int objWidth, bool is8bpp, bool mapping1D, u8* objVram);
     
     // OBJ window mask (which pixels have OBJ window sprites)

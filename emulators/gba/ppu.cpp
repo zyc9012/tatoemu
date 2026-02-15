@@ -319,6 +319,13 @@ void PPU::renderScanline() {
     u8 windowFlags[SCREEN_WIDTH];
     computeWindowFlags(dispcnt, y, oam, vram, windowFlags);
     
+    // Decode MOSAIC register once for all layers
+    u16 mosaicReg = m_memory->readIO16(IO::MOSAIC);
+    int bgMosaicH  = (mosaicReg & 0xF) + 1;
+    int bgMosaicV  = ((mosaicReg >> 4) & 0xF) + 1;
+    int objMosaicH = ((mosaicReg >> 8) & 0xF) + 1;
+    int objMosaicV = ((mosaicReg >> 12) & 0xF) + 1;
+    
     // Render backgrounds from lowest priority to highest
     // Within same priority, BG3 < BG2 < BG1 < BG0 (BG0 wins)
     
@@ -327,37 +334,37 @@ void PPU::renderScanline() {
             // Mode 0: 4 text BGs
             for (int bg = 3; bg >= 0; bg--) {
                 if (!(dispcnt & (1 << (8 + bg)))) continue;
-                renderTextBG(bg, y, dispcnt, palette, vram, top, bot, windowFlags);
+                renderTextBG(bg, y, dispcnt, palette, vram, top, bot, windowFlags, bgMosaicH, bgMosaicV);
             }
             break;
         case 1:
             // Mode 1: BG0,BG1 text, BG2 affine
-            if (dispcnt & (1 << 10)) renderAffineBG(2, y, dispcnt, palette, vram, top, bot, windowFlags);
-            if (dispcnt & (1 << 9)) renderTextBG(1, y, dispcnt, palette, vram, top, bot, windowFlags);
-            if (dispcnt & (1 << 8)) renderTextBG(0, y, dispcnt, palette, vram, top, bot, windowFlags);
+            if (dispcnt & (1 << 10)) renderAffineBG(2, y, dispcnt, palette, vram, top, bot, windowFlags, bgMosaicH, bgMosaicV);
+            if (dispcnt & (1 << 9)) renderTextBG(1, y, dispcnt, palette, vram, top, bot, windowFlags, bgMosaicH, bgMosaicV);
+            if (dispcnt & (1 << 8)) renderTextBG(0, y, dispcnt, palette, vram, top, bot, windowFlags, bgMosaicH, bgMosaicV);
             break;
         case 2:
             // Mode 2: BG2, BG3 affine
-            if (dispcnt & (1 << 11)) renderAffineBG(3, y, dispcnt, palette, vram, top, bot, windowFlags);
-            if (dispcnt & (1 << 10)) renderAffineBG(2, y, dispcnt, palette, vram, top, bot, windowFlags);
+            if (dispcnt & (1 << 11)) renderAffineBG(3, y, dispcnt, palette, vram, top, bot, windowFlags, bgMosaicH, bgMosaicV);
+            if (dispcnt & (1 << 10)) renderAffineBG(2, y, dispcnt, palette, vram, top, bot, windowFlags, bgMosaicH, bgMosaicV);
             break;
         case 3:
             // Mode 3: BG2 bitmap, 240x160 16bpp direct color
-            if (dispcnt & (1 << 10)) renderBitmapMode3(y, vram, top, bot, windowFlags);
+            if (dispcnt & (1 << 10)) renderBitmapMode3(y, vram, top, bot, windowFlags, bgMosaicH, bgMosaicV);
             break;
         case 4:
             // Mode 4: BG2 bitmap, 240x160 8bpp paletted
-            if (dispcnt & (1 << 10)) renderBitmapMode4(y, dispcnt, palette, vram, top, bot, windowFlags);
+            if (dispcnt & (1 << 10)) renderBitmapMode4(y, dispcnt, palette, vram, top, bot, windowFlags, bgMosaicH, bgMosaicV);
             break;
         case 5:
             // Mode 5: BG2 bitmap, 160x128 16bpp direct color
-            if (dispcnt & (1 << 10)) renderBitmapMode5(y, dispcnt, vram, top, bot, windowFlags);
+            if (dispcnt & (1 << 10)) renderBitmapMode5(y, dispcnt, vram, top, bot, windowFlags, bgMosaicH, bgMosaicV);
             break;
     }
     
     // Render sprites (OBJ)
     if (dispcnt & (1 << 12)) {
-        renderSprites(y, dispcnt, palette, vram, oam, top, bot, objSemiTransparent, windowFlags);
+        renderSprites(y, dispcnt, palette, vram, oam, top, bot, objSemiTransparent, windowFlags, objMosaicH, objMosaicV);
     }
     
     // Apply color special effects (blending) and write final pixels
@@ -365,7 +372,8 @@ void PPU::renderScanline() {
 }
 
 void PPU::renderTextBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palette, u8* vram,
-                       ScanPixel* top, ScanPixel* bot, const u8* windowFlags) {
+                       ScanPixel* top, ScanPixel* bot, const u8* windowFlags,
+                       int bgMosaicH, int bgMosaicV) {
     u16 bgcnt = m_memory->readIO16(IO::BG0CNT + bg * 2);
     int priority = bgcnt & 3;
     u8 layer = LAYER_BG0 + bg;
@@ -379,15 +387,11 @@ void PPU::renderTextBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palette,
     int scrollX = m_memory->readIO16(IO::BG0HOFS + bg * 4) & 0x1FF;
     int scrollY = m_memory->readIO16(IO::BG0VOFS + bg * 4) & 0x1FF;
     
-    // Mosaic
+    // Apply mosaic only if enabled for this BG (BGCNT bit 6)
     bool mosaicEnable = (bgcnt & (1 << 6)) != 0;
-    int bgMosaicH = 1, bgMosaicV = 1;
-    if (mosaicEnable) {
-        u16 mosaicReg = m_memory->readIO16(IO::MOSAIC);
-        bgMosaicH = (mosaicReg & 0xF) + 1;
-        bgMosaicV = ((mosaicReg >> 4) & 0xF) + 1;
-    }
-    int effectiveY = mosaicEnable ? (y - (y % bgMosaicV)) : y;
+    int mH = mosaicEnable ? bgMosaicH : 1;
+    int mV = mosaicEnable ? bgMosaicV : 1;
+    int effectiveY = y - (y % mV);
     
     // Map dimensions in tiles
     int mapWidth = (bgSize & 1) ? 64 : 32;
@@ -398,7 +402,7 @@ void PPU::renderTextBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palette,
     int tileYOffset = srcY & 7;
     
     for (int x = 0; x < SCREEN_WIDTH; x++) {
-        int effectiveX = mosaicEnable ? (x - (x % bgMosaicH)) : x;
+        int effectiveX = x - (x % mH);
         int srcX = (effectiveX + scrollX) & ((mapWidth * 8) - 1);
         int tileCol = srcX / 8;
         int tileXOffset = srcX & 7;
@@ -454,7 +458,8 @@ void PPU::renderTextBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palette,
 }
 
 void PPU::renderAffineBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palette, u8* vram,
-                         ScanPixel* top, ScanPixel* bot, const u8* windowFlags) {
+                         ScanPixel* top, ScanPixel* bot, const u8* windowFlags,
+                         int bgMosaicH, int bgMosaicV) {
     u16 bgcnt = m_memory->readIO16(IO::BG0CNT + bg * 2);
     int priority = bgcnt & 3;
     u8 layer = LAYER_BG0 + bg;
@@ -464,15 +469,11 @@ void PPU::renderAffineBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palett
     int bgSize = (bgcnt >> 14) & 3;
     bool overflow = (bgcnt & (1 << 13)) != 0; // Wraparound
     
-    // Mosaic
+    // Apply mosaic only if enabled for this BG (BGCNT bit 6)
     bool mosaicEnable = (bgcnt & (1 << 6)) != 0;
-    int bgMosaicH = 1, bgMosaicV = 1;
-    if (mosaicEnable) {
-        u16 mosaicReg = m_memory->readIO16(IO::MOSAIC);
-        bgMosaicH = (mosaicReg & 0xF) + 1;
-        bgMosaicV = ((mosaicReg >> 4) & 0xF) + 1;
-    }
-    int effectiveY = mosaicEnable ? (y - (y % bgMosaicV)) : y;
+    int mH = mosaicEnable ? bgMosaicH : 1;
+    int mV = mosaicEnable ? bgMosaicV : 1;
+    int effectiveY = y - (y % mV);
     
     // Affine BG sizes: 128, 256, 512, 1024 pixels
     int size = 128 << bgSize;
@@ -498,7 +499,7 @@ void PPU::renderAffineBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palett
     s32 cy = refY + pd * effectiveY;
     
     for (int x = 0; x < SCREEN_WIDTH; x++) {
-        int effectiveX = mosaicEnable ? (x - (x % bgMosaicH)) : x;
+        int effectiveX = x - (x % mH);
         s32 texX = (cx + pa * effectiveX) >> 8;
         s32 texY = (cy + pc * effectiveX) >> 8;
         
@@ -532,23 +533,20 @@ void PPU::renderAffineBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palett
 }
 
 void PPU::renderBitmapMode3(int y, u8* vram,
-                            ScanPixel* top, ScanPixel* bot, const u8* windowFlags) {
+                            ScanPixel* top, ScanPixel* bot, const u8* windowFlags,
+                            int bgMosaicH, int bgMosaicV) {
     u16 bgcnt = m_memory->readIO16(IO::BG2CNT);
     int priority = bgcnt & 3;
     
-    // Mosaic
+    // Apply mosaic only if enabled for this BG (BGCNT bit 6)
     bool mosaicEnable = (bgcnt & (1 << 6)) != 0;
-    int bgMosaicH = 1, bgMosaicV = 1;
-    if (mosaicEnable) {
-        u16 mosaicReg = m_memory->readIO16(IO::MOSAIC);
-        bgMosaicH = (mosaicReg & 0xF) + 1;
-        bgMosaicV = ((mosaicReg >> 4) & 0xF) + 1;
-    }
-    int effectiveY = mosaicEnable ? (y - (y % bgMosaicV)) : y;
+    int mH = mosaicEnable ? bgMosaicH : 1;
+    int mV = mosaicEnable ? bgMosaicV : 1;
+    int effectiveY = y - (y % mV);
     
     for (int x = 0; x < SCREEN_WIDTH; x++) {
         if (!(windowFlags[x] & (1 << 2))) continue; // BG2 window check
-        int effectiveX = mosaicEnable ? (x - (x % bgMosaicH)) : x;
+        int effectiveX = x - (x % mH);
         u32 addr = (effectiveY * SCREEN_WIDTH + effectiveX) * 2;
         u16 color555 = *reinterpret_cast<u16*>(&vram[addr]);
         placePixel(top, bot, x, color555, LAYER_BG2, priority);
@@ -556,24 +554,21 @@ void PPU::renderBitmapMode3(int y, u8* vram,
 }
 
 void PPU::renderBitmapMode4(int y, u16 dispcnt, u8* palette, u8* vram,
-                            ScanPixel* top, ScanPixel* bot, const u8* windowFlags) {
+                            ScanPixel* top, ScanPixel* bot, const u8* windowFlags,
+                            int bgMosaicH, int bgMosaicV) {
     u16 bgcnt = m_memory->readIO16(IO::BG2CNT);
     int priority = bgcnt & 3;
     u32 base = (dispcnt & (1 << 4)) ? 0xA000 : 0;
     
-    // Mosaic
+    // Apply mosaic only if enabled for this BG (BGCNT bit 6)
     bool mosaicEnable = (bgcnt & (1 << 6)) != 0;
-    int bgMosaicH = 1, bgMosaicV = 1;
-    if (mosaicEnable) {
-        u16 mosaicReg = m_memory->readIO16(IO::MOSAIC);
-        bgMosaicH = (mosaicReg & 0xF) + 1;
-        bgMosaicV = ((mosaicReg >> 4) & 0xF) + 1;
-    }
-    int effectiveY = mosaicEnable ? (y - (y % bgMosaicV)) : y;
+    int mH = mosaicEnable ? bgMosaicH : 1;
+    int mV = mosaicEnable ? bgMosaicV : 1;
+    int effectiveY = y - (y % mV);
     
     for (int x = 0; x < SCREEN_WIDTH; x++) {
         if (!(windowFlags[x] & (1 << 2))) continue; // BG2 window check
-        int effectiveX = mosaicEnable ? (x - (x % bgMosaicH)) : x;
+        int effectiveX = x - (x % mH);
         u8 colorIndex = vram[base + effectiveY * SCREEN_WIDTH + effectiveX];
         if (colorIndex == 0) continue;
         
@@ -583,26 +578,23 @@ void PPU::renderBitmapMode4(int y, u16 dispcnt, u8* palette, u8* vram,
 }
 
 void PPU::renderBitmapMode5(int y, u16 dispcnt, u8* vram,
-                            ScanPixel* top, ScanPixel* bot, const u8* windowFlags) {
+                            ScanPixel* top, ScanPixel* bot, const u8* windowFlags,
+                            int bgMosaicH, int bgMosaicV) {
     if (y >= 128) return; // Mode 5 is only 160x128
     
     u16 bgcnt = m_memory->readIO16(IO::BG2CNT);
     int priority = bgcnt & 3;
     u32 base = (dispcnt & (1 << 4)) ? 0xA000 : 0;
     
-    // Mosaic
+    // Apply mosaic only if enabled for this BG (BGCNT bit 6)
     bool mosaicEnable = (bgcnt & (1 << 6)) != 0;
-    int bgMosaicH = 1, bgMosaicV = 1;
-    if (mosaicEnable) {
-        u16 mosaicReg = m_memory->readIO16(IO::MOSAIC);
-        bgMosaicH = (mosaicReg & 0xF) + 1;
-        bgMosaicV = ((mosaicReg >> 4) & 0xF) + 1;
-    }
-    int effectiveY = mosaicEnable ? (y - (y % bgMosaicV)) : y;
+    int mH = mosaicEnable ? bgMosaicH : 1;
+    int mV = mosaicEnable ? bgMosaicV : 1;
+    int effectiveY = y - (y % mV);
     
     for (int x = 0; x < 160 && x < SCREEN_WIDTH; x++) {
         if (!(windowFlags[x] & (1 << 2))) continue; // BG2 window check
-        int effectiveX = mosaicEnable ? (x - (x % bgMosaicH)) : x;
+        int effectiveX = x - (x % mH);
         u32 addr = base + (effectiveY * 160 + effectiveX) * 2;
         u16 color555 = *reinterpret_cast<u16*>(&vram[addr]);
         placePixel(top, bot, x, color555, LAYER_BG2, priority);
@@ -611,7 +603,7 @@ void PPU::renderBitmapMode5(int y, u16 dispcnt, u8* vram,
 
 void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam,
                         ScanPixel* top, ScanPixel* bot, bool* objSemiTransparent,
-                        const u8* windowFlags) {
+                        const u8* windowFlags, int objMosaicH, int objMosaicV) {
     bool objMapping1D = (dispcnt & (1 << 6)) != 0;
     int mode = dispcnt & 7;
     
@@ -619,10 +611,7 @@ void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam,
     u8* objVram = &vram[0x10000];
     u8* objPalette = &palette[0x200]; // OBJ palette at 0x200
     
-    // OBJ mosaic parameters
-    u16 mosaicReg = m_memory->readIO16(IO::MOSAIC);
-    int objMosaicH = ((mosaicReg >> 8) & 0xF) + 1;
-    int objMosaicV = ((mosaicReg >> 12) & 0xF) + 1;
+    // OBJ mosaic vertical counter (screen-based)
     int mosaicCounterY = y % objMosaicV;
     
     // Iterate sprites in reverse order (lower index = higher priority within same OBJ priority)
