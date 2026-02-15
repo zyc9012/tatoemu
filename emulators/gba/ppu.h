@@ -52,14 +52,23 @@ private:
     void enterVBlank();
     
     // Pixel placement for two-layer compositing
-    static inline void placePixel(ScanPixel* top, ScanPixel* bot, int x,
+    // Returns true if the pixel was placed on top (for semi-transparency tracking)
+    static inline bool placePixel(ScanPixel* top, ScanPixel* bot, int x,
                                   u16 color, u8 layer, u8 priority) {
         if (priority <= top[x].priority) {
-            bot[x] = top[x];
+            // Only push old top to bot if it's a different layer;
+            // same-layer pixels (e.g. two OBJ sprites) must not occupy
+            // both top and bot, since GBA blending only works between
+            // different layers.
+            if (layer != top[x].layer) {
+                bot[x] = top[x];
+            }
             top[x] = { color, layer, priority };
-        } else if (priority <= bot[x].priority) {
+            return true;
+        } else if (layer != top[x].layer && priority <= bot[x].priority) {
             bot[x] = { color, layer, priority };
         }
+        return false;
     }
     
     // Window support

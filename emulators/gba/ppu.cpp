@@ -647,9 +647,8 @@ void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam,
                     color555 = *reinterpret_cast<u16*>(&objPalette[(palNum * 16 + colorIndex) * 2]);
                 }
                 if (!(windowFlags[screenX] & (1 << 4))) continue; // OBJ window check
-                placePixel(top, bot, screenX, color555, LAYER_OBJ, priority);
-                if (isSemiTransparent && top[screenX].layer == LAYER_OBJ) {
-                    objSemiTransparent[screenX] = true;
+                if (placePixel(top, bot, screenX, color555, LAYER_OBJ, priority)) {
+                    objSemiTransparent[screenX] = isSemiTransparent;
                 }
             }
         } else {
@@ -675,9 +674,8 @@ void PPU::renderSprites(int y, u16 dispcnt, u8* palette, u8* vram, u8* oam,
                     color555 = *reinterpret_cast<u16*>(&objPalette[(palNum * 16 + colorIndex) * 2]);
                 }
                 if (!(windowFlags[screenX] & (1 << 4))) continue; // OBJ window check
-                placePixel(top, bot, screenX, color555, LAYER_OBJ, priority);
-                if (isSemiTransparent && top[screenX].layer == LAYER_OBJ) {
-                    objSemiTransparent[screenX] = true;
+                if (placePixel(top, bot, screenX, color555, LAYER_OBJ, priority)) {
+                    objSemiTransparent[screenX] = isSemiTransparent;
                 }
             }
         }
