@@ -18,6 +18,10 @@ void PPU::reset() {
     m_cycles = 0;
     m_inHBlank = false;
     m_inVBlank = false;
+    m_bg2RefX = 0;
+    m_bg2RefY = 0;
+    m_bg3RefX = 0;
+    m_bg3RefY = 0;
 }
 
 void PPU::step(int cycles) {
@@ -43,14 +47,32 @@ void PPU::step(int cycles) {
             updateDispstat();
         }
     } else {
-        // VBlank scanlines
+        // VBlank scanlines — HBlank still fires for IRQ
+        if (!m_inHBlank && m_cycles >= HDRAW_CYCLES) {
+            m_inHBlank = true;
+            
+            u16 dispstat = m_memory->readIO16(IO::DISPSTAT);
+            dispstat |= DISPSTAT::HBLANK_FLAG;
+            m_memory->writeIO16(IO::DISPSTAT, dispstat);
+            
+            if (dispstat & DISPSTAT::HBLANK_IRQ) {
+                m_memory->requestIRQ(IRQ::HBLANK);
+            }
+            // No HBlank DMA during VBlank
+        }
+        
         if (m_cycles >= SCANLINE_CYCLES) {
             m_cycles -= SCANLINE_CYCLES;
             m_vcount++;
+            m_inHBlank = false;
+            
+            // VBlank flag clears at scanline 227 (last VBlank line)
+            if (m_vcount == TOTAL_LINES - 1) {
+                m_inVBlank = false;
+            }
             
             if (m_vcount >= TOTAL_LINES) {
                 m_vcount = 0;
-                m_inVBlank = false;
                 
                 // Render frame
                 if (m_videoDevice) {
@@ -454,7 +476,7 @@ void PPU::renderTextBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palette,
     }
 }
 
-void PPU::renderAffineBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palette, u8* vram,
+void PPU::renderAffineBG(int bg, [[maybe_unused]] int y, [[maybe_unused]] u16 dispcnt, u8* palette, u8* vram,
                          ScanPixel* top, ScanPixel* bot, const u8* windowFlags,
                          int bgMosaicH, int bgMosaicV) {
     u16 bgcnt = m_memory->readIO16(IO::BG0CNT + bg * 2);
@@ -469,8 +491,7 @@ void PPU::renderAffineBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palett
     // Apply mosaic only if enabled for this BG (BGCNT bit 6)
     bool mosaicEnable = (bgcnt & (1 << 6)) != 0;
     int mH = mosaicEnable ? bgMosaicH : 1;
-    int mV = mosaicEnable ? bgMosaicV : 1;
-    int effectiveY = y - (y % mV);
+    (void)bgMosaicV; // Vertical mosaic handled via internal affine ref point tracking
     
     // Affine BG sizes: 128, 256, 512, 1024 pixels
     int size = 128 << bgSize;
@@ -479,21 +500,16 @@ void PPU::renderAffineBG(int bg, int y, [[maybe_unused]] u16 dispcnt, u8* palett
     // Get affine parameters
     u32 baseIO = (bg == 2) ? IO::BG2PA : IO::BG3PA;
     s16 pa = (s16)m_memory->readIO16(baseIO);
-    s16 pb = (s16)m_memory->readIO16(baseIO + 2);
     s16 pc = (s16)m_memory->readIO16(baseIO + 4);
-    s16 pd = (s16)m_memory->readIO16(baseIO + 6);
     
-    // Reference point (28.8 fixed-point stored across two 16-bit regs)
-    u32 baseRef = (bg == 2) ? IO::BG2X : IO::BG3X;
-    s32 refX = (s32)m_memory->readIO32(baseRef);
-    s32 refY = (s32)m_memory->readIO32(baseRef + 4);
-    // Sign extend from 28 bits
-    refX = (refX << 4) >> 4;
-    refY = (refY << 4) >> 4;
+    // Reference point — use internal affine tracking
+    int bgIdx = bg - 2; // 0 for BG2, 1 for BG3
+    s32 refX = (bgIdx == 0) ? m_bg2RefX : m_bg3RefX;
+    s32 refY = (bgIdx == 0) ? m_bg2RefY : m_bg3RefY;
     
     // Calculate starting position for this scanline
-    s32 cx = refX + pb * effectiveY;
-    s32 cy = refY + pd * effectiveY;
+    s32 cx = refX;
+    s32 cy = refY;
     
     for (int x = 0; x < SCREEN_WIDTH; x++) {
         int effectiveX = x - (x % mH);
@@ -854,6 +870,16 @@ void PPU::enterHBlank() {
     
     renderScanline();
     
+    // Update affine reference points per scanline (sx += PB, sy += PD)
+    s16 bg2pb = (s16)m_memory->readIO16(IO::BG2PA + 2);
+    s16 bg2pd = (s16)m_memory->readIO16(IO::BG2PA + 6);
+    s16 bg3pb = (s16)m_memory->readIO16(IO::BG3PA + 2);
+    s16 bg3pd = (s16)m_memory->readIO16(IO::BG3PA + 6);
+    m_bg2RefX += bg2pb;
+    m_bg2RefY += bg2pd;
+    m_bg3RefX += bg3pb;
+    m_bg3RefY += bg3pd;
+    
     u16 dispstat = m_memory->readIO16(IO::DISPSTAT);
     dispstat |= DISPSTAT::HBLANK_FLAG;
     m_memory->writeIO16(IO::DISPSTAT, dispstat);
@@ -871,6 +897,9 @@ void PPU::enterVBlank() {
     
     if (!m_memory) return;
     
+    // Latch affine reference points at start of VBlank
+    latchAffineRefPoints();
+    
     u16 dispstat = m_memory->readIO16(IO::DISPSTAT);
     dispstat |= DISPSTAT::VBLANK_FLAG;
     m_memory->writeIO16(IO::DISPSTAT, dispstat);
@@ -884,10 +913,50 @@ void PPU::enterVBlank() {
 }
 
 void PPU::writeRegister(u32 offset, u16 value) {
-    // PPU registers are written through memory
-    // This function can be used for special register handling if needed
-    (void)offset;
+    // When games write to affine reference point registers,
+    // immediately latch the new value into the internal register.
+    // The IO array is already updated by memory.cpp before this call.
     (void)value;
+    
+    if (!m_memory) return;
+    
+    auto signExtend28 = [](s32 val) -> s32 {
+        return (val << 4) >> 4;
+    };
+    
+    switch (offset) {
+        case IO::BG2X:
+        case IO::BG2X_H:
+            m_bg2RefX = signExtend28((s32)m_memory->readIO32(IO::BG2X));
+            break;
+        case IO::BG2Y:
+        case IO::BG2Y_H:
+            m_bg2RefY = signExtend28((s32)m_memory->readIO32(IO::BG2Y));
+            break;
+        case IO::BG3X:
+        case IO::BG3X_H:
+            m_bg3RefX = signExtend28((s32)m_memory->readIO32(IO::BG3X));
+            break;
+        case IO::BG3Y:
+        case IO::BG3Y_H:
+            m_bg3RefY = signExtend28((s32)m_memory->readIO32(IO::BG3Y));
+            break;
+        default:
+            break;
+    }
+}
+
+void PPU::latchAffineRefPoints() {
+    if (!m_memory) return;
+    
+    auto signExtend28 = [](s32 val) -> s32 {
+        return (val << 4) >> 4;
+    };
+    
+    m_bg2RefX = signExtend28((s32)m_memory->readIO32(IO::BG2X));
+    m_bg2RefY = signExtend28((s32)m_memory->readIO32(IO::BG2Y));
+    m_bg3RefX = signExtend28((s32)m_memory->readIO32(IO::BG3X));
+    m_bg3RefY = signExtend28((s32)m_memory->readIO32(IO::BG3Y));
 }
 
 void PPU::saveState(Buffer* buf) {
@@ -896,6 +965,10 @@ void PPU::saveState(Buffer* buf) {
     buffer_write(buf, &m_cycles, sizeof(m_cycles));
     buffer_write(buf, &m_inHBlank, sizeof(m_inHBlank));
     buffer_write(buf, &m_inVBlank, sizeof(m_inVBlank));
+    buffer_write(buf, &m_bg2RefX, sizeof(m_bg2RefX));
+    buffer_write(buf, &m_bg2RefY, sizeof(m_bg2RefY));
+    buffer_write(buf, &m_bg3RefX, sizeof(m_bg3RefX));
+    buffer_write(buf, &m_bg3RefY, sizeof(m_bg3RefY));
 }
 
 void PPU::loadState(Buffer* buf) {
@@ -904,6 +977,10 @@ void PPU::loadState(Buffer* buf) {
     buffer_read(buf, &m_cycles, sizeof(m_cycles));
     buffer_read(buf, &m_inHBlank, sizeof(m_inHBlank));
     buffer_read(buf, &m_inVBlank, sizeof(m_inVBlank));
+    buffer_read(buf, &m_bg2RefX, sizeof(m_bg2RefX));
+    buffer_read(buf, &m_bg2RefY, sizeof(m_bg2RefY));
+    buffer_read(buf, &m_bg3RefX, sizeof(m_bg3RefX));
+    buffer_read(buf, &m_bg3RefY, sizeof(m_bg3RefY));
 }
 
 } // namespace gba

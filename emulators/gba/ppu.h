@@ -51,6 +51,7 @@ private:
     void enterHBlank();
     void enterVBlank();
     void updateDispstat();
+    void latchAffineRefPoints();
     
     // Pixel placement for two-layer compositing
     // Returns true if the pixel was placed on top (for semi-transparency tracking)
@@ -115,6 +116,13 @@ private:
     u32 m_cycles = 0;
     bool m_inHBlank = false;
     bool m_inVBlank = false;
+
+    // Internal affine reference points (28.8 fixed-point)
+    // Latched at VBlank start and updated per-scanline by PB/PD
+    s32 m_bg2RefX = 0;
+    s32 m_bg2RefY = 0;
+    s32 m_bg3RefX = 0;
+    s32 m_bg3RefY = 0;
 };
 
 } // namespace gba

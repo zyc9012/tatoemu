@@ -10,8 +10,8 @@ constexpr u16 SCREEN_HEIGHT = 160;
 constexpr u32 CPU_FREQUENCY = 16777216; // 16.78 MHz (0x1000000)
 
 // Video timing
-constexpr u32 HDRAW_CYCLES = 960;      // Cycles for visible pixels
-constexpr u32 HBLANK_CYCLES = 272;     // Cycles for HBlank
+constexpr u32 HDRAW_CYCLES = 1008;     // Cycles for visible pixels
+constexpr u32 HBLANK_CYCLES = 224;     // Cycles for HBlank
 constexpr u32 SCANLINE_CYCLES = HDRAW_CYCLES + HBLANK_CYCLES; // 1232 cycles per scanline
 constexpr u32 VISIBLE_LINES = 160;
 constexpr u32 VBLANK_LINES = 68;

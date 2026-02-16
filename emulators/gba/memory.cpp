@@ -402,7 +402,10 @@ void Memory::writeIO16(u32 offset, u16 value) {
         *reinterpret_cast<u16*>(&m_io[offset]) = value;
         return;
     } else if (m_ppu && offset >= IO::DISPCNT && offset < IO::SOUND1CNT_L) {
+        // Write to IO array FIRST so writeRegister can read the updated value
+        *reinterpret_cast<u16*>(&m_io[offset]) = value;
         m_ppu->writeRegister(offset, value);
+        return;
     } else if (m_timer && offset >= IO::TM0CNT_L && offset <= IO::TM3CNT_H) {
         m_timer->writeRegister(offset, value);
     } else if (m_dma && offset >= IO::DMA0SAD && offset <= IO::DMA3CNT_H + 1) {
