@@ -46,6 +46,7 @@ constexpr u32 REGION_ROM1H = 0xB;
 constexpr u32 REGION_ROM2 = 0xC;
 constexpr u32 REGION_ROM2H = 0xD;
 constexpr u32 REGION_SRAM = 0xE;
+constexpr u32 REGION_SRAM_MIRROR = 0xF;
 
 // IO Register addresses (offset from 0x04000000)
 namespace IO {

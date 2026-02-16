@@ -66,6 +66,7 @@ u8 Memory::read8(u32 address) {
             }
             return 0xFF;
         case REGION_SRAM:
+        case REGION_SRAM_MIRROR:
             if (m_cartridge) return m_cartridge->readSave(offset);
             return 0xFF;
         default:
@@ -115,6 +116,7 @@ u16 Memory::read16(u32 address) {
             }
             return 0xFFFF;
         case REGION_SRAM:
+        case REGION_SRAM_MIRROR:
             return (m_cartridge ? m_cartridge->readSave(offset) : 0xFF) * 0x0101;
         default:
             return m_openBus & 0xFFFF;
@@ -158,6 +160,7 @@ u32 Memory::read32(u32 address) {
             }
             return 0xFFFFFFFF;
         case REGION_SRAM:
+        case REGION_SRAM_MIRROR:
             if (m_cartridge) {
                 u8 val = m_cartridge->readSave(offset);
                 return val * 0x01010101;
@@ -206,6 +209,7 @@ void Memory::write8(u32 address, u8 value) {
             break;
         }
         case REGION_SRAM:
+        case REGION_SRAM_MIRROR:
             if (m_cartridge) m_cartridge->writeSave(offset, value);
             break;
         default:
@@ -239,7 +243,13 @@ void Memory::write16(u32 address, u16 value) {
         case REGION_OAM:
             *reinterpret_cast<u16*>(&m_oam[offset & 0x3FF]) = value;
             break;
+        case REGION_ROM2H:
+            if (m_cartridge->hasEEPROM()) {
+                m_cartridge->writeEEPROM(value & 1, 1);
+            }
+            break;
         case REGION_SRAM:
+        case REGION_SRAM_MIRROR:
             if (m_cartridge) {
                 m_cartridge->writeSave(offset, value & 0xFF);
             }
@@ -277,6 +287,7 @@ void Memory::write32(u32 address, u32 value) {
             *reinterpret_cast<u32*>(&m_oam[offset & 0x3FF]) = value;
             break;
         case REGION_SRAM:
+        case REGION_SRAM_MIRROR:
             if (m_cartridge) {
                 m_cartridge->writeSave(offset, value & 0xFF);
             }
