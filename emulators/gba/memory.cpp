@@ -466,10 +466,9 @@ void Memory::requestIRQ(u16 irqBit) {
     *reinterpret_cast<u16*>(&m_io[IO::IF]) = IF;
     
     u16 IE = readIO16(IO::IE);
-    u16 IME = readIO16(IO::IME);
     
-    // Wake from halt if this IRQ is enabled
-    if ((IE & irqBit) && (IME & 1)) {
+    // Wake from halt if this IRQ is enabled in IE,
+    if (IE & irqBit) {
         m_halted = false;
     }
 }
