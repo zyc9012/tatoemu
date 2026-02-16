@@ -863,7 +863,7 @@ void PPU::enterHBlank() {
     }
     
     // Trigger HBlank DMA
-    if (m_dma) m_dma->runHBlank();
+    if (m_dma) m_dma->runHBlank(m_vcount);
 }
 
 void PPU::enterVBlank() {

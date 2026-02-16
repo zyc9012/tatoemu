@@ -32,7 +32,7 @@ public:
     void writeRegister(u32 offset, u16 value);
     
     void runImmediate();
-    void runHBlank();
+    void runHBlank(u16 vcount);
     void runVBlank();
     void runFIFO(int fifoIndex);
     
@@ -48,6 +48,7 @@ private:
     
     Memory* m_memory = nullptr;
     DMAChannel m_channels[4];
+    u16 m_videoCaptureLine = 0;
 };
 
 } // namespace gba

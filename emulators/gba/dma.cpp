@@ -33,14 +33,16 @@ void DMA::writeRegister(u32 offset, u16 value) {
             break;
         case 2: // SAD high
             m_channels[channel].source = (m_channels[channel].source & 0x0000FFFF) | (static_cast<u32>(value) << 16);
-            m_channels[channel].source &= 0x0FFFFFFF; // 28-bit
+            // DMA0: 27-bit source, DMA1-3: 28-bit source
+            m_channels[channel].source &= (channel == 0) ? 0x07FFFFFF : 0x0FFFFFFF;
             break;
         case 4: // DAD low
             m_channels[channel].dest = (m_channels[channel].dest & 0xFFFF0000) | value;
             break;
         case 6: // DAD high
             m_channels[channel].dest = (m_channels[channel].dest & 0x0000FFFF) | (static_cast<u32>(value) << 16);
-            m_channels[channel].dest &= 0x0FFFFFFF; // 28-bit
+            // DMA0-2: 27-bit dest, DMA3: 28-bit dest
+            m_channels[channel].dest &= (channel == 3) ? 0x0FFFFFFF : 0x07FFFFFF;
             break;
         case 8: // CNT_L (count)
             m_channels[channel].count = value;
@@ -61,8 +63,12 @@ void DMA::writeRegister(u32 offset, u16 value) {
 }
 
 void DMA::trigger(int channel) {
-    m_channels[channel].internalSource = m_channels[channel].source;
-    m_channels[channel].internalDest = m_channels[channel].dest;
+    bool is32bit = (m_channels[channel].control & (1 << 10)) != 0;
+    int width = is32bit ? 4 : 2;
+
+    // Align source and dest to transfer width
+    m_channels[channel].internalSource = m_channels[channel].source & ~(width - 1);
+    m_channels[channel].internalDest = m_channels[channel].dest & ~(width - 1);
     m_channels[channel].internalCount = m_channels[channel].count;
     
     if (m_channels[channel].internalCount == 0) {
@@ -73,6 +79,14 @@ void DMA::trigger(int channel) {
     m_channels[channel].repeat = (m_channels[channel].control & (1 << 9)) != 0;
     
     int timing = (m_channels[channel].control >> 12) & 3;
+
+    // Force FIFO DMA settings for channels 1/2 with SPECIAL timing
+    if (timing == DMA_TIMING::SPECIAL && (channel == 1 || channel == 2)) {
+        // Force 32-bit width and fixed dest for FIFO DMA
+        m_channels[channel].control |= (1 << 10);  // Width = 32-bit
+        m_channels[channel].control = (m_channels[channel].control & ~(3 << 5)) | (2 << 5); // DestControl = Fixed
+    }
+
     if (timing == DMA_TIMING::IMMEDIATE) {
         run(channel);
     }
@@ -84,36 +98,37 @@ void DMA::run(int channel) {
     int srcCtrl = (m_channels[channel].control >> 7) & 3;
     int dstCtrl = (m_channels[channel].control >> 5) & 3;
     bool is32bit = (m_channels[channel].control & (1 << 10)) != 0;
+    int width = is32bit ? 4 : 2;
     
     u32 src = m_channels[channel].internalSource;
     u32 dst = m_channels[channel].internalDest;
-    u16 count = m_channels[channel].internalCount;
+    u32 count = m_channels[channel].internalCount;
+    
+    // Source offset: ROM sources are forced to increment
+    static constexpr int DMA_OFFSET[] = {1, -1, 0, 1}; // INC, DEC, FIXED, INC(reload only for dest)
+    int srcOffset;
+    if (src >= 0x08000000 && src < 0x0E000000) {
+        srcOffset = width; // ROM source: forced increment
+    } else {
+        srcOffset = DMA_OFFSET[srcCtrl] * width;
+    }
+    int dstOffset = DMA_OFFSET[dstCtrl] * width;
     
     // Check for EEPROM access (ROM2_EX region = 0x0D000000)
     u32 srcRegion = (src >> 24) & 0xF;
     u32 dstRegion = (dst >> 24) & 0xF;
-    Cartridge* cart = m_memory->getCartridge();
+    Cartridge* cart = m_memory ? m_memory->getCartridge() : nullptr;
     
-    for (u16 i = 0; i < count; i++) {
+    for (u32 i = 0; i < count; i++) {
         if (is32bit) {
             u32 data = m_memory->read32(src);
             m_memory->write32(dst, data);
-            
-            // Update source
-            if (srcCtrl == 0) src += 4;       // Increment
-            else if (srcCtrl == 1) src -= 4;  // Decrement
-            // srcCtrl == 2: Fixed
-            
-            // Update dest
-            if (dstCtrl == 0) dst += 4;
-            else if (dstCtrl == 1) dst -= 4;
-            else if (dstCtrl == 3) dst += 4; // Increment+reload
         } else {
             u16 data;
             u16 remainingCount = count - i;
             
             // EEPROM read through DMA from ROM2_EX region (0x0D000000)
-            if (srcRegion == REGION_ROM2H && cart->hasEEPROM()) {
+            if (srcRegion == REGION_ROM2H && cart && cart->hasEEPROM()) {
                 data = cart->readEEPROM();
                 data |= data << 8; // Replicate to full 16-bit
             } else {
@@ -121,19 +136,15 @@ void DMA::run(int channel) {
             }
             
             // EEPROM write through DMA to ROM2_EX region (0x0D000000)
-            if (dstRegion == REGION_ROM2H) {
+            if (dstRegion == REGION_ROM2H && cart) {
                 cart->writeEEPROM(data, remainingCount);
             } else {
                 m_memory->write16(dst, data);
             }
-            
-            if (srcCtrl == 0) src += 2;
-            else if (srcCtrl == 1) src -= 2;
-            
-            if (dstCtrl == 0) dst += 2;
-            else if (dstCtrl == 1) dst -= 2;
-            else if (dstCtrl == 3) dst += 2;
         }
+
+        src += srcOffset;
+        dst += dstOffset;
     }
     
     // Update internal registers
@@ -150,7 +161,14 @@ void DMA::run(int channel) {
         m_memory->requestIRQ(IRQ::DMA0 << channel);
     }
     
-    if (!m_channels[channel].repeat) {
+    int timing = (m_channels[channel].control >> 12) & 3;
+    // Immediate DMAs never repeat, even if repeat bit is set
+    // DMA3 video capture auto-stops at vcount == 161
+    bool noRepeat = !m_channels[channel].repeat
+                 || (timing == DMA_TIMING::IMMEDIATE)
+                 || (channel == 3 && timing == DMA_TIMING::SPECIAL && m_videoCaptureLine >= VISIBLE_LINES + 1);
+    
+    if (noRepeat) {
         m_channels[channel].active = false;
         m_channels[channel].control &= ~(1 << 15); // Disable
         // Update the IO register to reflect DMA completion
@@ -174,12 +192,26 @@ void DMA::runImmediate() {
     }
 }
 
-void DMA::runHBlank() {
+void DMA::runHBlank(u16 vcount) {
     for (int i = 0; i < 4; i++) {
         if (m_channels[i].active) {
             int timing = (m_channels[i].control >> 12) & 3;
             if (timing == DMA_TIMING::HBLANK) {
+                // Reload count for repeat DMAs
+                m_channels[i].internalCount = m_channels[i].count;
+                if (m_channels[i].internalCount == 0) {
+                    m_channels[i].internalCount = (i == 3) ? 0x10000 : 0x4000;
+                }
                 run(i);
+            }
+            // DMA3 video capture: SPECIAL timing, triggered each HBlank during visible lines
+            if (i == 3 && timing == DMA_TIMING::SPECIAL) {
+                m_videoCaptureLine = vcount;
+                m_channels[3].internalCount = m_channels[3].count;
+                if (m_channels[3].internalCount == 0) {
+                    m_channels[3].internalCount = 0x10000;
+                }
+                run(3);
             }
         }
     }
@@ -190,6 +222,11 @@ void DMA::runVBlank() {
         if (m_channels[i].active) {
             int timing = (m_channels[i].control >> 12) & 3;
             if (timing == DMA_TIMING::VBLANK) {
+                // Reload count for repeat DMAs
+                m_channels[i].internalCount = m_channels[i].count;
+                if (m_channels[i].internalCount == 0) {
+                    m_channels[i].internalCount = (i == 3) ? 0x10000 : 0x4000;
+                }
                 run(i);
             }
         }
