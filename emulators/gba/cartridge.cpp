@@ -190,11 +190,27 @@ void Cartridge::writeSave(u32 address, u8 value) {
                         m_flashState = FlashState::READY;
                     break;
                 case FlashState::CMD2:
-                    if (address == 0x5555) {
+                    if (m_flashEraseMode) {
+                        // Second CMD1→CMD2 after erase setup (0x80)
+                        if (address == 0x5555 && value == 0x10) {
+                            // Erase entire chip
+                            std::memset(m_sram.data(), 0xFF, m_sram.size());
+                        } else if (value == 0x30) {
+                            // Erase 4KB sector at the written address
+                            u32 sector = address & 0xF000;
+                            u32 offset = (m_saveType == SaveType::FLASH_128K) ? m_flashBank * 0x10000 : 0;
+                            std::memset(&m_sram[offset + sector], 0xFF, 0x1000);
+                        }
+                        m_flashEraseMode = false;
+                        m_flashState = FlashState::READY;
+                    } else if (address == 0x5555) {
                         switch (value) {
                             case 0x90: m_flashIdMode = true; break;
                             case 0xF0: m_flashIdMode = false; break;
-                            case 0x80: m_flashState = FlashState::ERASE; return;
+                            case 0x80:
+                                m_flashEraseMode = true;
+                                m_flashState = FlashState::READY;
+                                return;
                             case 0xA0: m_flashState = FlashState::WRITE; return;
                             case 0xB0:
                                 if (m_saveType == SaveType::FLASH_128K) {
@@ -203,21 +219,8 @@ void Cartridge::writeSave(u32 address, u8 value) {
                                 }
                                 break;
                         }
-                    }
-                    m_flashState = FlashState::READY;
-                    break;
-                case FlashState::ERASE:
-                    if (address == 0x5555 && value == 0xAA) {
-                        m_flashState = FlashState::CMD1;
-                    } else if (value == 0x30) {
-                        // Erase 4KB sector
-                        u32 sector = address & 0xF000;
-                        u32 offset = (m_saveType == SaveType::FLASH_128K) ? m_flashBank * 0x10000 : 0;
-                        std::memset(&m_sram[offset + sector], 0xFF, 0x1000);
                         m_flashState = FlashState::READY;
-                    } else if (address == 0x5555 && value == 0x10) {
-                        // Erase entire chip
-                        std::memset(m_sram.data(), 0xFF, m_sram.size());
+                    } else {
                         m_flashState = FlashState::READY;
                     }
                     break;

@@ -58,10 +58,11 @@ private:
     fs::path m_savePath;
 
     // Flash state machine
-    enum class FlashState { READY, CMD1, CMD2, ERASE, WRITE, BANK_SELECT, ID };
+    enum class FlashState { READY, CMD1, CMD2, WRITE, BANK_SELECT };
     FlashState m_flashState = FlashState::READY;
     u8 m_flashBank = 0;
     bool m_flashIdMode = false;
+    bool m_flashEraseMode = false;
     
     // EEPROM
     EEPROM m_eeprom;
