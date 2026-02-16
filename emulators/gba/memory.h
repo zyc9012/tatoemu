@@ -13,6 +13,7 @@ class Joypad;
 class Timer;
 class DMA;
 class APU;
+class GPIO;
 
 class Memory {
 public:
@@ -25,6 +26,7 @@ public:
     void setTimer(Timer* timer) { m_timer = timer; }
     void setDMA(DMA* dma) { m_dma = dma; }
     void setAPU(APU* apu) { m_apu = apu; }
+    void setGPIO(GPIO* gpio) { m_gpio = gpio; }
     
     Cartridge* getCartridge() const { return m_cartridge; }
 
@@ -81,6 +83,7 @@ private:
     Timer* m_timer = nullptr;
     DMA* m_dma = nullptr;
     APU* m_apu = nullptr;
+    GPIO* m_gpio = nullptr;
 
     u8 m_bios[BIOS_SIZE];
     u8 m_ewram[EWRAM_SIZE];

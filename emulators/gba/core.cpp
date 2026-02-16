@@ -20,6 +20,7 @@ bool Core::initialize() {
     m_timer = std::make_unique<Timer>();
     m_dma = std::make_unique<DMA>();
     m_apu = std::make_unique<APU>();
+    m_gpio = std::make_unique<GPIO>();
 
     // Wire up components
     m_memory->setCartridge(m_cartridge.get());
@@ -39,6 +40,7 @@ bool Core::initialize() {
     m_apu->setMemory(m_memory.get());
     m_apu->setTimer(m_timer.get());
     m_apu->setDMA(m_dma.get());
+    m_memory->setGPIO(m_gpio.get());
 
     return true;
 }
@@ -124,6 +126,10 @@ bool Core::loadROM(const fs::path& filename) {
     m_dma->reset();
     m_apu->reset();
 
+    // Set up GPIO after cartridge is loaded
+    m_gpio->setROM(m_cartridge->getROM(), m_cartridge->getROMSize());
+    m_gpio->reset();
+
     return true;
 }
 
@@ -160,6 +166,7 @@ bool Core::saveState(const fs::path& filename) {
     m_dma->saveState(&buf);
     m_apu->saveState(&buf);
     m_cartridge->saveState(&buf);
+    m_gpio->saveState(&buf);
     
     return buffer_save_to_file(&buf, filename);
 }
@@ -178,6 +185,7 @@ bool Core::loadState(const fs::path& filename) {
     m_dma->loadState(&buf);
     m_apu->loadState(&buf);
     m_cartridge->loadState(&buf);
+    m_gpio->loadState(&buf);
 
     return true;
 }

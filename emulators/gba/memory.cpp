@@ -5,6 +5,7 @@
 #include "timer.h"
 #include "dma.h"
 #include "apu.h"
+#include "gpio.h"
 #include "cpu.h"
 #include <cstring>
 
@@ -243,6 +244,13 @@ void Memory::write16(u32 address, u16 value) {
         case REGION_OAM:
             *reinterpret_cast<u16*>(&m_oam[offset & 0x3FF]) = value;
             break;
+        case REGION_ROM0:
+        case REGION_ROM0H:
+            // GPIO register writes (0x080000C4, 0x080000C6, 0x080000C8)
+            if (m_gpio && GPIO::isGPIOAddress(offset)) {
+                m_gpio->write(offset, value);
+            }
+            break;
         case REGION_ROM2H:
             if (m_cartridge->hasEEPROM()) {
                 m_cartridge->writeEEPROM(value & 1, 1);
@@ -285,6 +293,18 @@ void Memory::write32(u32 address, u32 value) {
             break;
         case REGION_OAM:
             *reinterpret_cast<u32*>(&m_oam[offset & 0x3FF]) = value;
+            break;
+        case REGION_ROM0:
+        case REGION_ROM0H:
+            // GPIO register writes
+            if (m_gpio) {
+                if (GPIO::isGPIOAddress(offset)) {
+                    m_gpio->write(offset, value & 0xFFFF);
+                }
+                if (GPIO::isGPIOAddress(offset + 2)) {
+                    m_gpio->write(offset + 2, value >> 16);
+                }
+            }
             break;
         case REGION_SRAM:
         case REGION_SRAM_MIRROR:

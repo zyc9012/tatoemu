@@ -68,6 +68,7 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/gba/apu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/gba/cartridge.cpp
     ${CMAKE_SOURCE_DIR}/emulators/gba/eeprom.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/gba/gpio.cpp
     ${CMAKE_SOURCE_DIR}/emulators/gba/core.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/eeprom/eeprom.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/arm7tdmi/arm7tdmi.cpp
@@ -142,6 +143,7 @@ set(COMMON_HEADERS
     ${CMAKE_SOURCE_DIR}/emulators/gba/apu.h
     ${CMAKE_SOURCE_DIR}/emulators/gba/cartridge.h
     ${CMAKE_SOURCE_DIR}/emulators/gba/eeprom.h
+    ${CMAKE_SOURCE_DIR}/emulators/gba/gpio.h
     ${CMAKE_SOURCE_DIR}/emulators/gba/core.h
     ${CMAKE_SOURCE_DIR}/emulators/gba/config.h
     ${CMAKE_SOURCE_DIR}/emulators/gba/consts.h

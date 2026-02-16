@@ -10,6 +10,7 @@
 #include "dma.h"
 #include "apu.h"
 #include "cartridge.h"
+#include "gpio.h"
 #include "config.h"
 #include <filesystem>
 #include <memory>
@@ -55,6 +56,7 @@ private:
     std::unique_ptr<DMA> m_dma;
     std::unique_ptr<APU> m_apu;
     std::unique_ptr<Cartridge> m_cartridge;
+    std::unique_ptr<GPIO> m_gpio;
     
     u32 m_cyclesThisFrame;
     
