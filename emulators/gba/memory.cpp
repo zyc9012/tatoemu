@@ -406,8 +406,9 @@ void Memory::writeIO(u32 address, u8 value) {
             return;
         }
         case IO::HALTCNT:
-            m_halted = (value & 0x80) == 0; // 0 = halt, 0x80 = stop
-            return;
+            // Bit 7: 0 = Halt, 1 = Stop (deeper halt). Both halt the CPU.
+            m_halted = true;
+            break;
     }
     
     m_io[address] = value;
@@ -472,8 +473,9 @@ void Memory::writeIO16(u32 offset, u16 value) {
             *reinterpret_cast<u16*>(&m_io[offset]) &= ~value;
             return;
         case IO::HALTCNT:
-            m_halted = (value & 0x80) == 0;
-            return;
+            // Bit 7: 0 = Halt, 1 = Stop (deeper halt). Both halt the CPU.
+            m_halted = true;
+            break;
     }
     
     *reinterpret_cast<u16*>(&m_io[offset]) = value;
