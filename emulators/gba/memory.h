@@ -74,9 +74,6 @@ private:
     u8 readIO(u32 address);
     void writeIO(u32 address, u8 value);
 
-    // SWI HLE
-    void handleSWI();
-
     Cartridge* m_cartridge = nullptr;
     PPU* m_ppu = nullptr;
     Joypad* m_joypad = nullptr;
