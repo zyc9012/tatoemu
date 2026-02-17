@@ -98,10 +98,6 @@ private:
     bool m_halted = false;
     u32 m_openBus = 0;
 
-    // BIOS read protection
-    u32 m_biosPrefetch = 0;
-    bool m_inBIOS = false;
-
     // Wait states
     int m_waitCycles = 0;          // Accumulated extra wait cycles
     int m_wsNonseq16[16] = {};     // Non-sequential 16-bit wait states per region
