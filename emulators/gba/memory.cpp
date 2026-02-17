@@ -27,6 +27,61 @@ void Memory::reset() {
     m_openBus = 0;
     m_biosPrefetch = 0;
     m_inBIOS = false;
+    m_waitCycles = 0;
+    updateWaitstates(0); // Default WAITCNT = 0
+}
+
+// WAITCNT wait state lookup tables
+static const int ROM_WS_NONSEQ[] = { 4, 3, 2, 8 };   // SRAM & ROM non-sequential first access
+static const int ROM_WS_SEQ[]    = { 2, 1, 4, 1, 8, 1 }; // ROM sequential (WS0:idx0-1, WS1:idx2-3, WS2:idx4-5)
+
+void Memory::updateWaitstates(u16 waitcnt) {
+    int sram   = waitcnt & 0x3;
+    int ws0    = (waitcnt >> 2) & 0x3;
+    int ws0seq = (waitcnt >> 4) & 0x1;
+    int ws1    = (waitcnt >> 5) & 0x3;
+    int ws1seq = (waitcnt >> 7) & 0x1;
+    int ws2    = (waitcnt >> 8) & 0x3;
+    int ws2seq = (waitcnt >> 10) & 0x1;
+
+    // Base wait states for non-ROM/SRAM regions (16-bit / 32-bit)
+    // BIOS=0, EWRAM=2/5, IWRAM=0, IO=0, Palette=0/1, VRAM=0/1, OAM=0
+    static const int BASE_WS16[16] = { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    static const int BASE_WS32[16] = { 0, 0, 5, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+    for (int i = 0; i < 16; i++) {
+        m_wsNonseq16[i] = BASE_WS16[i];
+        m_wsNonseq32[i] = BASE_WS32[i];
+        m_wsSeq16[i] = BASE_WS16[i];
+        m_wsSeq32[i] = BASE_WS32[i];
+    }
+
+    // SRAM
+    m_wsNonseq16[REGION_SRAM] = m_wsNonseq16[REGION_SRAM_MIRROR] = ROM_WS_NONSEQ[sram];
+    m_wsSeq16[REGION_SRAM]    = m_wsSeq16[REGION_SRAM_MIRROR]    = ROM_WS_NONSEQ[sram];
+    m_wsNonseq32[REGION_SRAM] = m_wsNonseq32[REGION_SRAM_MIRROR] = 2 * ROM_WS_NONSEQ[sram] + 1;
+    m_wsSeq32[REGION_SRAM]    = m_wsSeq32[REGION_SRAM_MIRROR]    = 2 * ROM_WS_NONSEQ[sram] + 1;
+
+    // ROM Wait State 0
+    m_wsNonseq16[REGION_ROM0] = m_wsNonseq16[REGION_ROM0H] = ROM_WS_NONSEQ[ws0];
+    m_wsSeq16[REGION_ROM0]    = m_wsSeq16[REGION_ROM0H]    = ROM_WS_SEQ[ws0seq];
+
+    // ROM Wait State 1
+    m_wsNonseq16[REGION_ROM1] = m_wsNonseq16[REGION_ROM1H] = ROM_WS_NONSEQ[ws1];
+    m_wsSeq16[REGION_ROM1]    = m_wsSeq16[REGION_ROM1H]    = ROM_WS_SEQ[ws1seq + 2];
+
+    // ROM Wait State 2
+    m_wsNonseq16[REGION_ROM2] = m_wsNonseq16[REGION_ROM2H] = ROM_WS_NONSEQ[ws2];
+    m_wsSeq16[REGION_ROM2]    = m_wsSeq16[REGION_ROM2H]    = ROM_WS_SEQ[ws2seq + 4];
+
+    // 32-bit ROM accesses = first-access + 1 + sequential-access (two 16-bit reads)
+    m_wsNonseq32[REGION_ROM0] = m_wsNonseq32[REGION_ROM0H] = m_wsNonseq16[REGION_ROM0] + 1 + m_wsSeq16[REGION_ROM0];
+    m_wsNonseq32[REGION_ROM1] = m_wsNonseq32[REGION_ROM1H] = m_wsNonseq16[REGION_ROM1] + 1 + m_wsSeq16[REGION_ROM1];
+    m_wsNonseq32[REGION_ROM2] = m_wsNonseq32[REGION_ROM2H] = m_wsNonseq16[REGION_ROM2] + 1 + m_wsSeq16[REGION_ROM2];
+
+    m_wsSeq32[REGION_ROM0] = m_wsSeq32[REGION_ROM0H] = 2 * m_wsSeq16[REGION_ROM0] + 1;
+    m_wsSeq32[REGION_ROM1] = m_wsSeq32[REGION_ROM1H] = 2 * m_wsSeq16[REGION_ROM1] + 1;
+    m_wsSeq32[REGION_ROM2] = m_wsSeq32[REGION_ROM2H] = 2 * m_wsSeq16[REGION_ROM2] + 1;
 }
 
 bool Memory::loadBIOS(const u8* data, u32 size) {
@@ -39,6 +94,7 @@ bool Memory::loadBIOS(const u8* data, u32 size) {
 u8 Memory::read8(u32 address) {
     u32 region = (address >> 24) & 0xF;
     u32 offset = address & 0xFFFFFF;
+    m_waitCycles += m_wsNonseq16[region];
 
     switch (region) {
         case REGION_BIOS:
@@ -84,6 +140,7 @@ u16 Memory::read16(u32 address) {
     address &= ~1;
     u32 region = (address >> 24) & 0xF;
     u32 offset = address & 0xFFFFFF;
+    m_waitCycles += m_wsNonseq16[region];
 
     switch (region) {
         case REGION_BIOS:
@@ -134,6 +191,7 @@ u32 Memory::read32(u32 address) {
     address &= ~3;
     u32 region = (address >> 24) & 0xF;
     u32 offset = address & 0xFFFFFF;
+    m_waitCycles += m_wsNonseq32[region];
 
     switch (region) {
         case REGION_BIOS:
@@ -182,6 +240,7 @@ u32 Memory::read32(u32 address) {
 void Memory::write8(u32 address, u8 value) {
     u32 region = (address >> 24) & 0xF;
     u32 offset = address & 0xFFFFFF;
+    m_waitCycles += m_wsNonseq16[region];
 
     switch (region) {
         case REGION_EWRAM:
@@ -229,6 +288,7 @@ void Memory::write16(u32 address, u16 value) {
     address &= ~1;
     u32 region = (address >> 24) & 0xF;
     u32 offset = address & 0xFFFFFF;
+    m_waitCycles += m_wsNonseq16[region];
 
     switch (region) {
         case REGION_EWRAM:
@@ -278,6 +338,7 @@ void Memory::write32(u32 address, u32 value) {
     address &= ~3;
     u32 region = (address >> 24) & 0xF;
     u32 offset = address & 0xFFFFFF;
+    m_waitCycles += m_wsNonseq32[region];
 
     switch (region) {
         case REGION_EWRAM:
@@ -412,6 +473,11 @@ void Memory::writeIO(u32 address, u8 value) {
     }
     
     m_io[address] = value;
+
+    // Update wait states when either byte of WAITCNT is written
+    if (address == IO::WAITCNT || address == IO::WAITCNT + 1) {
+        updateWaitstates(*reinterpret_cast<u16*>(&m_io[IO::WAITCNT]));
+    }
 }
 
 u16 Memory::readIO16(u32 offset) const {
@@ -476,6 +542,10 @@ void Memory::writeIO16(u32 offset, u16 value) {
             // Bit 7: 0 = Halt, 1 = Stop (deeper halt). Both halt the CPU.
             m_halted = true;
             break;
+        case IO::WAITCNT:
+            *reinterpret_cast<u16*>(&m_io[offset]) = value;
+            updateWaitstates(value);
+            return;
     }
     
     *reinterpret_cast<u16*>(&m_io[offset]) = value;
@@ -535,6 +605,11 @@ void Memory::saveState(Buffer* buf) {
     buffer_write(buf, &m_openBus, sizeof(m_openBus));
     buffer_write(buf, &m_biosPrefetch, sizeof(m_biosPrefetch));
     buffer_write(buf, &m_inBIOS, sizeof(m_inBIOS));
+    buffer_write(buf, &m_waitCycles, sizeof(m_waitCycles));
+    buffer_write(buf, m_wsNonseq16, sizeof(m_wsNonseq16));
+    buffer_write(buf, m_wsNonseq32, sizeof(m_wsNonseq32));
+    buffer_write(buf, m_wsSeq16, sizeof(m_wsSeq16));
+    buffer_write(buf, m_wsSeq32, sizeof(m_wsSeq32));
 }
 
 void Memory::loadState(Buffer* buf) {
@@ -548,6 +623,11 @@ void Memory::loadState(Buffer* buf) {
     buffer_read(buf, &m_openBus, sizeof(m_openBus));
     buffer_read(buf, &m_biosPrefetch, sizeof(m_biosPrefetch));
     buffer_read(buf, &m_inBIOS, sizeof(m_inBIOS));
+    buffer_read(buf, &m_waitCycles, sizeof(m_waitCycles));
+    buffer_read(buf, m_wsNonseq16, sizeof(m_wsNonseq16));
+    buffer_read(buf, m_wsNonseq32, sizeof(m_wsNonseq32));
+    buffer_read(buf, m_wsSeq16, sizeof(m_wsSeq16));
+    buffer_read(buf, m_wsSeq32, sizeof(m_wsSeq32));
 }
 
 } // namespace gba

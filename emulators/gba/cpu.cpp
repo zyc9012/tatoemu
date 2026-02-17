@@ -56,6 +56,8 @@ int CPU::step(int cycles) {
         return 1; // Halted — return minimal cycles
 
     int executed = m_cpu.run(cycles);
+    // Add memory wait state cycles accumulated during this step
+    if (m_memory) executed += m_memory->consumeWaitCycles();
     checkIRQ();
     return executed;
 }

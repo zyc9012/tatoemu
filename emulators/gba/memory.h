@@ -66,6 +66,9 @@ public:
     // IRQ management
     void requestIRQ(u16 irqBit);
 
+    // Wait state cycle accumulation (consumed by CPU after each step)
+    int consumeWaitCycles() { int c = m_waitCycles; m_waitCycles = 0; return c; }
+
     // Save/Load state
     void saveState(Buffer* buf);
     void loadState(Buffer* buf);
@@ -73,6 +76,7 @@ public:
 private:
     u8 readIO(u32 address);
     void writeIO(u32 address, u8 value);
+    void updateWaitstates(u16 waitcnt);
 
     Cartridge* m_cartridge = nullptr;
     PPU* m_ppu = nullptr;
@@ -97,6 +101,13 @@ private:
     // BIOS read protection
     u32 m_biosPrefetch = 0;
     bool m_inBIOS = false;
+
+    // Wait states
+    int m_waitCycles = 0;          // Accumulated extra wait cycles
+    int m_wsNonseq16[16] = {};     // Non-sequential 16-bit wait states per region
+    int m_wsNonseq32[16] = {};     // Non-sequential 32-bit wait states per region
+    int m_wsSeq16[16] = {};        // Sequential 16-bit wait states per region
+    int m_wsSeq32[16] = {};        // Sequential 32-bit wait states per region
 };
 
 } // namespace gba
