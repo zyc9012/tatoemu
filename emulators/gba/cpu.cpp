@@ -64,10 +64,6 @@ int CPU::step(int cycles) {
     return executed;
 }
 
-void CPU::raiseIRQ() {
-    m_cpu.setIRQLine(IRQ_IRQ, 1);
-}
-
 void CPU::checkIRQ() {
     if (!m_memory) return;
 
@@ -75,9 +71,15 @@ void CPU::checkIRQ() {
     u16 IF  = m_memory->readIO16(IO::IF);
     u16 IME = m_memory->readIO16(IO::IME);
 
-    if ((IME & 1) && (IE & IF)) {
+    // Always wake from halt when any enabled interrupt is pending,
+    if (IE & IF) {
         m_memory->setHalted(false);
-        raiseIRQ();
+    }
+
+    // Only assert the IRQ line when IME is also enabled.
+    // The ARM7TDMI core checks CPSR.I internally.
+    if ((IME & 1) && (IE & IF)) {
+        m_cpu.setIRQLine(IRQ_IRQ, 1);
     } else {
         m_cpu.setIRQLine(IRQ_IRQ, 0);
     }

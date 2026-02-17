@@ -18,7 +18,6 @@ public:
     void reset();
     int step(int cycles);
 
-    void raiseIRQ();
     void checkIRQ();
 
     // Save/Load state
