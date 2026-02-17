@@ -545,7 +545,7 @@ void PPU::renderAffineBG(int bg, [[maybe_unused]] int y, [[maybe_unused]] u16 di
     }
 }
 
-void PPU::renderBitmapMode3(int y, u8* vram,
+void PPU::renderBitmapMode3([[maybe_unused]] int y, u8* vram,
                             ScanPixel* top, ScanPixel* bot, const u8* windowFlags,
                             int bgMosaicH, int bgMosaicV) {
     u16 bgcnt = m_memory->readIO16(IO::BG2CNT);
@@ -554,19 +554,32 @@ void PPU::renderBitmapMode3(int y, u8* vram,
     // Apply mosaic only if enabled for this BG (BGCNT bit 6)
     bool mosaicEnable = (bgcnt & (1 << 6)) != 0;
     int mH = mosaicEnable ? bgMosaicH : 1;
-    int mV = mosaicEnable ? bgMosaicV : 1;
-    int effectiveY = y - (y % mV);
+    (void)bgMosaicV; // Vertical mosaic handled via internal affine ref point tracking
+    
+    // Affine parameters: PA (dx per pixel), PC (dy per pixel)
+    s16 pa = (s16)m_memory->readIO16(IO::BG2PA);
+    s16 pc = (s16)m_memory->readIO16(IO::BG2PA + 4);
+    
+    // Internal reference points (updated per scanline by PB/PD in enterHBlank)
+    s32 refX = m_bg2RefX;
+    s32 refY = m_bg2RefY;
     
     for (int x = 0; x < SCREEN_WIDTH; x++) {
         if (!(windowFlags[x] & (1 << 2))) continue; // BG2 window check
         int effectiveX = x - (x % mH);
-        u32 addr = (effectiveY * SCREEN_WIDTH + effectiveX) * 2;
+        s32 texX = (refX + pa * effectiveX) >> 8;
+        s32 texY = (refY + pc * effectiveX) >> 8;
+        
+        // Bitmap modes do not wrap — clip to source bounds
+        if (texX < 0 || texX >= 240 || texY < 0 || texY >= 160) continue;
+        
+        u32 addr = (texY * 240 + texX) * 2;
         u16 color555 = *reinterpret_cast<u16*>(&vram[addr]);
         placePixel(top, bot, x, color555, LAYER_BG2, priority);
     }
 }
 
-void PPU::renderBitmapMode4(int y, u16 dispcnt, u8* palette, u8* vram,
+void PPU::renderBitmapMode4([[maybe_unused]] int y, u16 dispcnt, u8* palette, u8* vram,
                             ScanPixel* top, ScanPixel* bot, const u8* windowFlags,
                             int bgMosaicH, int bgMosaicV) {
     u16 bgcnt = m_memory->readIO16(IO::BG2CNT);
@@ -576,13 +589,26 @@ void PPU::renderBitmapMode4(int y, u16 dispcnt, u8* palette, u8* vram,
     // Apply mosaic only if enabled for this BG (BGCNT bit 6)
     bool mosaicEnable = (bgcnt & (1 << 6)) != 0;
     int mH = mosaicEnable ? bgMosaicH : 1;
-    int mV = mosaicEnable ? bgMosaicV : 1;
-    int effectiveY = y - (y % mV);
+    (void)bgMosaicV; // Vertical mosaic handled via internal affine ref point tracking
+    
+    // Affine parameters: PA (dx per pixel), PC (dy per pixel)
+    s16 pa = (s16)m_memory->readIO16(IO::BG2PA);
+    s16 pc = (s16)m_memory->readIO16(IO::BG2PA + 4);
+    
+    // Internal reference points (updated per scanline by PB/PD in enterHBlank)
+    s32 refX = m_bg2RefX;
+    s32 refY = m_bg2RefY;
     
     for (int x = 0; x < SCREEN_WIDTH; x++) {
         if (!(windowFlags[x] & (1 << 2))) continue; // BG2 window check
         int effectiveX = x - (x % mH);
-        u8 colorIndex = vram[base + effectiveY * SCREEN_WIDTH + effectiveX];
+        s32 texX = (refX + pa * effectiveX) >> 8;
+        s32 texY = (refY + pc * effectiveX) >> 8;
+        
+        // Bitmap modes do not wrap — clip to source bounds
+        if (texX < 0 || texX >= 240 || texY < 0 || texY >= 160) continue;
+        
+        u8 colorIndex = vram[base + texY * 240 + texX];
         if (colorIndex == 0) continue;
         
         u16 color555 = *reinterpret_cast<u16*>(&palette[colorIndex * 2]);
@@ -590,11 +616,9 @@ void PPU::renderBitmapMode4(int y, u16 dispcnt, u8* palette, u8* vram,
     }
 }
 
-void PPU::renderBitmapMode5(int y, u16 dispcnt, u8* vram,
+void PPU::renderBitmapMode5([[maybe_unused]] int y, u16 dispcnt, u8* vram,
                             ScanPixel* top, ScanPixel* bot, const u8* windowFlags,
                             int bgMosaicH, int bgMosaicV) {
-    if (y >= 128) return; // Mode 5 is only 160x128
-    
     u16 bgcnt = m_memory->readIO16(IO::BG2CNT);
     int priority = bgcnt & 3;
     u32 base = (dispcnt & (1 << 4)) ? 0xA000 : 0;
@@ -602,13 +626,26 @@ void PPU::renderBitmapMode5(int y, u16 dispcnt, u8* vram,
     // Apply mosaic only if enabled for this BG (BGCNT bit 6)
     bool mosaicEnable = (bgcnt & (1 << 6)) != 0;
     int mH = mosaicEnable ? bgMosaicH : 1;
-    int mV = mosaicEnable ? bgMosaicV : 1;
-    int effectiveY = y - (y % mV);
+    (void)bgMosaicV; // Vertical mosaic handled via internal affine ref point tracking
     
-    for (int x = 0; x < 160 && x < SCREEN_WIDTH; x++) {
+    // Affine parameters: PA (dx per pixel), PC (dy per pixel)
+    s16 pa = (s16)m_memory->readIO16(IO::BG2PA);
+    s16 pc = (s16)m_memory->readIO16(IO::BG2PA + 4);
+    
+    // Internal reference points (updated per scanline by PB/PD in enterHBlank)
+    s32 refX = m_bg2RefX;
+    s32 refY = m_bg2RefY;
+    
+    for (int x = 0; x < SCREEN_WIDTH; x++) {
         if (!(windowFlags[x] & (1 << 2))) continue; // BG2 window check
         int effectiveX = x - (x % mH);
-        u32 addr = base + (effectiveY * 160 + effectiveX) * 2;
+        s32 texX = (refX + pa * effectiveX) >> 8;
+        s32 texY = (refY + pc * effectiveX) >> 8;
+        
+        // Bitmap modes do not wrap — clip to source bounds (160x128)
+        if (texX < 0 || texX >= 160 || texY < 0 || texY >= 128) continue;
+        
+        u32 addr = base + (texY * 160 + texX) * 2;
         u16 color555 = *reinterpret_cast<u16*>(&vram[addr]);
         placePixel(top, bot, x, color555, LAYER_BG2, priority);
     }
