@@ -25,6 +25,8 @@ void Memory::reset() {
     std::memset(m_oam, 0, sizeof(m_oam));
     m_halted = false;
     m_openBus = 0;
+    m_biosPrefetch = 0;
+    m_inBIOS = false;
 }
 
 bool Memory::loadBIOS(const u8* data, u32 size) {
@@ -40,7 +42,10 @@ u8 Memory::read8(u32 address) {
 
     switch (region) {
         case REGION_BIOS:
-            if (offset < BIOS_SIZE) return m_bios[offset];
+            if (offset < BIOS_SIZE) {
+                if (m_inBIOS) return m_bios[offset];
+                return (m_biosPrefetch >> ((address & 3) * 8)) & 0xFF;
+            }
             return m_openBus >> ((address & 3) * 8);
         case REGION_EWRAM:
             return m_ewram[offset & 0x3FFFF];
@@ -83,7 +88,8 @@ u16 Memory::read16(u32 address) {
     switch (region) {
         case REGION_BIOS:
             if (offset < BIOS_SIZE - 1) {
-                return *reinterpret_cast<u16*>(&m_bios[offset]);
+                if (m_inBIOS) return *reinterpret_cast<u16*>(&m_bios[offset]);
+                return (m_biosPrefetch >> ((address & 2) * 8)) & 0xFFFF;
             }
             return m_openBus & 0xFFFF;
         case REGION_EWRAM:
@@ -132,7 +138,8 @@ u32 Memory::read32(u32 address) {
     switch (region) {
         case REGION_BIOS:
             if (offset < BIOS_SIZE - 3) {
-                return *reinterpret_cast<u32*>(&m_bios[offset]);
+                if (m_inBIOS) return *reinterpret_cast<u32*>(&m_bios[offset]);
+                return m_biosPrefetch;
             }
             return m_openBus;
         case REGION_EWRAM:
@@ -318,11 +325,33 @@ void Memory::write32(u32 address, u32 value) {
 }
 
 u16 Memory::fetch16(u32 address) {
-    return read16(address);
+    bool wasBIOS = m_inBIOS;
+    m_inBIOS = (address < BIOS_SIZE);
+    if (m_inBIOS && !wasBIOS) {
+        // Entering BIOS — no special action needed
+    } else if (!m_inBIOS && wasBIOS) {
+        // Leaving BIOS — biosPrefetch was already captured during fetches
+    }
+    u16 val = read16(address);
+    if (m_inBIOS) {
+        // Update biosPrefetch: store the aligned 32-bit word containing this fetch
+        u32 aligned = address & ~3u;
+        if (aligned < BIOS_SIZE - 3) {
+            m_biosPrefetch = *reinterpret_cast<u32*>(&m_bios[aligned]);
+        }
+    }
+    return val;
 }
 
 u32 Memory::fetch32(u32 address) {
-    return read32(address);
+    bool wasBIOS = m_inBIOS;
+    m_inBIOS = (address < BIOS_SIZE);
+    (void)wasBIOS;
+    u32 val = read32(address);
+    if (m_inBIOS) {
+        m_biosPrefetch = val;
+    }
+    return val;
 }
 
 u8 Memory::readIO(u32 address) {
@@ -502,6 +531,8 @@ void Memory::saveState(Buffer* buf) {
     buffer_write(buf, m_oam, sizeof(m_oam));
     buffer_write(buf, &m_halted, sizeof(m_halted));
     buffer_write(buf, &m_openBus, sizeof(m_openBus));
+    buffer_write(buf, &m_biosPrefetch, sizeof(m_biosPrefetch));
+    buffer_write(buf, &m_inBIOS, sizeof(m_inBIOS));
 }
 
 void Memory::loadState(Buffer* buf) {
@@ -513,6 +544,8 @@ void Memory::loadState(Buffer* buf) {
     buffer_read(buf, m_oam, sizeof(m_oam));
     buffer_read(buf, &m_halted, sizeof(m_halted));
     buffer_read(buf, &m_openBus, sizeof(m_openBus));
+    buffer_read(buf, &m_biosPrefetch, sizeof(m_biosPrefetch));
+    buffer_read(buf, &m_inBIOS, sizeof(m_inBIOS));
 }
 
 } // namespace gba

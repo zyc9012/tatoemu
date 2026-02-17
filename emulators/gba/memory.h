@@ -96,6 +96,10 @@ private:
     bool m_hasBIOS = false;
     bool m_halted = false;
     u32 m_openBus = 0;
+
+    // BIOS read protection
+    u32 m_biosPrefetch = 0;
+    bool m_inBIOS = false;
 };
 
 } // namespace gba
