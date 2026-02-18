@@ -1688,7 +1688,7 @@ int ARM7TDMI::run(int cycles) {
         if (flagT()) {
             // ---- Thumb mode: 16-bit instructions ----
             u32 insn = fetchThumb(pc() & ~1u);
-            m_cyclesRemaining -= (3 - s_thumbCycles[insn >> 8]);
+            m_cyclesRemaining += (3 - s_thumbCycles[insn >> 8]);
             thumbExecute(insn);
         } else {
             // ---- ARM mode: 32-bit instructions ----
