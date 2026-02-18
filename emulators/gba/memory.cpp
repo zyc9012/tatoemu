@@ -92,26 +92,37 @@ bool Memory::loadBIOS(const u8* data, u32 size) {
 u8 Memory::read8(u32 address) {
     u32 region = (address >> 24) & 0xF;
     u32 offset = address & 0xFFFFFF;
+    u8 value;
     m_waitCycles += m_wsNonseq16[region];
 
     switch (region) {
         case REGION_BIOS:
-            if (offset < BIOS_SIZE) return m_bios[offset];
-            return m_openBus >> ((address & 3) * 8);
+            if (offset < BIOS_SIZE) {
+                value = m_bios[offset];
+            } else {
+                return m_openBus >> ((address & 3) * 8);
+            }
+            break;
         case REGION_EWRAM:
-            return m_ewram[offset & 0x3FFFF];
+            value = m_ewram[offset & 0x3FFFF];
+            break;
         case REGION_IWRAM:
-            return m_iwram[offset & 0x7FFF];
+            value = m_iwram[offset & 0x7FFF];
+            break;
         case REGION_IO:
-            return readIO(offset & 0x3FF);
+            value = readIO(offset & 0x3FF);
+            break;
         case REGION_PALETTE:
-            return m_palette[offset & 0x3FF];
+            value = m_palette[offset & 0x3FF];
+            break;
         case REGION_VRAM:
             offset &= 0x1FFFF;
             if (offset >= 0x18000) offset &= 0x17FFF; // Mirror
-            return m_vram[offset];
+            value = m_vram[offset];
+            break;
         case REGION_OAM:
-            return m_oam[offset & 0x3FF];
+            value = m_oam[offset & 0x3FF];
+            break;
         case REGION_ROM0:
         case REGION_ROM0H:
         case REGION_ROM1:
@@ -119,44 +130,61 @@ u8 Memory::read8(u32 address) {
         case REGION_ROM2:
         case REGION_ROM2H:
             if (m_cartridge && offset < m_cartridge->getROMSize()) {
-                return m_cartridge->getROM()[offset & (m_cartridge->getROMSize() - 1)];
+                value = m_cartridge->getROM()[offset & (m_cartridge->getROMSize() - 1)];
+            } else {
+                return m_openBus >> ((address & 3) * 8);
             }
-            return 0xFF;
+            break;
         case REGION_SRAM:
         case REGION_SRAM_MIRROR:
-            if (m_cartridge) return m_cartridge->readSave(offset);
-            return 0xFF;
+            if (m_cartridge) {
+                value = m_cartridge->readSave(offset);
+            } else {
+                return m_openBus >> ((address & 3) * 8);
+            }
+            break;
         default:
             return m_openBus >> ((address & 3) * 8);
     }
+
+    return value;
 }
 
 u16 Memory::read16(u32 address) {
     address &= ~1;
     u32 region = (address >> 24) & 0xF;
     u32 offset = address & 0xFFFFFF;
+    u16 value;
     m_waitCycles += m_wsNonseq16[region];
 
     switch (region) {
         case REGION_BIOS:
             if (offset < BIOS_SIZE - 1) {
-                return *reinterpret_cast<u16*>(&m_bios[offset]);
+                value = *reinterpret_cast<u16*>(&m_bios[offset]);
+            } else {
+                return m_openBus & 0xFFFF;
             }
-            return m_openBus & 0xFFFF;
+            break;
         case REGION_EWRAM:
-            return *reinterpret_cast<u16*>(&m_ewram[offset & 0x3FFFF]);
+            value = *reinterpret_cast<u16*>(&m_ewram[offset & 0x3FFFF]);
+            break;
         case REGION_IWRAM:
-            return *reinterpret_cast<u16*>(&m_iwram[offset & 0x7FFF]);
+            value = *reinterpret_cast<u16*>(&m_iwram[offset & 0x7FFF]);
+            break;
         case REGION_IO:
-            return readIO16(offset & 0x3FF);
+            value = readIO16(offset & 0x3FF);
+            break;
         case REGION_PALETTE:
-            return *reinterpret_cast<u16*>(&m_palette[offset & 0x3FF]);
+            value = *reinterpret_cast<u16*>(&m_palette[offset & 0x3FF]);
+            break;
         case REGION_VRAM:
             offset &= 0x1FFFF;
             if (offset >= 0x18000) offset &= 0x17FFF;
-            return *reinterpret_cast<u16*>(&m_vram[offset]);
+            value = *reinterpret_cast<u16*>(&m_vram[offset]);
+            break;
         case REGION_OAM:
-            return *reinterpret_cast<u16*>(&m_oam[offset & 0x3FF]);
+            value = *reinterpret_cast<u16*>(&m_oam[offset & 0x3FF]);
+            break;
         case REGION_ROM0:
         case REGION_ROM0H:
         case REGION_ROM1:
@@ -166,47 +194,60 @@ u16 Memory::read16(u32 address) {
             // Check for EEPROM access in ROM2_EX region  (0x0D000000)
             if (region == REGION_ROM2H && m_cartridge->hasEEPROM()) {
                 u16 data = m_cartridge->readEEPROM();
-                return data | (data << 8); // Replicate to full 16-bit
-            }
-            if (offset < m_cartridge->getROMSize()) {
+                value = data | (data << 8); // Replicate to full 16-bit
+            } else if (offset < m_cartridge->getROMSize()) {
                 offset &= (m_cartridge->getROMSize() - 1);
-                return *reinterpret_cast<u16*>(&m_cartridge->getROM()[offset]);
+                value = *reinterpret_cast<u16*>(&m_cartridge->getROM()[offset]);
+            } else {
+                return (m_openBus >> ((address & 2) * 8)) & 0xFFFF;
             }
-            return 0xFFFF;
+            break;
         case REGION_SRAM:
         case REGION_SRAM_MIRROR:
-            return (m_cartridge ? m_cartridge->readSave(offset) : 0xFF) * 0x0101;
+            value = (m_cartridge ? m_cartridge->readSave(offset) : 0xFF) * 0x0101;
+            break;
         default:
-            return m_openBus & 0xFFFF;
+            return (m_openBus >> ((address & 2) * 8)) & 0xFFFF;
     }
+
+    return value;
 }
 
 u32 Memory::read32(u32 address) {
     address &= ~3;
     u32 region = (address >> 24) & 0xF;
     u32 offset = address & 0xFFFFFF;
+    u32 value;
     m_waitCycles += m_wsNonseq32[region];
 
     switch (region) {
         case REGION_BIOS:
             if (offset < BIOS_SIZE - 3) {
-                return *reinterpret_cast<u32*>(&m_bios[offset]);
+                value = *reinterpret_cast<u32*>(&m_bios[offset]);
+            } else {
+                return m_openBus;
             }
-            return m_openBus;
+            break;
         case REGION_EWRAM:
-            return *reinterpret_cast<u32*>(&m_ewram[offset & 0x3FFFF]);
+            value = *reinterpret_cast<u32*>(&m_ewram[offset & 0x3FFFF]);
+            break;
         case REGION_IWRAM:
-            return *reinterpret_cast<u32*>(&m_iwram[offset & 0x7FFF]);
+            value = *reinterpret_cast<u32*>(&m_iwram[offset & 0x7FFF]);
+            break;
         case REGION_IO:
-            return readIO32(offset & 0x3FF);
+            value = readIO32(offset & 0x3FF);
+            break;
         case REGION_PALETTE:
-            return *reinterpret_cast<u32*>(&m_palette[offset & 0x3FF]);
+            value = *reinterpret_cast<u32*>(&m_palette[offset & 0x3FF]);
+            break;
         case REGION_VRAM:
             offset &= 0x1FFFF;
             if (offset >= 0x18000) offset &= 0x17FFF;
-            return *reinterpret_cast<u32*>(&m_vram[offset]);
+            value = *reinterpret_cast<u32*>(&m_vram[offset]);
+            break;
         case REGION_OAM:
-            return *reinterpret_cast<u32*>(&m_oam[offset & 0x3FF]);
+            value = *reinterpret_cast<u32*>(&m_oam[offset & 0x3FF]);
+            break;
         case REGION_ROM0:
         case REGION_ROM0H:
         case REGION_ROM1:
@@ -215,19 +256,25 @@ u32 Memory::read32(u32 address) {
         case REGION_ROM2H:
             if (m_cartridge && offset < m_cartridge->getROMSize()) {
                 offset &= (m_cartridge->getROMSize() - 1);
-                return *reinterpret_cast<u32*>(&m_cartridge->getROM()[offset]);
+                value = *reinterpret_cast<u32*>(&m_cartridge->getROM()[offset]);
+            } else {
+                return m_openBus;
             }
-            return 0xFFFFFFFF;
+            break;
         case REGION_SRAM:
         case REGION_SRAM_MIRROR:
             if (m_cartridge) {
                 u8 val = m_cartridge->readSave(offset);
-                return val * 0x01010101;
+                value = val * 0x01010101;
+            } else {
+                return m_openBus;
             }
-            return 0xFFFFFFFF;
+            break;
         default:
             return m_openBus;
     }
+
+    return value;
 }
 
 void Memory::write8(u32 address, u8 value) {
@@ -379,11 +426,15 @@ void Memory::write32(u32 address, u32 value) {
 }
 
 u16 Memory::fetch16(u32 address) {
-    return read16(address);
+    u16 value = read16(address);
+    m_openBus = static_cast<u32>(value) | (static_cast<u32>(value) << 16);
+    return value;
 }
 
 u32 Memory::fetch32(u32 address) {
-    return read32(address);
+    u32 value = read32(address);
+    m_openBus = value;
+    return value;
 }
 
 u8 Memory::readIO(u32 address) {
