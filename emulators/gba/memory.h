@@ -77,6 +77,7 @@ private:
     u8 readIO(u32 address);
     void writeIO(u32 address, u8 value);
     void updateWaitstates(u16 waitcnt);
+    void updateEWRAMWaitstates(u16 value);
 
     Cartridge* m_cartridge = nullptr;
     PPU* m_ppu = nullptr;
@@ -99,6 +100,7 @@ private:
     u32 m_openBus = 0;
 
     // Wait states
+    u32 m_exWaitcnt = 0;           // EXWAITCNT register (0x04000800)
     int m_waitCycles = 0;          // Accumulated extra wait cycles
     int m_wsNonseq16[16] = {};     // Non-sequential 16-bit wait states per region
     int m_wsNonseq32[16] = {};     // Non-sequential 32-bit wait states per region

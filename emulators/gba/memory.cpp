@@ -26,6 +26,7 @@ void Memory::reset() {
     m_halted = false;
     m_openBus = 0;
     m_waitCycles = 0;
+    m_exWaitcnt = 0x0D000020; // Default EXWAITCNT
     updateWaitstates(0); // Default WAITCNT = 0
 }
 
@@ -82,6 +83,16 @@ void Memory::updateWaitstates(u16 waitcnt) {
     m_wsSeq32[REGION_ROM2] = m_wsSeq32[REGION_ROM2H] = 2 * m_wsSeq16[REGION_ROM2] + 1;
 }
 
+void Memory::updateEWRAMWaitstates(u16 value) {
+    int wait = 15 - ((value >> 8) & 0xF);
+    if (wait > 0) {
+        m_wsNonseq16[REGION_EWRAM] = wait;
+        m_wsSeq16[REGION_EWRAM]    = wait;
+        m_wsNonseq32[REGION_EWRAM] = 2 * wait + 1;
+        m_wsSeq32[REGION_EWRAM]    = 2 * wait + 1;
+    }
+}
+
 bool Memory::loadBIOS(const u8* data, u32 size) {
     if (size != BIOS_SIZE) return false;
     std::memcpy(m_bios, data, BIOS_SIZE);
@@ -110,7 +121,11 @@ u8 Memory::read8(u32 address) {
             value = m_iwram[offset & 0x7FFF];
             break;
         case REGION_IO:
-            value = readIO(offset & 0x3FF);
+            if (offset >= 0x800 && offset <= 0x803) {
+                value = (m_exWaitcnt >> ((offset & 3) * 8)) & 0xFF;
+            } else {
+                value = readIO(offset & 0x3FF);
+            }
             break;
         case REGION_PALETTE:
             value = m_palette[offset & 0x3FF];
@@ -172,7 +187,13 @@ u16 Memory::read16(u32 address) {
             value = *reinterpret_cast<u16*>(&m_iwram[offset & 0x7FFF]);
             break;
         case REGION_IO:
-            value = readIO16(offset & 0x3FF);
+            if (offset == 0x800) {
+                value = m_exWaitcnt & 0xFFFF;
+            } else if (offset == 0x802) {
+                value = (m_exWaitcnt >> 16) & 0xFFFF;
+            } else {
+                value = readIO16(offset & 0x3FF);
+            }
             break;
         case REGION_PALETTE:
             value = *reinterpret_cast<u16*>(&m_palette[offset & 0x3FF]);
@@ -235,7 +256,11 @@ u32 Memory::read32(u32 address) {
             value = *reinterpret_cast<u32*>(&m_iwram[offset & 0x7FFF]);
             break;
         case REGION_IO:
-            value = readIO32(offset & 0x3FF);
+            if (offset == 0x800) {
+                value = m_exWaitcnt;
+            } else {
+                value = readIO32(offset & 0x3FF);
+            }
             break;
         case REGION_PALETTE:
             value = *reinterpret_cast<u32*>(&m_palette[offset & 0x3FF]);
@@ -290,7 +315,15 @@ void Memory::write8(u32 address, u8 value) {
             m_iwram[offset & 0x7FFF] = value;
             break;
         case REGION_IO:
-            writeIO(offset & 0x3FF, value);
+            if (offset >= 0x800 && offset <= 0x803) {
+                int shift = (offset & 3) * 8;
+                m_exWaitcnt = (m_exWaitcnt & ~(0xFFu << shift)) | (static_cast<u32>(value) << shift);
+                if (offset >= 0x802) {
+                    updateEWRAMWaitstates((m_exWaitcnt >> 16) & 0xFFFF);
+                }
+            } else {
+                writeIO(offset & 0x3FF, value);
+            }
             break;
         case REGION_PALETTE: {
             // Byte writes to palette RAM expand to both bytes of the halfword
@@ -338,7 +371,15 @@ void Memory::write16(u32 address, u16 value) {
             *reinterpret_cast<u16*>(&m_iwram[offset & 0x7FFF]) = value;
             break;
         case REGION_IO:
-            writeIO16(offset & 0x3FF, value);
+            if (offset == 0x800) {
+                m_exWaitcnt = (m_exWaitcnt & 0xFFFF0000) | value;
+            } else if (offset == 0x802) {
+                u16 masked = value & 0xFF00;
+                m_exWaitcnt = (m_exWaitcnt & 0x0000FFFF) | (static_cast<u32>(masked) << 16);
+                updateEWRAMWaitstates(masked);
+            } else {
+                writeIO16(offset & 0x3FF, value);
+            }
             break;
         case REGION_PALETTE:
             *reinterpret_cast<u16*>(&m_palette[offset & 0x3FF]) = value;
@@ -388,8 +429,15 @@ void Memory::write32(u32 address, u32 value) {
             *reinterpret_cast<u32*>(&m_iwram[offset & 0x7FFF]) = value;
             break;
         case REGION_IO:
-            writeIO16(offset & 0x3FF, value & 0xFFFF);
-            writeIO16((offset + 2) & 0x3FF, value >> 16);
+            if (offset == 0x800) {
+                u16 lo = value & 0xFFFF;
+                u16 hi = (value >> 16) & 0xFF00;
+                m_exWaitcnt = lo | (static_cast<u32>(hi) << 16);
+                updateEWRAMWaitstates(hi);
+            } else {
+                writeIO16(offset & 0x3FF, value & 0xFFFF);
+                writeIO16((offset + 2) & 0x3FF, value >> 16);
+            }
             break;
         case REGION_PALETTE:
             *reinterpret_cast<u32*>(&m_palette[offset & 0x3FF]) = value;
