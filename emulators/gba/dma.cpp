@@ -181,17 +181,6 @@ void DMA::run(int channel) {
     }
 }
 
-void DMA::runImmediate() {
-    for (int i = 0; i < 4; i++) {
-        if (m_channels[i].active) {
-            int timing = (m_channels[i].control >> 12) & 3;
-            if (timing == DMA_TIMING::IMMEDIATE) {
-                run(i);
-            }
-        }
-    }
-}
-
 void DMA::runHBlank(u16 vcount) {
     for (int i = 0; i < 4; i++) {
         if (m_channels[i].active) {

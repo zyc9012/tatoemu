@@ -144,9 +144,6 @@ void Core::update() {
         m_timer->step(cycles);
         m_apu->step(cycles, m_gameSpeed);
         
-        // Run any triggered DMAs
-        m_dma->runImmediate();
-        
         m_cyclesThisFrame += cycles;
     }
     
