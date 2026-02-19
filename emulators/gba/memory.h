@@ -74,8 +74,8 @@ public:
     void loadState(Buffer* buf);
 
 private:
-    u8 readIO(u32 address);
-    void writeIO(u32 address, u8 value);
+    u8 readIO8(u32 offset);
+    void writeIO8(u32 offset, u8 value);
     void updateWaitstates(u16 waitcnt);
     void updateEWRAMWaitstates(u16 value);
     void fillPrefetch(int availableCycles);

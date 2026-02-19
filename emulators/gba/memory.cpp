@@ -157,7 +157,7 @@ u8 Memory::read8(u32 address) {
             if (offset >= 0x800 && offset <= 0x803) {
                 value = (m_exWaitcnt >> ((offset & 3) * 8)) & 0xFF;
             } else {
-                value = readIO(offset & 0x3FF);
+                value = readIO8(offset & 0x3FF);
             }
             break;
         case REGION_PALETTE:
@@ -358,7 +358,7 @@ void Memory::write8(u32 address, u8 value) {
                     updateEWRAMWaitstates((m_exWaitcnt >> 16) & 0xFFFF);
                 }
             } else {
-                writeIO(offset & 0x3FF, value);
+                writeIO8(offset & 0x3FF, value);
             }
             break;
         case REGION_PALETTE: {
@@ -577,169 +577,178 @@ u32 Memory::fetch32(u32 address) {
     return value;
 }
 
-u8 Memory::readIO(u32 address) {
-    if (address >= IO_SIZE) return 0;
-    
-    // Sound registers — route to APU
-    if (m_apu && address >= IO::SOUND1CNT_L && address <= IO::WAVE_RAM + 0xF) {
-        return m_apu->readRegister(address);
-    }
-
-    // Handle special read-only registers
-    switch (address) {
-        case IO::KEYINPUT:
-        case IO::KEYINPUT + 1:
-            if (m_joypad) return m_joypad->read() >> ((address & 1) * 8);
-            break;
-        case IO::VCOUNT:
-        case IO::VCOUNT + 1:
-            if (m_ppu) return m_ppu->getVCount() >> ((address & 1) * 8);
-            break;
-        case IO::TM0CNT_L: case IO::TM0CNT_L + 1:
-            if (m_timer) return m_timer->readCounter(0) >> ((address & 1) * 8);
-            break;
-        case IO::TM1CNT_L: case IO::TM1CNT_L + 1:
-            if (m_timer) return m_timer->readCounter(1) >> ((address & 1) * 8);
-            break;
-        case IO::TM2CNT_L: case IO::TM2CNT_L + 1:
-            if (m_timer) return m_timer->readCounter(2) >> ((address & 1) * 8);
-            break;
-        case IO::TM3CNT_L: case IO::TM3CNT_L + 1:
-            if (m_timer) return m_timer->readCounter(3) >> ((address & 1) * 8);
-            break;
-    }
-    
-    return m_io[address];
+u8 Memory::readIO8(u32 offset) {
+    return (readIO16(offset & 0xFFFE) >> ((offset & 0x0001) << 3)) & 0xFF;
 }
 
-void Memory::writeIO(u32 address, u8 value) {
-    if (address >= IO_SIZE) return;
-    
-    // Some registers are read-only or have special behavior
-    switch (address) {
-        case IO::VCOUNT:
-        case IO::VCOUNT + 1:
-        case IO::KEYINPUT:
-        case IO::KEYINPUT + 1:
-            return; // Read-only
-        case IO::IF:
-        case IO::IF + 1: {
-            // Write-1-to-clear for IF (same behavior as 16-bit write)
-            m_io[address] &= ~value;
-            return;
-        }
-        case IO::HALTCNT:
-            // Bit 7: 0 = Halt, 1 = Stop (deeper halt). Both halt the CPU.
-            m_halted = true;
-            break;
-    }
-    
-    m_io[address] = value;
+void Memory::writeIO8(u32 address, u8 value) {
+    if (address > IO_SIZE - 1) return;
 
-    // Update wait states when either byte of WAITCNT is written
-    if (address == IO::WAITCNT || address == IO::WAITCNT + 1) {
-        updateWaitstates(*reinterpret_cast<u16*>(&m_io[IO::WAITCNT]));
-    }
+    u16 value16 = value << (8 * (address & 1));
+    value16 |= m_io[address] & ~(0xFF << (8 * (address & 1)));
+    writeIO16(address, value16);
 }
 
 u16 Memory::readIO16(u32 offset) const {
-    if (offset >= IO_SIZE - 1) return 0;
-    
-    // Handle special read-only hardware registers
+    offset &= 0xFFFFFFFE;
+
     switch (offset) {
         case IO::VCOUNT:
-            if (m_ppu) return m_ppu->getVCount();
-            break;
-        case IO::KEYINPUT:
-            if (m_joypad) return m_joypad->read();
-            break;
+            return m_ppu->getVCount();
+        case IO::SOUND1CNT_L:
+        case IO::SOUND1CNT_H:
+        case IO::SOUND1CNT_X:
+        case IO::SOUND2CNT_L:
+        case IO::SOUND2CNT_H:
+        case IO::SOUND3CNT_L:
+        case IO::SOUND3CNT_H:
+        case IO::SOUND3CNT_X:
+        case IO::SOUND4CNT_L:
+        case IO::SOUND4CNT_H:
+        case IO::SOUNDCNT_L:
+        case IO::SOUNDCNT_H:
+        case IO::SOUNDCNT_X:
+        case IO::SOUNDBIAS:
+        case IO::WAVE_RAM:
+        case IO::WAVE_RAM + 2:
+        case IO::WAVE_RAM + 4:
+        case IO::WAVE_RAM + 6:
+        case IO::WAVE_RAM + 8:
+        case IO::WAVE_RAM + 0xA:
+        case IO::WAVE_RAM + 0xC:
+        case IO::WAVE_RAM + 0xE: {
+            u8 lo = m_apu->readRegister(offset);
+            u8 hi = m_apu->readRegister(offset + 1);
+            return lo | (static_cast<u16>(hi) << 8);
+        }
         case IO::TM0CNT_L:
-            if (m_timer) return m_timer->readCounter(0);
-            break;
+        case IO::TM0CNT_H:
+            return m_timer->readCounter(0);
         case IO::TM1CNT_L:
-            if (m_timer) return m_timer->readCounter(1);
-            break;
+        case IO::TM1CNT_H:
+            return m_timer->readCounter(1);
         case IO::TM2CNT_L:
-            if (m_timer) return m_timer->readCounter(2);
-            break;
+        case IO::TM2CNT_H:
+            return m_timer->readCounter(2);
         case IO::TM3CNT_L:
-            if (m_timer) return m_timer->readCounter(3);
-            break;
+        case IO::TM3CNT_H:
+            return m_timer->readCounter(3);
+        case IO::KEYINPUT:
+            return m_joypad->read();
+        default:
+            return *reinterpret_cast<const u16*>(&m_io[offset]);
     }
-    
-    return *reinterpret_cast<const u16*>(&m_io[offset]);
 }
 
 void Memory::writeIO16(u32 offset, u16 value) {
-    if (offset >= IO_SIZE - 1) return;
-    
-    // Forward to subsystems
-    if (m_apu && offset >= IO::SOUND1CNT_L && offset <= IO::FIFO_B + 3) {
-        m_apu->writeRegister(offset, value);
-        // Also store to IO array for reads that bypass APU
-        *reinterpret_cast<u16*>(&m_io[offset]) = value;
-        return;
-    } else if (m_ppu && offset >= IO::DISPCNT && offset < IO::SOUND1CNT_L) {
-        // Write to IO array FIRST so writeRegister can read the updated value
+    if (offset < IO::SOUND1CNT_L && (offset > IO::VCOUNT || offset < IO::DISPSTAT)) {
         *reinterpret_cast<u16*>(&m_io[offset]) = value;
         m_ppu->writeRegister(offset, value);
         return;
-    } else if (m_timer && offset >= IO::TM0CNT_L && offset <= IO::TM3CNT_H) {
-        m_timer->writeRegister(offset, value);
-    } else if (m_dma && offset >= IO::DMA0SAD && offset <= IO::DMA3CNT_H + 1) {
-        // Write to IO array FIRST, then let DMA subsystem process
-        // DMA::run() may clear the enable bit in the IO array when completing immediately
-        *reinterpret_cast<u16*>(&m_io[offset]) = value;
-        m_dma->writeRegister(offset, value);
-        return; // Don't overwrite IO array again — DMA may have modified it
     }
-    
-    // Special handling
+
     switch (offset) {
-        case IO::IF:
-            // Writing 1 to IF bits clears them
-            *reinterpret_cast<u16*>(&m_io[offset]) &= ~value;
+        case IO::DISPSTAT:
+            // Only bits 3-15 are writable (bits 0-2 are status flags)
+            *reinterpret_cast<u16*>(&m_io[offset]) =
+                (*reinterpret_cast<u16*>(&m_io[offset]) & 0x7) | (value & ~0x7);
             return;
+        case IO::VCOUNT:
+            return;
+        case IO::SOUND1CNT_L:
+        case IO::SOUND1CNT_H:
+        case IO::SOUND1CNT_X:
+        case IO::SOUND2CNT_L:
+        case IO::SOUND2CNT_H:
+        case IO::SOUND3CNT_L:
+        case IO::SOUND3CNT_H:
+        case IO::SOUND3CNT_X:
+        case IO::SOUND4CNT_L:
+        case IO::SOUND4CNT_H:
+        case IO::SOUNDCNT_L:
+        case IO::SOUNDCNT_H:
+        case IO::SOUNDCNT_X:
+        case IO::SOUNDBIAS:
+        case IO::WAVE_RAM:
+        case IO::WAVE_RAM + 2:
+        case IO::WAVE_RAM + 4:
+        case IO::WAVE_RAM + 6:
+        case IO::WAVE_RAM + 8:
+        case IO::WAVE_RAM + 0xA:
+        case IO::WAVE_RAM + 0xC:
+        case IO::WAVE_RAM + 0xE:
+            m_apu->writeRegister(offset, value);
+            break;
+        case IO::FIFO_A:
+        case IO::FIFO_A + 2:
+        case IO::FIFO_B:
+        case IO::FIFO_B + 2:
+            m_apu->writeRegister(offset, value);
+            return; // FIFO — don't store to io
+        case IO::DMA0SAD:
+        case IO::DMA0SAD + 2:
+        case IO::DMA0DAD:
+        case IO::DMA0DAD + 2:
+        case IO::DMA0CNT_L:
+        case IO::DMA0CNT_H:
+        case IO::DMA1SAD:
+        case IO::DMA1SAD + 2:
+        case IO::DMA1DAD:
+        case IO::DMA1DAD + 2:
+        case IO::DMA1CNT_L:
+        case IO::DMA1CNT_H:
+        case IO::DMA2SAD:
+        case IO::DMA2SAD + 2:
+        case IO::DMA2DAD:
+        case IO::DMA2DAD + 2:
+        case IO::DMA2CNT_L:
+        case IO::DMA2CNT_H:
+        case IO::DMA3SAD:
+        case IO::DMA3SAD + 2:
+        case IO::DMA3DAD:
+        case IO::DMA3DAD + 2:
+        case IO::DMA3CNT_L:
+        case IO::DMA3CNT_H:
+            // Write to IO array FIRST, then let DMA subsystem process
+            *reinterpret_cast<u16*>(&m_io[offset]) = value;
+            m_dma->writeRegister(offset, value);
+            return;
+        case IO::TM0CNT_L:
+        case IO::TM0CNT_H:
+        case IO::TM1CNT_L:
+        case IO::TM1CNT_H:
+        case IO::TM2CNT_L:
+        case IO::TM2CNT_H:
+        case IO::TM3CNT_L:
+        case IO::TM3CNT_H:
+            m_timer->writeRegister(offset, value);
+            break;
+        case IO::IF:
+            // Write-1-to-clear
+            *reinterpret_cast<u16*>(&m_io[IO::IF]) &= ~value;
+            return;
+        case IO::WAITCNT:
+            value &= 0x5FFF;
+            updateWaitstates(value);
+            break;
+        case IO::IME:
+            *reinterpret_cast<u16*>(&m_io[offset]) = value & 1;
+            return;
+        case IO::POSTFLG:
+            if (m_io[IO::POSTFLG]) {
+                m_halted = true;
+            }
+            break;
         case IO::HALTCNT:
-            // Bit 7: 0 = Halt, 1 = Stop (deeper halt). Both halt the CPU.
             m_halted = true;
             break;
-        case IO::WAITCNT:
-            *reinterpret_cast<u16*>(&m_io[offset]) = value;
-            updateWaitstates(value);
-            return;
     }
-    
+
     *reinterpret_cast<u16*>(&m_io[offset]) = value;
 }
 
 u32 Memory::readIO32(u32 offset) const {
-    if (offset >= IO_SIZE - 3) return 0;
-    
-    // Handle registers that need special read handling
-    switch (offset) {
-        case IO::VCOUNT:
-            // DISPSTAT (low 16) | VCOUNT (high 16)
-            return *reinterpret_cast<const u16*>(&m_io[IO::DISPSTAT]) |
-                   (m_ppu ? (static_cast<u32>(m_ppu->getVCount()) << 16) : 0);
-        case IO::KEYINPUT:
-            return (m_joypad ? m_joypad->read() : 0xFFFF) |
-                   (static_cast<u32>(*reinterpret_cast<const u16*>(&m_io[IO::KEYCNT])) << 16);
-        case IO::TM0CNT_L:
-            return (m_timer ? m_timer->readCounter(0) : 0) |
-                   (static_cast<u32>(*reinterpret_cast<const u16*>(&m_io[IO::TM0CNT_H])) << 16);
-        case IO::TM1CNT_L:
-            return (m_timer ? m_timer->readCounter(1) : 0) |
-                   (static_cast<u32>(*reinterpret_cast<const u16*>(&m_io[IO::TM1CNT_H])) << 16);
-        case IO::TM2CNT_L:
-            return (m_timer ? m_timer->readCounter(2) : 0) |
-                   (static_cast<u32>(*reinterpret_cast<const u16*>(&m_io[IO::TM2CNT_H])) << 16);
-        case IO::TM3CNT_L:
-            return (m_timer ? m_timer->readCounter(3) : 0) |
-                   (static_cast<u32>(*reinterpret_cast<const u16*>(&m_io[IO::TM3CNT_H])) << 16);
-    }
-    
-    return *reinterpret_cast<const u32*>(&m_io[offset]);
+    return readIO16(offset & 0xFFFFFF & ~3) | (static_cast<u32>(readIO16((offset & 0xFFFFFF & ~1) | 2)) << 16);
 }
 
 void Memory::requestIRQ(u16 irqBit) {
