@@ -111,6 +111,7 @@ struct MemoryInterface {
     // Instruction fetches (separate path for potential HLE interception)
     u16 (*fetch16)(u32 addr) = nullptr;
     u32 (*fetch32)(u32 addr) = nullptr;
+    int (*consumeWaitCycles)() = nullptr;
 };
 
 // ============================================================================
@@ -165,9 +166,6 @@ private:
     // --- Register bank mapping ---
     // Maps (mode, logical_index) → physical register index
     static const int s_regBank[kNumModes][18];
-
-    // --- Cycle LUT for Thumb instructions ---
-    static const int s_thumbCycles[256];
 
     // --- Internal helpers ---
     int  modeIndex() const { return static_cast<int>(m_regs[CPSR] & 0xF); }
@@ -256,6 +254,7 @@ private:
     int m_cyclesRemaining = 0;
     int m_totalCycles = 0;
     int m_currCycles = 0;
+    int m_cycles = 0;  // per-instruction cycle count
 
     // Interfaces
     MemoryInterface m_mem = {};

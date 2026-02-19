@@ -29,29 +29,6 @@ const int ARM7TDMI::s_regBank[kNumModes][18] = {
 };
 
 // ============================================================================
-// Thumb cycle count table — indexed by top 8 bits of instruction
-// ============================================================================
-const int ARM7TDMI::s_thumbCycles[256] = {
-//   0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
-     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  // 0x
-     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  // 1x
-     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  // 2x
-     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  // 3x
-     1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3,  // 4x
-     2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,  // 5x
-     2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,  // 6x
-     2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,  // 7x
-     2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,  // 8x
-     2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,  // 9x
-     3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,  // Ax
-     1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 2, 4, 1, 1,  // Bx
-     2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  // Cx
-     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3,  // Dx
-     3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,  // Ex
-     2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  // Fx
-};
-
-// ============================================================================
 // Reset — start in SVC mode with IRQ/FIQ disabled, PC at 0
 // ============================================================================
 void ARM7TDMI::reset() {
@@ -208,6 +185,26 @@ void ARM7TDMI::setLogicFlags(u32 rd, u32 carry, bool updatePC4) {
     u32 flags = aluNZ(rd) | (carry ? Flag::C : 0);
     cpsr() = (cpsr() & ~(Flag::N | Flag::Z | Flag::C)) | flags;
     if (updatePC4) pc() += 4;
+}
+
+// ============================================================================
+// Multiplier cycle count helpers
+// ARM7TDMI multiply takes 1-4 internal cycles depending on the multiplier value.
+// Signed: checks both all-0 and all-1 patterns in upper bytes.
+// Unsigned: checks only all-0 patterns.
+// ============================================================================
+static int mulCyclesSigned(u32 rs) {
+    if ((rs & 0xFFFFFF00) == 0xFFFFFF00 || !(rs & 0xFFFFFF00)) return 1;
+    if ((rs & 0xFFFF0000) == 0xFFFF0000 || !(rs & 0xFFFF0000)) return 2;
+    if ((rs & 0xFF000000) == 0xFF000000 || !(rs & 0xFF000000)) return 3;
+    return 4;
+}
+
+static int mulCyclesUnsigned(u32 rs) {
+    if (!(rs & 0xFFFFFF00)) return 1;
+    if (!(rs & 0xFFFF0000)) return 2;
+    if (!(rs & 0xFF000000)) return 3;
+    return 4;
 }
 
 
@@ -543,6 +540,19 @@ void ARM7TDMI::armALU(u32 insn) {
         // TST/TEQ/CMP/CMN with Rd=R15 and S: write to R15
         pc() = rd;
     }
+
+    // --- Cycle count ---
+    // Normal ALU: 1S. Writes PC: 2S+1N = 3. Register shift: +1I.
+    bool writesPC = false;
+    if ((opcode & 0xC) != 0x8) {
+        writesPC = (rdIdx == 15);
+    } else {
+        writesPC = (rdIdx == 15 && sFlag);
+    }
+    m_cycles = writesPC ? 3 : 1;
+    if (!(insn & (1u << 25)) && (insn & (1u << 4))) {
+        m_cycles += 1; // register-specified shift: +1I
+    }
 }
 
 // ============================================================================
@@ -555,7 +565,8 @@ void ARM7TDMI::armMul(u32 insn) {
     u32 result = rm * rs;
 
     // MLA: accumulate Rn
-    if (insn & (1u << 21))
+    bool isAccumulate = insn & (1u << 21);
+    if (isAccumulate)
         result += reg((insn >> 12) & 0xF);
 
     // Write to Rd
@@ -564,6 +575,11 @@ void ARM7TDMI::armMul(u32 insn) {
     // Update N,Z if S bit set
     if (insn & (1u << 20))
         cpsr() = (cpsr() & ~(Flag::N | Flag::Z)) | aluNZ(result);
+
+    // MUL = 1S + mI, MLA = 1S + (m+1)I
+    int m = mulCyclesSigned(rs);
+    int extra = isAccumulate ? 1 : 0;
+    m_cycles = 1 + m + extra;
 }
 
 // ============================================================================
@@ -573,25 +589,32 @@ void ARM7TDMI::armMul(u32 insn) {
 void ARM7TDMI::armMulLong(u32 insn, bool isSigned) {
     u32 rdHi = (insn >> 16) & 0xF;
     u32 rdLo = (insn >> 12) & 0xF;
+    u32 rsVal = reg((insn >> 8) & 0xF);
+    bool isAccumulate = insn & (1u << 21);
 
     if (isSigned) {
-        s64 result = (s64)(s32)reg(insn & 0xF) * (s64)(s32)reg((insn >> 8) & 0xF);
+        s64 result = (s64)(s32)reg(insn & 0xF) * (s64)(s32)rsVal;
         // Accumulate if MLA variant
-        if (insn & (1u << 21))
+        if (isAccumulate)
             result += ((s64)((u64)reg(rdHi) << 32)) | reg(rdLo);
         setRegBanked(rdHi, (u32)(result >> 32));
         setRegBanked(rdLo, (u32)(result & 0xFFFFFFFF));
         if (insn & (1u << 20))
             cpsr() = (cpsr() & ~(Flag::N | Flag::Z)) | (u32)aluNZ64((u64)result);
     } else {
-        u64 result = (u64)reg(insn & 0xF) * (u64)reg((insn >> 8) & 0xF);
-        if (insn & (1u << 21))
+        u64 result = (u64)reg(insn & 0xF) * (u64)rsVal;
+        if (isAccumulate)
             result += ((u64)reg(rdHi) << 32) | reg(rdLo);
         setRegBanked(rdHi, (u32)(result >> 32));
         setRegBanked(rdLo, (u32)(result & 0xFFFFFFFF));
         if (insn & (1u << 20))
             cpsr() = (cpsr() & ~(Flag::N | Flag::Z)) | (u32)aluNZ64(result);
     }
+
+    // xMULL = 1S + (m+1)I, xMLAL = 1S + (m+2)I
+    int m = isSigned ? mulCyclesSigned(rsVal) : mulCyclesUnsigned(rsVal);
+    int extra = isAccumulate ? 2 : 1;
+    m_cycles = 1 + m + extra;
 }
 
 
@@ -634,7 +657,7 @@ void ARM7TDMI::armSingleTransfer(u32 insn) {
             if (rdIdx == 15) {
                 pc() = read32(rnv);
                 pc() -= 4; // compensate for the +4 at caller
-                m_cyclesRemaining -= 2; // LDR PC: 2S+2N+1I
+                m_cycles = 5; // LDR PC: 2S+2N+1I
             } else {
                 setRegBanked(rdIdx, read32(rnv));
             }
@@ -647,7 +670,7 @@ void ARM7TDMI::armSingleTransfer(u32 insn) {
             u32 val = (rdIdx == 15) ? (pc() + 8 + 4) : reg(rdIdx);
             write32(rnv, val);
         }
-        m_cyclesRemaining += 1; // STR: 2N cycles (we add 1 since 3 is subtracted at loop end)
+        m_cycles = 2; // STR: 2N
     }
 
     // Post-indexed writeback
@@ -705,7 +728,7 @@ void ARM7TDMI::armHalfwordTransfer(u32 insn) {
         }
         if (rdIdx == 15) {
             pc() = val + 8;
-            m_cyclesRemaining -= 2;
+            m_cycles = 5; // LDRH/SB/SH PC: 2S+2N+1I
         } else {
             setRegBanked(rdIdx, val);
             pc() += 4;
@@ -715,7 +738,7 @@ void ARM7TDMI::armHalfwordTransfer(u32 insn) {
         u32 val = (rdIdx == 15) ? (pc() + 8 + 4) : reg(rdIdx);
         write16(rnv, (u16)val);
         if (rnIdx != 15) pc() += 4;
-        m_cyclesRemaining += 1;
+        m_cycles = 2; // STRH: 2N
     }
 
     // Post-indexed writeback
@@ -749,7 +772,7 @@ void ARM7TDMI::armSwap(u32 insn) {
         setRegBanked(rdIdx, tmp);
     }
     pc() += 4;
-    m_cyclesRemaining -= 1; // SWP: 1S+2N+1I
+    m_cycles = 4; // SWP: 1S+2N+1I
 }
 
 // ============================================================================
@@ -881,8 +904,6 @@ void ARM7TDMI::armBlockTransfer(u32 insn) {
     bool sFlag  = insn & (1u << 22);
     bool wBack  = insn & (1u << 21);
 
-    // We'll manually handle cycle counts
-    m_cyclesRemaining += 3;
     int result;
 
     if (isLoad) {
@@ -903,13 +924,15 @@ void ARM7TDMI::armBlockTransfer(u32 insn) {
             if (wBack)
                 setRegBanked(rbIdx, reg(rbIdx) + result * 4);
 
+            // LDM: nS + 1N + 1I = n+2; LDM with PC: +2 extra
+            m_cycles = result + 2;
             if (insn & 0x8000) {
                 pc() -= 4;
                 if (sFlag) {
                     cpsr() = spsr();
                     switchMode(static_cast<Mode>(cpsr() & 0xF));
                 }
-                m_cyclesRemaining -= 1; // LDM with PC: extra cycle
+                m_cycles += 2;
             }
         } else {
             // Decrementing
@@ -927,16 +950,16 @@ void ARM7TDMI::armBlockTransfer(u32 insn) {
             if (wBack)
                 setRegBanked(rbIdx, reg(rbIdx) - result * 4);
 
+            // LDM: nS + 1N + 1I = n+2; LDM with PC: +2 extra
+            m_cycles = result + 2;
             if (insn & 0x8000) {
                 pc() -= 4;
                 if (sFlag) {
                     cpsr() = spsr();
                     switchMode(static_cast<Mode>(cpsr() & 0xF));
                 }
-                m_cyclesRemaining -= 1;
+                m_cycles += 2;
             }
-
-            m_cyclesRemaining -= result + 1 + 1;
         }
     } else {
         // Storing
@@ -972,8 +995,8 @@ void ARM7TDMI::armBlockTransfer(u32 insn) {
         if (insn & (1u << 15))
             pc() -= 12;
 
-        // STM: (n+1)S + 2N + 1I
-        m_cyclesRemaining -= (result + 1) + 2 + 1;
+        // STM: (n-1)S + 2N = n+1
+        m_cycles = result + 1;
     }
 }
 
@@ -1196,6 +1219,7 @@ void ARM7TDMI::thumbExecute(u32 insn) {
                     }
                 }
                 cpsr() = (cpsr() & ~(Flag::N | Flag::Z)) | aluNZ(reg(rdIdx));
+                m_cycles = 2; // 1S+1I (register shift)
                 pc() += 2; break;
             }
             case 0x3: { // LSR
@@ -1213,6 +1237,7 @@ void ARM7TDMI::thumbExecute(u32 insn) {
                     }
                 }
                 cpsr() = (cpsr() & ~(Flag::N | Flag::Z)) | aluNZ(reg(rdIdx));
+                m_cycles = 2; // 1S+1I (register shift)
                 pc() += 2; break;
             }
             case 0x4: { // ASR
@@ -1230,6 +1255,7 @@ void ARM7TDMI::thumbExecute(u32 insn) {
                     }
                 }
                 cpsr() = (cpsr() & ~(Flag::N | Flag::Z)) | aluNZ(reg(rdIdx));
+                m_cycles = 2; // 1S+1I (register shift)
                 pc() += 2; break;
             }
             case 0x5: { // ADC
@@ -1253,6 +1279,7 @@ void ARM7TDMI::thumbExecute(u32 insn) {
                 setRegBanked(rdIdx, (rdVal >> shift) | (rdVal << (32 - shift)));
                 cpsr() = (cpsr() & ~Flag::C) | ((rdVal & (1u << (shift - 1))) ? Flag::C : 0);
                 cpsr() = (cpsr() & ~(Flag::N | Flag::Z)) | aluNZ(reg(rdIdx));
+                m_cycles = 2; // 1S+1I (register shift)
                 pc() += 2; break;
             }
             case 0x8: // TST
@@ -1282,6 +1309,8 @@ void ARM7TDMI::thumbExecute(u32 insn) {
                 u32 result = rdVal * rsVal;
                 setRegBanked(rdIdx, result);
                 cpsr() = (cpsr() & ~(Flag::N | Flag::Z)) | aluNZ(result);
+                // Thumb MUL: 1S + mI
+                m_cycles = 1 + mulCyclesSigned(rdVal);
                 pc() += 2; break;
             }
             case 0xE: // BIC
@@ -1301,6 +1330,7 @@ void ARM7TDMI::thumbExecute(u32 insn) {
             u32 rdIdx = (insn >> 8) & 7;
             u32 addr = (pc() & ~2u) + 4 + ((insn & 0xFF) << 2);
             setRegBanked(rdIdx, read32(addr));
+            m_cycles = 3; // LDR: 1S+1N+1I
             pc() += 2;
         }
         break;
@@ -1315,21 +1345,21 @@ void ARM7TDMI::thumbExecute(u32 insn) {
         u32 addr = rn + rm;
 
         switch (type) {
-        case 0: write32(addr, reg(rd)); break;             // STR
-        case 1: write16(addr, (u16)reg(rd)); break;        // STRH
-        case 2: write8(addr, (u8)reg(rd)); break;          // STRB
+        case 0: write32(addr, reg(rd)); m_cycles = 2; break;             // STR
+        case 1: write16(addr, (u16)reg(rd)); m_cycles = 2; break;        // STRH
+        case 2: write8(addr, (u8)reg(rd)); m_cycles = 2; break;          // STRB
         case 3: { // LDRSB
             u32 v = read8(addr);
             setRegBanked(rd, (v & 0x80) ? (v | 0xFFFFFF00) : v);
-            break;
+            m_cycles = 3; break;
         }
-        case 4: setRegBanked(rd, read32(addr)); break;     // LDR
-        case 5: setRegBanked(rd, read16(addr)); break;     // LDRH
-        case 6: setRegBanked(rd, read8(addr)); break;      // LDRB
+        case 4: setRegBanked(rd, read32(addr)); m_cycles = 3; break;     // LDR
+        case 5: setRegBanked(rd, read16(addr)); m_cycles = 3; break;     // LDRH
+        case 6: setRegBanked(rd, read8(addr)); m_cycles = 3; break;      // LDRB
         case 7: { // LDRSH
             u32 v = read16(addr);
             setRegBanked(rd, (v & 0x8000) ? (v | 0xFFFF0000) : v);
-            break;
+            m_cycles = 3; break;
         }
         }
         pc() += 2;
@@ -1364,12 +1394,12 @@ void ARM7TDMI::thumbHiRegBX(u32 insn) {
             break;
         case 2: // ADD HRd, Rs
             setRegBanked(rdIdx + 8, reg(rdIdx + 8) + reg(rsIdx));
-            if (rdIdx == 7) { pc() += 2; }
+            if (rdIdx == 7) { pc() += 2; m_cycles = 3; }
             break;
         case 3: // ADD HRd, HRs
             setRegBanked(rdIdx + 8, reg(rdIdx + 8) + reg(rsIdx + 8));
             if (rsIdx == 7) setRegBanked(rdIdx + 8, reg(rdIdx + 8) + 4);
-            if (rdIdx == 7) { pc() += 2; }
+            if (rdIdx == 7) { pc() += 2; m_cycles = 3; }
             break;
         }
         pc() += 2;
@@ -1400,13 +1430,13 @@ void ARM7TDMI::thumbHiRegBX(u32 insn) {
         case 2: // MOV HRd, Rs
             setRegBanked(rdIdx + 8, reg(rsIdx));
             if (rdIdx != 7) pc() += 2;
-            else pc() &= ~1u;
+            else { pc() &= ~1u; m_cycles = 3; }
             break;
         case 3: // MOV HRd, HRs
             if (rsIdx == 7) setRegBanked(rdIdx + 8, reg(rsIdx + 8) + 4);
             else setRegBanked(rdIdx + 8, reg(rsIdx + 8));
             if (rdIdx != 7) pc() += 2;
-            else pc() &= ~1u;
+            else { pc() &= ~1u; m_cycles = 3; }
             break;
         default:
             pc() += 2;
@@ -1431,6 +1461,7 @@ void ARM7TDMI::thumbHiRegBX(u32 insn) {
             if (addr & 2) addr += 2;
         }
         pc() = addr;
+        m_cycles = 3; // BX: 2S+1N
         break;
     }
     }
@@ -1447,10 +1478,13 @@ void ARM7TDMI::thumbExecuteHigh(u32 insn) {
         u32 rn = (insn >> 3) & 7;
         u32 rd = insn & 7;
         u32 offs = ((insn >> 6) & 0x1F) << 2;
-        if (insn & (1u << 11))
+        if (insn & (1u << 11)) {
             setRegBanked(rd, read32(reg(rn) + offs));
-        else
+            m_cycles = 3; // LDR: 1S+1N+1I
+        } else {
             write32(reg(rn) + offs, reg(rd));
+            m_cycles = 2; // STR: 2N
+        }
         pc() += 2;
         break;
     }
@@ -1460,10 +1494,13 @@ void ARM7TDMI::thumbExecuteHigh(u32 insn) {
         u32 rn = (insn >> 3) & 7;
         u32 rd = insn & 7;
         u32 offs = (insn >> 6) & 0x1F;
-        if (insn & (1u << 11))
+        if (insn & (1u << 11)) {
             setRegBanked(rd, read8(reg(rn) + offs));
-        else
+            m_cycles = 3; // LDRB: 1S+1N+1I
+        } else {
             write8(reg(rn) + offs, (u8)reg(rd));
+            m_cycles = 2; // STRB: 2N
+        }
         pc() += 2;
         break;
     }
@@ -1473,10 +1510,13 @@ void ARM7TDMI::thumbExecuteHigh(u32 insn) {
         u32 rs = (insn >> 3) & 7;
         u32 rd = insn & 7;
         u32 offs = ((insn >> 6) & 0x1F) << 1;
-        if (insn & (1u << 11))
+        if (insn & (1u << 11)) {
             setRegBanked(rd, read16(reg(rs) + offs));
-        else
+            m_cycles = 3; // LDRH: 1S+1N+1I
+        } else {
             write16(reg(rs) + offs, (u16)reg(rd));
+            m_cycles = 2; // STRH: 2N
+        }
         pc() += 2;
         break;
     }
@@ -1486,10 +1526,13 @@ void ARM7TDMI::thumbExecuteHigh(u32 insn) {
         u32 rd = (insn >> 8) & 7;
         u32 offs = (u8)(insn & 0xFF);
         u32 addr = reg(13) + ((u32)offs << 2);
-        if (insn & (1u << 11))
+        if (insn & (1u << 11)) {
             setRegBanked(rd, read32(addr));
-        else
+            m_cycles = 3; // LDR SP: 1S+1N+1I
+        } else {
             write32(addr, reg(rd));
+            m_cycles = 2; // STR SP: 2N
+        }
         pc() += 2;
         break;
     }
@@ -1519,45 +1562,65 @@ void ARM7TDMI::thumbExecuteHigh(u32 insn) {
             pc() += 2;
             break;
         }
-        case 0x4: // PUSH {Rlist}
+        case 0x4: { // PUSH {Rlist}
+            int nregs = 0;
             for (int i = 7; i >= 0; i--) {
                 if (insn & (1 << i)) {
                     setRegBanked(13, reg(13) - 4);
                     write32(reg(13), reg(i));
+                    nregs++;
                 }
             }
+            // PUSH (STM): (n-1)S + 2N = n+1
+            m_cycles = nregs + 1;
             pc() += 2;
             break;
-        case 0x5: // PUSH {Rlist, LR}
+        }
+        case 0x5: { // PUSH {Rlist, LR}
+            int nregs = 1; // LR
             setRegBanked(13, reg(13) - 4);
             write32(reg(13), reg(14));
             for (int i = 7; i >= 0; i--) {
                 if (insn & (1 << i)) {
                     setRegBanked(13, reg(13) - 4);
                     write32(reg(13), reg(i));
+                    nregs++;
                 }
             }
+            // PUSH (STM): (n-1)S + 2N = n+1
+            m_cycles = nregs + 1;
             pc() += 2;
             break;
-        case 0xC: // POP {Rlist}
+        }
+        case 0xC: { // POP {Rlist}
+            int nregs = 0;
             for (int i = 0; i < 8; i++) {
                 if (insn & (1 << i)) {
                     setRegBanked(i, read32(reg(13)));
                     setRegBanked(13, reg(13) + 4);
+                    nregs++;
                 }
             }
+            // POP (LDM): nS + 1N + 1I = n+2
+            m_cycles = nregs + 2;
             pc() += 2;
             break;
-        case 0xD: // POP {Rlist, PC}
+        }
+        case 0xD: { // POP {Rlist, PC}
+            int nregs = 1; // PC
             for (int i = 0; i < 8; i++) {
                 if (insn & (1 << i)) {
                     setRegBanked(i, read32(reg(13)));
                     setRegBanked(13, reg(13) + 4);
+                    nregs++;
                 }
             }
             pc() = read32(reg(13)) & ~1u;
             setRegBanked(13, reg(13) + 4);
+            // POP PC (LDM+PC): (n+1)S + 2N + 1I = n+4
+            m_cycles = nregs + 4;
             break;
+        }
         default:
             pc() += 2;
             break;
@@ -1585,6 +1648,7 @@ void ARM7TDMI::thumbExecuteHighest(u32 insn) {
         u32 rbIdx = (insn >> 8) & 7;
         u32 addr = reg(rbIdx) & 0xFFFFFFFC;
         bool isLoad = insn & (1u << 11);
+        int nregs = 0;
 
         if (isLoad) {
             bool rbInList = insn & (1u << rbIdx);
@@ -1592,17 +1656,23 @@ void ARM7TDMI::thumbExecuteHighest(u32 insn) {
                 if (insn & (1 << i)) {
                     setRegBanked(i, read32(addr));
                     addr += 4;
+                    nregs++;
                 }
             }
             if (!rbInList) setRegBanked(rbIdx, addr);
+            // LDMIA: nS + 1N + 1I = n+2
+            m_cycles = nregs + 2;
         } else {
             for (int i = 0; i < 8; i++) {
                 if (insn & (1 << i)) {
                     write32(addr, reg(i));
                     addr += 4;
+                    nregs++;
                 }
             }
             setRegBanked(rbIdx, addr);
+            // STMIA: (n-1)S + 2N = n+1
+            m_cycles = nregs + 1;
         }
         pc() += 2;
         break;
@@ -1616,6 +1686,7 @@ void ARM7TDMI::thumbExecuteHighest(u32 insn) {
         if (cond == 0xF) {
             // SWI (encoded as condition 0xF in Thumb)
             m_pendingSwi = 1;
+            m_cycles = 3; // SWI: 2S+1N
             checkIRQState();
             break;
         }
@@ -1626,10 +1697,12 @@ void ARM7TDMI::thumbExecuteHighest(u32 insn) {
             break;
         }
 
-        if (evalCondition(cond))
+        if (evalCondition(cond)) {
             pc() += 4 + (offs << 1);
-        else
+            m_cycles = 3; // Taken: 2S+1N
+        } else {
             pc() += 2;
+        }
         break;
     }
 
@@ -1641,11 +1714,13 @@ void ARM7TDMI::thumbExecuteHighest(u32 insn) {
             addr &= 0xFFFFFFFC;
             setRegBanked(14, (pc() + 4) | 1);
             pc() = addr;
+            m_cycles = 3; // BLX suffix: 2S+1N
         } else {
             // B — unconditional branch with 11-bit offset
             s32 offs = (insn & 0x7FF) << 1;
             if (offs & 0x800) offs |= 0xFFFFF800; // sign extend
             pc() += 4 + offs;
+            m_cycles = 3; // B: 2S+1N
         }
         break;
     }
@@ -1657,6 +1732,7 @@ void ARM7TDMI::thumbExecuteHighest(u32 insn) {
             u32 addr = reg(14) + ((insn & 0x7FF) << 1);
             setRegBanked(14, (pc() + 2) | 1);
             pc() = addr;
+            m_cycles = 3; // BL suffix: 2S+1N
         } else {
             // First instruction: set LR = PC + 4 + (offset << 12)
             u32 offs = (insn & 0x7FF) << 12;
@@ -1676,8 +1752,8 @@ void ARM7TDMI::thumbExecuteHighest(u32 insn) {
 // ============================================================================
 // Main execution loop — runs for 'cycles' CPU cycles
 //
-// The ARM7TDMI has a 3-stage pipeline (fetch/decode/execute).
-// Each instruction is assumed to take 3 base cycles, adjusted per instruction.
+// Each instruction handler sets m_cycles to its actual cycle cost.
+// Default is 3 (fetch/decode/execute pipeline).
 // Returns the actual number of cycles consumed.
 // ============================================================================
 int ARM7TDMI::run(int cycles) {
@@ -1685,10 +1761,12 @@ int ARM7TDMI::run(int cycles) {
     m_currCycles = cycles;
 
     do {
+        m_cycles = 3; // default: 1N + 1S + 1I (pipeline refill)
+
         if (flagT()) {
             // ---- Thumb mode: 16-bit instructions ----
             u32 insn = fetchThumb(pc() & ~1u);
-            m_cyclesRemaining += (3 - s_thumbCycles[insn >> 8]);
+            m_cycles = 1; // most Thumb instructions: 1S
             thumbExecute(insn);
         } else {
             // ---- ARM mode: 32-bit instructions ----
@@ -1699,7 +1777,7 @@ int ARM7TDMI::run(int cycles) {
             if (!evalCondition(cond)) {
                 // Condition failed: skip instruction (1 cycle)
                 pc() += 4;
-                m_cyclesRemaining += 2; // net 1 cycle (3 base - 2 back)
+                m_cycles = 1;
             } else {
                 // Decode and execute based on bits [27:24]
                 switch ((insn >> 24) & 0xF) {
@@ -1726,7 +1804,7 @@ int ARM7TDMI::run(int cycles) {
                     } else if ((insn & 0x0C000000) == 0) {
                         if (!(insn & 0x00100000) && ((insn & 0x01800000) == 0x01000000)) {
                             armPSRTransfer(insn);
-                            m_cyclesRemaining += 2; // PSR: 1 S-cycle
+                            m_cycles = 1; // PSR: 1 S-cycle
                             pc() += 4;
                         } else {
                             armALU(insn);
@@ -1769,7 +1847,12 @@ int ARM7TDMI::run(int cycles) {
         }
 
         checkIRQState();
-        m_cyclesRemaining -= 3; // base cost: 3 cycles per instruction
+        m_cyclesRemaining -= m_cycles;
+
+        // Fold in memory wait-state cycles accumulated during this instruction
+        if (m_mem.consumeWaitCycles) {
+            m_cyclesRemaining -= m_mem.consumeWaitCycles();
+        }
 
     } while (m_cyclesRemaining > 0);
 

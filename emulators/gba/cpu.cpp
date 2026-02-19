@@ -19,6 +19,7 @@ static void memWrite16(u32 a, u16 d) { s_memory->write16(a, d); }
 static void memWrite32(u32 a, u32 d) { s_memory->write32(a, d); }
 static u16 memFetch16(u32 a) { return s_memory->fetch16(a); }
 static u32 memFetch32(u32 a) { return s_memory->fetch32(a); }
+static int memConsumeWaitCycles() { return s_memory->consumeWaitCycles(); }
 
 CPU::CPU() = default;
 
@@ -40,6 +41,7 @@ void CPU::setMemory(Memory* memory) {
     mem.write32 = memWrite32;
     mem.fetch16 = memFetch16;
     mem.fetch32 = memFetch32;
+    mem.consumeWaitCycles = memConsumeWaitCycles;
     m_cpu.setMemory(mem);
 }
 
@@ -70,10 +72,7 @@ int CPU::step(int cycles) {
     if (m_memory && m_memory->isHalted())
         return 1; // Halted — return minimal cycles
 
-    int executed = m_cpu.run(cycles);
-    // Add memory wait state cycles accumulated during this step
-    if (m_memory) executed += m_memory->consumeWaitCycles();
-    return executed;
+    return m_cpu.run(cycles);
 }
 
 void CPU::checkIRQ() {
