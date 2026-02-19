@@ -27,6 +27,12 @@ void Memory::reset() {
     m_openBus = 0;
     m_waitCycles = 0;
     m_exWaitcnt = 0x0D000020; // Default EXWAITCNT
+    m_prefetchEnabled = false;
+    m_prefetchCount = 0;
+    m_prefetchHeadAddr = 0;
+    m_fetchRegion = 0;
+    m_lastFetchAddr = ~0u;
+    m_isFetch = false;
     updateWaitstates(0); // Default WAITCNT = 0
 }
 
@@ -81,6 +87,11 @@ void Memory::updateWaitstates(u16 waitcnt) {
     m_wsSeq32[REGION_ROM0] = m_wsSeq32[REGION_ROM0H] = 2 * m_wsSeq16[REGION_ROM0] + 1;
     m_wsSeq32[REGION_ROM1] = m_wsSeq32[REGION_ROM1H] = 2 * m_wsSeq16[REGION_ROM1] + 1;
     m_wsSeq32[REGION_ROM2] = m_wsSeq32[REGION_ROM2H] = 2 * m_wsSeq16[REGION_ROM2] + 1;
+
+    m_prefetchEnabled = (waitcnt & 0x4000) != 0;
+    if (!m_prefetchEnabled) {
+        m_prefetchCount = 0;
+    }
 }
 
 void Memory::updateEWRAMWaitstates(u16 value) {
@@ -90,6 +101,28 @@ void Memory::updateEWRAMWaitstates(u16 value) {
         m_wsSeq16[REGION_EWRAM]    = wait;
         m_wsNonseq32[REGION_EWRAM] = 2 * wait + 1;
         m_wsSeq32[REGION_EWRAM]    = 2 * wait + 1;
+    }
+}
+
+void Memory::fillPrefetch(int availableCycles) {
+    if (!m_prefetchEnabled || m_fetchRegion < REGION_ROM0 || m_fetchRegion > REGION_ROM2H)
+        return;
+    int seqCost = m_wsSeq16[m_fetchRegion] + 1;
+    if (seqCost <= 0) return;
+    while (availableCycles >= seqCost && m_prefetchCount < 8) {
+        availableCycles -= seqCost;
+        m_prefetchCount++;
+    }
+}
+
+void Memory::prefetchStep(u32 region, int accessWait) {
+    if (m_isFetch) return;
+    if (region < REGION_ROM0) {
+        // Non-ROM access: Game Pak bus is free, fill prefetch buffer
+        fillPrefetch(accessWait + 1);
+    } else {
+        // ROM/SRAM access: Game Pak bus occupied, flush prefetch buffer
+        m_prefetchCount = 0;
     }
 }
 
@@ -171,6 +204,7 @@ u16 Memory::read16(u32 address) {
     u32 offset = address & 0xFFFFFF;
     u16 value;
     m_waitCycles += m_wsNonseq16[region];
+    prefetchStep(region, m_wsNonseq16[region]);
 
     switch (region) {
         case REGION_BIOS:
@@ -240,6 +274,7 @@ u32 Memory::read32(u32 address) {
     u32 offset = address & 0xFFFFFF;
     u32 value;
     m_waitCycles += m_wsNonseq32[region];
+    prefetchStep(region, m_wsNonseq32[region]);
 
     switch (region) {
         case REGION_BIOS:
@@ -306,6 +341,7 @@ void Memory::write8(u32 address, u8 value) {
     u32 region = (address >> 24) & 0xF;
     u32 offset = address & 0xFFFFFF;
     m_waitCycles += m_wsNonseq16[region];
+    prefetchStep(region, m_wsNonseq16[region]);
 
     switch (region) {
         case REGION_EWRAM:
@@ -362,6 +398,7 @@ void Memory::write16(u32 address, u16 value) {
     u32 region = (address >> 24) & 0xF;
     u32 offset = address & 0xFFFFFF;
     m_waitCycles += m_wsNonseq16[region];
+    prefetchStep(region, m_wsNonseq16[region]);
 
     switch (region) {
         case REGION_EWRAM:
@@ -420,6 +457,7 @@ void Memory::write32(u32 address, u32 value) {
     u32 region = (address >> 24) & 0xF;
     u32 offset = address & 0xFFFFFF;
     m_waitCycles += m_wsNonseq32[region];
+    prefetchStep(region, m_wsNonseq32[region]);
 
     switch (region) {
         case REGION_EWRAM:
@@ -474,13 +512,67 @@ void Memory::write32(u32 address, u32 value) {
 }
 
 u16 Memory::fetch16(u32 address) {
-    u16 value = read16(address);
+    u16 value = read16(address);  // Adds m_wsNonseq16[region] to m_waitCycles
+    u32 region = (address >> 24) & 0xF;
+    bool isROM = (region >= REGION_ROM0 && region <= REGION_ROM2H);
+
+    if (isROM) {
+        if (m_prefetchEnabled && m_prefetchCount > 0 && address == m_prefetchHeadAddr) {
+            // Prefetch buffer hit — remove ROM wait, costs 1 internal cycle
+            m_waitCycles -= m_wsNonseq16[region];
+            m_prefetchHeadAddr += 2;
+            m_prefetchCount--;
+        } else {
+            // Buffer miss — convert N to S for sequential fetches
+            bool isSeq = (address == m_lastFetchAddr + 2);
+            if (isSeq) {
+                m_waitCycles -= m_wsNonseq16[region];
+                m_waitCycles += m_wsSeq16[region];
+            }
+            // Reset prefetch buffer
+            m_prefetchCount = 0;
+            m_prefetchHeadAddr = address + 2;
+        }
+    }
+
+    m_fetchRegion = region;
+    m_lastFetchAddr = address;
     m_openBus = static_cast<u32>(value) | (static_cast<u32>(value) << 16);
     return value;
 }
 
 u32 Memory::fetch32(u32 address) {
-    u32 value = read32(address);
+    u32 value = read32(address);  // Adds m_wsNonseq32[region] to m_waitCycles
+    u32 region = (address >> 24) & 0xF;
+    bool isROM = (region >= REGION_ROM0 && region <= REGION_ROM2H);
+
+    if (isROM) {
+        if (m_prefetchEnabled && m_prefetchCount >= 2 && address == m_prefetchHeadAddr) {
+            // Both halfwords in prefetch buffer — remove ROM wait
+            m_waitCycles -= m_wsNonseq32[region];
+            m_prefetchHeadAddr += 4;
+            m_prefetchCount -= 2;
+        } else if (m_prefetchEnabled && m_prefetchCount >= 1 && address == m_prefetchHeadAddr) {
+            // First halfword in buffer, second needs S-cycle
+            m_waitCycles -= m_wsNonseq32[region];
+            m_waitCycles += m_wsSeq16[region];  // one S-cycle for second half
+            m_prefetchHeadAddr += 4;
+            m_prefetchCount = 0;
+        } else {
+            // Buffer miss — convert N+S to S+S for sequential fetches
+            bool isSeq = (address == m_lastFetchAddr + 4);
+            if (isSeq) {
+                m_waitCycles -= m_wsNonseq32[region];
+                m_waitCycles += m_wsSeq32[region];
+            }
+            // Reset prefetch buffer
+            m_prefetchCount = 0;
+            m_prefetchHeadAddr = address + 4;
+        }
+    }
+
+    m_fetchRegion = region;
+    m_lastFetchAddr = address;
     m_openBus = value;
     return value;
 }

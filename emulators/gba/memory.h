@@ -78,6 +78,8 @@ private:
     void writeIO(u32 address, u8 value);
     void updateWaitstates(u16 waitcnt);
     void updateEWRAMWaitstates(u16 value);
+    void fillPrefetch(int availableCycles);
+    void prefetchStep(u32 region, int accessWait);
 
     Cartridge* m_cartridge = nullptr;
     PPU* m_ppu = nullptr;
@@ -106,6 +108,14 @@ private:
     int m_wsNonseq32[16] = {};     // Non-sequential 32-bit wait states per region
     int m_wsSeq16[16] = {};        // Sequential 16-bit wait states per region
     int m_wsSeq32[16] = {};        // Sequential 32-bit wait states per region
+
+    // Prefetch buffer
+    bool m_prefetchEnabled = false;  // WAITCNT bit 14
+    bool m_isFetch = false;          // True during instruction fetch (guards prefetchStep)
+    int  m_prefetchCount = 0;        // Halfwords buffered (0-8)
+    u32  m_prefetchHeadAddr = 0;     // Address of first buffered halfword
+    u32  m_fetchRegion = 0;          // Region the CPU is currently executing from
+    u32  m_lastFetchAddr = ~0u;      // Previous instruction fetch address
 };
 
 } // namespace gba
