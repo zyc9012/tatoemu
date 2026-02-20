@@ -37,9 +37,7 @@ void ARM7TDMI::reset() {
     switchMode(Mode::SVC);
     m_regs[CPSR] |= Flag::I | Flag::F | 0x10; // bit4 always set for valid modes
     pc() = 0;
-    m_cyclesRemaining = 0;
     m_totalCycles = 0;
-    m_currCycles = 0;
 }
 
 // ============================================================================
@@ -51,9 +49,7 @@ ARM7TDMI::State ARM7TDMI::saveState() const {
     st.pendingIrq  = m_pendingIrq;  st.pendingFiq  = m_pendingFiq;
     st.pendingAbtD = m_pendingAbtD; st.pendingAbtP = m_pendingAbtP;
     st.pendingUnd  = m_pendingUnd;  st.pendingSwi  = m_pendingSwi;
-    st.icount      = m_cyclesRemaining;
     st.totalCycles = m_totalCycles;
-    st.currCycles  = m_currCycles;
     return st;
 }
 
@@ -62,9 +58,7 @@ void ARM7TDMI::loadState(const State& st) {
     m_pendingIrq  = st.pendingIrq;  m_pendingFiq  = st.pendingFiq;
     m_pendingAbtD = st.pendingAbtD; m_pendingAbtP = st.pendingAbtP;
     m_pendingUnd  = st.pendingUnd;  m_pendingSwi  = st.pendingSwi;
-    m_cyclesRemaining      = st.icount;
     m_totalCycles = st.totalCycles;
-    m_currCycles  = st.currCycles;
 }
 
 // ============================================================================
@@ -1757,8 +1751,7 @@ void ARM7TDMI::thumbExecuteHighest(u32 insn) {
 // Returns the actual number of cycles consumed.
 // ============================================================================
 int ARM7TDMI::run(int cycles) {
-    m_cyclesRemaining = cycles;
-    m_currCycles = cycles;
+    int remaining = cycles;
 
     do {
         m_cycles = 3; // default: 1N + 1S + 1I (pipeline refill)
@@ -1847,17 +1840,17 @@ int ARM7TDMI::run(int cycles) {
         }
 
         checkIRQState();
-        m_cyclesRemaining -= m_cycles;
+        remaining -= m_cycles;
+        m_totalCycles += m_cycles;
 
         // Fold in memory wait-state cycles accumulated during this instruction
         if (m_mem.consumeWaitCycles) {
-            m_cyclesRemaining -= m_mem.consumeWaitCycles();
+            int wait = m_mem.consumeWaitCycles();
+            remaining -= wait;
+            m_totalCycles += wait;
         }
 
-    } while (m_cyclesRemaining > 0);
+    } while (remaining > 0);
 
-    int elapsed = m_currCycles - m_cyclesRemaining;
-    m_totalCycles += elapsed;
-    m_currCycles = m_cyclesRemaining = 0;
-    return elapsed;
+    return cycles - remaining;
 }

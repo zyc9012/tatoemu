@@ -140,7 +140,7 @@ public:
     // --- Execution ---
     int run(int cycles);
     int idle(int cycles) { m_totalCycles += cycles; return cycles; }
-    int totalCycles() const { return m_totalCycles + (m_currCycles - m_cyclesRemaining); }
+    int totalCycles() const { return m_totalCycles; }
 
     // --- Interrupts ---
     void setIRQLine(int line, int state);
@@ -156,7 +156,7 @@ public:
     struct State {
         u32 regs[kRegCount];
         u8  pendingIrq, pendingFiq, pendingAbtD, pendingAbtP, pendingUnd, pendingSwi;
-        int icount, totalCycles, currCycles;
+        int totalCycles;
     };
 
     State saveState() const;
@@ -251,9 +251,7 @@ private:
     u8 m_pendingSwi  = 0;
 
     // Cycle accounting
-    int m_cyclesRemaining = 0;
     int m_totalCycles = 0;
-    int m_currCycles = 0;
     int m_cycles = 0;  // per-instruction cycle count
 
     // Interfaces
