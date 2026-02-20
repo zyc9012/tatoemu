@@ -141,6 +141,15 @@ namespace IO {
     constexpr u32 TM3CNT_L  = 0x10C;
     constexpr u32 TM3CNT_H  = 0x10E;
 
+    // Serial (SIO)
+    constexpr u32 SIODATA32  = 0x120; // also SIOMULTI0
+    constexpr u32 SIOMULTI1  = 0x122;
+    constexpr u32 SIOMULTI2  = 0x124;
+    constexpr u32 SIOMULTI3  = 0x126;
+    constexpr u32 SIOCNT     = 0x128;
+    constexpr u32 SIODATA8   = 0x12A;
+    constexpr u32 RCNT       = 0x134;
+
     // Keypad
     constexpr u32 KEYINPUT  = 0x130;
     constexpr u32 KEYCNT    = 0x132;

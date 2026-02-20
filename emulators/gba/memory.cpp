@@ -723,6 +723,13 @@ void Memory::writeIO16(u32 offset, u16 value) {
         case IO::TM3CNT_H:
             m_timer->writeRegister(offset, value);
             break;
+        case IO::SIOCNT:
+            // SIO disabled — just store the value for now
+            *reinterpret_cast<u16*>(&m_io[IO::SIOCNT]) = value;
+            return;
+        case IO::RCNT:
+            *reinterpret_cast<u16*>(&m_io[IO::RCNT]) = value & 0xC1FF;
+            return;
         case IO::IF:
             // Write-1-to-clear
             *reinterpret_cast<u16*>(&m_io[IO::IF]) &= ~value;
