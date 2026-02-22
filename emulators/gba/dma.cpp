@@ -34,7 +34,7 @@ void DMA::writeRegister(u32 offset, u16 value) {
         case 2: // SAD high
             m_channels[channel].source = (m_channels[channel].source & 0x0000FFFF) | (static_cast<u32>(value) << 16);
             // DMA0: 27-bit source, DMA1-3: 28-bit source
-            m_channels[channel].source &= (channel == 0) ? 0x07FFFFFF : 0x0FFFFFFF;
+            m_channels[channel].source &= (channel == 0) ? 0x07FFFFFE : 0x0FFFFFFE;
             break;
         case 4: // DAD low
             m_channels[channel].dest = (m_channels[channel].dest & 0xFFFF0000) | value;
@@ -42,7 +42,7 @@ void DMA::writeRegister(u32 offset, u16 value) {
         case 6: // DAD high
             m_channels[channel].dest = (m_channels[channel].dest & 0x0000FFFF) | (static_cast<u32>(value) << 16);
             // DMA0-2: 27-bit dest, DMA3: 28-bit dest
-            m_channels[channel].dest &= (channel == 3) ? 0x0FFFFFFF : 0x07FFFFFF;
+            m_channels[channel].dest &= (channel == 3) ? 0x0FFFFFFE : 0x07FFFFFE;
             break;
         case 8: // CNT_L (count)
             m_channels[channel].count = value;
@@ -79,13 +79,6 @@ void DMA::trigger(int channel) {
     m_channels[channel].repeat = (m_channels[channel].control & (1 << 9)) != 0;
     
     int timing = (m_channels[channel].control >> 12) & 3;
-
-    // Force FIFO DMA settings for channels 1/2 with SPECIAL timing
-    if (timing == DMA_TIMING::SPECIAL && (channel == 1 || channel == 2)) {
-        // Force 32-bit width and fixed dest for FIFO DMA
-        m_channels[channel].control |= (1 << 10);  // Width = 32-bit
-        m_channels[channel].control = (m_channels[channel].control & ~(3 << 5)) | (2 << 5); // DestControl = Fixed
-    }
 
     if (timing == DMA_TIMING::IMMEDIATE) {
         run(channel);
@@ -181,7 +174,7 @@ void DMA::run(int channel) {
     }
 }
 
-void DMA::runHBlank(u16 vcount) {
+void DMA::runHBlank() {
     for (int i = 0; i < 4; i++) {
         if (m_channels[i].active) {
             int timing = (m_channels[i].control >> 12) & 3;
@@ -193,15 +186,22 @@ void DMA::runHBlank(u16 vcount) {
                 }
                 run(i);
             }
-            // DMA3 video capture: SPECIAL timing, triggered each HBlank during visible lines
-            if (i == 3 && timing == DMA_TIMING::SPECIAL) {
-                m_videoCaptureLine = vcount;
-                m_channels[3].internalCount = m_channels[3].count;
-                if (m_channels[3].internalCount == 0) {
-                    m_channels[3].internalCount = 0x10000;
-                }
-                run(3);
+        }
+    }
+}
+
+void DMA::runDisplayStart(u16 vcount) {
+    // DMA3 video capture: SPECIAL timing, fires during HBlank at vcounts 2-161
+    // Matches mgba's GBADMARunDisplayStart (triggered at vcount >= 2 && < VISIBLE_LINES+2)
+    if (m_channels[3].active) {
+        int timing = (m_channels[3].control >> 12) & 3;
+        if (timing == DMA_TIMING::SPECIAL) {
+            m_videoCaptureLine = vcount;
+            m_channels[3].internalCount = m_channels[3].count;
+            if (m_channels[3].internalCount == 0) {
+                m_channels[3].internalCount = 0x10000;
             }
+            run(3);
         }
     }
 }

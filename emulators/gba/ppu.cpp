@@ -58,6 +58,8 @@ void PPU::step(int cycles) {
             if (dispstat & DISPSTAT::HBLANK_IRQ) {
                 m_memory->requestIRQ(IRQ::HBLANK);
             }
+            // Trigger video capture DMA for vcounts 160-161 (VISIBLE_LINES to VISIBLE_LINES+1)
+            if (m_dma && m_vcount < VISIBLE_LINES + 2) m_dma->runDisplayStart(m_vcount);
             // No HBlank DMA during VBlank
         }
         
@@ -925,8 +927,10 @@ void PPU::enterHBlank() {
         m_memory->requestIRQ(IRQ::HBLANK);
     }
     
-    // Trigger HBlank DMA
-    if (m_dma) m_dma->runHBlank(m_vcount);
+    // Trigger HBlank DMA (visible lines 0-159)
+    if (m_dma) m_dma->runHBlank();
+    // Trigger video capture DMA (display start, vcounts 2-159 in visible range)
+    if (m_dma && m_vcount >= 2) m_dma->runDisplayStart(m_vcount);
 }
 
 void PPU::enterVBlank() {

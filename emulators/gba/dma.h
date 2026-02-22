@@ -31,7 +31,8 @@ public:
     void reset();
     void writeRegister(u32 offset, u16 value);
     
-    void runHBlank(u16 vcount);
+    void runHBlank();
+    void runDisplayStart(u16 vcount);
     void runVBlank();
     void runFIFO(int fifoIndex);
     
