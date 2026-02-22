@@ -152,7 +152,7 @@ void ARM7TDMI::setAddFlags(u32 rd, u32 rn, u32 op2, bool updatePC4) {
     bool sameInput   = !((rn ^ op2) >> 31);
     u32 flags = aluNZ(rd)
               | ((sameInput && signsDiffer) ? Flag::V : 0)
-              | ((~rn < op2) ? Flag::C : 0);
+              | (((rn >> 31) + (op2 >> 31) > (rd >> 31)) ? Flag::C : 0);
     cpsr() = (cpsr() & ~(Flag::N | Flag::Z | Flag::V | Flag::C)) | flags;
     if (updatePC4) pc() += 4;
 }
