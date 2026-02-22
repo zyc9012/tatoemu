@@ -1322,7 +1322,7 @@ void ARM7TDMI::thumbExecute(u32 insn) {
         } else {
             // PC-relative load: LDR Rd, [PC, #imm8*4]
             u32 rdIdx = (insn >> 8) & 7;
-            u32 addr = (pc() & ~2u) + 4 + ((insn & 0xFF) << 2);
+            u32 addr = (pc() & ~3u) + 4 + ((insn & 0xFF) << 2);
             setRegBanked(rdIdx, read32(addr));
             m_cycles = 3; // LDR: 1S+1N+1I
             pc() += 2;
