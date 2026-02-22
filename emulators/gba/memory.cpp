@@ -26,13 +26,22 @@ void Memory::reset() {
     m_halted = false;
     m_openBus = 0;
     m_waitCycles = 0;
-    m_exWaitcnt = 0x0D000020; // Default EXWAITCNT
+    m_exWaitcnt = 0x0D000020;
     m_prefetchEnabled = false;
     m_prefetchCount = 0;
     m_prefetchHeadAddr = 0;
     m_fetchRegion = 0;
     m_lastFetchAddr = ~0u;
     m_isFetch = false;
+    *reinterpret_cast<u16*>(&m_io[IO::DISPCNT]) = 0x0080;
+    *reinterpret_cast<u16*>(&m_io[IO::RCNT]) = -0x8000;
+    *reinterpret_cast<u16*>(&m_io[IO::KEYINPUT]) = 0x3FF;
+    *reinterpret_cast<u16*>(&m_io[IO::SOUNDBIAS]) = 0x200;
+    *reinterpret_cast<u16*>(&m_io[IO::BG2PA]) = 0x100;
+    *reinterpret_cast<u16*>(&m_io[IO::BG2PD]) = 0x100;
+    *reinterpret_cast<u16*>(&m_io[IO::BG3PA]) = 0x100;
+    *reinterpret_cast<u16*>(&m_io[IO::BG3PD]) = 0x100;
+    *reinterpret_cast<u16*>(&m_io[IO::POSTFLG]) = 1;
     updateWaitstates(0); // Default WAITCNT = 0
 }
 
