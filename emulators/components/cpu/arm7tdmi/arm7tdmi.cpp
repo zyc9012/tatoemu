@@ -271,6 +271,11 @@ u32 ARM7TDMI::decodeShift(u32 insn, u32* carry) {
         }
         // Normalize rotation to 1–32 range
         while (amount > 32) amount -= 32;
+        if (amount == 32) {
+            // ROR by 32: value unchanged, carry = bit 31
+            if (carry) *carry = rm & (1u << 31);
+            return rm;
+        }
         if (carry) *carry = rm & (1u << (amount - 1));
         return (rm >> amount) | (rm << (32 - amount));
     }
@@ -721,7 +726,7 @@ void ARM7TDMI::armHalfwordTransfer(u32 insn) {
             break;
         }
         if (rdIdx == 15) {
-            pc() = val + 8;
+            pc() = val;
             m_cycles = 5; // LDRH/SB/SH PC: 2S+2N+1I
         } else {
             setRegBanked(rdIdx, val);
@@ -731,7 +736,7 @@ void ARM7TDMI::armHalfwordTransfer(u32 insn) {
         // STRH
         u32 val = (rdIdx == 15) ? (pc() + 8 + 4) : reg(rdIdx);
         write16(rnv, (u16)val);
-        if (rnIdx != 15) pc() += 4;
+        pc() += 4;
         m_cycles = 2; // STRH: 2N
     }
 
