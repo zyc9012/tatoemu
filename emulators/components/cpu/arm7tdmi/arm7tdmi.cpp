@@ -536,8 +536,9 @@ void ARM7TDMI::armALU(u32 insn) {
             setRegBanked(rdIdx, rd);
         }
     } else if (rdIdx == 15 && sFlag) {
-        // TST/TEQ/CMP/CMN with Rd=R15 and S: write to R15
-        pc() = rd;
+        // TST/TEQ/CMP/CMN with Rd=R15 and S: restore CPSR from SPSR (like all S+PC cases)
+        cpsr() = spsr();
+        switchMode(static_cast<Mode>(cpsr() & 0xF));
     }
 
     // --- Cycle count ---
@@ -1274,9 +1275,18 @@ void ARM7TDMI::thumbExecute(u32 insn) {
                 break;
             }
             case 0x7: { // ROR
-                u32 shift = rsVal & 0x1F;
-                setRegBanked(rdIdx, (rdVal >> shift) | (rdVal << (32 - shift)));
-                cpsr() = (cpsr() & ~Flag::C) | ((rdVal & (1u << (shift - 1))) ? Flag::C : 0);
+                // ARM spec: use full bottom byte of Rs, then reduce mod 32
+                u32 fullShift = rsVal & 0xFF;
+                if (fullShift != 0) {
+                    u32 shift = fullShift & 0x1F;
+                    if (shift != 0) {
+                        cpsr() = (cpsr() & ~Flag::C) | ((rdVal & (1u << (shift - 1))) ? Flag::C : 0);
+                        setRegBanked(rdIdx, (rdVal >> shift) | (rdVal << (32 - shift)));
+                    } else {
+                        // Multiple of 32: value unchanged, carry = bit 31
+                        cpsr() = (cpsr() & ~Flag::C) | ((rdVal >> 31) ? Flag::C : 0);
+                    }
+                }
                 cpsr() = (cpsr() & ~(Flag::N | Flag::Z)) | aluNZ(reg(rdIdx));
                 m_cycles = 2; // 1S+1I (register shift)
                 pc() += 2; break;
