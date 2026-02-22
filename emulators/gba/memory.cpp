@@ -592,9 +592,11 @@ u8 Memory::readIO8(u32 offset) {
 void Memory::writeIO8(u32 address, u8 value) {
     if (address > IO_SIZE - 1) return;
 
-    u16 value16 = value << (8 * (address & 1));
-    value16 |= m_io[address] & ~(0xFF << (8 * (address & 1)));
-    writeIO16(address, value16);
+    u32 aligned = address & ~1u;
+    int shift = (address & 1) * 8;
+    u16 existing = *reinterpret_cast<u16*>(&m_io[aligned]);
+    u16 value16 = (existing & ~(0xFF << shift)) | (static_cast<u16>(value) << shift);
+    writeIO16(aligned, value16);
 }
 
 u16 Memory::readIO16(u32 offset) const {
@@ -758,7 +760,7 @@ void Memory::writeIO16(u32 offset, u16 value) {
 }
 
 u32 Memory::readIO32(u32 offset) const {
-    return readIO16(offset & 0xFFFFFF & ~3) | (static_cast<u32>(readIO16((offset & 0xFFFFFF & ~1) | 2)) << 16);
+    return readIO16(offset) | (static_cast<u32>(readIO16(offset + 2)) << 16);
 }
 
 void Memory::requestIRQ(u16 irqBit) {
