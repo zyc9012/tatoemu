@@ -1538,7 +1538,7 @@ void ARM7TDMI::thumbExecuteHigh(u32 insn) {
         if (insn & (1u << 11))
             setRegBanked(rd, reg(13) + offs);       // ADD Rd, SP, #imm
         else
-            setRegBanked(rd, ((pc() + 4) & ~2u) + offs); // ADD Rd, PC, #imm
+            setRegBanked(rd, ((pc() + 4) & ~3u) + offs); // ADD Rd, PC, #imm
         pc() += 2;
         break;
     }
