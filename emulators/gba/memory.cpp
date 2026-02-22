@@ -657,11 +657,6 @@ void Memory::writeIO16(u32 offset, u16 value) {
     }
 
     switch (offset) {
-        case IO::DISPSTAT:
-            // Only bits 3-15 are writable (bits 0-2 are status flags)
-            *reinterpret_cast<u16*>(&m_io[offset]) =
-                (*reinterpret_cast<u16*>(&m_io[offset]) & 0x7) | (value & ~0x7);
-            return;
         case IO::VCOUNT:
             return;
         case IO::SOUND1CNT_L:
