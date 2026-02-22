@@ -40,8 +40,8 @@ public:
 
     // Memory access
     u8 read8(u32 address);
-    u16 read16(u32 address);
-    u32 read32(u32 address);
+    u16 read16(u32 address, bool isFetch = false);
+    u32 read32(u32 address, bool isFetch = false);
     void write8(u32 address, u8 value);
     void write16(u32 address, u16 value);
     void write32(u32 address, u32 value);
@@ -111,7 +111,6 @@ private:
 
     // Prefetch buffer
     bool m_prefetchEnabled = false;  // WAITCNT bit 14
-    bool m_isFetch = false;          // True during instruction fetch (guards prefetchStep)
     int  m_prefetchCount = 0;        // Halfwords buffered (0-8)
     u32  m_prefetchHeadAddr = 0;     // Address of first buffered halfword
     u32  m_fetchRegion = 0;          // Region the CPU is currently executing from

@@ -32,7 +32,6 @@ void Memory::reset() {
     m_prefetchHeadAddr = 0;
     m_fetchRegion = 0;
     m_lastFetchAddr = ~0u;
-    m_isFetch = false;
     *reinterpret_cast<u16*>(&m_io[IO::DISPCNT]) = 0x0080;
     *reinterpret_cast<u16*>(&m_io[IO::RCNT]) = -0x8000;
     *reinterpret_cast<u16*>(&m_io[IO::KEYINPUT]) = 0x3FF;
@@ -125,7 +124,6 @@ void Memory::fillPrefetch(int availableCycles) {
 }
 
 void Memory::prefetchStep(u32 region, int accessWait) {
-    if (m_isFetch) return;
     if (region < REGION_ROM0) {
         // Non-ROM access: Game Pak bus is free, fill prefetch buffer
         fillPrefetch(accessWait + 1);
@@ -147,6 +145,7 @@ u8 Memory::read8(u32 address) {
     u32 offset = address & 0xFFFFFF;
     u8 value;
     m_waitCycles += m_wsNonseq16[region];
+    prefetchStep(region, m_wsNonseq16[region]);
 
     switch (region) {
         case REGION_BIOS:
@@ -207,13 +206,13 @@ u8 Memory::read8(u32 address) {
     return value;
 }
 
-u16 Memory::read16(u32 address) {
+u16 Memory::read16(u32 address, bool isFetch) {
     address &= ~1;
     u32 region = (address >> 24) & 0xF;
     u32 offset = address & 0xFFFFFF;
     u16 value;
     m_waitCycles += m_wsNonseq16[region];
-    prefetchStep(region, m_wsNonseq16[region]);
+    if (!isFetch) prefetchStep(region, m_wsNonseq16[region]);
 
     switch (region) {
         case REGION_BIOS:
@@ -277,13 +276,13 @@ u16 Memory::read16(u32 address) {
     return value;
 }
 
-u32 Memory::read32(u32 address) {
+u32 Memory::read32(u32 address, bool isFetch) {
     address &= ~3;
     u32 region = (address >> 24) & 0xF;
     u32 offset = address & 0xFFFFFF;
     u32 value;
     m_waitCycles += m_wsNonseq32[region];
-    prefetchStep(region, m_wsNonseq32[region]);
+    if (!isFetch) prefetchStep(region, m_wsNonseq32[region]);
 
     switch (region) {
         case REGION_BIOS:
@@ -521,7 +520,7 @@ void Memory::write32(u32 address, u32 value) {
 }
 
 u16 Memory::fetch16(u32 address) {
-    u16 value = read16(address);  // Adds m_wsNonseq16[region] to m_waitCycles
+    u16 value = read16(address, true);  // Adds m_wsNonseq16[region] to m_waitCycles
     u32 region = (address >> 24) & 0xF;
     bool isROM = (region >= REGION_ROM0 && region <= REGION_ROM2H);
 
@@ -551,7 +550,7 @@ u16 Memory::fetch16(u32 address) {
 }
 
 u32 Memory::fetch32(u32 address) {
-    u32 value = read32(address);  // Adds m_wsNonseq32[region] to m_waitCycles
+    u32 value = read32(address, true);  // Adds m_wsNonseq32[region] to m_waitCycles
     u32 region = (address >> 24) & 0xF;
     bool isROM = (region >= REGION_ROM0 && region <= REGION_ROM2H);
 
