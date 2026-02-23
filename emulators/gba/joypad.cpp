@@ -71,11 +71,11 @@ void Joypad::handleButton(GBAButton button, bool pressed) {
 }
 
 void Joypad::saveState(Buffer* buf) {
-    buffer_write(buf, &m_state, sizeof(m_state));
+    (void)buf;
 }
 
 void Joypad::loadState(Buffer* buf) {
-    buffer_read(buf, &m_state, sizeof(m_state));
+    (void)buf;
 }
 
 } // namespace gba
