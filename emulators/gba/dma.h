@@ -19,6 +19,7 @@ struct DMAChannel {
     u32 internalCount;
     bool active;
     bool repeat;
+    u32 latch;
 };
 
 class DMA {

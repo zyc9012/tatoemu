@@ -114,20 +114,27 @@ void DMA::run(int channel) {
     
     for (u32 i = 0; i < count; i++) {
         if (is32bit) {
-            u32 data = m_memory->read32(src);
-            m_memory->write32(dst, data);
+            // Only refresh latch for non-BIOS sources; BIOS reads return stale latch
+            if (srcRegion >= REGION_EWRAM) {
+                m_channels[channel].latch = m_memory->read32(src);
+            }
+            m_memory->write32(dst, m_channels[channel].latch);
         } else {
-            u16 data;
             u16 remainingCount = count - i;
-            
-            // EEPROM read through DMA from ROM2_EX region (0x0D000000)
+            u16 data;
+
+            // Only refresh latch for non-BIOS sources; BIOS reads return stale latch
             if (srcRegion == REGION_ROM2H && cart && cart->hasEEPROM()) {
                 data = cart->readEEPROM();
-                data |= data << 8; // Replicate to full 16-bit
-            } else {
+                m_channels[channel].latch = data | (static_cast<u32>(data) << 16);
+            } else if (srcRegion >= REGION_EWRAM) {
                 data = m_memory->read16(src);
+                m_channels[channel].latch = data | (static_cast<u32>(data) << 16);
+            } else {
+                // srcRegion < REGION_EWRAM (BIOS) — latch is not refreshed, stale value is written
+                data = static_cast<u16>(m_channels[channel].latch >> (8 * (dst & 2)));
             }
-            
+
             // EEPROM write through DMA to ROM2_EX region (0x0D000000)
             if (dstRegion == REGION_ROM2H && cart) {
                 cart->writeEEPROM(data, remainingCount);
