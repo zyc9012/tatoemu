@@ -153,7 +153,7 @@ private:
     void clockFrameSequencer();
 
     // Sample generation and output
-    void generateSample(double gameSpeed);
+    void generateSample(double gameSpeed, u32 cycles);
 
     // Duty cycle patterns (same as GB)
     static constexpr u8 DUTY_PATTERNS[4][8] = {

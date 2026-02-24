@@ -98,60 +98,74 @@ void APU::step(u32 cycles, double gameSpeed) {
     // GBA frame sequencer period = CPU_FREQUENCY / 512 = 32768
     static constexpr u32 FRAME_SEQ_PERIOD = 32768;
 
-    for (u32 i = 0; i < cycles; i++) {
-        // Clock frame sequencer
-        m_frameSequencerTimer++;
-        if (m_frameSequencerTimer >= FRAME_SEQ_PERIOD) {
-            m_frameSequencerTimer -= FRAME_SEQ_PERIOD;
-            clockFrameSequencer();
-        }
-
-        // Clock square channel 1
-        if (m_square1.enabled && m_square1.frequencyTimer > 0) {
-            m_square1.frequencyTimer--;
-            if (m_square1.frequencyTimer == 0) {
-                m_square1.frequencyTimer = m_square1.getFrequencyTimerPeriod();
-                m_square1.dutyPosition = (m_square1.dutyPosition + 1) & 7;
-            }
-        }
-
-        // Clock square channel 2
-        if (m_square2.enabled && m_square2.frequencyTimer > 0) {
-            m_square2.frequencyTimer--;
-            if (m_square2.frequencyTimer == 0) {
-                m_square2.frequencyTimer = m_square2.getFrequencyTimerPeriod();
-                m_square2.dutyPosition = (m_square2.dutyPosition + 1) & 7;
-            }
-        }
-
-        // Clock wave channel
-        if (m_wave.enabled && m_wave.frequencyTimer > 0) {
-            m_wave.frequencyTimer--;
-            if (m_wave.frequencyTimer == 0) {
-                m_wave.frequencyTimer = (2048 - m_wave.frequency) * 2;
-                m_wave.wavePosition = (m_wave.wavePosition + 1) & 31;
-            }
-        }
-
-        // Clock noise channel
-        if (m_noise.enabled && m_noise.frequencyTimer > 0) {
-            m_noise.frequencyTimer--;
-            if (m_noise.frequencyTimer == 0) {
-                m_noise.frequencyTimer = m_noise.getFrequencyPeriod();
-                u16 bit = ~(m_noise.lfsr ^ (m_noise.lfsr >> 1)) & 1;
-                m_noise.lfsr &= ~0x8000;
-                m_noise.lfsr |= (bit << 15);
-                if (m_noise.widthMode) {
-                    m_noise.lfsr &= ~0x0080;
-                    m_noise.lfsr |= (bit << 7);
-                }
-                m_noise.lfsr >>= 1;
-            }
-        }
-
-        // Generate output sample at the configured sample rate
-        generateSample(gameSpeed);
+    // --- Frame sequencer (batched) ---
+    m_frameSequencerTimer += cycles;
+    while (m_frameSequencerTimer >= FRAME_SEQ_PERIOD) {
+        m_frameSequencerTimer -= FRAME_SEQ_PERIOD;
+        clockFrameSequencer();
     }
+
+    // --- Square channel 1 frequency timer ---
+    if (m_square1.enabled) {
+        if (cycles >= m_square1.frequencyTimer) {
+            u32 rem = cycles - m_square1.frequencyTimer;
+            u32 period = m_square1.getFrequencyTimerPeriod();
+            u32 ticks = 1 + rem / period;
+            m_square1.dutyPosition = (m_square1.dutyPosition + ticks) & 7;
+            m_square1.frequencyTimer = period - (rem % period);
+        } else {
+            m_square1.frequencyTimer -= cycles;
+        }
+    }
+
+    // --- Square channel 2 frequency timer ---
+    if (m_square2.enabled) {
+        if (cycles >= m_square2.frequencyTimer) {
+            u32 rem = cycles - m_square2.frequencyTimer;
+            u32 period = m_square2.getFrequencyTimerPeriod();
+            u32 ticks = 1 + rem / period;
+            m_square2.dutyPosition = (m_square2.dutyPosition + ticks) & 7;
+            m_square2.frequencyTimer = period - (rem % period);
+        } else {
+            m_square2.frequencyTimer -= cycles;
+        }
+    }
+
+    // --- Wave channel frequency timer ---
+    if (m_wave.enabled) {
+        u32 period = (2048 - m_wave.frequency) * 2;
+        if (period > 0) {
+            if (cycles >= m_wave.frequencyTimer) {
+                u32 rem = cycles - m_wave.frequencyTimer;
+                u32 ticks = 1 + rem / period;
+                m_wave.wavePosition = (m_wave.wavePosition + ticks) & 31;
+                m_wave.frequencyTimer = period - (rem % period);
+            } else {
+                m_wave.frequencyTimer -= cycles;
+            }
+        }
+    }
+
+    // --- Noise channel frequency timer ---
+    if (m_noise.enabled) {
+        u32 rem = cycles;
+        while (rem >= m_noise.frequencyTimer) {
+            rem -= m_noise.frequencyTimer;
+            m_noise.frequencyTimer = m_noise.getFrequencyPeriod();
+            u16 bit = ~(m_noise.lfsr ^ (m_noise.lfsr >> 1)) & 1;
+            m_noise.lfsr &= ~0x8000;
+            m_noise.lfsr |= (bit << 15);
+            if (m_noise.widthMode) {
+                m_noise.lfsr &= ~0x0080;
+                m_noise.lfsr |= (bit << 7);
+            }
+            m_noise.lfsr >>= 1;
+        }
+        m_noise.frequencyTimer -= rem;
+    }
+
+    // --- Sample generation (batched) ---
+    generateSample(gameSpeed, cycles);
 }
 
 // ---------------------------------------------------------------
@@ -186,8 +200,8 @@ void APU::clockFrameSequencer() {
 // ---------------------------------------------------------------
 // Sample generation and mixing
 // ---------------------------------------------------------------
-void APU::generateSample(double gameSpeed) {
-    m_sampleTimer++;
+void APU::generateSample(double gameSpeed, u32 cycles) {
+    m_sampleTimer += cycles;
     u32 cyclesPerSample = (CPU_FREQUENCY * gameSpeed) / m_sampleRate;
 
     if (m_sampleTimer < cyclesPerSample) return;
