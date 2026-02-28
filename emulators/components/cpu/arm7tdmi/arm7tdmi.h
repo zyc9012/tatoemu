@@ -97,21 +97,24 @@ enum IRQLine {
 };
 
 // ============================================================================
-// Memory interface — the host system must provide these callbacks
+// Memory interface — the host system must provide these callbacks.
+// Each callback receives the userData pointer for context routing.
 // ============================================================================
 struct MemoryInterface {
     // Data reads
-    u8  (*read8)(u32 addr)  = nullptr;
-    u16 (*read16)(u32 addr) = nullptr;
-    u32 (*read32)(u32 addr) = nullptr;
+    u8  (*read8)(u32 addr, void* ctx)  = nullptr;
+    u16 (*read16)(u32 addr, void* ctx) = nullptr;
+    u32 (*read32)(u32 addr, void* ctx) = nullptr;
     // Data writes
-    void (*write8)(u32 addr, u8 data)   = nullptr;
-    void (*write16)(u32 addr, u16 data) = nullptr;
-    void (*write32)(u32 addr, u32 data) = nullptr;
+    void (*write8)(u32 addr, u8 data, void* ctx)   = nullptr;
+    void (*write16)(u32 addr, u16 data, void* ctx) = nullptr;
+    void (*write32)(u32 addr, u32 data, void* ctx) = nullptr;
     // Instruction fetches (separate path for potential HLE interception)
-    u16 (*fetch16)(u32 addr) = nullptr;
-    u32 (*fetch32)(u32 addr) = nullptr;
-    int (*consumeWaitCycles)() = nullptr;
+    u16 (*fetch16)(u32 addr, void* ctx) = nullptr;
+    u32 (*fetch32)(u32 addr, void* ctx) = nullptr;
+    int (*consumeWaitCycles)(void* ctx)  = nullptr;
+    // Context pointer passed to every callback
+    void* userData = nullptr;
 };
 
 // ============================================================================
@@ -121,8 +124,8 @@ struct CoprocessorInterface {
     void (*dataOp)(unsigned int, unsigned int) = nullptr;
     unsigned int (*regRead)(unsigned int) = nullptr;
     void (*regWrite)(unsigned int, unsigned int) = nullptr;
-    void (*dataTransferRead)(u32 insn, u32* prn, u32 (*read32)(u32)) = nullptr;
-    void (*dataTransferWrite)(u32 insn, u32* prn, void (*write32)(u32, u32)) = nullptr;
+    void (*dataTransferRead)(u32 insn, u32* prn, u32 (*read32)(u32, void*), void* ctx) = nullptr;
+    void (*dataTransferWrite)(u32 insn, u32* prn, void (*write32)(u32, u32, void*), void* ctx) = nullptr;
 };
 
 // ============================================================================

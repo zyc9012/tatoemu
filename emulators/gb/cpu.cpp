@@ -4,49 +4,30 @@
 
 namespace gb {
 
-// ---------------------------------------------------------------------------
-// Static callback context — the SM83 core uses plain function pointers, so
-// we need a global to route back to the owning CPU/MMU.  (Same pattern used
-// by the Z80 wrapper in neogeo::SoundCPU.)
-// ---------------------------------------------------------------------------
-static CPU* g_cpuCtx = nullptr;
-
-static u8 sm83Read(u16 address) {
-    if (g_cpuCtx) {
-        MMU* mmu = g_cpuCtx->getMMU();
-        if (mmu) return mmu->read(address);
-    }
-    return 0xFF;
-}
-
-static void sm83Write(u16 address, u8 value) {
-    if (g_cpuCtx) {
-        MMU* mmu = g_cpuCtx->getMMU();
-        if (mmu) mmu->write(address, value);
-    }
-}
-
-static void sm83Stop() {
-    if (g_cpuCtx && g_cpuCtx->isGBCMode()) {
-        MMU* mmu = g_cpuCtx->getMMU();
-        if (mmu) mmu->performSpeedSwitch();
-    }
-}
-
-// ---------------------------------------------------------------------------
-
 CPU::CPU()
     : m_mmu(nullptr)
     , m_gbcMode(false) {
-    g_cpuCtx = this;
-    m_sm83.setReadHandler(sm83Read);
-    m_sm83.setWriteHandler(sm83Write);
-    m_sm83.setStopHandler(sm83Stop);
+    SM83::MemoryInterface mem{};
+    mem.read = [](u16 addr, void* ctx) -> u8 {
+        MMU* mmu = static_cast<CPU*>(ctx)->getMMU();
+        return mmu ? mmu->read(addr) : 0xFF;
+    };
+    mem.write = [](u16 addr, u8 val, void* ctx) {
+        MMU* mmu = static_cast<CPU*>(ctx)->getMMU();
+        if (mmu) mmu->write(addr, val);
+    };
+    mem.stop = [](void* ctx) {
+        auto* cpu = static_cast<CPU*>(ctx);
+        if (cpu->isGBCMode()) {
+            MMU* mmu = cpu->getMMU();
+            if (mmu) mmu->performSpeedSwitch();
+        }
+    };
+    mem.userData = this;
+    m_sm83.setMemory(mem);
 }
 
-CPU::~CPU() {
-    if (g_cpuCtx == this) g_cpuCtx = nullptr;
-}
+CPU::~CPU() = default;
 
 void CPU::setMMU(MMU* mmu) {
     m_mmu = mmu;

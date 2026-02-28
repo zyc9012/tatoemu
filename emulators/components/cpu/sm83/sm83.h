@@ -56,9 +56,14 @@ public:
         s32 cyclesBudget = 0;
     };
 
-    using ReadHandler  = u8  (*)(u16);
-    using WriteHandler = void (*)(u16, u8);
-    using StopHandler  = void (*)();
+    // Memory/IO interface — the host system provides these callbacks.
+    // Each callback receives the userData pointer for context routing.
+    struct MemoryInterface {
+        u8   (*read)(u16 addr, void* ctx)          = nullptr;
+        void (*write)(u16 addr, u8 val, void* ctx) = nullptr;
+        void (*stop)(void* ctx)                    = nullptr;
+        void* userData                             = nullptr;
+    };
 
     SM83();
     ~SM83();
@@ -66,9 +71,7 @@ public:
     void reset();
     int execute(int cycles);
 
-    void setReadHandler(ReadHandler h)   { m_read = h; }
-    void setWriteHandler(WriteHandler h) { m_write = h; }
-    void setStopHandler(StopHandler h)   { m_stop = h; }
+    void setMemory(const MemoryInterface& mem) { m_mem = mem; }
 
     // Save/restore entire CPU state
     void getContext(void* dst) const { if (dst) std::memcpy(dst, &m_s, sizeof(m_s)); }
@@ -116,8 +119,8 @@ private:
     u16& PC() { return m_s.pc; }
 
     // Memory access - thin wrappers around bus callbacks
-    u8  rd(u16 addr) { return m_read(addr); }
-    void wr(u16 addr, u8 val) { m_write(addr, val); }
+    u8  rd(u16 addr) { return m_mem.read(addr, m_mem.userData); }
+    void wr(u16 addr, u8 val) { m_mem.write(addr, val, m_mem.userData); }
 
     u8  fetch8();       // Fetch byte at PC (advances PC, respects HALT bug)
     u16 fetch16();      // Fetch 16-bit little-endian at PC (advances PC by 2)
@@ -137,8 +140,6 @@ private:
 
     // Instance data
     State m_s{};
-    ReadHandler  m_read  = nullptr;
-    WriteHandler m_write = nullptr;
-    StopHandler  m_stop  = nullptr;
+    MemoryInterface m_mem{};
 };
 

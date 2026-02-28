@@ -4,25 +4,8 @@
 #include <cstddef>
 #include <cstring>
 
-// File-local memory pointer for plain function pointer callbacks
-static nes::Memory* s_nesMemory = nullptr;
-
-static uint8_t nesRead(uint16_t addr) {
-    return s_nesMemory->cpuRead(addr);
-}
-
-static void nesWrite(uint16_t addr, uint8_t data) {
-    s_nesMemory->cpuWrite(addr, data);
-}
-
 namespace nes {
 
-/**
- * @brief Construct a new NES CPU
- * 
- * Creates a 2A03 CPU (6502 variant without decimal mode)
- * and sets up memory access callbacks.
- */
 CPU::CPU()
     : m_memory(nullptr)
     , m_cpu(std::make_unique<M6502>(M6502::Variant::NMOS_2A03))
@@ -30,16 +13,20 @@ CPU::CPU()
     , m_stallCycles(0) {
 }
 
-CPU::~CPU() {
-    if (s_nesMemory == m_memory)
-        s_nesMemory = nullptr;
-}
+CPU::~CPU() = default;
 
 void CPU::setMemory(Memory* memory) {
     m_memory = memory;
-    s_nesMemory = memory;
-    m_cpu->setReadHandler(nesRead);
-    m_cpu->setWriteHandler(nesWrite);
+
+    M6502::MemoryInterface mem{};
+    mem.read = [](uint16_t addr, void* ctx) -> uint8_t {
+        return static_cast<Memory*>(ctx)->cpuRead(addr);
+    };
+    mem.write = [](uint16_t addr, uint8_t val, void* ctx) {
+        static_cast<Memory*>(ctx)->cpuWrite(addr, val);
+    };
+    mem.userData = memory;
+    m_cpu->setMemory(mem);
 }
 
 /**

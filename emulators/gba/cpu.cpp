@@ -4,44 +4,24 @@
 
 namespace gba {
 
-// ---------------------------------------------------------------------------
-// File-local memory pointer so plain function pointers can reach Memory.
-// Only one CPU instance is expected — this mirrors the old g_currentCPU pattern.
-// ---------------------------------------------------------------------------
-static Memory* s_memory = nullptr;
-
-// Memory callback trampolines (ARM7TDMI MemoryInterface uses plain fn ptrs)
-static u8  memRead8 (u32 a) { return s_memory->read8(a);  }
-static u16 memRead16(u32 a) { return s_memory->read16(a); }
-static u32 memRead32(u32 a) { return s_memory->read32(a); }
-static void memWrite8 (u32 a, u8  d) { s_memory->write8(a, d);  }
-static void memWrite16(u32 a, u16 d) { s_memory->write16(a, d); }
-static void memWrite32(u32 a, u32 d) { s_memory->write32(a, d); }
-static u16 memFetch16(u32 a) { return s_memory->fetch16(a); }
-static u32 memFetch32(u32 a) { return s_memory->fetch32(a); }
-static int memConsumeWaitCycles() { return s_memory->consumeWaitCycles(); }
-
 CPU::CPU() = default;
 
-CPU::~CPU() {
-    if (s_memory == m_memory)
-        s_memory = nullptr;
-}
+CPU::~CPU() = default;
 
 void CPU::setMemory(Memory* memory) {
     m_memory = memory;
-    s_memory = memory;
 
     MemoryInterface mem{};
-    mem.read8   = memRead8;
-    mem.read16  = memRead16;
-    mem.read32  = memRead32;
-    mem.write8  = memWrite8;
-    mem.write16 = memWrite16;
-    mem.write32 = memWrite32;
-    mem.fetch16 = memFetch16;
-    mem.fetch32 = memFetch32;
-    mem.consumeWaitCycles = memConsumeWaitCycles;
+    mem.read8  = [](u32 a, void* c) -> u8  { return static_cast<Memory*>(c)->read8(a); };
+    mem.read16 = [](u32 a, void* c) -> u16 { return static_cast<Memory*>(c)->read16(a); };
+    mem.read32 = [](u32 a, void* c) -> u32 { return static_cast<Memory*>(c)->read32(a); };
+    mem.write8  = [](u32 a, u8  d, void* c) { static_cast<Memory*>(c)->write8(a, d); };
+    mem.write16 = [](u32 a, u16 d, void* c) { static_cast<Memory*>(c)->write16(a, d); };
+    mem.write32 = [](u32 a, u32 d, void* c) { static_cast<Memory*>(c)->write32(a, d); };
+    mem.fetch16 = [](u32 a, void* c) -> u16 { return static_cast<Memory*>(c)->fetch16(a); };
+    mem.fetch32 = [](u32 a, void* c) -> u32 { return static_cast<Memory*>(c)->fetch32(a); };
+    mem.consumeWaitCycles = [](void* c) -> int { return static_cast<Memory*>(c)->consumeWaitCycles(); };
+    mem.userData = memory;
     m_cpu.setMemory(mem);
 }
 

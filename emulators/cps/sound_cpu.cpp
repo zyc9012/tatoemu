@@ -6,40 +6,6 @@
 
 namespace cps {
 
-// Static context pointer for callbacks
-static SoundCPU* g_soundCpuContext = nullptr;
-
-// Z80 callback functions
-static u8 z80ReadProg(u32 address) {
-    Memory* mem = g_soundCpuContext->getMemory();
-    return mem ? mem->readZ80(address) : 0xFF;
-}
-
-static void z80WriteProg(u32 address, u8 value) {
-    Memory* mem = g_soundCpuContext->getMemory();
-    if (mem) mem->writeZ80(address, value);
-}
-
-static u8 z80ReadIo(u32 port) {
-    Audio* audio = g_soundCpuContext->getAudio();
-    return audio ? audio->readPort(port) : 0xFF;
-}
-
-static void z80WriteIo(u32 port, u8 value) {
-    Audio* audio = g_soundCpuContext->getAudio();
-    if (audio) audio->writePort(port, value);
-}
-
-static u8 z80ReadOp(u32 address) {
-    Memory* mem = g_soundCpuContext->getMemory();
-    return mem ? mem->readZ80Opcode(address) : 0xFF;
-}
-
-static u8 z80ReadOpArg(u32 address) {
-    Memory* mem = g_soundCpuContext->getMemory();
-    return mem ? mem->readZ80OpcodeArg(address) : 0xFF;
-}
-
 SoundCPU::SoundCPU()
     : m_memory(nullptr)
     , m_audio(nullptr)
@@ -48,21 +14,36 @@ SoundCPU::SoundCPU()
     , m_cpsVersion(1)
     , m_timerAccumulator(0)
     , m_timerPeriod(0) {
-    g_soundCpuContext = this;
-
-    m_z80.setProgramReadHandler(z80ReadProg);
-    m_z80.setProgramWriteHandler(z80WriteProg);
-    m_z80.setIoReadHandler(z80ReadIo);
-    m_z80.setIoWriteHandler(z80WriteIo);
-    m_z80.setOpReadHandler(z80ReadOp);
-    m_z80.setOpArgReadHandler(z80ReadOpArg);
+    Z80::MemoryInterface mem{};
+    mem.progRead = [](u32 addr, void* ctx) -> u8 {
+        Memory* m = static_cast<SoundCPU*>(ctx)->getMemory();
+        return m ? m->readZ80(addr) : 0xFF;
+    };
+    mem.progWrite = [](u32 addr, u8 val, void* ctx) {
+        Memory* m = static_cast<SoundCPU*>(ctx)->getMemory();
+        if (m) m->writeZ80(addr, val);
+    };
+    mem.ioRead = [](u32 port, void* ctx) -> u8 {
+        Audio* a = static_cast<SoundCPU*>(ctx)->getAudio();
+        return a ? a->readPort(port) : 0xFF;
+    };
+    mem.ioWrite = [](u32 port, u8 val, void* ctx) {
+        Audio* a = static_cast<SoundCPU*>(ctx)->getAudio();
+        if (a) a->writePort(port, val);
+    };
+    mem.opRead = [](u32 addr, void* ctx) -> u8 {
+        Memory* m = static_cast<SoundCPU*>(ctx)->getMemory();
+        return m ? m->readZ80Opcode(addr) : 0xFF;
+    };
+    mem.opArgRead = [](u32 addr, void* ctx) -> u8 {
+        Memory* m = static_cast<SoundCPU*>(ctx)->getMemory();
+        return m ? m->readZ80OpcodeArg(addr) : 0xFF;
+    };
+    mem.userData = this;
+    m_z80.setMemory(mem);
 }
 
-SoundCPU::~SoundCPU() {
-    if (g_soundCpuContext == this) {
-        g_soundCpuContext = nullptr;
-    }
-}
+SoundCPU::~SoundCPU() = default;
 
 void SoundCPU::reset() {
     m_z80.reset();

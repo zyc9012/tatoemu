@@ -53,9 +53,13 @@ public:
         N = 0x80     // Negative
     };
 
-    // Memory access callbacks
-    using ReadHandler = uint8_t (*)(uint16_t);
-    using WriteHandler = void (*)(uint16_t, uint8_t);
+    // Memory interface — the host system provides these callbacks.
+    // Each callback receives the userData pointer for context routing.
+    struct MemoryInterface {
+        uint8_t (*read)(uint16_t addr, void* ctx)               = nullptr;
+        void    (*write)(uint16_t addr, uint8_t val, void* ctx) = nullptr;
+        void* userData                                          = nullptr;
+    };
 
     /**
      * @brief Construct a new M6502 CPU with specified variant
@@ -64,16 +68,9 @@ public:
     explicit M6502(Variant variant = Variant::MOS_6502);
 
     /**
-     * @brief Set memory read callback
-     * @param callback Function to call when CPU reads from memory
+     * @brief Set memory interface (read/write callbacks + userData)
      */
-    void setReadHandler(ReadHandler h) { m_read = h; }
-
-    /**
-     * @brief Set memory write callback
-     * @param callback Function to call when CPU writes to memory
-     */
-    void setWriteHandler(WriteHandler h) { m_write = h; }
+    void setMemory(const MemoryInterface& mem) { m_mem = mem; }
 
     /**
      * @brief Reset the CPU to initial state
@@ -176,8 +173,7 @@ private:
     bool m_fetchingOpcode;  // Currently fetching opcode
 
     // Memory callbacks
-    ReadHandler m_read = nullptr;
-    WriteHandler m_write = nullptr;
+    MemoryInterface m_mem{};
 
     // Flag manipulation helpers
     inline void setFlag(StatusFlag flag, bool value) {
@@ -200,12 +196,12 @@ private:
     // Memory access with cycle counting
     inline uint8_t read(uint16_t addr) {
         m_cyclesRemaining--;
-        return m_read(addr);
+        return m_mem.read(addr, m_mem.userData);
     }
 
     inline void write(uint16_t addr, uint8_t value) {
         m_cyclesRemaining--;
-        m_write(addr, value);
+        m_mem.write(addr, value, m_mem.userData);
     }
 
     inline uint8_t readPC() {

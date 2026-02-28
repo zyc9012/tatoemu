@@ -257,20 +257,20 @@ void Z80::reset() {
 u8 Z80::rop() {
     u16 pc = PC();
     PC()++;
-    return m_opRead(pc);
+    return m_mem.opRead(pc, m_mem.userData);
 }
 
 u8 Z80::arg() {
     u16 pc = PC();
     PC()++;
-    return m_opArgRead(pc);
+    return m_mem.opArgRead(pc, m_mem.userData);
 }
 
 u16 Z80::arg16() {
     u16 pc = PC();
     PC() += 2;
-    u8 lo = m_opArgRead(pc);
-    u8 hi = m_opArgRead((pc + 1) & 0xffff);
+    u8 lo = m_mem.opArgRead(pc, m_mem.userData);
+    u8 hi = m_mem.opArgRead((pc + 1) & 0xffff, m_mem.userData);
     return lo | (hi << 8);
 }
 

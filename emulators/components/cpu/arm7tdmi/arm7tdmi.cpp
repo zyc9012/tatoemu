@@ -93,12 +93,12 @@ u32 ARM7TDMI::getSPSR() const {
 
 // Read 8-bit—no alignment needed.
 u8 ARM7TDMI::read8(u32 addr) {
-    return m_mem.read8(addr);
+    return m_mem.read8(addr, m_mem.userData);
 }
 
 // Read 16-bit—mask to halfword boundary, rotate if unaligned.
 u16 ARM7TDMI::read16(u32 addr) {
-    u16 val = m_mem.read16(addr & ~1u);
+    u16 val = m_mem.read16(addr & ~1u, m_mem.userData);
     if (addr & 1) val = (val >> 8) | (val << 8); // byte-swap on misalignment
     return val;
 }
@@ -107,29 +107,29 @@ u16 ARM7TDMI::read16(u32 addr) {
 // ARM7TDMI rotates the word right by 8*misalignment bits.
 u32 ARM7TDMI::read32(u32 addr) {
     if (addr & 3) {
-        u32 val = m_mem.read32(addr & ~3u);
+        u32 val = m_mem.read32(addr & ~3u, m_mem.userData);
         int shift = (addr & 3) * 8;
         return (val >> shift) | (val << (32 - shift));
     }
-    return m_mem.read32(addr);
+    return m_mem.read32(addr, m_mem.userData);
 }
 
-void ARM7TDMI::write8(u32 addr, u8 data)   { m_mem.write8(addr, data); }
-void ARM7TDMI::write16(u32 addr, u16 data) { m_mem.write16(addr & ~1u, data); }
-void ARM7TDMI::write32(u32 addr, u32 data) { m_mem.write32(addr & ~3u, data); }
+void ARM7TDMI::write8(u32 addr, u8 data)   { m_mem.write8(addr, data, m_mem.userData); }
+void ARM7TDMI::write16(u32 addr, u16 data) { m_mem.write16(addr & ~1u, data, m_mem.userData); }
+void ARM7TDMI::write32(u32 addr, u32 data) { m_mem.write32(addr & ~3u, data, m_mem.userData); }
 
 // Instruction fetches — same rotation rules
 u32 ARM7TDMI::fetchARM(u32 addr) {
     if (addr & 3) {
-        u32 val = m_mem.fetch32(addr & ~3u);
+        u32 val = m_mem.fetch32(addr & ~3u, m_mem.userData);
         int shift = (addr & 3) * 8;
         return (val >> shift) | (val << (32 - shift));
     }
-    return m_mem.fetch32(addr);
+    return m_mem.fetch32(addr, m_mem.userData);
 }
 
 u16 ARM7TDMI::fetchThumb(u32 addr) {
-    u16 val = m_mem.fetch16(addr & ~1u);
+    u16 val = m_mem.fetch16(addr & ~1u, m_mem.userData);
     if (addr & 1) val = (val >> 8) | (val << 8);
     return val;
 }
@@ -1036,10 +1036,10 @@ void ARM7TDMI::armCoprocDataTransfer(u32 insn) {
 
     if (insn & (1u << 20)) {
         if (m_cop.dataTransferRead)
-            m_cop.dataTransferRead(insn, prn, m_mem.read32);
+            m_cop.dataTransferRead(insn, prn, m_mem.read32, m_mem.userData);
     } else {
         if (m_cop.dataTransferWrite)
-            m_cop.dataTransferWrite(insn, prn, m_mem.write32);
+            m_cop.dataTransferWrite(insn, prn, m_mem.write32, m_mem.userData);
     }
 
     // Restore base if no writeback
@@ -1864,7 +1864,7 @@ int ARM7TDMI::execute(int cycles) {
 
         // Fold in memory wait-state cycles accumulated during this instruction
         if (m_mem.consumeWaitCycles) {
-            int wait = m_mem.consumeWaitCycles();
+            int wait = m_mem.consumeWaitCycles(m_mem.userData);
             remaining -= wait;
             m_totalCycles += wait;
         }

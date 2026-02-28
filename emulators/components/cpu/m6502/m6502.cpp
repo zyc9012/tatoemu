@@ -31,8 +31,8 @@ M6502::M6502(Variant variant)
 
 void M6502::reset() {
     // Read reset vector from $FFFC-$FFFD
-    uint8_t lo = m_read(0xFFFC);
-    uint8_t hi = m_read(0xFFFD);
+    uint8_t lo = m_mem.read(0xFFFC, m_mem.userData);
+    uint8_t hi = m_mem.read(0xFFFD, m_mem.userData);
     m_pc = (hi << 8) | lo;
     
     // Initialize stack pointer to top of stack

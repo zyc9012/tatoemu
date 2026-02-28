@@ -73,8 +73,17 @@ public:
         int vector = 0xff;             // IRQ vector byte(s) placed on data bus
     };
 
-    using ReadHandler = u8 (*)(u32);
-    using WriteHandler = void (*)(u32, u8);
+    // Memory/IO interface — the host system provides these callbacks.
+    // Each callback receives the userData pointer for context routing.
+    struct MemoryInterface {
+        u8   (*ioRead)(u32 addr, void* ctx)            = nullptr;
+        void (*ioWrite)(u32 addr, u8 val, void* ctx  ) = nullptr;
+        u8   (*progRead)(u32 addr, void* ctx)          = nullptr;
+        void (*progWrite)(u32 addr, u8 val, void* ctx) = nullptr;
+        u8   (*opRead)(u32 addr, void* ctx)            = nullptr;
+        u8   (*opArgRead)(u32 addr, void* ctx)         = nullptr;
+        void* userData                                 = nullptr;
+    };
 
     Z80();
     ~Z80();
@@ -87,12 +96,7 @@ public:
     void setIrqHold() { m_s.holdIrq = 1; }
     void setVector(int v) { m_s.vector = v; }
 
-    void setIoReadHandler(ReadHandler h) { m_ioRead = h; }
-    void setIoWriteHandler(WriteHandler h) { m_ioWrite = h; }
-    void setProgramReadHandler(ReadHandler h) { m_progRead = h; }
-    void setProgramWriteHandler(WriteHandler h) { m_progWrite = h; }
-    void setOpReadHandler(ReadHandler h) { m_opRead = h; }
-    void setOpArgReadHandler(ReadHandler h) { m_opArgRead = h; }
+    void setMemory(const MemoryInterface& mem) { m_mem = mem; }
 
     // Save/restore entire CPU state for save-states
     void getContext(void* dst) const { if (dst) std::memcpy(dst, &m_s, sizeof(m_s)); }
@@ -138,13 +142,13 @@ private:
     u8& WZ_L() { return m_s.wz.b.l; }
 
     // Memory / I/O access helpers — thin wrappers around the bus callbacks
-    u8 rm(u16 addr) { return m_progRead(addr); }          // Read byte from memory
-    void wm(u16 addr, u8 val) { m_progWrite(addr, val); } // Write byte to memory
+    u8 rm(u16 addr) { return m_mem.progRead(addr, m_mem.userData); }          // Read byte from memory
+    void wm(u16 addr, u8 val) { m_mem.progWrite(addr, val, m_mem.userData); } // Write byte to memory
     u8 rop();          // Fetch opcode byte at PC (advances PC)
     u8 arg();          // Fetch operand byte at PC (advances PC)
     u16 arg16();       // Fetch 16-bit operand (little-endian, advances PC by 2)
-    u8 in(u16 port) { return m_ioRead(port); }           // Read from I/O port
-    void out(u16 port, u8 val) { m_ioWrite(port, val); } // Write to I/O port
+    u8 in(u16 port) { return m_mem.ioRead(port, m_mem.userData); }           // Read from I/O port
+    void out(u16 port, u8 val) { m_mem.ioWrite(port, val, m_mem.userData); } // Write to I/O port
     void rm16(u16 addr, Pair* p);  // Read 16-bit value from memory into Pair
     void wm16(u16 addr, Pair* p);  // Write 16-bit value from Pair to memory
     void push(Pair& p);            // Push 16-bit register onto stack
@@ -223,12 +227,7 @@ private:
 
     // Instance data
     State m_s{};
-    ReadHandler m_ioRead = nullptr;
-    WriteHandler m_ioWrite = nullptr;
-    ReadHandler m_progRead = nullptr;
-    WriteHandler m_progWrite = nullptr;
-    ReadHandler m_opRead = nullptr;
-    ReadHandler m_opArgRead = nullptr;
+    MemoryInterface m_mem{};
     const u8* m_cc[6]{};
 
     // Static cycle count tables (T-states per opcode, indexed by opcode byte)
