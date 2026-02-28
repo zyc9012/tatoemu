@@ -247,145 +247,24 @@ private:
     // ========================================
     // Addressing Mode Helpers
     // ========================================
-    
-    /**
-     * Addressing modes determine how operands are accessed from memory.
-     * Each mode returns the effective address or value needed for the operation.
-     */
 
-    // Implied - no operand needed
-    inline void addr_IMP() { }
-
-    // Accumulator - operate on A register
-    inline uint8_t& addr_ACC() { return m_a; }
-
-    // Immediate - operand is the next byte after opcode
-    inline uint8_t addr_IMM() {
-        return readPC();
-    }
-
-    // Zero Page - operand is in page 0 ($00-$FF)
-    inline uint16_t addr_ZP() {
-        return readPC();
-    }
-
-    // Zero Page, X - zero page address + X register (wraps within page 0)
-    inline uint16_t addr_ZPX() {
-        uint8_t base = readPC();
-        read(base);  // Dummy read for cycle accuracy
-        return (base + m_x) & 0xFF;
-    }
-
-    // Zero Page, Y - zero page address + Y register (wraps within page 0)
-    inline uint16_t addr_ZPY() {
-        uint8_t base = readPC();
-        read(base);  // Dummy read for cycle accuracy
-        return (base + m_y) & 0xFF;
-    }
-
-    // Absolute - full 16-bit address
-    inline uint16_t addr_ABS() {
-        uint8_t lo = readPC();
-        uint8_t hi = readPC();
-        return (hi << 8) | lo;
-    }
-
-    // Absolute, X - absolute address + X register
-    // pageCross: if true, adds cycle when page boundary is crossed
-    inline uint16_t addr_ABX(bool pageCross = false) {
-        uint8_t lo = readPC();
-        uint8_t hi = readPC();
-        uint16_t base = (hi << 8) | lo;
-        uint16_t addr = base + m_x;
-        
-        if (pageCross && (base & 0xFF00) != (addr & 0xFF00)) {
-            // Page boundary crossed - dummy read for cycle accuracy
-            read((hi << 8) | ((lo + m_x) & 0xFF));
-        } else if (!pageCross) {
-            // Always do dummy read for write/modify operations
-            read((hi << 8) | ((lo + m_x) & 0xFF));
-        }
-        
-        return addr;
-    }
-
-    // Absolute, Y - absolute address + Y register
-    // pageCross: if true, adds cycle when page boundary is crossed
-    inline uint16_t addr_ABY(bool pageCross = false) {
-        uint8_t lo = readPC();
-        uint8_t hi = readPC();
-        uint16_t base = (hi << 8) | lo;
-        uint16_t addr = base + m_y;
-        
-        if (pageCross && (base & 0xFF00) != (addr & 0xFF00)) {
-            // Page boundary crossed - dummy read for cycle accuracy
-            read((hi << 8) | ((lo + m_y) & 0xFF));
-        } else if (!pageCross) {
-            // Always do dummy read for write/modify operations
-            read((hi << 8) | ((lo + m_y) & 0xFF));
-        }
-        
-        return addr;
-    }
-
-    // Indexed Indirect, X - (zero page + X) points to address
-    inline uint16_t addr_IDX() {
-        uint8_t base = readPC();
-        read(base);  // Dummy read for cycle accuracy
-        uint8_t ptr = (base + m_x) & 0xFF;
-        uint8_t lo = read(ptr);
-        uint8_t hi = read((ptr + 1) & 0xFF);
-        return (hi << 8) | lo;
-    }
-
-    // Indirect Indexed, Y - (zero page) + Y points to address
-    // pageCross: if true, adds cycle when page boundary is crossed
-    inline uint16_t addr_IDY(bool pageCross = false) {
-        uint8_t ptr = readPC();
-        uint8_t lo = read(ptr);
-        uint8_t hi = read((ptr + 1) & 0xFF);
-        uint16_t base = (hi << 8) | lo;
-        uint16_t addr = base + m_y;
-        
-        if (pageCross && (base & 0xFF00) != (addr & 0xFF00)) {
-            // Page boundary crossed - dummy read for cycle accuracy
-            read((hi << 8) | ((lo + m_y) & 0xFF));
-        } else if (!pageCross) {
-            // Always do dummy read for write/modify operations
-            read((hi << 8) | ((lo + m_y) & 0xFF));
-        }
-        
-        return addr;
-    }
-
-    // Relative - signed offset for branch instructions
-    inline int8_t addr_REL() {
-        return static_cast<int8_t>(readPC());
-    }
-
-    // Indirect - used only by JMP ($xxxx)
-    // Has famous 6502 bug: doesn't cross page boundaries correctly
-    inline uint16_t addr_IND() {
-        uint8_t ptrLo = readPC();
-        uint8_t ptrHi = readPC();
-        uint16_t ptr = (ptrHi << 8) | ptrLo;
-        
-        uint8_t lo = read(ptr);
-        // Bug: if ptr is $xxFF, wraps to $xx00 instead of $(xx+1)00
-        uint8_t hi = read((ptr & 0xFF00) | ((ptr + 1) & 0xFF));
-        
-        return (hi << 8) | lo;
-    }
+    void addr_IMP();
+    uint8_t& addr_ACC();
+    uint8_t addr_IMM();
+    uint16_t addr_ZP();
+    uint16_t addr_ZPX();
+    uint16_t addr_ZPY();
+    uint16_t addr_ABS();
+    uint16_t addr_ABX(bool pageCross = false);
+    uint16_t addr_ABY(bool pageCross = false);
+    uint16_t addr_IDX();
+    uint16_t addr_IDY(bool pageCross = false);
+    int8_t addr_REL();
+    uint16_t addr_IND();
 
     // ========================================
     // Instruction Implementations
     // ========================================
-    
-    /**
-     * Each instruction is implemented as a separate method.
-     * Instructions modify CPU state, flags, and memory as specified
-     * by the 6502 architecture.
-     */
 
     // Load/Store Operations
     void op_LDA(uint8_t value);   // Load accumulator

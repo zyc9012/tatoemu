@@ -233,6 +233,110 @@ void M6502::setContext(const void* src) {
 }
 
 // ========================================
+// Addressing Mode Helpers
+// ========================================
+
+void M6502::addr_IMP() { }
+
+uint8_t& M6502::addr_ACC() { return m_a; }
+
+uint8_t M6502::addr_IMM() {
+    return readPC();
+}
+
+uint16_t M6502::addr_ZP() {
+    return readPC();
+}
+
+uint16_t M6502::addr_ZPX() {
+    uint8_t base = readPC();
+    read(base);
+    return (base + m_x) & 0xFF;
+}
+
+uint16_t M6502::addr_ZPY() {
+    uint8_t base = readPC();
+    read(base);
+    return (base + m_y) & 0xFF;
+}
+
+uint16_t M6502::addr_ABS() {
+    uint8_t lo = readPC();
+    uint8_t hi = readPC();
+    return (hi << 8) | lo;
+}
+
+uint16_t M6502::addr_ABX(bool pageCross) {
+    uint8_t lo = readPC();
+    uint8_t hi = readPC();
+    uint16_t base = (hi << 8) | lo;
+    uint16_t addr = base + m_x;
+
+    if (pageCross && (base & 0xFF00) != (addr & 0xFF00)) {
+        read((hi << 8) | ((lo + m_x) & 0xFF));
+    } else if (!pageCross) {
+        read((hi << 8) | ((lo + m_x) & 0xFF));
+    }
+
+    return addr;
+}
+
+uint16_t M6502::addr_ABY(bool pageCross) {
+    uint8_t lo = readPC();
+    uint8_t hi = readPC();
+    uint16_t base = (hi << 8) | lo;
+    uint16_t addr = base + m_y;
+
+    if (pageCross && (base & 0xFF00) != (addr & 0xFF00)) {
+        read((hi << 8) | ((lo + m_y) & 0xFF));
+    } else if (!pageCross) {
+        read((hi << 8) | ((lo + m_y) & 0xFF));
+    }
+
+    return addr;
+}
+
+uint16_t M6502::addr_IDX() {
+    uint8_t base = readPC();
+    read(base);
+    uint8_t ptr = (base + m_x) & 0xFF;
+    uint8_t lo = read(ptr);
+    uint8_t hi = read((ptr + 1) & 0xFF);
+    return (hi << 8) | lo;
+}
+
+uint16_t M6502::addr_IDY(bool pageCross) {
+    uint8_t ptr = readPC();
+    uint8_t lo = read(ptr);
+    uint8_t hi = read((ptr + 1) & 0xFF);
+    uint16_t base = (hi << 8) | lo;
+    uint16_t addr = base + m_y;
+
+    if (pageCross && (base & 0xFF00) != (addr & 0xFF00)) {
+        read((hi << 8) | ((lo + m_y) & 0xFF));
+    } else if (!pageCross) {
+        read((hi << 8) | ((lo + m_y) & 0xFF));
+    }
+
+    return addr;
+}
+
+int8_t M6502::addr_REL() {
+    return static_cast<int8_t>(readPC());
+}
+
+uint16_t M6502::addr_IND() {
+    uint8_t ptrLo = readPC();
+    uint8_t ptrHi = readPC();
+    uint16_t ptr = (ptrHi << 8) | ptrLo;
+
+    uint8_t lo = read(ptr);
+    uint8_t hi = read((ptr & 0xFF00) | ((ptr + 1) & 0xFF));
+
+    return (hi << 8) | lo;
+}
+
+// ========================================
 // Load/Store Instructions
 // ========================================
 
