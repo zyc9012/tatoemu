@@ -232,22 +232,22 @@ void Z80::init() {
     }
 
     // Reset registers
-    std::memset(&m_r, 0, sizeof(m_r));
-    m_r.ix.w.l = 0xffff;
-    m_r.iy.w.l = 0xffff;
-    m_r.af.b.l = ZF;
-    m_r.vector = 0xff;
+    std::memset(&m_s, 0, sizeof(m_s));
+    m_s.ix.w.l = 0xffff;
+    m_s.iy.w.l = 0xffff;
+    m_s.af.b.l = ZF;
+    m_s.vector = 0xff;
 }
 
 void Z80::reset() {
     // Preserve handler pointers - only reset CPU state
-    Regs clean{};
+    State clean{};
     clean.nmiState = ClearLine;
     clean.irqState = ClearLine;
     clean.ix.w.l = 0xffff;
     clean.iy.w.l = 0xffff;
     clean.vector = 0xff;
-    m_r = clean;
+    m_s = clean;
 }
 
 // ---------------------------------------------------------------------------
@@ -329,30 +329,30 @@ void Z80::opExsp(Pair& reg) {
 // ---------------------------------------------------------------------------
 
 void Z80::aluAdd(u8 val) {
-    u32 ah = m_r.af.d & 0xff00;                 // old A in bits 15..8
+    u32 ah = m_s.af.d & 0xff00;                 // old A in bits 15..8
     u32 res = static_cast<u8>((ah >> 8) + val); // 8-bit result
     F() = s_szhvcAdd[ah | res];                 // all flags from lookup
     A() = static_cast<u8>(res);
 }
 
 void Z80::aluAdc(u8 val) {
-    u32 ah = m_r.af.d & 0xff00;
-    u32 c = m_r.af.d & 1;
+    u32 ah = m_s.af.d & 0xff00;
+    u32 c = m_s.af.d & 1;
     u32 res = static_cast<u8>((ah >> 8) + val + c);
     F() = s_szhvcAdd[(c << 16) | ah | res];
     A() = static_cast<u8>(res);
 }
 
 void Z80::aluSub(u8 val) {
-    u32 ah = m_r.af.d & 0xff00;
+    u32 ah = m_s.af.d & 0xff00;
     u32 res = static_cast<u8>((ah >> 8) - val);
     F() = s_szhvcSub[ah | res];
     A() = static_cast<u8>(res);
 }
 
 void Z80::aluSbc(u8 val) {
-    u32 ah = m_r.af.d & 0xff00;
-    u32 c = m_r.af.d & 1;
+    u32 ah = m_s.af.d & 0xff00;
+    u32 c = m_s.af.d & 1;
     u32 res = static_cast<u8>((ah >> 8) - val - c);
     F() = s_szhvcSub[(c << 16) | ah | res];
     A() = static_cast<u8>(res);
@@ -374,7 +374,7 @@ void Z80::aluOr(u8 val) {
 }
 
 void Z80::aluCp(u8 val) {
-    u32 ah = m_r.af.d & 0xff00;
+    u32 ah = m_s.af.d & 0xff00;
     u32 res = static_cast<u8>((ah >> 8) - val);
     F() = (s_szhvcSub[ah | res] & ~(YF | XF)) | (val & (YF | XF));
 }
@@ -463,24 +463,24 @@ void Z80::aluAdd16(Pair& dst, Pair& src) {
 }
 
 void Z80::aluAdc16(Pair& src) {
-    u32 res = m_r.hl.d + src.d + (F() & CF);
+    u32 res = m_s.hl.d + src.d + (F() & CF);
     WZ() = HL() + 1;
-    F() = (((m_r.hl.d ^ res ^ src.d) >> 8) & HF) |
+    F() = (((m_s.hl.d ^ res ^ src.d) >> 8) & HF) |
            ((res >> 16) & CF) |
            ((res >> 8) & (SF | YF | XF)) |
            ((res & 0xffff) ? 0 : ZF) |
-           (((src.d ^ m_r.hl.d ^ 0x8000) & (src.d ^ res) & 0x8000) >> 13);
+           (((src.d ^ m_s.hl.d ^ 0x8000) & (src.d ^ res) & 0x8000) >> 13);
     HL() = static_cast<u16>(res);
 }
 
 void Z80::aluSbc16(Pair& src) {
-    u32 res = m_r.hl.d - src.d - (F() & CF);
+    u32 res = m_s.hl.d - src.d - (F() & CF);
     WZ() = HL() + 1;
-    F() = (((m_r.hl.d ^ res ^ src.d) >> 8) & HF) | NF |
+    F() = (((m_s.hl.d ^ res ^ src.d) >> 8) & HF) | NF |
            ((res >> 16) & CF) |
            ((res >> 8) & (SF | YF | XF)) |
            ((res & 0xffff) ? 0 : ZF) |
-           (((src.d ^ m_r.hl.d) & (m_r.hl.d ^ res) & 0x8000) >> 13);
+           (((src.d ^ m_s.hl.d) & (m_s.hl.d ^ res) & 0x8000) >> 13);
     HL() = static_cast<u16>(res);
 }
 
@@ -777,8 +777,8 @@ void Z80::execXyCb(u16 ea, u8 opcode) {
 
 void Z80::execIndexed(Pair& xy, u8 opcode) {
     switch (opcode) {
-        case 0x09: aluAdd16(xy, m_r.bc); break;
-        case 0x19: aluAdd16(xy, m_r.de); break;
+        case 0x09: aluAdd16(xy, m_s.bc); break;
+        case 0x19: aluAdd16(xy, m_s.de); break;
         case 0x21: xy.w.l = arg16(); break;
         case 0x22: { u16 ea = arg16(); wm16(ea, &xy); WZ() = ea + 1; break; }
         case 0x23: xy.w.l++; break;
@@ -794,7 +794,7 @@ void Z80::execIndexed(Pair& xy, u8 opcode) {
         case 0x34: { u16 ea = static_cast<u16>(xy.w.l + static_cast<s8>(arg())); WZ() = ea; wm(ea, aluInc(rm(ea))); break; }
         case 0x35: { u16 ea = static_cast<u16>(xy.w.l + static_cast<s8>(arg())); WZ() = ea; wm(ea, aluDec(rm(ea))); break; }
         case 0x36: { u16 ea = static_cast<u16>(xy.w.l + static_cast<s8>(arg())); WZ() = ea; wm(ea, arg()); break; }
-        case 0x39: aluAdd16(xy, m_r.sp); break;
+        case 0x39: aluAdd16(xy, m_s.sp); break;
         case 0x44: B() = xy.b.h; break;
         case 0x45: B() = xy.b.l; break;
         case 0x46: { u16 ea = static_cast<u16>(xy.w.l + static_cast<s8>(arg())); WZ() = ea; B() = rm(ea); break; }
@@ -866,8 +866,8 @@ void Z80::execIndexed(Pair& xy, u8 opcode) {
             break;
         }
         case 0xdd: // Illegal: chain to DD (IX) dispatch
-            m_r.r++;
-            { u8 op2 = rop(); eatCycles(TableXy, op2); execIndexed(m_r.ix, op2); }
+            m_s.r++;
+            { u8 op2 = rop(); eatCycles(TableXy, op2); execIndexed(m_s.ix, op2); }
             break;
         case 0xe1: pop(xy); break;
         case 0xe3: opExsp(xy); break;
@@ -875,8 +875,8 @@ void Z80::execIndexed(Pair& xy, u8 opcode) {
         case 0xe9: PC() = xy.w.l; break;
         case 0xf9: SP() = xy.w.l; break;
         case 0xfd: // Illegal: chain to FD (IY) dispatch
-            m_r.r++;
-            { u8 op2 = rop(); eatCycles(TableXy, op2); execIndexed(m_r.iy, op2); }
+            m_s.r++;
+            { u8 op2 = rop(); eatCycles(TableXy, op2); execIndexed(m_s.iy, op2); }
             break;
         default:
             // All other opcodes behave as if the DD/FD prefix wasn't there
@@ -910,28 +910,28 @@ void Z80::execEd(u8 opcode) {
         case 0x79: out(BC(), A()); WZ() = BC() + 1; break;
 
         // SBC HL,rr
-        case 0x42: aluSbc16(m_r.bc); break;
-        case 0x52: aluSbc16(m_r.de); break;
-        case 0x62: aluSbc16(m_r.hl); break;
-        case 0x72: aluSbc16(m_r.sp); break;
+        case 0x42: aluSbc16(m_s.bc); break;
+        case 0x52: aluSbc16(m_s.de); break;
+        case 0x62: aluSbc16(m_s.hl); break;
+        case 0x72: aluSbc16(m_s.sp); break;
 
         // ADC HL,rr
-        case 0x4a: aluAdc16(m_r.bc); break;
-        case 0x5a: aluAdc16(m_r.de); break;
-        case 0x6a: aluAdc16(m_r.hl); break;
-        case 0x7a: aluAdc16(m_r.sp); break;
+        case 0x4a: aluAdc16(m_s.bc); break;
+        case 0x5a: aluAdc16(m_s.de); break;
+        case 0x6a: aluAdc16(m_s.hl); break;
+        case 0x7a: aluAdc16(m_s.sp); break;
 
         // LD (nn),rr
-        case 0x43: { u16 ea = arg16(); wm16(ea, &m_r.bc); WZ() = ea + 1; break; }
-        case 0x53: { u16 ea = arg16(); wm16(ea, &m_r.de); WZ() = ea + 1; break; }
-        case 0x63: { u16 ea = arg16(); wm16(ea, &m_r.hl); WZ() = ea + 1; break; }
-        case 0x73: { u16 ea = arg16(); wm16(ea, &m_r.sp); WZ() = ea + 1; break; }
+        case 0x43: { u16 ea = arg16(); wm16(ea, &m_s.bc); WZ() = ea + 1; break; }
+        case 0x53: { u16 ea = arg16(); wm16(ea, &m_s.de); WZ() = ea + 1; break; }
+        case 0x63: { u16 ea = arg16(); wm16(ea, &m_s.hl); WZ() = ea + 1; break; }
+        case 0x73: { u16 ea = arg16(); wm16(ea, &m_s.sp); WZ() = ea + 1; break; }
 
         // LD rr,(nn)
-        case 0x4b: { u16 ea = arg16(); rm16(ea, &m_r.bc); WZ() = ea + 1; break; }
-        case 0x5b: { u16 ea = arg16(); rm16(ea, &m_r.de); WZ() = ea + 1; break; }
-        case 0x6b: { u16 ea = arg16(); rm16(ea, &m_r.hl); WZ() = ea + 1; break; }
-        case 0x7b: { u16 ea = arg16(); rm16(ea, &m_r.sp); WZ() = ea + 1; break; }
+        case 0x4b: { u16 ea = arg16(); rm16(ea, &m_s.bc); WZ() = ea + 1; break; }
+        case 0x5b: { u16 ea = arg16(); rm16(ea, &m_s.de); WZ() = ea + 1; break; }
+        case 0x6b: { u16 ea = arg16(); rm16(ea, &m_s.hl); WZ() = ea + 1; break; }
+        case 0x7b: { u16 ea = arg16(); rm16(ea, &m_s.sp); WZ() = ea + 1; break; }
 
         // NEG (0x44 + mirrors)
         case 0x44: case 0x4c: case 0x54: case 0x5c:
@@ -940,27 +940,27 @@ void Z80::execEd(u8 opcode) {
 
         // RETN (0x45 + mirrors)
         case 0x45: case 0x55: case 0x65: case 0x75:
-            pop(m_r.pc); WZ() = PC(); m_r.afterRetn = 1; break;
+            pop(m_s.pc); WZ() = PC(); m_s.afterRetn = 1; break;
 
         // RETI
         case 0x4d: case 0x5d: case 0x6d: case 0x7d:
-            pop(m_r.pc); WZ() = PC(); m_r.iff1 = m_r.iff2; break;
+            pop(m_s.pc); WZ() = PC(); m_s.iff1 = m_s.iff2; break;
 
         // IM 0/1/2
-        case 0x46: case 0x4e: case 0x66: case 0x6e: m_r.im = 0; break;
-        case 0x56: case 0x76: m_r.im = 1; break;
-        case 0x5e: case 0x7e: m_r.im = 2; break;
+        case 0x46: case 0x4e: case 0x66: case 0x6e: m_s.im = 0; break;
+        case 0x56: case 0x76: m_s.im = 1; break;
+        case 0x5e: case 0x7e: m_s.im = 2; break;
 
         // LD I,A / LD R,A / LD A,I / LD A,R
-        case 0x47: m_r.i = A(); break;
-        case 0x4f: m_r.r = A(); m_r.r2 = A() & 0x80; break;
+        case 0x47: m_s.i = A(); break;
+        case 0x4f: m_s.r = A(); m_s.r2 = A() & 0x80; break;
         case 0x57: // LD A,I
-            A() = m_r.i;
-            F() = (F() & CF) | s_sz[A()] | (m_r.iff2 << 2);
+            A() = m_s.i;
+            F() = (F() & CF) | s_sz[A()] | (m_s.iff2 << 2);
             break;
         case 0x5f: // LD A,R
-            A() = (m_r.r & 0x7f) | m_r.r2;
-            F() = (F() & CF) | s_sz[A()] | (m_r.iff2 << 2);
+            A() = (m_s.r & 0x7f) | m_s.r2;
+            F() = (F() & CF) | s_sz[A()] | (m_s.iff2 << 2);
             break;
 
         // RRD / RLD
@@ -1002,9 +1002,9 @@ void Z80::execOp(u8 opcode) {
         case 0x06: B() = arg(); break;
         case 0x07: aluRlca(); break;
         case 0x08: { // EX AF,AF'
-            Pair tmp = m_r.af; m_r.af = m_r.af2; m_r.af2 = tmp; break;
+            Pair tmp = m_s.af; m_s.af = m_s.af2; m_s.af2 = tmp; break;
         }
-        case 0x09: aluAdd16(m_r.hl, m_r.bc); break;
+        case 0x09: aluAdd16(m_s.hl, m_s.bc); break;
         case 0x0a: A() = rm(BC()); WZ() = BC() + 1; break;
         case 0x0b: BC()--; break;
         case 0x0c: C() = aluInc(C()); break;
@@ -1027,7 +1027,7 @@ void Z80::execOp(u8 opcode) {
         case 0x18: { // JR
             s8 d = static_cast<s8>(arg()); PC() += d; WZ() = PC(); break;
         }
-        case 0x19: aluAdd16(m_r.hl, m_r.de); break;
+        case 0x19: aluAdd16(m_s.hl, m_s.de); break;
         case 0x1a: A() = rm(DE()); WZ() = DE() + 1; break;
         case 0x1b: DE()--; break;
         case 0x1c: E() = aluInc(E()); break;
@@ -1039,7 +1039,7 @@ void Z80::execOp(u8 opcode) {
             else { arg(); }
             break;
         case 0x21: HL() = arg16(); break;
-        case 0x22: { u16 ea = arg16(); wm16(ea, &m_r.hl); WZ() = ea + 1; break; }
+        case 0x22: { u16 ea = arg16(); wm16(ea, &m_s.hl); WZ() = ea + 1; break; }
         case 0x23: HL()++; break;
         case 0x24: H() = aluInc(H()); break;
         case 0x25: H() = aluDec(H()); break;
@@ -1049,8 +1049,8 @@ void Z80::execOp(u8 opcode) {
             if (F() & ZF) { eatCycles(TableEx, 0x28); s8 d = static_cast<s8>(arg()); PC() += d; WZ() = PC(); }
             else { arg(); }
             break;
-        case 0x29: aluAdd16(m_r.hl, m_r.hl); break;
-        case 0x2a: { u16 ea = arg16(); rm16(ea, &m_r.hl); WZ() = ea + 1; break; }
+        case 0x29: aluAdd16(m_s.hl, m_s.hl); break;
+        case 0x2a: { u16 ea = arg16(); rm16(ea, &m_s.hl); WZ() = ea + 1; break; }
         case 0x2b: HL()--; break;
         case 0x2c: L() = aluInc(L()); break;
         case 0x2d: L() = aluDec(L()); break;
@@ -1075,7 +1075,7 @@ void Z80::execOp(u8 opcode) {
             if (F() & CF) { eatCycles(TableEx, 0x38); s8 d = static_cast<s8>(arg()); PC() += d; WZ() = PC(); }
             else { arg(); }
             break;
-        case 0x39: aluAdd16(m_r.hl, m_r.sp); break;
+        case 0x39: aluAdd16(m_s.hl, m_s.sp); break;
         case 0x3a: { u16 ea = arg16(); A() = rm(ea); WZ() = ea + 1; break; }
         case 0x3b: SP()--; break;
         case 0x3c: A() = aluInc(A()); break;
@@ -1140,7 +1140,7 @@ void Z80::execOp(u8 opcode) {
         case 0x74: wm(HL(), H()); break;
         case 0x75: wm(HL(), L()); break;
         case 0x76: // HALT
-            PC()--; m_r.halt = 1; break;
+            PC()--; m_s.halt = 1; break;
         case 0x77: wm(HL(), A()); break;
         case 0x78: A() = B(); break;
         case 0x79: A() = C(); break;
@@ -1217,80 +1217,80 @@ void Z80::execOp(u8 opcode) {
         case 0xbf: aluCp(A()); break;
 
         // Control flow and prefix opcodes (0xc0-0xff)
-        case 0xc0: if (!(F() & ZF)) { eatCycles(TableEx, 0xc0); pop(m_r.pc); WZ() = PC(); } break;
-        case 0xc1: pop(m_r.bc); break;
+        case 0xc0: if (!(F() & ZF)) { eatCycles(TableEx, 0xc0); pop(m_s.pc); WZ() = PC(); } break;
+        case 0xc1: pop(m_s.bc); break;
         case 0xc2: if (!(F() & ZF)) { PC() = arg16(); WZ() = PC(); } else { WZ() = arg16(); } break;
         case 0xc3: PC() = arg16(); WZ() = PC(); break;
-        case 0xc4: if (!(F() & ZF)) { eatCycles(TableEx, 0xc4); u16 ea = arg16(); WZ() = ea; push(m_r.pc); PC() = ea; } else { WZ() = arg16(); } break;
-        case 0xc5: push(m_r.bc); break;
+        case 0xc4: if (!(F() & ZF)) { eatCycles(TableEx, 0xc4); u16 ea = arg16(); WZ() = ea; push(m_s.pc); PC() = ea; } else { WZ() = arg16(); } break;
+        case 0xc5: push(m_s.bc); break;
         case 0xc6: aluAdd(arg()); break;
-        case 0xc7: push(m_r.pc); PC() = 0x00; WZ() = PC(); break; // RST 00
-        case 0xc8: if (F() & ZF) { eatCycles(TableEx, 0xc8); pop(m_r.pc); WZ() = PC(); } break;
-        case 0xc9: pop(m_r.pc); WZ() = PC(); break; // RET
+        case 0xc7: push(m_s.pc); PC() = 0x00; WZ() = PC(); break; // RST 00
+        case 0xc8: if (F() & ZF) { eatCycles(TableEx, 0xc8); pop(m_s.pc); WZ() = PC(); } break;
+        case 0xc9: pop(m_s.pc); WZ() = PC(); break; // RET
         case 0xca: if (F() & ZF) { PC() = arg16(); WZ() = PC(); } else { WZ() = arg16(); } break;
         // Prefix CB: fetch next byte; it encodes a shift/rotate/bit instruction.
-        case 0xcb: m_r.r++; { u8 op2 = rop(); eatCycles(TableCb, op2); execCb(op2); } break;
-        case 0xcc: if (F() & ZF) { eatCycles(TableEx, 0xcc); u16 ea = arg16(); WZ() = ea; push(m_r.pc); PC() = ea; } else { WZ() = arg16(); } break;
-        case 0xcd: { u16 ea = arg16(); WZ() = ea; push(m_r.pc); PC() = ea; break; } // CALL
+        case 0xcb: m_s.r++; { u8 op2 = rop(); eatCycles(TableCb, op2); execCb(op2); } break;
+        case 0xcc: if (F() & ZF) { eatCycles(TableEx, 0xcc); u16 ea = arg16(); WZ() = ea; push(m_s.pc); PC() = ea; } else { WZ() = arg16(); } break;
+        case 0xcd: { u16 ea = arg16(); WZ() = ea; push(m_s.pc); PC() = ea; break; } // CALL
         case 0xce: aluAdc(arg()); break;
-        case 0xcf: push(m_r.pc); PC() = 0x08; WZ() = PC(); break; // RST 08
-        case 0xd0: if (!(F() & CF)) { eatCycles(TableEx, 0xd0); pop(m_r.pc); WZ() = PC(); } break;
-        case 0xd1: pop(m_r.de); break;
+        case 0xcf: push(m_s.pc); PC() = 0x08; WZ() = PC(); break; // RST 08
+        case 0xd0: if (!(F() & CF)) { eatCycles(TableEx, 0xd0); pop(m_s.pc); WZ() = PC(); } break;
+        case 0xd1: pop(m_s.de); break;
         case 0xd2: if (!(F() & CF)) { PC() = arg16(); WZ() = PC(); } else { WZ() = arg16(); } break;
         case 0xd3: { u8 n = arg(); u16 port = n | (A() << 8); out(port, A()); WZ_L() = (n + 1) & 0xff; WZ_H() = A(); break; }
-        case 0xd4: if (!(F() & CF)) { eatCycles(TableEx, 0xd4); u16 ea = arg16(); WZ() = ea; push(m_r.pc); PC() = ea; } else { WZ() = arg16(); } break;
-        case 0xd5: push(m_r.de); break;
+        case 0xd4: if (!(F() & CF)) { eatCycles(TableEx, 0xd4); u16 ea = arg16(); WZ() = ea; push(m_s.pc); PC() = ea; } else { WZ() = arg16(); } break;
+        case 0xd5: push(m_s.de); break;
         case 0xd6: aluSub(arg()); break;
-        case 0xd7: push(m_r.pc); PC() = 0x10; WZ() = PC(); break; // RST 10
-        case 0xd8: if (F() & CF) { eatCycles(TableEx, 0xd8); pop(m_r.pc); WZ() = PC(); } break;
+        case 0xd7: push(m_s.pc); PC() = 0x10; WZ() = PC(); break; // RST 10
+        case 0xd8: if (F() & CF) { eatCycles(TableEx, 0xd8); pop(m_s.pc); WZ() = PC(); } break;
         case 0xd9: { // EXX
             Pair tmp;
-            tmp = m_r.bc; m_r.bc = m_r.bc2; m_r.bc2 = tmp;
-            tmp = m_r.de; m_r.de = m_r.de2; m_r.de2 = tmp;
-            tmp = m_r.hl; m_r.hl = m_r.hl2; m_r.hl2 = tmp;
+            tmp = m_s.bc; m_s.bc = m_s.bc2; m_s.bc2 = tmp;
+            tmp = m_s.de; m_s.de = m_s.de2; m_s.de2 = tmp;
+            tmp = m_s.hl; m_s.hl = m_s.hl2; m_s.hl2 = tmp;
             break;
         }
         case 0xda: if (F() & CF) { PC() = arg16(); WZ() = PC(); } else { WZ() = arg16(); } break;
         case 0xdb: { u8 n = arg(); u16 port = n | (A() << 8); A() = in(port); WZ() = port + 1; break; }
-        case 0xdc: if (F() & CF) { eatCycles(TableEx, 0xdc); u16 ea = arg16(); WZ() = ea; push(m_r.pc); PC() = ea; } else { WZ() = arg16(); } break;
+        case 0xdc: if (F() & CF) { eatCycles(TableEx, 0xdc); u16 ea = arg16(); WZ() = ea; push(m_s.pc); PC() = ea; } else { WZ() = arg16(); } break;
         // Prefix DD: all following operations use IX instead of HL.
-        case 0xdd: m_r.r++; { u8 op2 = rop(); eatCycles(TableXy, op2); execIndexed(m_r.ix, op2); } break;
+        case 0xdd: m_s.r++; { u8 op2 = rop(); eatCycles(TableXy, op2); execIndexed(m_s.ix, op2); } break;
         case 0xde: aluSbc(arg()); break;
-        case 0xdf: push(m_r.pc); PC() = 0x18; WZ() = PC(); break; // RST 18
-        case 0xe0: if (!(F() & PF)) { eatCycles(TableEx, 0xe0); pop(m_r.pc); WZ() = PC(); } break;
-        case 0xe1: pop(m_r.hl); break;
+        case 0xdf: push(m_s.pc); PC() = 0x18; WZ() = PC(); break; // RST 18
+        case 0xe0: if (!(F() & PF)) { eatCycles(TableEx, 0xe0); pop(m_s.pc); WZ() = PC(); } break;
+        case 0xe1: pop(m_s.hl); break;
         case 0xe2: if (!(F() & PF)) { PC() = arg16(); WZ() = PC(); } else { WZ() = arg16(); } break;
-        case 0xe3: opExsp(m_r.hl); break;
-        case 0xe4: if (!(F() & PF)) { eatCycles(TableEx, 0xe4); u16 ea = arg16(); WZ() = ea; push(m_r.pc); PC() = ea; } else { WZ() = arg16(); } break;
-        case 0xe5: push(m_r.hl); break;
+        case 0xe3: opExsp(m_s.hl); break;
+        case 0xe4: if (!(F() & PF)) { eatCycles(TableEx, 0xe4); u16 ea = arg16(); WZ() = ea; push(m_s.pc); PC() = ea; } else { WZ() = arg16(); } break;
+        case 0xe5: push(m_s.hl); break;
         case 0xe6: aluAnd(arg()); break;
-        case 0xe7: push(m_r.pc); PC() = 0x20; WZ() = PC(); break; // RST 20
-        case 0xe8: if (F() & PF) { eatCycles(TableEx, 0xe8); pop(m_r.pc); WZ() = PC(); } break;
+        case 0xe7: push(m_s.pc); PC() = 0x20; WZ() = PC(); break; // RST 20
+        case 0xe8: if (F() & PF) { eatCycles(TableEx, 0xe8); pop(m_s.pc); WZ() = PC(); } break;
         case 0xe9: PC() = HL(); break; // JP (HL)
         case 0xea: if (F() & PF) { PC() = arg16(); WZ() = PC(); } else { WZ() = arg16(); } break;
-        case 0xeb: { Pair tmp = m_r.de; m_r.de = m_r.hl; m_r.hl = tmp; break; } // EX DE,HL
-        case 0xec: if (F() & PF) { eatCycles(TableEx, 0xec); u16 ea = arg16(); WZ() = ea; push(m_r.pc); PC() = ea; } else { WZ() = arg16(); } break;
+        case 0xeb: { Pair tmp = m_s.de; m_s.de = m_s.hl; m_s.hl = tmp; break; } // EX DE,HL
+        case 0xec: if (F() & PF) { eatCycles(TableEx, 0xec); u16 ea = arg16(); WZ() = ea; push(m_s.pc); PC() = ea; } else { WZ() = arg16(); } break;
         // Prefix ED: extended instructions (block ops, 16-bit ALU, I/O, etc.)
-        case 0xed: m_r.r++; { u8 op2 = rop(); eatCycles(TableEd, op2); execEd(op2); } break;
+        case 0xed: m_s.r++; { u8 op2 = rop(); eatCycles(TableEd, op2); execEd(op2); } break;
         case 0xee: aluXor(arg()); break;
-        case 0xef: push(m_r.pc); PC() = 0x28; WZ() = PC(); break; // RST 28
-        case 0xf0: if (!(F() & SF)) { eatCycles(TableEx, 0xf0); pop(m_r.pc); WZ() = PC(); } break;
-        case 0xf1: pop(m_r.af); break;
+        case 0xef: push(m_s.pc); PC() = 0x28; WZ() = PC(); break; // RST 28
+        case 0xf0: if (!(F() & SF)) { eatCycles(TableEx, 0xf0); pop(m_s.pc); WZ() = PC(); } break;
+        case 0xf1: pop(m_s.af); break;
         case 0xf2: if (!(F() & SF)) { PC() = arg16(); WZ() = PC(); } else { WZ() = arg16(); } break;
-        case 0xf3: m_r.iff1 = m_r.iff2 = 0; break; // DI
-        case 0xf4: if (!(F() & SF)) { eatCycles(TableEx, 0xf4); u16 ea = arg16(); WZ() = ea; push(m_r.pc); PC() = ea; } else { WZ() = arg16(); } break;
-        case 0xf5: push(m_r.af); break;
+        case 0xf3: m_s.iff1 = m_s.iff2 = 0; break; // DI
+        case 0xf4: if (!(F() & SF)) { eatCycles(TableEx, 0xf4); u16 ea = arg16(); WZ() = ea; push(m_s.pc); PC() = ea; } else { WZ() = arg16(); } break;
+        case 0xf5: push(m_s.af); break;
         case 0xf6: aluOr(arg()); break;
-        case 0xf7: push(m_r.pc); PC() = 0x30; WZ() = PC(); break; // RST 30
-        case 0xf8: if (F() & SF) { eatCycles(TableEx, 0xf8); pop(m_r.pc); WZ() = PC(); } break;
+        case 0xf7: push(m_s.pc); PC() = 0x30; WZ() = PC(); break; // RST 30
+        case 0xf8: if (F() & SF) { eatCycles(TableEx, 0xf8); pop(m_s.pc); WZ() = PC(); } break;
         case 0xf9: SP() = HL(); break;
         case 0xfa: if (F() & SF) { PC() = arg16(); WZ() = PC(); } else { WZ() = arg16(); } break;
-        case 0xfb: m_r.iff1 = m_r.iff2 = 1; m_r.afterEi = 1; break; // EI
-        case 0xfc: if (F() & SF) { eatCycles(TableEx, 0xfc); u16 ea = arg16(); WZ() = ea; push(m_r.pc); PC() = ea; } else { WZ() = arg16(); } break;
+        case 0xfb: m_s.iff1 = m_s.iff2 = 1; m_s.afterEi = 1; break; // EI
+        case 0xfc: if (F() & SF) { eatCycles(TableEx, 0xfc); u16 ea = arg16(); WZ() = ea; push(m_s.pc); PC() = ea; } else { WZ() = arg16(); } break;
         // Prefix FD: all following operations use IY instead of HL.
-        case 0xfd: m_r.r++; { u8 op2 = rop(); eatCycles(TableXy, op2); execIndexed(m_r.iy, op2); } break;
+        case 0xfd: m_s.r++; { u8 op2 = rop(); eatCycles(TableXy, op2); execIndexed(m_s.iy, op2); } break;
         case 0xfe: aluCp(arg()); break;
-        case 0xff: push(m_r.pc); PC() = 0x38; WZ() = PC(); break; // RST 38
+        case 0xff: push(m_s.pc); PC() = 0x38; WZ() = PC(); break; // RST 38
     }
 }
 
@@ -1304,39 +1304,39 @@ void Z80::execOp(u8 opcode) {
 // All modes: leave HALT, clear IFF1/IFF2, push PC, and jump to handler.
 
 void Z80::takeInterrupt() {
-    int irqVector = m_r.vector;
+    int irqVector = m_s.vector;
 
-    m_r.prvpc.d = static_cast<u32>(-1);
+    m_s.prvpc.d = static_cast<u32>(-1);
 
     // Leave HALT state
-    if (m_r.halt) { m_r.halt = 0; PC()++; }
+    if (m_s.halt) { m_s.halt = 0; PC()++; }
 
     // Clear both interrupt flip flops
-    m_r.iff1 = m_r.iff2 = 0;
+    m_s.iff1 = m_s.iff2 = 0;
 
-    if (m_r.holdIrq) {
-        m_r.holdIrq = 0;
-        m_r.irqState = 0;
+    if (m_s.holdIrq) {
+        m_s.holdIrq = 0;
+        m_s.irqState = 0;
     }
 
-    m_r.r++;
+    m_s.r++;
 
-    if (m_r.im == 2) {
+    if (m_s.im == 2) {
         // Interrupt mode 2: Call [I:vector]
-        irqVector = (irqVector & 0xff) | (m_r.i << 8);
-        push(m_r.pc);
-        rm16(irqVector, &m_r.pc);
+        irqVector = (irqVector & 0xff) | (m_s.i << 8);
+        push(m_s.pc);
+        rm16(irqVector, &m_s.pc);
         eatCyclesN(m_cc[TableOp][0xcd] + m_cc[TableEx][0xff]);
-    } else if (m_r.im == 1) {
+    } else if (m_s.im == 1) {
         // Interrupt mode 1: RST 38h
-        push(m_r.pc);
+        push(m_s.pc);
         PC() = 0x0038;
         eatCyclesN(m_cc[TableOp][0xff] + m_cc[TableEx][0xff]);
     } else {
         // Interrupt mode 0: decode vector
         switch (irqVector & 0xff0000) {
             case 0xcd0000: // CALL
-                push(m_r.pc);
+                push(m_s.pc);
                 PC() = irqVector & 0xffff;
                 eatCyclesN(m_cc[TableOp][0xcd]);
                 break;
@@ -1345,7 +1345,7 @@ void Z80::takeInterrupt() {
                 eatCyclesN(m_cc[TableOp][0xc3]);
                 break;
             default: // RST
-                push(m_r.pc);
+                push(m_s.pc);
                 PC() = irqVector & 0x0038;
                 eatCyclesN(m_cc[TableOp][0xff]);
                 break;
@@ -1358,42 +1358,42 @@ void Z80::takeInterrupt() {
 // --- Main execute loop ---
 
 int Z80::execute(int cycles) {
-    m_r.cyclesRemaining = cycles;
-    m_r.cyclesBudget = cycles;
-    m_r.endRun = 0;
+    m_s.cyclesRemaining = cycles;
+    m_s.cyclesBudget = cycles;
+    m_s.endRun = 0;
 
     // Check for NMIs on the way in
-    if (m_r.nmiPending) {
-        m_r.prvpc.d = static_cast<u32>(-1);
-        if (m_r.halt) { m_r.halt = 0; PC()++; }
-        m_r.iff1 = 0;
-        push(m_r.pc);
+    if (m_s.nmiPending) {
+        m_s.prvpc.d = static_cast<u32>(-1);
+        if (m_s.halt) { m_s.halt = 0; PC()++; }
+        m_s.iff1 = 0;
+        push(m_s.pc);
         PC() = 0x0066;
         WZ() = PC();
         eatCyclesN(11);
-        m_r.nmiPending = 0;
+        m_s.nmiPending = 0;
     }
 
     do {
         // Check for IRQs before each instruction
-        if (m_r.irqState != ClearLine && m_r.iff1 && !m_r.afterEi)
+        if (m_s.irqState != ClearLine && m_s.iff1 && !m_s.afterEi)
             takeInterrupt();
-        m_r.afterEi = 0;
+        m_s.afterEi = 0;
 
-        if (m_r.afterRetn) {
-            m_r.iff1 = m_r.iff2;
-            m_r.afterRetn = 0;
+        if (m_s.afterRetn) {
+            m_s.iff1 = m_s.iff2;
+            m_s.afterRetn = 0;
         }
 
-        m_r.prvpc.d = m_r.pc.d;
-        m_r.r++;
+        m_s.prvpc.d = m_s.pc.d;
+        m_s.r++;
         u8 opcode = rop();
         eatCycles(TableOp, opcode);
         execOp(opcode);
-    } while (m_r.cyclesRemaining > 0 && !m_r.endRun);
+    } while (m_s.cyclesRemaining > 0 && !m_s.endRun);
 
-    int executed = cycles - m_r.cyclesRemaining;
-    m_r.cyclesBudget = m_r.cyclesRemaining = 0;
+    int executed = cycles - m_s.cyclesRemaining;
+    m_s.cyclesBudget = m_s.cyclesRemaining = 0;
     return executed;
 }
 
@@ -1401,11 +1401,11 @@ int Z80::execute(int cycles) {
 
 void Z80::setIrqLine(int irqLine, int state) {
     if (irqLine == InputLineNmi) {
-        if (m_r.nmiState == ClearLine && state != ClearLine)
-            m_r.nmiPending = 1;
-        m_r.nmiState = state;
+        if (m_s.nmiState == ClearLine && state != ClearLine)
+            m_s.nmiPending = 1;
+        m_s.nmiState = state;
     } else {
-        m_r.irqState = state;
+        m_s.irqState = state;
     }
 }
 
@@ -1413,9 +1413,9 @@ void Z80::setIrqLine(int irqLine, int state) {
 
 // EX AF,AF' — exposed for external save-state or debugger use.
 void Z80::exAf() {
-    Pair tmp = m_r.af;
-    m_r.af = m_r.af2;
-    m_r.af2 = tmp;
+    Pair tmp = m_s.af;
+    m_s.af = m_s.af2;
+    m_s.af2 = tmp;
 }
 
 // Read and pop a 16-bit value from the stack (used by debugger/save-state).

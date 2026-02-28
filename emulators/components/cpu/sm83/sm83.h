@@ -43,8 +43,8 @@ public:
 #endif
     };
 
-    // CPU register state (saveable)
-    struct Regs {
+    // Full CPU state (saveable)
+    struct State {
         Pair af, bc, de, hl;
         u16 sp = 0;
         u16 pc = 0;
@@ -71,49 +71,49 @@ public:
     void setStopHandler(StopHandler h)   { m_stop = h; }
 
     // Save/restore entire CPU state
-    void getContext(void* dst) const { if (dst) std::memcpy(dst, &m_r, sizeof(m_r)); }
-    void setContext(const void* src)  { if (src) std::memcpy(&m_r, src, sizeof(m_r)); }
-    static constexpr size_t contextSize() { return sizeof(Regs); }
+    void getContext(void* dst) const { if (dst) std::memcpy(dst, &m_s, sizeof(m_s)); }
+    void setContext(const void* src)  { if (src) std::memcpy(&m_s, src, sizeof(m_s)); }
+    static constexpr size_t contextSize() { return sizeof(State); }
 
     // Cycle accounting
-    s32 totalCycles() const { return m_r.cyclesBudget - m_r.cyclesRemaining; }
+    s32 totalCycles() const { return m_s.cyclesBudget - m_s.cyclesRemaining; }
 
     // Register accessors
-    int getPC() const { return m_r.pc; }
-    void setPC(int v) { m_r.pc = static_cast<u16>(v); }
-    int getSP() const { return m_r.sp; }
-    void setSP(int v) { m_r.sp = static_cast<u16>(v); }
-    int getAF() const { return m_r.af.w; }
-    void setAF(int v) { m_r.af.w = static_cast<u16>(v) & 0xFFF0; }
-    int getBC() const { return m_r.bc.w; }
-    void setBC(int v) { m_r.bc.w = static_cast<u16>(v); }
-    int getDE() const { return m_r.de.w; }
-    void setDE(int v) { m_r.de.w = static_cast<u16>(v); }
-    int getHL() const { return m_r.hl.w; }
-    void setHL(int v) { m_r.hl.w = static_cast<u16>(v); }
+    int getPC() const { return m_s.pc; }
+    void setPC(int v) { m_s.pc = static_cast<u16>(v); }
+    int getSP() const { return m_s.sp; }
+    void setSP(int v) { m_s.sp = static_cast<u16>(v); }
+    int getAF() const { return m_s.af.w; }
+    void setAF(int v) { m_s.af.w = static_cast<u16>(v) & 0xFFF0; }
+    int getBC() const { return m_s.bc.w; }
+    void setBC(int v) { m_s.bc.w = static_cast<u16>(v); }
+    int getDE() const { return m_s.de.w; }
+    void setDE(int v) { m_s.de.w = static_cast<u16>(v); }
+    int getHL() const { return m_s.hl.w; }
+    void setHL(int v) { m_s.hl.w = static_cast<u16>(v); }
 
-    bool isHalted() const { return m_r.halt != 0; }
-    void setIME(bool v) { m_r.ime = v ? 1 : 0; }
-    bool getIME() const { return m_r.ime != 0; }
+    bool isHalted() const { return m_s.halt != 0; }
+    void setIME(bool v) { m_s.ime = v ? 1 : 0; }
+    bool getIME() const { return m_s.ime != 0; }
 
 private:
     // Register byte accessors
-    u8& A() { return m_r.af.b.h; }
-    u8& F() { return m_r.af.b.l; }
-    u8& B() { return m_r.bc.b.h; }
-    u8& C() { return m_r.bc.b.l; }
-    u8& D() { return m_r.de.b.h; }
-    u8& E() { return m_r.de.b.l; }
-    u8& H() { return m_r.hl.b.h; }
-    u8& L() { return m_r.hl.b.l; }
+    u8& A() { return m_s.af.b.h; }
+    u8& F() { return m_s.af.b.l; }
+    u8& B() { return m_s.bc.b.h; }
+    u8& C() { return m_s.bc.b.l; }
+    u8& D() { return m_s.de.b.h; }
+    u8& E() { return m_s.de.b.l; }
+    u8& H() { return m_s.hl.b.h; }
+    u8& L() { return m_s.hl.b.l; }
 
     // Register word accessors
-    u16& AF() { return m_r.af.w; }
-    u16& BC() { return m_r.bc.w; }
-    u16& DE() { return m_r.de.w; }
-    u16& HL() { return m_r.hl.w; }
-    u16& SP() { return m_r.sp; }
-    u16& PC() { return m_r.pc; }
+    u16& AF() { return m_s.af.w; }
+    u16& BC() { return m_s.bc.w; }
+    u16& DE() { return m_s.de.w; }
+    u16& HL() { return m_s.hl.w; }
+    u16& SP() { return m_s.sp; }
+    u16& PC() { return m_s.pc; }
 
     // Memory access - thin wrappers around bus callbacks
     u8  rd(u16 addr) { return m_read(addr); }
@@ -136,7 +136,7 @@ private:
     int execCb(u8 opcode);   // CB-prefixed opcodes (256 entries)
 
     // Instance data
-    Regs m_r{};
+    State m_s{};
     ReadHandler  m_read  = nullptr;
     WriteHandler m_write = nullptr;
     StopHandler  m_stop  = nullptr;

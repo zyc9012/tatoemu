@@ -95,16 +95,16 @@ void CPU::requestInterrupt(u8 interrupt) {
 }
 
 void CPU::saveState(Buffer* buf) {
-    SM83::Regs regs;
-    m_sm83.getContext(&regs);
-    buffer_write(buf, &regs, sizeof(regs));
+    SM83::State state;
+    m_sm83.getContext(&state);
+    buffer_write(buf, &state, sizeof(state));
     buffer_write(buf, &m_gbcMode, sizeof(m_gbcMode));
 }
 
 void CPU::loadState(Buffer* buf) {
-    SM83::Regs regs;
-    buffer_read(buf, &regs, sizeof(regs));
-    m_sm83.setContext(&regs);
+    SM83::State state;
+    buffer_read(buf, &state, sizeof(state));
+    m_sm83.setContext(&state);
     buffer_read(buf, &m_gbcMode, sizeof(m_gbcMode));
 }
 

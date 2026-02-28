@@ -56,8 +56,8 @@ public:
 #endif
     };
 
-    // CPU register state (saveable)
-    struct Regs {
+    // Full CPU state (saveable)
+    struct State {
         Pair prvpc, pc, sp, af, bc, de, hl, ix, iy, wz;
         Pair af2, bc2, de2, hl2;       // Shadow register bank (swapped by EX/EXX)
         u8 r = 0, r2 = 0;              // R: refresh counter (low 7 bits), R2: saved bit 7
@@ -84,8 +84,8 @@ public:
     int execute(int cycles);
 
     void setIrqLine(int irqLine, int state);  // Assert/clear IRQ or NMI line
-    void setIrqHold() { m_r.holdIrq = 1; }
-    void setVector(int v) { m_r.vector = v; }
+    void setIrqHold() { m_s.holdIrq = 1; }
+    void setVector(int v) { m_s.vector = v; }
 
     void setIoReadHandler(ReadHandler h) { m_ioRead = h; }
     void setIoWriteHandler(WriteHandler h) { m_ioWrite = h; }
@@ -95,47 +95,47 @@ public:
     void setOpArgReadHandler(ReadHandler h) { m_opArgRead = h; }
 
     // Save/restore entire CPU state for save-states
-    void getContext(void* dst) const { if (dst) std::memcpy(dst, &m_r, sizeof(m_r)); }
-    void setContext(const void* src) { if (src) { std::memcpy(&m_r, src, sizeof(m_r)); } }
-    static constexpr size_t contextSize() { return sizeof(Regs); }
+    void getContext(void* dst) const { if (dst) std::memcpy(dst, &m_s, sizeof(m_s)); }
+    void setContext(const void* src) { if (src) { std::memcpy(&m_s, src, sizeof(m_s)); } }
+    static constexpr size_t contextSize() { return sizeof(State); }
 
-    s32 totalCycles() const { return m_r.cyclesBudget - m_r.cyclesRemaining; }
-    int getPC() const { return m_r.pc.w.l; }
-    void setPC(int v) { m_r.pc.w.l = static_cast<u16>(v); }
-    int getAF() const { return m_r.af.w.l; }
-    void setAF(int v) { m_r.af.w.l = static_cast<u16>(v); }
-    int getBC() const { return m_r.bc.w.l; }
-    int getDE() const { return m_r.de.w.l; }
-    int getHL() const { return m_r.hl.w.l; }
-    int getSP() const { return m_r.sp.w.l; }
-    int getI() const { return m_r.i; }
-    void setCarry(int c) { if (c) m_r.af.b.l |= CF; else m_r.af.b.l &= ~CF; }
-    int getCarry() const { return m_r.af.b.l & CF; }
+    s32 totalCycles() const { return m_s.cyclesBudget - m_s.cyclesRemaining; }
+    int getPC() const { return m_s.pc.w.l; }
+    void setPC(int v) { m_s.pc.w.l = static_cast<u16>(v); }
+    int getAF() const { return m_s.af.w.l; }
+    void setAF(int v) { m_s.af.w.l = static_cast<u16>(v); }
+    int getBC() const { return m_s.bc.w.l; }
+    int getDE() const { return m_s.de.w.l; }
+    int getHL() const { return m_s.hl.w.l; }
+    int getSP() const { return m_s.sp.w.l; }
+    int getI() const { return m_s.i; }
+    void setCarry(int c) { if (c) m_s.af.b.l |= CF; else m_s.af.b.l &= ~CF; }
+    int getCarry() const { return m_s.af.b.l & CF; }
     void exAf();
     int getPop();
 
 private:
     // Register byte accessors — return references into the Pair unions so
     // that reads and writes go directly to the register storage.
-    u8& A() { return m_r.af.b.h; }
-    u8& F() { return m_r.af.b.l; }
-    u8& B() { return m_r.bc.b.h; }
-    u8& C() { return m_r.bc.b.l; }
-    u8& D() { return m_r.de.b.h; }
-    u8& E() { return m_r.de.b.l; }
-    u8& H() { return m_r.hl.b.h; }
-    u8& L() { return m_r.hl.b.l; }
+    u8& A() { return m_s.af.b.h; }
+    u8& F() { return m_s.af.b.l; }
+    u8& B() { return m_s.bc.b.h; }
+    u8& C() { return m_s.bc.b.l; }
+    u8& D() { return m_s.de.b.h; }
+    u8& E() { return m_s.de.b.l; }
+    u8& H() { return m_s.hl.b.h; }
+    u8& L() { return m_s.hl.b.l; }
 
     // Register word (16-bit) accessors
-    u16& AF() { return m_r.af.w.l; }
-    u16& BC() { return m_r.bc.w.l; }
-    u16& DE() { return m_r.de.w.l; }
-    u16& HL() { return m_r.hl.w.l; }
-    u16& SP() { return m_r.sp.w.l; }
-    u16& PC() { return m_r.pc.w.l; }
-    u16& WZ() { return m_r.wz.w.l; }
-    u8& WZ_H() { return m_r.wz.b.h; }
-    u8& WZ_L() { return m_r.wz.b.l; }
+    u16& AF() { return m_s.af.w.l; }
+    u16& BC() { return m_s.bc.w.l; }
+    u16& DE() { return m_s.de.w.l; }
+    u16& HL() { return m_s.hl.w.l; }
+    u16& SP() { return m_s.sp.w.l; }
+    u16& PC() { return m_s.pc.w.l; }
+    u16& WZ() { return m_s.wz.w.l; }
+    u8& WZ_H() { return m_s.wz.b.h; }
+    u8& WZ_L() { return m_s.wz.b.l; }
 
     // Memory / I/O access helpers — thin wrappers around the bus callbacks
     u8 rm(u16 addr) { return m_progRead(addr); }          // Read byte from memory
@@ -151,8 +151,8 @@ private:
     void pop(Pair& p);             // Pop 16-bit register from stack
 
     // Cycle accounting — subtract cycles from the remaining budget
-    void eatCycles(int table, u8 op) { m_r.cyclesRemaining -= m_cc[table][op]; }
-    void eatCyclesN(int n) { m_r.cyclesRemaining -= n; }
+    void eatCycles(int table, u8 op) { m_s.cyclesRemaining -= m_cc[table][op]; }
+    void eatCyclesN(int n) { m_s.cyclesRemaining -= n; }
 
     // 8-bit register access by index, matching the Z80's r field encoding:
     //   0=B, 1=C, 2=D, 3=E, 4=H, 5=L, 6=(HL) [memory], 7=A
@@ -222,7 +222,7 @@ private:
     enum CycleTable { TableOp = 0, TableCb, TableEd, TableXy, TableXyCb, TableEx };
 
     // Instance data
-    Regs m_r{};
+    State m_s{};
     ReadHandler m_ioRead = nullptr;
     WriteHandler m_ioWrite = nullptr;
     ReadHandler m_progRead = nullptr;

@@ -96,9 +96,9 @@ void SoundCPU::saveState(Buffer* buf) {
     size_t ctxSize = Z80::contextSize();
     buffer_write(buf, &ctxSize, sizeof(ctxSize));
 
-    Z80::Regs regs;
-    m_z80.getContext(&regs);
-    buffer_write(buf, &regs, ctxSize);
+    Z80::State state;
+    m_z80.getContext(&state);
+    buffer_write(buf, &state, ctxSize);
     buffer_write(buf, &m_cycles, sizeof(m_cycles));
 }
 
@@ -111,9 +111,9 @@ void SoundCPU::loadState(Buffer* buf) {
         return;
     }
 
-    Z80::Regs regs;
-    buffer_read(buf, &regs, ctxSize);
-    m_z80.setContext(&regs);
+    Z80::State state;
+    buffer_read(buf, &state, ctxSize);
+    m_z80.setContext(&state);
 
     buffer_read(buf, &m_cycles, sizeof(m_cycles));
 }

@@ -4,28 +4,28 @@ SM83::SM83() { reset(); }
 SM83::~SM83() {}
 
 void SM83::reset() {
-    std::memset(&m_r, 0, sizeof(m_r));
+    std::memset(&m_s, 0, sizeof(m_s));
 }
 
 // ---------------------------------------------------------------------------
 // execute() — run the CPU for the requested number of T-cycles.
 // Returns the actual number of cycles consumed (may slightly overshoot).
-// Modelled after the Z80 execute() loop: budget is stored in Regs so that
+// Modelled after the Z80 execute() loop: budget is stored in State so that
 // the entire CPU state is self-contained and saveable.
 // ---------------------------------------------------------------------------
 int SM83::execute(int cycles) {
-    m_r.cyclesRemaining = cycles;
-    m_r.cyclesBudget = cycles;
+    m_s.cyclesRemaining = cycles;
+    m_s.cyclesBudget = cycles;
 
     do {
         // Handle HALT state
-        if (m_r.halt) {
+        if (m_s.halt) {
             u8 ie = rd(0xFFFF);
             u8 ifReg = rd(0xFF0F);
             if (ie & ifReg & 0x1F) {
-                m_r.halt = 0;
+                m_s.halt = 0;
             } else {
-                m_r.cyclesRemaining -= 4;
+                m_s.cyclesRemaining -= 4;
                 continue;
             }
         }
@@ -33,23 +33,23 @@ int SM83::execute(int cycles) {
         // Service interrupts
         int irqCycles = handleInterrupts();
         if (irqCycles > 0) {
-            m_r.cyclesRemaining -= irqCycles;
+            m_s.cyclesRemaining -= irqCycles;
             continue;
         }
 
         // Delayed IME enable (EI takes effect after the next instruction)
-        if (m_r.imeDelay) {
-            m_r.ime = 1;
-            m_r.imeDelay = 0;
+        if (m_s.imeDelay) {
+            m_s.ime = 1;
+            m_s.imeDelay = 0;
         }
 
         u8 opcode = fetch8();
         int opCycles = execOp(opcode);
-        m_r.cyclesRemaining -= opCycles;
-    } while (m_r.cyclesRemaining > 0);
+        m_s.cyclesRemaining -= opCycles;
+    } while (m_s.cyclesRemaining > 0);
 
-    int executed = cycles - m_r.cyclesRemaining;
-    m_r.cyclesBudget = m_r.cyclesRemaining = 0;
+    int executed = cycles - m_s.cyclesRemaining;
+    m_s.cyclesBudget = m_s.cyclesRemaining = 0;
     return executed;
 }
 
@@ -57,15 +57,15 @@ int SM83::execute(int cycles) {
 // Interrupt handling — returns cycles consumed (20 if serviced, 0 otherwise)
 // ---------------------------------------------------------------------------
 int SM83::handleInterrupts() {
-    if (!m_r.ime) return 0;
+    if (!m_s.ime) return 0;
 
     u8 ie = rd(0xFFFF);
     u8 ifReg = rd(0xFF0F);
     u8 triggered = ie & ifReg & 0x1F;
     if (!triggered) return 0;
 
-    m_r.ime = 0;
-    m_r.halt = 0;
+    m_s.ime = 0;
+    m_s.halt = 0;
 
     static const u16 vectors[5] = {0x40, 0x48, 0x50, 0x58, 0x60};
     for (int i = 0; i < 5; i++) {
@@ -83,28 +83,28 @@ int SM83::handleInterrupts() {
 // Memory helpers
 // ---------------------------------------------------------------------------
 u8 SM83::fetch8() {
-    u8 val = rd(m_r.pc);
-    if (!m_r.haltBug) m_r.pc++;
-    m_r.haltBug = 0;
+    u8 val = rd(m_s.pc);
+    if (!m_s.haltBug) m_s.pc++;
+    m_s.haltBug = 0;
     return val;
 }
 
 u16 SM83::fetch16() {
-    u8 lo = rd(m_r.pc++);
-    u8 hi = rd(m_r.pc++);
+    u8 lo = rd(m_s.pc++);
+    u8 hi = rd(m_s.pc++);
     return (u16(hi) << 8) | lo;
 }
 
 void SM83::push(u16 val) {
-    m_r.sp -= 2;
-    wr(m_r.sp, val & 0xFF);
-    wr(m_r.sp + 1, val >> 8);
+    m_s.sp -= 2;
+    wr(m_s.sp, val & 0xFF);
+    wr(m_s.sp + 1, val >> 8);
 }
 
 u16 SM83::pop() {
-    u8 lo = rd(m_r.sp);
-    u8 hi = rd(m_r.sp + 1);
-    m_r.sp += 2;
+    u8 lo = rd(m_s.sp);
+    u8 hi = rd(m_s.sp + 1);
+    m_s.sp += 2;
     return (u16(hi) << 8) | lo;
 }
 
@@ -113,7 +113,7 @@ void SM83::setFlag(u8 flag, bool val) {
 }
 
 bool SM83::getFlag(u8 flag) const {
-    return (m_r.af.b.l & flag) != 0;
+    return (m_s.af.b.l & flag) != 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -306,12 +306,12 @@ int SM83::execOp(u8 op) {
 
     // HALT
     case 0x76:
-        if (!m_r.ime) {
+        if (!m_s.ime) {
             u8 ie = rd(0xFFFF);
             u8 ifReg = rd(0xFF0F);
-            if (ifReg & ie & 0x1F) { m_r.haltBug = 1; return 4; }
+            if (ifReg & ie & 0x1F) { m_s.haltBug = 1; return 4; }
         }
-        m_r.halt = 1;
+        m_s.halt = 1;
         return 4;
 
     // --- ALU A, r ---
@@ -464,7 +464,7 @@ int SM83::execOp(u8 op) {
 
     // RET / RETI
     case 0xC9: PC()=pop(); return 16;
-    case 0xD9: PC()=pop(); m_r.ime=1; return 16;
+    case 0xD9: PC()=pop(); m_s.ime=1; return 16;
 
     // JP (HL)
     case 0xE9: PC()=HL(); return 4;
@@ -489,8 +489,8 @@ int SM83::execOp(u8 op) {
     case 0xFA: A()=rd(fetch16()); return 16;
 
     // DI / EI
-    case 0xF3: m_r.ime=0; return 4;
-    case 0xFB: m_r.imeDelay=1; return 4;
+    case 0xF3: m_s.ime=0; return 4;
+    case 0xFB: m_s.imeDelay=1; return 4;
 
     // ADD SP, n
     case 0xE8: {
