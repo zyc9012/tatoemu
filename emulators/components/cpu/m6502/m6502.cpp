@@ -26,15 +26,13 @@ M6502::M6502(Variant variant)
     , m_cyclesExecuted(0)
     , m_shouldStop(false)
     , m_fetchingOpcode(false)
-    , m_readMemory(nullptr)
-    , m_writeMemory(nullptr)
 {
 }
 
 void M6502::reset() {
     // Read reset vector from $FFFC-$FFFD
-    uint8_t lo = m_readMemory ? m_readMemory(0xFFFC) : 0;
-    uint8_t hi = m_readMemory ? m_readMemory(0xFFFD) : 0;
+    uint8_t lo = m_read(0xFFFC);
+    uint8_t hi = m_read(0xFFFD);
     m_pc = (hi << 8) | lo;
     
     // Initialize stack pointer to top of stack
@@ -190,36 +188,48 @@ void M6502::setInterruptLine(InterruptLine line, LineState state) {
 // State Management
 // ========================================
 
-void M6502::saveState(State& state) const {
-    state.pc = m_pc;
-    state.prevPC = m_prevPC;
-    state.a = m_a;
-    state.x = m_x;
-    state.y = m_y;
-    state.s = m_s;
-    state.p = m_p;
-    state.irqState = m_irqState;
-    state.nmiState = m_nmiState;
-    state.pendingIRQ = m_pendingIRQ;
-    state.pendingNMI = m_pendingNMI;
-    state.afterCLI = m_afterCLI;
-    state.cyclesExecuted = m_cyclesExecuted;
+void M6502::getContext(void* dst) const {
+    if (!dst) return;
+    State st;
+    st.pc = m_pc;
+    st.prevPC = m_prevPC;
+    st.a = m_a;
+    st.x = m_x;
+    st.y = m_y;
+    st.s = m_s;
+    st.p = m_p;
+    st.irqState = m_irqState;
+    st.nmiState = m_nmiState;
+    st.pendingIRQ = m_pendingIRQ;
+    st.pendingNMI = m_pendingNMI;
+    st.afterCLI = m_afterCLI;
+    st.holdIRQ = m_holdIRQ;
+    st.holdNMI = m_holdNMI;
+    st.nmiDelay = m_nmiDelay;
+    st.cyclesExecuted = m_cyclesExecuted;
+    std::memcpy(dst, &st, sizeof(st));
 }
 
-void M6502::loadState(const State& state) {
-    m_pc = state.pc;
-    m_prevPC = state.prevPC;
-    m_a = state.a;
-    m_x = state.x;
-    m_y = state.y;
-    m_s = state.s;
-    m_p = state.p;
-    m_irqState = state.irqState;
-    m_nmiState = state.nmiState;
-    m_pendingIRQ = state.pendingIRQ;
-    m_pendingNMI = state.pendingNMI;
-    m_afterCLI = state.afterCLI;
-    m_cyclesExecuted = state.cyclesExecuted;
+void M6502::setContext(const void* src) {
+    if (!src) return;
+    State st;
+    std::memcpy(&st, src, sizeof(st));
+    m_pc = st.pc;
+    m_prevPC = st.prevPC;
+    m_a = st.a;
+    m_x = st.x;
+    m_y = st.y;
+    m_s = st.s;
+    m_p = st.p;
+    m_irqState = st.irqState;
+    m_nmiState = st.nmiState;
+    m_pendingIRQ = st.pendingIRQ;
+    m_pendingNMI = st.pendingNMI;
+    m_afterCLI = st.afterCLI;
+    m_holdIRQ = st.holdIRQ;
+    m_holdNMI = st.holdNMI;
+    m_nmiDelay = st.nmiDelay;
+    m_cyclesExecuted = st.cyclesExecuted;
 }
 
 // ========================================

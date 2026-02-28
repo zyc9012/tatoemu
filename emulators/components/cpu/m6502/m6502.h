@@ -1,8 +1,8 @@
 #pragma once
 
-#include <functional>
 #include <cstdint>
-#include <array>
+#include <cstdlib>
+#include <cstring>
 
 /**
  * @brief Modern C++ implementation of the MOS 6502 CPU and its variants
@@ -54,8 +54,8 @@ public:
     };
 
     // Memory access callbacks
-    using ReadCallback = std::function<uint8_t(uint16_t)>;
-    using WriteCallback = std::function<void(uint16_t, uint8_t)>;
+    using ReadHandler = uint8_t (*)(uint16_t);
+    using WriteHandler = void (*)(uint16_t, uint8_t);
 
     /**
      * @brief Construct a new M6502 CPU with specified variant
@@ -67,13 +67,13 @@ public:
      * @brief Set memory read callback
      * @param callback Function to call when CPU reads from memory
      */
-    void setReadCallback(ReadCallback callback) { m_readMemory = callback; }
+    void setReadHandler(ReadHandler h) { m_read = h; }
 
     /**
      * @brief Set memory write callback
      * @param callback Function to call when CPU writes to memory
      */
-    void setWriteCallback(WriteCallback callback) { m_writeMemory = callback; }
+    void setWriteHandler(WriteHandler h) { m_write = h; }
 
     /**
      * @brief Reset the CPU to initial state
@@ -128,11 +128,15 @@ public:
         bool pendingIRQ;
         bool pendingNMI;
         bool afterCLI;
+        bool holdIRQ;
+        bool holdNMI;
+        int nmiDelay;
         int cyclesExecuted;
     };
 
-    void saveState(State& state) const;
-    void loadState(const State& state);
+    void getContext(void* dst) const;
+    void setContext(const void* src);
+    static constexpr size_t contextSize() { return sizeof(State); }
 
     // Special features for NES emulation
     void setNMIDelay(int cycles) { m_nmiDelay = cycles; }
@@ -172,8 +176,8 @@ private:
     bool m_fetchingOpcode;  // Currently fetching opcode
 
     // Memory callbacks
-    ReadCallback m_readMemory;
-    WriteCallback m_writeMemory;
+    ReadHandler m_read = nullptr;
+    WriteHandler m_write = nullptr;
 
     // Flag manipulation helpers
     inline void setFlag(StatusFlag flag, bool value) {
@@ -196,14 +200,12 @@ private:
     // Memory access with cycle counting
     inline uint8_t read(uint16_t addr) {
         m_cyclesRemaining--;
-        return m_readMemory ? m_readMemory(addr) : 0;
+        return m_read(addr);
     }
 
     inline void write(uint16_t addr, uint8_t value) {
         m_cyclesRemaining--;
-        if (m_writeMemory) {
-            m_writeMemory(addr, value);
-        }
+        m_write(addr, value);
     }
 
     inline uint8_t readPC() {

@@ -4,6 +4,17 @@
 #include <cstddef>
 #include <cstring>
 
+// File-local memory pointer for plain function pointer callbacks
+static nes::Memory* s_nesMemory = nullptr;
+
+static uint8_t nesRead(uint16_t addr) {
+    return s_nesMemory->cpuRead(addr);
+}
+
+static void nesWrite(uint16_t addr, uint8_t data) {
+    s_nesMemory->cpuWrite(addr, data);
+}
+
 namespace nes {
 
 /**
@@ -17,24 +28,19 @@ CPU::CPU()
     , m_cpu(std::make_unique<M6502>(M6502::Variant::NMOS_2A03))
     , m_cycles(0)
     , m_stallCycles(0) {
-    
-    // Set up memory read callback
-    m_cpu->setReadCallback([this](uint16_t addr) -> uint8_t {
-        if (m_memory) {
-            return m_memory->cpuRead(addr);
-        }
-        return 0;
-    });
-    
-    // Set up memory write callback
-    m_cpu->setWriteCallback([this](uint16_t addr, uint8_t data) {
-        if (m_memory) {
-            m_memory->cpuWrite(addr, data);
-        }
-    });
 }
 
-CPU::~CPU() = default;
+CPU::~CPU() {
+    if (s_nesMemory == m_memory)
+        s_nesMemory = nullptr;
+}
+
+void CPU::setMemory(Memory* memory) {
+    m_memory = memory;
+    s_nesMemory = memory;
+    m_cpu->setReadHandler(nesRead);
+    m_cpu->setWriteHandler(nesWrite);
+}
 
 /**
  * @brief Reset the CPU
@@ -110,7 +116,7 @@ void CPU::triggerOAMDMA(u8 page) {
  */
 void CPU::saveState(Buffer* buf) {
     M6502::State state;
-    m_cpu->saveState(state);
+    m_cpu->getContext(&state);
     
     buffer_write(buf, &state, sizeof(state));
     buffer_write(buf, &m_cycles, sizeof(m_cycles));
@@ -124,7 +130,7 @@ void CPU::saveState(Buffer* buf) {
 void CPU::loadState(Buffer* buf) {
     M6502::State state;
     buffer_read(buf, &state, sizeof(state));
-    m_cpu->loadState(state);
+    m_cpu->setContext(&state);
     
     buffer_read(buf, &m_cycles, sizeof(m_cycles));
     buffer_read(buf, &m_stallCycles, sizeof(m_stallCycles));

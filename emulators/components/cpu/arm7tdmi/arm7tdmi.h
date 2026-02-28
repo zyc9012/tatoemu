@@ -8,8 +8,8 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
-#include <functional>
 
 // ============================================================================
 // Type aliases
@@ -138,7 +138,7 @@ public:
     void setCoprocessor(const CoprocessorInterface& cop) { m_cop = cop; }
 
     // --- Execution ---
-    int run(int cycles);
+    int execute(int cycles);
     int idle(int cycles) { m_totalCycles += cycles; return cycles; }
     int totalCycles() const { return m_totalCycles; }
 
@@ -159,8 +159,9 @@ public:
         int totalCycles;
     };
 
-    State saveState() const;
-    void  loadState(const State& st);
+    void getContext(void* dst) const;
+    void setContext(const void* src);
+    static constexpr size_t contextSize() { return sizeof(State); }
 
 private:
     // --- Register bank mapping ---

@@ -22,7 +22,7 @@ public:
     CPU();
     ~CPU();
 
-    void setMemory(Memory* memory) { m_memory = memory; }
+    void setMemory(Memory* memory);
     Memory* getMemory() const { return m_memory; }
 
     void reset();

@@ -72,7 +72,7 @@ int CPU::step(int cycles) {
     if (m_memory && m_memory->isHalted())
         return 1; // Halted — return minimal cycles
 
-    return m_cpu.run(cycles);
+    return m_cpu.execute(cycles);
 }
 
 void CPU::checkIRQ() {
@@ -97,7 +97,8 @@ void CPU::checkIRQ() {
 }
 
 void CPU::saveState(Buffer* buf) {
-    auto st = m_cpu.saveState();
+    ARM7TDMI::State st;
+    m_cpu.getContext(&st);
     buffer_write(buf, &st, sizeof(st));
     buffer_write(buf, &m_cycles, sizeof(m_cycles));
 }
@@ -105,7 +106,7 @@ void CPU::saveState(Buffer* buf) {
 void CPU::loadState(Buffer* buf) {
     ARM7TDMI::State st;
     buffer_read(buf, &st, sizeof(st));
-    m_cpu.loadState(st);
+    m_cpu.setContext(&st);
     buffer_read(buf, &m_cycles, sizeof(m_cycles));
 }
 

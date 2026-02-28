@@ -43,17 +43,21 @@ void ARM7TDMI::reset() {
 // ============================================================================
 // State serialization
 // ============================================================================
-ARM7TDMI::State ARM7TDMI::saveState() const {
+void ARM7TDMI::getContext(void* dst) const {
+    if (!dst) return;
     State st;
     std::memcpy(st.regs, m_regs, sizeof(m_regs));
     st.pendingIrq  = m_pendingIrq;  st.pendingFiq  = m_pendingFiq;
     st.pendingAbtD = m_pendingAbtD; st.pendingAbtP = m_pendingAbtP;
     st.pendingUnd  = m_pendingUnd;  st.pendingSwi  = m_pendingSwi;
     st.totalCycles = m_totalCycles;
-    return st;
+    std::memcpy(dst, &st, sizeof(st));
 }
 
-void ARM7TDMI::loadState(const State& st) {
+void ARM7TDMI::setContext(const void* src) {
+    if (!src) return;
+    State st;
+    std::memcpy(&st, src, sizeof(st));
     std::memcpy(m_regs, st.regs, sizeof(m_regs));
     m_pendingIrq  = st.pendingIrq;  m_pendingFiq  = st.pendingFiq;
     m_pendingAbtD = st.pendingAbtD; m_pendingAbtP = st.pendingAbtP;
@@ -1765,7 +1769,7 @@ void ARM7TDMI::thumbExecuteHighest(u32 insn) {
 // Default is 3 (fetch/decode/execute pipeline).
 // Returns the actual number of cycles consumed.
 // ============================================================================
-int ARM7TDMI::run(int cycles) {
+int ARM7TDMI::execute(int cycles) {
     int remaining = cycles;
 
     do {
