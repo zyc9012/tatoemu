@@ -2,73 +2,42 @@
 #include "memory.h"
 #include "audio.h"
 #include "consts.h"
-#include "../components/cpu/z80/z80.h"
 #include <cstring>
-#include <vector>
-#include <cstddef>
 
 namespace cps {
 
 // Static context pointer for callbacks
 static SoundCPU* g_soundCpuContext = nullptr;
 
-// Z80 callback functions (static to avoid symbol conflicts with other emulators)
-static u8 z80_read_prog(u32 address) {
-    if (g_soundCpuContext) {
-        Memory* mem = g_soundCpuContext->getMemory();
-        if (mem) {
-            return mem->readZ80(address);
-        }
-    }
-    return 0xFF;
+// Z80 callback functions
+static u8 z80ReadProg(u32 address) {
+    Memory* mem = g_soundCpuContext->getMemory();
+    return mem ? mem->readZ80(address) : 0xFF;
 }
 
-static void z80_write_prog(u32 address, u8 value) {
-    if (g_soundCpuContext) {
-        Memory* mem = g_soundCpuContext->getMemory();
-        if (mem) {
-            mem->writeZ80(address, value);
-        }
-    }
+static void z80WriteProg(u32 address, u8 value) {
+    Memory* mem = g_soundCpuContext->getMemory();
+    if (mem) mem->writeZ80(address, value);
 }
 
-static u8 z80_read_io(u32 port) {
-    if (g_soundCpuContext) {
-        Audio* audio = g_soundCpuContext->getAudio();
-        if (audio) {
-            return audio->readPort(port);
-        }
-    }
-    return 0xFF;
+static u8 z80ReadIo(u32 port) {
+    Audio* audio = g_soundCpuContext->getAudio();
+    return audio ? audio->readPort(port) : 0xFF;
 }
 
-static void z80_write_io(u32 port, u8 value) {
-    if (g_soundCpuContext) {
-        Audio* audio = g_soundCpuContext->getAudio();
-        if (audio) {
-            audio->writePort(port, value);
-        }
-    }
+static void z80WriteIo(u32 port, u8 value) {
+    Audio* audio = g_soundCpuContext->getAudio();
+    if (audio) audio->writePort(port, value);
 }
 
-static u8 z80_read_op(u32 address) {
-    if (g_soundCpuContext) {
-        Memory* mem = g_soundCpuContext->getMemory();
-        if (mem) {
-            return mem->readZ80Opcode(address);
-        }
-    }
-    return 0xFF;
+static u8 z80ReadOp(u32 address) {
+    Memory* mem = g_soundCpuContext->getMemory();
+    return mem ? mem->readZ80Opcode(address) : 0xFF;
 }
 
-static u8 z80_read_op_arg(u32 address) {
-    if (g_soundCpuContext) {
-        Memory* mem = g_soundCpuContext->getMemory();
-        if (mem) {
-            return mem->readZ80OpcodeArg(address);
-        }
-    }
-    return 0xFF;
+static u8 z80ReadOpArg(u32 address) {
+    Memory* mem = g_soundCpuContext->getMemory();
+    return mem ? mem->readZ80OpcodeArg(address) : 0xFF;
 }
 
 SoundCPU::SoundCPU()
@@ -79,23 +48,14 @@ SoundCPU::SoundCPU()
     , m_cpsVersion(1)
     , m_timerAccumulator(0)
     , m_timerPeriod(0) {
-    // Initialize Z80
-    static bool z80_initialized = false;
-    if (!z80_initialized) {
-        Z80Init();
-        z80_initialized = true;
-    }
-    
-    // Set context for callbacks
     g_soundCpuContext = this;
-    
-    // Set up Z80 handlers
-    Z80SetProgramReadHandler(z80_read_prog);
-    Z80SetProgramWriteHandler(z80_write_prog);
-    Z80SetIOReadHandler(z80_read_io);
-    Z80SetIOWriteHandler(z80_write_io);
-    Z80SetCPUOpReadHandler(z80_read_op);
-    Z80SetCPUOpArgReadHandler(z80_read_op_arg);
+
+    m_z80.setProgramReadHandler(z80ReadProg);
+    m_z80.setProgramWriteHandler(z80WriteProg);
+    m_z80.setIoReadHandler(z80ReadIo);
+    m_z80.setIoWriteHandler(z80WriteIo);
+    m_z80.setOpReadHandler(z80ReadOp);
+    m_z80.setOpArgReadHandler(z80ReadOpArg);
 }
 
 SoundCPU::~SoundCPU() {
@@ -105,7 +65,7 @@ SoundCPU::~SoundCPU() {
 }
 
 void SoundCPU::reset() {
-    Z80Reset();
+    m_z80.reset();
     m_cycles = 0;
     m_timerAccumulator = 0;
 
@@ -116,11 +76,9 @@ void SoundCPU::reset() {
     } else {
         m_cyclesPerFrame = ::cps1::SOUND_CPU_CYCLES_PER_FRAME;
     }
-    
+
     // Calculate timer period for CPS2 (252 Hz interrupt rate)
     if (m_cpsVersion == 2 || (m_cpsVersion == 1 && m_cartridge && m_cartridge->isCPS1QSound())) {
-        // Timer fires at 252 Hz = 1/252.0 seconds
-        // At 8 MHz: 8000000 / 252 ≈ 31746 cycles
         if (m_cartridge->isCPS1QSound()) {
             m_timerPeriod = cps1qs::SOUND_CPU_FREQUENCY / 252;
         } else {
@@ -137,46 +95,41 @@ void SoundCPU::setCPSVersion(u8 version) {
 
 u32 SoundCPU::step(u32 cycles) {
     if (cycles > 0) {
-        s32 executed = Z80Execute(static_cast<s32>(cycles));
+        s32 executed = m_z80.execute(static_cast<s32>(cycles));
         u32 actualCycles = static_cast<u32>(executed);
         m_cycles += actualCycles;
 
         // For CPS2 and CPS1 QSound, check timer-based interrupt
         if (m_timerPeriod > 0) {
             m_timerAccumulator += executed;
-            
-            // Check if timer has expired (multiple times if needed)
+
             while (m_timerAccumulator >= m_timerPeriod) {
                 m_timerAccumulator -= m_timerPeriod;
-                // Trigger Z80 IRQ (timer interrupt at 252 Hz)
-                ActiveZ80SetIRQHold();
-                Z80SetIrqLine(0xFF, Z80_ASSERT_LINE);
+                m_z80.setIrqHold();
+                m_z80.setIrqLine(0xFF, Z80::AssertLine);
             }
         }
-        
+
         return actualCycles;
     }
     return 0;
 }
 
 void SoundCPU::irq(bool state) {
-    Z80SetIrqLine(0, state ? Z80_ASSERT_LINE : Z80_CLEAR_LINE);
+    m_z80.setIrqLine(0, state ? Z80::AssertLine : Z80::ClearLine);
 }
 
 void SoundCPU::nmi() {
-    Z80SetIrqLine(Z80_INPUT_LINE_NMI, Z80_ASSERT_LINE);
+    m_z80.setIrqLine(Z80::InputLineNmi, Z80::AssertLine);
 }
 
 void SoundCPU::saveState(Buffer* buf) {
-    // Save Z80 state
-    Z80_Regs regs;
-    Z80GetContext(&regs);
-    
-    // Calculate size without function pointers
-    size_t sizeNoPointers = offsetof(Z80_Regs, irq_callback);
-    
-    buffer_write(buf, &sizeNoPointers, sizeof(sizeNoPointers));
-    buffer_write(buf, &regs, sizeNoPointers);
+    Z80::Regs regs;
+    m_z80.getContext(&regs);
+
+    size_t ctxSize = Z80::contextSize();
+    buffer_write(buf, &ctxSize, sizeof(ctxSize));
+    buffer_write(buf, &regs, ctxSize);
     buffer_write(buf, &m_cycles, sizeof(m_cycles));
     buffer_write(buf, &m_cyclesPerFrame, sizeof(m_cyclesPerFrame));
     buffer_write(buf, &m_cpsVersion, sizeof(m_cpsVersion));
@@ -185,29 +138,17 @@ void SoundCPU::saveState(Buffer* buf) {
 }
 
 void SoundCPU::loadState(Buffer* buf) {
-    // Load Z80 state
-    size_t sizeNoPointers;
-    buffer_read(buf, &sizeNoPointers, sizeof(sizeNoPointers));
-    
-    if (sizeNoPointers != offsetof(Z80_Regs, irq_callback)) {
-        log_error("Error: Saved Z80 context size mismatch");
+    size_t ctxSize;
+    buffer_read(buf, &ctxSize, sizeof(ctxSize));
+
+    if (ctxSize != Z80::contextSize()) {
         return;
     }
-    
-    // Load saved context (without pointers)
-    std::vector<char> savedContext(sizeNoPointers);
-    buffer_read(buf, savedContext.data(), sizeNoPointers);
-    
-    // Get current context
-    Z80_Regs currentRegs;
-    Z80GetContext(&currentRegs);
-    
-    // Copy saved context to current context, only copy the non-pointer portion
-    memcpy(&currentRegs, savedContext.data(), sizeNoPointers);
-    
-    // Set current context back
-    Z80SetContext(&currentRegs);
-    
+
+    Z80::Regs regs;
+    buffer_read(buf, &regs, ctxSize);
+    m_z80.setContext(&regs);
+
     buffer_read(buf, &m_cycles, sizeof(m_cycles));
     buffer_read(buf, &m_cyclesPerFrame, sizeof(m_cyclesPerFrame));
     buffer_read(buf, &m_cpsVersion, sizeof(m_cpsVersion));

@@ -4,13 +4,14 @@
 #include "../types.h"
 #include "../components/compact.h"
 #include "../components/buffer.h"
+#include "../components/cpu/z80_new/z80.h"
 
 namespace neogeo {
 
 class Memory;
 class Audio;
 
-// Z80 CPU emulator (shared between CPS1 and CPS2)
+// Z80 sound CPU wrapper for Neo Geo
 class SoundCPU {
 public:
     SoundCPU();
@@ -38,9 +39,9 @@ public:
     void loadState(Buffer* buf);
 
 protected:
-    // Protected so Z80 callback functions can access them
     Memory* m_memory;
     Audio* m_audio;
+    Z80 m_z80;
     u32 m_cycles;
 };
 

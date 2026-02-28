@@ -3,6 +3,7 @@
 #include "../types.h"
 #include "../components/compact.h"
 #include "../components/buffer.h"
+#include "../components/cpu/z80_new/z80.h"
 
 namespace cps {
 
@@ -10,7 +11,7 @@ class Memory;
 class Audio;
 class Cartridge;
 
-// Z80 CPU emulator (shared between CPS1 and CPS2)
+// Z80 sound CPU wrapper for CPS1/CPS2
 class SoundCPU {
 public:
     SoundCPU();
@@ -42,17 +43,17 @@ public:
     void setCPSVersion(u8 version);
 
 protected:
-    // Protected so Z80 callback functions can access them
     Memory* m_memory;
     Audio* m_audio;
+    Z80 m_z80;
     u32 m_cycles;
     u32 m_cyclesPerFrame;
     Cartridge* m_cartridge;
     
     // CPS2 timer-based interrupt (252 Hz)
     u8 m_cpsVersion;
-    u32 m_timerAccumulator;  // Accumulated cycles since last timer interrupt
-    u32 m_timerPeriod;       // Cycles per timer interrupt (for 252 Hz at current frequency)
+    u32 m_timerAccumulator;
+    u32 m_timerPeriod;
 };
 
 } // namespace cps
