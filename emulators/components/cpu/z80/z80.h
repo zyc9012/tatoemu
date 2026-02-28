@@ -1,236 +1,260 @@
-#ifndef _Z80_H_
-#define _Z80_H_
+#pragma once
 
-#include "../compact.h"
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
 
-#define	CPUINFO_PTR_CPU_SPECIFIC	0x18000
-#define Z80_CLEAR_LINE		0
-#define Z80_ASSERT_LINE		1
-#define Z80_INPUT_LINE_NMI	32
+using u8  = uint8_t;
+using u16 = uint16_t;
+using u32 = uint32_t;
+using s8  = int8_t;
+using s32 = int32_t;
 
-typedef union
-{
-#ifdef LSB_FIRST
-	struct { UINT8 l,h,h2,h3; } b;
-	struct { UINT16 l,h; } w;
+// ---------------------------------------------------------------------------
+// Zilog Z80 CPU emulator
+//
+// The Z80 is an 8-bit CPU with a 16-bit address bus (64 KB address space) and
+// a separate I/O address space.  It extends the Intel 8080 instruction set with
+// index registers (IX/IY), block operations, bit manipulation, and a two-level
+// interrupt system (maskable IRQ with three modes, plus edge-triggered NMI).
+// ---------------------------------------------------------------------------
+class Z80 {
+public:
+    // Interrupt line constants
+    static constexpr int InputLineNmi = 1;
+    static constexpr int ClearLine = 0;
+    static constexpr int AssertLine = 1;
+
+    // F register flag bits.  The Z80 flag byte layout is: S Z Y H X P/V N C
+    //   Bit 7 (SF) — Sign: set when result is negative (bit 7 of result)
+    //   Bit 6 (ZF) — Zero: set when result is zero
+    //   Bit 5 (YF) — undocumented, copies bit 5 of result
+    //   Bit 4 (HF) — Half-carry: carry from bit 3→4 (used by DAA)
+    //   Bit 3 (XF) — undocumented, copies bit 3 of result
+    //   Bit 2 (PF/VF) — Parity or oVerflow, context-dependent
+    //   Bit 1 (NF) — subtract: set after SUB/SBC/DEC/NEG/CP
+    //   Bit 0 (CF) — Carry
+    static constexpr u8 CF = 0x01;
+    static constexpr u8 NF = 0x02;
+    static constexpr u8 PF = 0x04;
+    static constexpr u8 VF = 0x04;
+    static constexpr u8 XF = 0x08;
+    static constexpr u8 HF = 0x10;
+    static constexpr u8 YF = 0x20;
+    static constexpr u8 ZF = 0x40;
+    static constexpr u8 SF = 0x80;
+
+    // Endian-aware register pair
+    union Pair {
+        u32 d = 0;
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        struct { u8 h3, h2, h, l; } b;
+        struct { u16 h, l; } w;
 #else
-	struct { UINT8 h3,h2,h,l; } b;
-	struct { UINT16 h,l; } w;
+        struct { u8 l, h, h2, h3; } b;
+        struct { u16 l, h; } w;
 #endif
-	UINT32 d;
-} Z80_PAIR;
+    };
 
-typedef struct
-{
-	Z80_PAIR	prvpc,pc,sp,af,bc,de,hl,ix,iy;
-	Z80_PAIR	af2,bc2,de2,hl2,wz;
-	UINT8	r,r2,iff1,iff2,halt,im,i;
-	UINT8	nmi_state;			/* nmi line state */
-	UINT8	nmi_pending;		/* nmi pending */
-	UINT8	irq_state;			/* irq line state */
-	UINT8   vector;             /* vector */
-	UINT8	after_ei;			/* are we in the EI shadow? */
-	UINT8	after_retn;			/* are we in the RETN shadow? */
-	INT32   cycles_left;
-	INT32   ICount;
-	INT32   end_run;
-	UINT32  EA;
-	INT32   hold_irq;
+    // CPU register state (saveable)
+    struct Regs {
+        Pair prvpc, pc, sp, af, bc, de, hl, ix, iy, wz;
+        Pair af2, bc2, de2, hl2;       // Shadow register bank (swapped by EX/EXX)
+        u8 r = 0, r2 = 0;              // R: refresh counter (low 7 bits), R2: saved bit 7
+        u8 iff1 = 0, iff2 = 0;         // Interrupt flip-flops (IFF1 gates IRQs, IFF2 saved by NMI)
+        u8 halt = 0, im = 0, i = 0;    // HALT state, interrupt mode (0/1/2), I register
+        u8 nmiState = 0, irqState = 0, nmiPending = 0;
+        u8 afterEi = 0;                // Delay IRQ check one instruction after EI
+        u8 afterRetn = 0;              // Restore IFF1 from IFF2 after RETN
+        s32 cyclesRemaining = 0;       // Counts down as instructions execute
+        s32 cyclesBudget = 0;          // Initial cycle count for this execute() call
+        int endRun = 0;                // Set to 1 to break out of execute loop early
+        int holdIrq = 0;               // Hold IRQ line for one-shot interrupt
+        int vector = 0xff;             // IRQ vector byte(s) placed on data bus
+    };
 
-	int (*irq_callback)(int irqline);
+    using ReadHandler = u8 (*)(u32);
+    using WriteHandler = void (*)(u32, u8);
 
-	int (*spectrum_tape_cb)();
-	int spectrum_mode;
-} Z80_Regs;
+    Z80();
+    ~Z80();
 
-enum {
-	Z80_PC=1, Z80_SP,
-	Z80_A, Z80_B, Z80_C, Z80_D, Z80_E, Z80_H, Z80_L,
-	Z80_AF, Z80_BC, Z80_DE, Z80_HL,
-	Z80_IX, Z80_IY,	Z80_AF2, Z80_BC2, Z80_DE2, Z80_HL2,
-	Z80_R, Z80_I, Z80_IM, Z80_IFF1, Z80_IFF2, Z80_HALT,
-	Z80_DC0, Z80_DC1, Z80_DC2, Z80_DC3
+    void init();
+    void reset();
+    int execute(int cycles);
+
+    void setIrqLine(int irqLine, int state);  // Assert/clear IRQ or NMI line
+    void setIrqHold() { m_r.holdIrq = 1; }
+    void setVector(int v) { m_r.vector = v; }
+
+    void setIoReadHandler(ReadHandler h) { m_ioRead = h; }
+    void setIoWriteHandler(WriteHandler h) { m_ioWrite = h; }
+    void setProgramReadHandler(ReadHandler h) { m_progRead = h; }
+    void setProgramWriteHandler(WriteHandler h) { m_progWrite = h; }
+    void setOpReadHandler(ReadHandler h) { m_opRead = h; }
+    void setOpArgReadHandler(ReadHandler h) { m_opArgRead = h; }
+
+    // Save/restore entire CPU state for save-states
+    void getContext(void* dst) const { if (dst) std::memcpy(dst, &m_r, sizeof(m_r)); }
+    void setContext(const void* src) { if (src) { std::memcpy(&m_r, src, sizeof(m_r)); } }
+    static constexpr size_t contextSize() { return sizeof(Regs); }
+
+    s32 totalCycles() const { return m_r.cyclesBudget - m_r.cyclesRemaining; }
+    int getPC() const { return m_r.pc.w.l; }
+    void setPC(int v) { m_r.pc.w.l = static_cast<u16>(v); }
+    int getAF() const { return m_r.af.w.l; }
+    void setAF(int v) { m_r.af.w.l = static_cast<u16>(v); }
+    int getBC() const { return m_r.bc.w.l; }
+    int getDE() const { return m_r.de.w.l; }
+    int getHL() const { return m_r.hl.w.l; }
+    int getSP() const { return m_r.sp.w.l; }
+    int getI() const { return m_r.i; }
+    void setCarry(int c) { if (c) m_r.af.b.l |= CF; else m_r.af.b.l &= ~CF; }
+    int getCarry() const { return m_r.af.b.l & CF; }
+    void exAf();
+    int getPop();
+
+private:
+    // Register byte accessors — return references into the Pair unions so
+    // that reads and writes go directly to the register storage.
+    u8& A() { return m_r.af.b.h; }
+    u8& F() { return m_r.af.b.l; }
+    u8& B() { return m_r.bc.b.h; }
+    u8& C() { return m_r.bc.b.l; }
+    u8& D() { return m_r.de.b.h; }
+    u8& E() { return m_r.de.b.l; }
+    u8& H() { return m_r.hl.b.h; }
+    u8& L() { return m_r.hl.b.l; }
+
+    // Register word (16-bit) accessors
+    u16& AF() { return m_r.af.w.l; }
+    u16& BC() { return m_r.bc.w.l; }
+    u16& DE() { return m_r.de.w.l; }
+    u16& HL() { return m_r.hl.w.l; }
+    u16& SP() { return m_r.sp.w.l; }
+    u16& PC() { return m_r.pc.w.l; }
+    u16& WZ() { return m_r.wz.w.l; }
+    u8& WZ_H() { return m_r.wz.b.h; }
+    u8& WZ_L() { return m_r.wz.b.l; }
+
+    // Memory / I/O access helpers — thin wrappers around the bus callbacks
+    u8 rm(u16 addr) { return m_progRead(addr); }          // Read byte from memory
+    void wm(u16 addr, u8 val) { m_progWrite(addr, val); } // Write byte to memory
+    u8 rop();          // Fetch opcode byte at PC (advances PC)
+    u8 arg();          // Fetch operand byte at PC (advances PC)
+    u16 arg16();       // Fetch 16-bit operand (little-endian, advances PC by 2)
+    u8 in(u16 port) { return m_ioRead(port); }           // Read from I/O port
+    void out(u16 port, u8 val) { m_ioWrite(port, val); } // Write to I/O port
+    void rm16(u16 addr, Pair* p);  // Read 16-bit value from memory into Pair
+    void wm16(u16 addr, Pair* p);  // Write 16-bit value from Pair to memory
+    void push(Pair& p);            // Push 16-bit register onto stack
+    void pop(Pair& p);             // Pop 16-bit register from stack
+
+    // Cycle accounting — subtract cycles from the remaining budget
+    void eatCycles(int table, u8 op) { m_r.cyclesRemaining -= m_cc[table][op]; }
+    void eatCyclesN(int n) { m_r.cyclesRemaining -= n; }
+
+    // 8-bit register access by index, matching the Z80's r field encoding:
+    //   0=B, 1=C, 2=D, 3=E, 4=H, 5=L, 6=(HL) [memory], 7=A
+    u8 getReg8(int idx);
+    void setReg8(int idx, u8 val);
+
+    // 8-bit ALU — these operate on the accumulator (A) and update flags in F
+    void aluAdd(u8 val);                 // A += val
+    void aluAdc(u8 val);                 // A += val + carry
+    void aluSub(u8 val);                 // A -= val
+    void aluSbc(u8 val);                 // A -= val + carry
+    void aluAnd(u8 val);                 // A &= val
+    void aluXor(u8 val);                 // A ^= val
+    void aluOr(u8 val);                  // A |= val
+    void aluCp(u8 val);                  // Compare A - val (flags only, A unchanged)
+    u8 aluInc(u8 val);                   // val + 1  (preserves carry flag)
+    u8 aluDec(u8 val);                   // val - 1  (preserves carry flag)
+    void aluDaa();                       // Decimal Adjust Accumulator (BCD correction)
+    void aluNeg();                       // A = 0 - A (two's complement negate)
+    void aluRlca();                      // Rotate A left, old bit 7 to carry and bit 0
+    void aluRrca();                      // Rotate A right, old bit 0 to carry and bit 7
+    void aluRla();                       // Rotate A left through carry
+    void aluRra();                       // Rotate A right through carry
+    void aluRrd();                       // Rotate right digit: A(low) <-> (HL)(low), (HL)(high) -> (HL)(low)
+    void aluRld();                       // Rotate left digit: reverse of RRD
+    void aluAdd16(Pair& dst, Pair& src); // dst += src (16-bit, only H/C/Y/X flags)
+    void aluAdc16(Pair& src);            // HL += src + carry (full 16-bit flags)
+    void aluSbc16(Pair& src);            // HL -= src - carry (full 16-bit flags)
+
+    // CB-prefix shift/rotate/bit operations — return the result (caller stores it)
+    u8 opRlc(u8 val);                    // Rotate left circular
+    u8 opRrc(u8 val);                    // Rotate right circular
+    u8 opRl(u8 val);                     // Rotate left through carry
+    u8 opRr(u8 val);                     // Rotate right through carry
+    u8 opSla(u8 val);                    // Shift left arithmetic (bit 0 = 0)
+    u8 opSra(u8 val);                    // Shift right arithmetic (bit 7 preserved)
+    u8 opSll(u8 val);                    // Shift left logical (undocumented: bit 0 = 1)
+    u8 opSrl(u8 val);                    // Shift right logical (bit 7 = 0)
+    void opBit(int bit, u8 val);         // Test bit — flags only, no result
+    void opBitHl(int bit, u8 val);       // BIT on (HL) — undoc flags differ from register form
+    void opBitXy(int bit, u8 val);       // BIT on (IX/IY+d) — undoc flags use WZ high byte
+
+    // Block operations — single-step and auto-repeating variants
+    // LDI/LDD: block copy  CPI/CPD: block search  INI/IND: block input  OUTI/OUTD: block output
+    // R-suffixed versions (LDIR, etc.) repeat until BC==0 (or match found for CPIR/CPDR)
+    void opLdi(); void opCpi(); void opIni(); void opOuti();
+    void opLdd(); void opCpd(); void opInd(); void opOutd();
+    void opLdir(); void opCpir(); void opInir(); void opOtir();
+    void opLddr(); void opCpdr(); void opIndr(); void opOtdr();
+
+    void opExsp(Pair& reg);   // EX (SP),rr — swap register with top-of-stack
+
+    void takeInterrupt();     // Service a maskable interrupt (IM 0/1/2)
+
+    // Opcode dispatch — one function per prefix group.  The main loop calls
+    // execOp() for unprefixed opcodes; prefix bytes (CB/DD/ED/FD) dispatch
+    // to their respective handlers.  DD and FD share execIndexed() with the
+    // index register passed by reference, eliminating code duplication.
+    void execOp(u8 opcode);                     // Unprefixed opcodes (256 cases)
+    void execCb(u8 opcode);                     // CB prefix — decoded algorithmically
+    void execEd(u8 opcode);                     // ED prefix — sparse switch
+    void execIndexed(Pair& xy, u8 opcode);      // DD/FD — parameterized on IX or IY
+    void execXyCb(u16 ea, u8 opcode);           // DDCB/FDCB — indexed bit ops
+
+    // Cycle table indices — each prefix group has its own timing table.
+    // TableEx holds extra cycles charged for taken branches and interrupt latency.
+    enum CycleTable { TableOp = 0, TableCb, TableEd, TableXy, TableXyCb, TableEx };
+
+    // Instance data
+    Regs m_r{};
+    ReadHandler m_ioRead = nullptr;
+    WriteHandler m_ioWrite = nullptr;
+    ReadHandler m_progRead = nullptr;
+    WriteHandler m_progWrite = nullptr;
+    ReadHandler m_opRead = nullptr;
+    ReadHandler m_opArgRead = nullptr;
+    const u8* m_cc[6]{};
+
+    // Static cycle count tables (T-states per opcode, indexed by opcode byte)
+    static const u8 s_ccOp[256];    // Unprefixed opcodes
+    static const u8 s_ccCb[256];    // CB-prefixed opcodes
+    static const u8 s_ccEd[256];    // ED-prefixed opcodes
+    static const u8 s_ccXy[256];    // DD/FD-prefixed opcodes
+    static const u8 s_ccXyCb[256];  // DDCB/FDCB-prefixed opcodes
+    static const u8 s_ccEx[256];    // Extra cycles for taken branches / interrupt latency
+
+    // Precomputed flag lookup tables (shared across all instances).  These
+    // trade ~130 KB of memory for O(1) flag computation in every ALU operation.
+    //   s_sz[r]       = SF|ZF|YF|XF flags for result r
+    //   s_szBit[r]    = same but for BIT instruction (ZF|PF set together when zero)
+    //   s_szp[r]      = s_sz[r] + parity flag
+    //   s_szhvInc[r]  = flags for INC result r  (VF when 0x80, HF when low nibble wraps)
+    //   s_szhvDec[r]  = flags for DEC result r  (VF when 0x7F, HF when low nibble wraps)
+    //   s_szhvcAdd[i] = full flags for 8-bit add, indexed by (carry<<16 | oldA<<8 | result)
+    //   s_szhvcSub[i] = full flags for 8-bit sub/cp, same indexing
+    static u8 s_sz[256];
+    static u8 s_szBit[256];
+    static u8 s_szp[256];
+    static u8 s_szhvInc[256];
+    static u8 s_szhvDec[256];
+    static u8* s_szhvcAdd;      // 2×256×256 = 128 KB (add without carry + adc with carry)
+    static u8* s_szhvcSub;      // 2×256×256 = 128 KB (sub without carry + sbc with carry)
+    static bool s_tablesInit;   // Guard: tables built on first instance construction
+    static int s_instanceCount; // Reference count to free tables when last instance dies
 };
-
-enum {
-	Z80_TABLE_op,
-	Z80_TABLE_cb,
-	Z80_TABLE_ed,
-	Z80_TABLE_xy,
-	Z80_TABLE_xycb,
-	Z80_TABLE_ex	/* cycles counts for taken jr/jp/call and interrupt latency (rst opcodes) */
-};
-
-enum
-{
-	CPUINFO_PTR_Z80_CYCLE_TABLE = CPUINFO_PTR_CPU_SPECIFIC,
-	CPUINFO_PTR_Z80_CYCLE_TABLE_LAST = CPUINFO_PTR_Z80_CYCLE_TABLE + Z80_TABLE_ex
-};
-
-void Z80Init();
-void Z80InitContention(int is_on_type, void (*rastercallback)(int));
-void Z80Contention_set_bank(int bankno);
-void Z80Reset();
-void Z80Exit();
-int  Z80Execute(int cycles);
-void Z80Burn(int cycles);
-void Z80SetIrqLine(int irqline, int state);
-void Z80GetContext (void *dst);
-void Z80SetContext (void *src);
-INT32 z80TotalCycles();
-INT32 z80TstateCounter();
-void Z80StopExecute();
-void z80_set_spectrum_tape_callback(int (*tape_cb)());
-void z80_set_cycle_tables_msx();
-void z80_set_cycle_tables(const UINT8 *op, const UINT8 *cb, const UINT8 *ed, const UINT8 *xy, const UINT8 *xycb, const UINT8 *ex);
-
-extern unsigned char Z80Vector;
-extern void (*z80edfe_callback)(Z80_Regs *Regs);
-extern int z80_ICount;
-extern UINT32 EA;
-
-typedef unsigned char (__fastcall *Z80ReadIoHandler)(unsigned int a);
-typedef void (__fastcall *Z80WriteIoHandler)(unsigned int a, unsigned char v);
-typedef unsigned char (__fastcall *Z80ReadProgHandler)(unsigned int a);
-typedef void (__fastcall *Z80WriteProgHandler)(unsigned int a, unsigned char v);
-typedef unsigned char (__fastcall *Z80ReadOpHandler)(unsigned int a);
-typedef unsigned char (__fastcall *Z80ReadOpArgHandler)(unsigned int a);
-
-void Z80SetIOReadHandler(Z80ReadIoHandler handler);
-void Z80SetIOWriteHandler(Z80WriteIoHandler handler);
-void Z80SetProgramReadHandler(Z80ReadProgHandler handler);
-void Z80SetProgramWriteHandler(Z80WriteProgHandler handler);
-void Z80SetCPUOpReadHandler(Z80ReadOpHandler handler);
-void Z80SetCPUOpArgReadHandler(Z80ReadOpArgHandler handler);
-
-void ActiveZ80SetPC(int pc);
-int ActiveZ80GetPC();
-int ActiveZ80GetAF();
-int ActiveZ80GetAF2();
-void ActiveZ80SetAF2(int af2);
-int ActiveZ80GetBC();
-int ActiveZ80GetDE();
-int ActiveZ80GetHL();
-int ActiveZ80GetLastOp();
-int ActiveZ80GetI();
-int ActiveZ80GetR();
-int ActiveZ80GetIX();
-int ActiveZ80GetIM();
-int ActiveZ80GetSP();
-int ActiveZ80GetPrevPC();
-void ActiveZ80SetCarry(int carry);
-int ActiveZ80GetCarry();
-int ActiveZ80GetCarry2();
-void ActiveZ80EXAF();
-int ActiveZ80GetPOP();
-int ActiveZ80GetA();
-void ActiveZ80SetA(int a);
-int ActiveZ80GetF();
-void ActiveZ80SetF(int f);
-int ActiveZ80GetIFF1();
-int ActiveZ80GetIFF2();
-void ActiveZ80SetDE(int de);
-void ActiveZ80SetHL(int hl);
-void ActiveZ80SetIX(int ix);
-void ActiveZ80SetSP(int sp);
-
-void ActiveZ80SetIRQHold();
-int ActiveZ80GetVector();
-void ActiveZ80SetVector(INT32 vector);
-
-#define MAX_CMSE	9	//Maximum contended memory script elements
-#define MAX_RWINFO	6	//Maximum reads/writes per opcode
-#define MAX_CM_SCRIPTS 37
-
-enum CMSE_TYPES
-{
-	CMSE_TYPE_MEMORY,
-	CMSE_TYPE_IO_PORT,
-	CMSE_TYPE_IR_REGISTER,
-	CMSE_TYPE_BC_REGISTER,
-	CMSE_TYPE_UNCONTENDED
-};
-
-enum ULA_VARIANT_TYPES
-{
-	ULA_VARIANT_NONE,
-	ULA_VARIANT_SINCLAIR,
-	ULA_VARIANT_AMSTRAD
-};
-
-enum RWINFO_FLAGS
-{
-	RWINFO_READ      = 0x01,
-	RWINFO_WRITE     = 0x02,
-	RWINFO_IO_PORT   = 0x04,
-	RWINFO_MEMORY    = 0x08,
-	RWINFO_PROCESSED = 0x10
-};
-
-typedef struct ContendedMemoryScriptElement
-{
-	int	rw_ix;
-	int	inst_cycles;
-	int     type;
-	int	multiplier;
-	bool	is_optional;
-}CMSE;
-
-typedef struct ContendedMemoryScriptBreakdown
-{
-	CMSE elements[MAX_CMSE];
-	int  number_of_elements;
-	int  inst_cycles_mandatory;
-	int  inst_cycles_optional;
-	int  inst_cycles_total;
-}CM_SCRIPT_BREAKDOWN;
-
-typedef struct ContendedMemoryScriptDescription
-{
-	const char*		sinclair;
-	const char*		amstrad;
-}CM_SCRIPT_DESCRIPTION;
-
-typedef struct ContendedMemoryScript
-{
-	int 			id;
-	const char*		desc;
-	CM_SCRIPT_BREAKDOWN	breakdown;
-}CM_SCRIPT;
-
-typedef struct MemoryReadWriteInformation
-{
-	UINT16   addr;
-	UINT8    val;
-        UINT16   flags;
-	const char *dbg;
-} RWINFO;
-
-typedef struct OpcodeHistory
-{
-	bool     capturing;
-	RWINFO   rw[MAX_RWINFO];
-	int      rw_count;
-	int      tstate_start;
-	UINT16 register_ir;
-	UINT16 register_bc;
-
-	int 	 uncontended_cycles_predicted;
-	int      uncontended_cycles_eaten;
-	bool     do_optional;
-
-	CM_SCRIPT           *script;
-	CM_SCRIPT_BREAKDOWN *breakdown;
-	int                 element;
-}OPCODE_HISTORY;
-
-enum CYCLES_TYPE
-{
-	CYCLES_ISR,		// Cycles eaten when processing interrupts
-	CYCLES_EXEC,		// Cycles eaten when the EXEC() macro is called
-	CYCLES_CONTENDED,	// Contended cycles eaten when processing opcode history (specz80_device only)
-	CYCLES_UNCONTENDED	// Uncontended cycles eaten when processing opcode history (specz80_device only)
-};
-
-#endif
-
