@@ -28,6 +28,7 @@ public:
     void setMMU(MMU* mmu);
     void reset(bool useBootrom = false);
     void setGBCMode(bool enabled) { m_gbcMode = enabled; }
+    bool isGBCMode() const { return m_gbcMode; }
     u32 step(); // Execute one instruction, return cycles taken
 
     void requestInterrupt(u8 interrupt);

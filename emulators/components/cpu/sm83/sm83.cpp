@@ -188,7 +188,7 @@ int SM83::execOp(u8 op) {
     case 0x1F: { bool oc=getFlag(CF); bool nc=(A()&0x01)!=0; A()=(A()>>1)|(oc?0x80:0); F()=nc?CF:0; return 4; }
 
     // STOP
-    case 0x10: fetch8(); return 4;
+    case 0x10: fetch8(); if (m_stop) m_stop(); return 4;
 
     // JR / JR cc
     case 0x18: { s8 off=static_cast<s8>(fetch8()); PC()+=off; return 12; }

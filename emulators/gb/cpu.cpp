@@ -26,6 +26,13 @@ static void sm83Write(u16 address, u8 value) {
     }
 }
 
+static void sm83Stop() {
+    if (g_cpuCtx && g_cpuCtx->isGBCMode()) {
+        MMU* mmu = g_cpuCtx->getMMU();
+        if (mmu) mmu->performSpeedSwitch();
+    }
+}
+
 // ---------------------------------------------------------------------------
 
 CPU::CPU()
@@ -34,6 +41,7 @@ CPU::CPU()
     g_cpuCtx = this;
     m_sm83.setReadHandler(sm83Read);
     m_sm83.setWriteHandler(sm83Write);
+    m_sm83.setStopHandler(sm83Stop);
 }
 
 CPU::~CPU() {

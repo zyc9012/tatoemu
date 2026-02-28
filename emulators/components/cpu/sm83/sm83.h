@@ -58,6 +58,7 @@ public:
 
     using ReadHandler  = u8  (*)(u16);
     using WriteHandler = void (*)(u16, u8);
+    using StopHandler  = void (*)();
 
     SM83();
     ~SM83();
@@ -67,6 +68,7 @@ public:
 
     void setReadHandler(ReadHandler h)   { m_read = h; }
     void setWriteHandler(WriteHandler h) { m_write = h; }
+    void setStopHandler(StopHandler h)   { m_stop = h; }
 
     // Save/restore entire CPU state
     void getContext(void* dst) const { if (dst) std::memcpy(dst, &m_r, sizeof(m_r)); }
@@ -137,5 +139,6 @@ private:
     Regs m_r{};
     ReadHandler  m_read  = nullptr;
     WriteHandler m_write = nullptr;
+    StopHandler  m_stop  = nullptr;
 };
 
