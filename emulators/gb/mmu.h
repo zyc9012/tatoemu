@@ -54,6 +54,7 @@ private:
     std::array<u8, 0x8000> m_wram;     // Work RAM (32KB for GBC, 8 banks)
     std::array<u8, 0x80> m_hram;       // High RAM (127 bytes)
     u8 m_ie;                            // Interrupt Enable register
+    u8 m_if;                            // Interrupt Flag register (0xFF0F)
     
     // GBC specific
     bool m_gbcMode;

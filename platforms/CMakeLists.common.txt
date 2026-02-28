@@ -73,6 +73,7 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/components/eeprom/eeprom.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/arm7tdmi/arm7tdmi.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/components/cpu/sm83/sm83.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m6502/m6502.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kcpu.c
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m68k/m68kops.c
@@ -164,6 +165,7 @@ function(apply_common_target_settings target_name)
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/m6502
         ${CMAKE_SOURCE_DIR}/emulators/components/cpu/arm7tdmi
+        ${CMAKE_SOURCE_DIR}/emulators/components/cpu/sm83
         ${CMAKE_SOURCE_DIR}/emulators/components/sound
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/ym2151
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/msm6295

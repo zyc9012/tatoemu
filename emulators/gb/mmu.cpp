@@ -17,6 +17,7 @@ MMU::MMU()
     , m_apu(nullptr)
     , m_bootrom(nullptr)
     , m_ie(0)
+    , m_if(0)
     , m_gbcMode(false)
     , m_wramBank(1)
     , m_speedSwitch(0)
@@ -32,6 +33,7 @@ void MMU::saveState(Buffer* buf) {
     buffer_write(buf, m_wram.data(), m_wram.size());
     buffer_write(buf, m_hram.data(), m_hram.size());
     buffer_write(buf, &m_ie, sizeof(m_ie));
+    buffer_write(buf, &m_if, sizeof(m_if));
     buffer_write(buf, &m_gbcMode, sizeof(m_gbcMode));
     buffer_write(buf, &m_wramBank, sizeof(m_wramBank));
     buffer_write(buf, &m_speedSwitch, sizeof(m_speedSwitch));
@@ -42,6 +44,7 @@ void MMU::loadState(Buffer* buf) {
     buffer_read(buf, m_wram.data(), m_wram.size());
     buffer_read(buf, m_hram.data(), m_hram.size());
     buffer_read(buf, &m_ie, sizeof(m_ie));
+    buffer_read(buf, &m_if, sizeof(m_if));
     buffer_read(buf, &m_gbcMode, sizeof(m_gbcMode));
     buffer_read(buf, &m_wramBank, sizeof(m_wramBank));
     buffer_read(buf, &m_speedSwitch, sizeof(m_speedSwitch));
@@ -238,8 +241,7 @@ u8 MMU::readIO(u16 address) const {
         case 0xFF07: // TAC
             return m_timer ? m_timer->read(address) : 0xFF;
         case 0xFF0F: // IF (Interrupt Flag)
-            // This is handled by CPU
-            return 0xFF;
+            return m_if;
         // APU registers (0xFF10-0xFF26, 0xFF30-0xFF3F)
         case 0xFF10: case 0xFF11: case 0xFF12: case 0xFF13: case 0xFF14:
         case 0xFF16: case 0xFF17: case 0xFF18: case 0xFF19:
@@ -306,7 +308,7 @@ void MMU::writeIO(u16 address, u8 value) {
             }
             break;
         case 0xFF0F: // IF (Interrupt Flag)
-            // This is handled by CPU
+            m_if = value;
             break;
         // APU registers (0xFF10-0xFF26, 0xFF30-0xFF3F)
         case 0xFF10: case 0xFF11: case 0xFF12: case 0xFF13: case 0xFF14:
