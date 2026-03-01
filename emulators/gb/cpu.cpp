@@ -60,11 +60,11 @@ void CPU::reset(bool useBootrom) {
     }
 }
 
-u32 CPU::step() {
+u32 CPU::step(u32 cycles) {
     // Execute exactly one instruction's worth of cycles via the SM83 core.
     // We ask for 1 cycle; execute() will run at least one instruction and
     // return the actual number of T-cycles consumed.
-    return static_cast<u32>(m_sm83.execute(1));
+    return static_cast<u32>(m_sm83.execute(cycles));
 }
 
 void CPU::requestInterrupt(u8 interrupt) {

@@ -29,7 +29,7 @@ public:
     void reset(bool useBootrom = false);
     void setGBCMode(bool enabled) { m_gbcMode = enabled; }
     bool isGBCMode() const { return m_gbcMode; }
-    u32 step(); // Execute one instruction, return cycles taken
+    u32 step(u32 cycles);
 
     void requestInterrupt(u8 interrupt);
     bool isHalted() const { return m_sm83.isHalted(); }
