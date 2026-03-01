@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include "../core.h"
+#include "../components/scheduler.h"
 #include "cpu.h"
 #include "memory.h"
 #include "ppu.h"
@@ -48,6 +49,7 @@ public:
     
 private:
     // Core components
+    std::unique_ptr<Scheduler> m_scheduler;
     std::unique_ptr<CPU> m_cpu;
     std::unique_ptr<Memory> m_memory;
     std::unique_ptr<PPU> m_ppu;
@@ -57,8 +59,6 @@ private:
     std::unique_ptr<APU> m_apu;
     std::unique_ptr<Cartridge> m_cartridge;
     std::unique_ptr<GPIO> m_gpio;
-    
-    u32 m_cyclesThisFrame;
     
     // Frame timing
     double m_gameSpeed = 1.0;

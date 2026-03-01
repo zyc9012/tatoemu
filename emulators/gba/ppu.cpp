@@ -1,6 +1,7 @@
 #include "ppu.h"
 #include "memory.h"
 #include "dma.h"
+#include "../components/scheduler.h"
 #include <cstring>
 #include <algorithm>
 
@@ -22,67 +23,78 @@ void PPU::reset() {
     m_bg2RefY = 0;
     m_bg3RefX = 0;
     m_bg3RefY = 0;
+
+    // Set up event callbacks
+    m_hblankEvent.callback = onHBlankEvent;
+    m_hblankEvent.context = this;
+    m_scanlineEndEvent.callback = onScanlineEndEvent;
+    m_scanlineEndEvent.context = this;
+
+    // Schedule initial events
+    if (m_scheduler) {
+        scheduleEvents();
+    }
 }
 
-void PPU::step(int cycles) {
-    m_cycles += cycles;
-    
-    if (m_vcount < VISIBLE_LINES) {
-        // Visible scanline
-        if (!m_inHBlank && m_cycles >= HDRAW_CYCLES) {
-            enterHBlank();
-        }
-        
-        if (m_cycles >= SCANLINE_CYCLES) {
-            m_cycles -= SCANLINE_CYCLES;
-            m_vcount++;
-            m_inHBlank = false;
-            
-            if (m_vcount == VISIBLE_LINES) {
-                enterVBlank();
-            }
-            
-            updateDispstat();
-        }
+void PPU::scheduleEvents() {
+    if (!m_inHBlank && m_cycles < HDRAW_CYCLES) {
+        m_scheduler->schedule(m_hblankEvent, HDRAW_CYCLES - m_cycles);
+    }
+    m_scheduler->schedule(m_scanlineEndEvent, SCANLINE_CYCLES - m_cycles);
+}
+
+void PPU::onHBlankEvent(void* ctx, [[maybe_unused]] int userData) {
+    auto* ppu = static_cast<PPU*>(ctx);
+    ppu->m_cycles = HDRAW_CYCLES;
+
+    if (ppu->m_vcount < VISIBLE_LINES) {
+        ppu->enterHBlank();
     } else {
-        // VBlank scanlines — HBlank still fires for IRQ
-        if (!m_inHBlank && m_cycles >= HDRAW_CYCLES) {
-            m_inHBlank = true;
-            
-            u16 dispstat = m_memory->readIO16(IO::DISPSTAT);
-            dispstat |= DISPSTAT::HBLANK_FLAG;
-            m_memory->writeIO16(IO::DISPSTAT, dispstat);
-            
-            if (dispstat & DISPSTAT::HBLANK_IRQ) {
-                m_memory->requestIRQ(IRQ::HBLANK);
-            }
-            // Trigger video capture DMA for vcounts 160-161 (VISIBLE_LINES to VISIBLE_LINES+1)
-            if (m_vcount < VISIBLE_LINES + 2) m_dma->runDisplayStart(m_vcount);
-            // No HBlank DMA during VBlank
+        // VBlank HBlank
+        ppu->m_inHBlank = true;
+
+        u16 dispstat = ppu->m_memory->readIO16(IO::DISPSTAT);
+        dispstat |= DISPSTAT::HBLANK_FLAG;
+        ppu->m_memory->writeIO16(IO::DISPSTAT, dispstat);
+
+        if (dispstat & DISPSTAT::HBLANK_IRQ) {
+            ppu->m_memory->requestIRQ(IRQ::HBLANK);
         }
-        
-        if (m_cycles >= SCANLINE_CYCLES) {
-            m_cycles -= SCANLINE_CYCLES;
-            m_vcount++;
-            m_inHBlank = false;
-            
-            // VBlank flag clears at scanline 227 (last VBlank line)
-            if (m_vcount == TOTAL_LINES - 1) {
-                m_inVBlank = false;
-            }
-            
-            if (m_vcount >= TOTAL_LINES) {
-                m_vcount = 0;
-                
-                // Render frame
-                if (m_videoDevice) {
-                    m_videoDevice->render(m_framebuffer);
-                }
-            }
-            
-            updateDispstat();
+        // Trigger video capture DMA for vcounts 160-161
+        if (ppu->m_vcount < VISIBLE_LINES + 2) {
+            ppu->m_dma->runDisplayStart(ppu->m_vcount);
+        }
+        // No HBlank DMA during VBlank
+    }
+}
+
+void PPU::onScanlineEndEvent(void* ctx, [[maybe_unused]] int userData) {
+    auto* ppu = static_cast<PPU*>(ctx);
+    ppu->m_cycles = 0;
+    ppu->m_vcount++;
+    ppu->m_inHBlank = false;
+
+    if (ppu->m_vcount == VISIBLE_LINES) {
+        ppu->enterVBlank();
+    }
+
+    // VBlank flag clears at scanline 227 (last VBlank line)
+    if (ppu->m_vcount == TOTAL_LINES - 1) {
+        ppu->m_inVBlank = false;
+    }
+
+    if (ppu->m_vcount >= TOTAL_LINES) {
+        ppu->m_vcount = 0;
+        if (ppu->m_videoDevice) {
+            ppu->m_videoDevice->render(ppu->m_framebuffer);
         }
     }
+
+    ppu->updateDispstat();
+
+    // Schedule next scanline's events
+    ppu->m_scheduler->schedule(ppu->m_hblankEvent, HDRAW_CYCLES);
+    ppu->m_scheduler->schedule(ppu->m_scanlineEndEvent, SCANLINE_CYCLES);
 }
 
 void PPU::updateDispstat() {
@@ -1012,6 +1024,13 @@ void PPU::loadState(Buffer* buf) {
     buffer_read(buf, &m_bg2RefY, sizeof(m_bg2RefY));
     buffer_read(buf, &m_bg3RefX, sizeof(m_bg3RefX));
     buffer_read(buf, &m_bg3RefY, sizeof(m_bg3RefY));
+
+    // Reinitialize event callbacks and reschedule
+    m_hblankEvent.callback = onHBlankEvent;
+    m_hblankEvent.context = this;
+    m_scanlineEndEvent.callback = onScanlineEndEvent;
+    m_scanlineEndEvent.context = this;
+    scheduleEvents();
 }
 
 } // namespace gba

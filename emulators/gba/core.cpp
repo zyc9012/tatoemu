@@ -1,16 +1,21 @@
 #include "core.h"
+#include "../components/scheduler.h"
+#include "../components/scheduler.h"
 #include <SDL3/SDL.h>
 #include "../components/buffer.h"
 #include <cstdio>
 #include <vector>
+#include <algorithm>
 
 namespace gba {
 
-Core::Core()
-    : m_cyclesThisFrame(0) {
+Core::Core() {
 }
 
 bool Core::initialize() {
+    // Create scheduler first — other components depend on it
+    m_scheduler = std::make_unique<Scheduler>();
+
     // Create core components
     m_cartridge = std::make_unique<Cartridge>();
     m_cpu = std::make_unique<CPU>();
@@ -33,13 +38,16 @@ bool Core::initialize() {
     m_cpu->setMemory(m_memory.get());
     m_ppu->setMemory(m_memory.get());
     m_ppu->setDMA(m_dma.get());
+    m_ppu->setScheduler(m_scheduler.get());
     m_joypad->setMemory(m_memory.get());
     m_timer->setMemory(m_memory.get());
     m_timer->setAPU(m_apu.get());
+    m_timer->setScheduler(m_scheduler.get());
     m_dma->setMemory(m_memory.get());
     m_apu->setMemory(m_memory.get());
     m_apu->setTimer(m_timer.get());
     m_apu->setDMA(m_dma.get());
+    m_apu->setScheduler(m_scheduler.get());
     m_memory->setGPIO(m_gpio.get());
 
     return true;
@@ -115,6 +123,7 @@ bool Core::loadROM(const fs::path& filename) {
     }
 
     // Reset all components
+    m_scheduler->reset();
     m_memory->reset();
     m_cpu->reset();
     m_ppu->reset();
@@ -130,27 +139,35 @@ bool Core::loadROM(const fs::path& filename) {
 }
 
 void Core::update() {
-    // Run until we've executed enough cycles for one frame
-    while (m_cyclesThisFrame < CYCLES_PER_FRAME) {
-        // Step CPU
-        u32 cycles = m_cpu->step(1);
-        
-        // Step other components
-        m_ppu->step(cycles);
-        m_timer->step(cycles);
-        m_apu->step(cycles, m_gameSpeed);
-        
-        m_cyclesThisFrame += cycles;
+    // Event-driven main loop:
+    // CPU runs until the next scheduled event (PPU scanline, timer overflow, etc.)
+    // Then the scheduler fires events and the CPU resumes.
+    u64 frameEnd = m_scheduler->now() + CYCLES_PER_FRAME;
+
+    while (m_scheduler->now() < frameEnd) {
+        m_cpu->checkIRQ();
+
+        if (m_memory->isHalted()) {
+            // CPU halted — skip directly to next event
+            int skip = std::min(m_scheduler->cyclesUntilNextEvent(),
+                                static_cast<int>(frameEnd - m_scheduler->now()));
+            if (skip <= 0) skip = 1;
+            m_scheduler->addCycles(skip);
+        } else {
+            // Run CPU until next event boundary
+            int budget = m_scheduler->cyclesUntilNextEvent();
+            if (budget <= 0) budget = 1;
+            u32 executed = m_cpu->run(budget);
+            m_scheduler->addCycles(executed);
+        }
     }
-    
-    m_cyclesThisFrame -= CYCLES_PER_FRAME;
 }
 
 bool Core::saveState(const fs::path& filename) {
     Buffer buf = {};
     
-    // Save all component states
-    buffer_write(&buf, &m_cyclesThisFrame, sizeof(m_cyclesThisFrame));
+    // Save scheduler timestamp
+    m_scheduler->saveState(&buf);
     m_cpu->saveState(&buf);
     m_memory->saveState(&buf);
     m_ppu->saveState(&buf);
@@ -168,12 +185,12 @@ bool Core::loadState(const fs::path& filename) {
     Buffer buf = {};
     buffer_load_from_file(&buf, filename);
     
-    // Load all component states
-    buffer_read(&buf, &m_cyclesThisFrame, sizeof(m_cyclesThisFrame));
+    // Load scheduler timestamp (clears all events)
+    m_scheduler->loadState(&buf);
     m_cpu->loadState(&buf);
     m_memory->loadState(&buf);
-    m_ppu->loadState(&buf);
-    m_timer->loadState(&buf);
+    m_ppu->loadState(&buf);   // reschedules PPU events
+    m_timer->loadState(&buf); // reschedules timer events
     m_joypad->loadState(&buf);
     m_dma->loadState(&buf);
     m_apu->loadState(&buf);
@@ -185,6 +202,7 @@ bool Core::loadState(const fs::path& filename) {
 
 void Core::updateGameSpeed(double gameSpeed) {
     m_gameSpeed = gameSpeed;
+    m_apu->setGameSpeed(gameSpeed);
 }
 
 } // namespace gba

@@ -20,6 +20,9 @@ public:
 
     void checkIRQ();
 
+    // Execute instructions for the given cycle budget (without halt check)
+    int run(int cycles);
+
     // Save/Load state
     void saveState(Buffer* buf);
     void loadState(Buffer* buf);

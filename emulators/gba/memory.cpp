@@ -741,9 +741,13 @@ void Memory::writeIO16(u32 offset, u16 value) {
                 m_halted = true;
             }
             break;
-        case IO::HALTCNT:
+        case IO::HALTCNT: {
             m_halted = true;
+            u16 ie = readIO16(IO::IE);
+            u16 iff = *reinterpret_cast<u16*>(&m_io[IO::IF]);
+            log_error("[GBA HALT] IE=0x%04X IF=0x%04X IME=%d", ie, iff, m_io[IO::IME]);
             break;
+        }
     }
 
     *reinterpret_cast<u16*>(&m_io[offset]) = value;

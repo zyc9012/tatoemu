@@ -3,6 +3,7 @@
 #include "types.h"
 #include "consts.h"
 #include "../components/buffer.h"
+#include "../components/scheduler.h"
 #include <array>
 
 namespace gba {
@@ -20,9 +21,9 @@ public:
     void setTimer(Timer* timer) { m_timer = timer; }
     void setDMA(DMA* dma) { m_dma = dma; }
     void setAudioDevice(AudioDevice* device) { m_audioDevice = device; }
+    void setScheduler(Scheduler* scheduler) { m_scheduler = scheduler; }
 
     void reset();
-    void step(u32 cycles, double gameSpeed = 1.0);
 
     // IO register access
     u8 readRegister(u32 offset) const;
@@ -36,8 +37,9 @@ public:
     void loadState(Buffer* buf);
 
     // Configuration
-    void setSampleRate(u32 sampleRate) { m_sampleRate = sampleRate; }
+    void setSampleRate(u32 sampleRate);
     void setVolume(float volume) { m_volume = volume; }
+    void setGameSpeed(double speed) { m_gameSpeed = speed; }
 
 private:
     // -------------------------------------------------------
@@ -152,8 +154,20 @@ private:
     // Frame sequencer (512 Hz = 8192 CPU cycles per tick at 16.78 MHz)
     void clockFrameSequencer();
 
+    // Advance PSG frequency timers by the given number of cycles
+    void advancePSGTimers(u32 cycles);
+
     // Sample generation and output
-    void generateSample(double gameSpeed, u32 cycles);
+    void generateSample();
+
+    // Schedule the next occurrence of each event
+    void scheduleFrameSequencer();
+    void scheduleSampleGeneration();
+    void scheduleEvents();
+
+    // Static event callbacks
+    static void onFrameSequencerEvent(void* ctx, int userData);
+    static void onSampleEvent(void* ctx, int userData);
 
     // Duty cycle patterns (same as GB)
     static constexpr u8 DUTY_PATTERNS[4][8] = {
@@ -167,6 +181,7 @@ private:
     Timer* m_timer = nullptr;
     DMA* m_dma = nullptr;
     AudioDevice* m_audioDevice = nullptr;
+    Scheduler* m_scheduler = nullptr;
 
     // PSG channels
     SquareChannel m_square1;
@@ -194,13 +209,17 @@ private:
     u16 m_soundBias;
 
     // Frame sequencer
-    u32 m_frameSequencerTimer;
     u8 m_frameSequencerStep;
 
     // Sample generation
-    u32 m_sampleTimer;
     u32 m_sampleRate;
     float m_volume;
+    double m_gameSpeed;
+    u64 m_lastSampleTimestamp;  // scheduler timestamp of last PSG advance
+
+    // Scheduler events
+    SchedulerEvent m_frameSeqEvent;
+    SchedulerEvent m_sampleEvent;
 
     // High-pass filter state
     float m_capacitorLeft;

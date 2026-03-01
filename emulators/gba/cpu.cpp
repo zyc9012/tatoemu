@@ -55,6 +55,10 @@ int CPU::step(int cycles) {
     return m_arm7.execute(cycles);
 }
 
+int CPU::run(int cycles) {
+    return m_arm7.execute(cycles);
+}
+
 void CPU::checkIRQ() {
     u16 IE  = m_memory->readIO16(IO::IE);
     u16 IF  = m_memory->readIO16(IO::IF);

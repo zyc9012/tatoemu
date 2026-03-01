@@ -3,6 +3,7 @@
 #include "types.h"
 #include "consts.h"
 #include "../components/buffer.h"
+#include "../components/scheduler.h"
 #include <algorithm>
 
 namespace gba {
@@ -35,9 +36,9 @@ public:
     void setMemory(Memory* memory) { m_memory = memory; }
     void setDMA(DMA* dma) { m_dma = dma; }
     void setVideoDevice(VideoDevice* device) { m_videoDevice = device; }
+    void setScheduler(Scheduler* scheduler) { m_scheduler = scheduler; }
     
     void reset();
-    void step(int cycles);
     
     void writeRegister(u32 offset, u16 value);
     u16 getVCount() const { return m_vcount; }
@@ -52,6 +53,11 @@ private:
     void enterVBlank();
     void updateDispstat();
     void latchAffineRefPoints();
+    void scheduleEvents();
+
+    // Event callbacks
+    static void onHBlankEvent(void* ctx, int userData);
+    static void onScanlineEndEvent(void* ctx, int userData);
     
     // Pixel placement for two-layer compositing
     // Returns true if the pixel was placed on top (for semi-transparency tracking)
@@ -109,13 +115,18 @@ private:
     Memory* m_memory = nullptr;
     DMA* m_dma = nullptr;
     VideoDevice* m_videoDevice = nullptr;
+    Scheduler* m_scheduler = nullptr;
     
     u32 m_framebuffer[SCREEN_WIDTH * SCREEN_HEIGHT];
     
     u16 m_vcount = 0;
-    u32 m_cycles = 0;
+    u32 m_cycles = 0;  // cycle position within current scanline (for save state)
     bool m_inHBlank = false;
     bool m_inVBlank = false;
+
+    // Scheduler events
+    SchedulerEvent m_hblankEvent;
+    SchedulerEvent m_scanlineEndEvent;
 
     // Internal affine reference points (28.8 fixed-point)
     // Latched at VBlank start and updated per-scanline by PB/PD

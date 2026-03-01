@@ -33,6 +33,8 @@ namespace SoundIO {
 
 constexpr u8 APU::DUTY_PATTERNS[4][8];
 
+static constexpr u32 FRAME_SEQ_PERIOD = 32768; // CPU_FREQUENCY / 512
+
 APU::APU()
     : m_psgVolumeRight(7)
     , m_psgVolumeLeft(7)
@@ -41,11 +43,11 @@ APU::APU()
     , m_psgMasterVolume(2)
     , m_masterEnable(false)
     , m_soundBias(0x200)
-    , m_frameSequencerTimer(0)
     , m_frameSequencerStep(0)
-    , m_sampleTimer(0)
     , m_sampleRate(44100)
     , m_volume(1.0f)
+    , m_gameSpeed(1.0)
+    , m_lastSampleTimestamp(0)
     , m_capacitorLeft(0.0f)
     , m_capacitorRight(0.0f) {
 }
@@ -68,44 +70,73 @@ void APU::reset() {
     m_masterEnable = true;
     m_soundBias = 0x200;
 
-    m_frameSequencerTimer = 0;
     m_frameSequencerStep = 0;
-    m_sampleTimer = 0;
+    m_lastSampleTimestamp = m_scheduler ? m_scheduler->now() : 0;
     m_capacitorLeft = 0.0f;
     m_capacitorRight = 0.0f;
+
+    // Set up event callbacks
+    m_frameSeqEvent.callback = onFrameSequencerEvent;
+    m_frameSeqEvent.context = this;
+    m_sampleEvent.callback = onSampleEvent;
+    m_sampleEvent.context = this;
+
+    // Schedule initial events
+    if (m_scheduler) {
+        scheduleEvents();
+    }
+}
+
+void APU::setSampleRate(u32 sampleRate) {
+    m_sampleRate = sampleRate;
+    // Reschedule sample event if scheduler is active
+    if (m_scheduler && m_sampleEvent.active) {
+        scheduleSampleGeneration();
+    }
 }
 
 // ---------------------------------------------------------------
-// step() — called every CPU cycle batch
+// Event scheduling
 // ---------------------------------------------------------------
-void APU::step(u32 cycles, double gameSpeed) {
-    if (!m_masterEnable) {
-        // Still generate silence to keep the audio buffer filled
-        m_sampleTimer += cycles;
-        u32 cyclesPerSample = (CPU_FREQUENCY * gameSpeed) / m_sampleRate;
-        while (m_sampleTimer >= cyclesPerSample) {
-            m_sampleTimer -= cyclesPerSample;
-            // Push silence
-            if (m_audioDevice) {
-                float silence[2] = {0.0f, 0.0f};
-                m_audioDevice->writeSamples(silence, sizeof(silence));
-            }
-        }
-        return;
+void APU::scheduleFrameSequencer() {
+    m_scheduler->schedule(m_frameSeqEvent, FRAME_SEQ_PERIOD);
+}
+
+void APU::scheduleSampleGeneration() {
+    u32 cyclesPerSample = static_cast<u32>((CPU_FREQUENCY * m_gameSpeed) / m_sampleRate);
+    if (cyclesPerSample < 1) cyclesPerSample = 1;
+    m_scheduler->schedule(m_sampleEvent, cyclesPerSample);
+}
+
+void APU::scheduleEvents() {
+    scheduleFrameSequencer();
+    scheduleSampleGeneration();
+}
+
+// ---------------------------------------------------------------
+// Event callbacks
+// ---------------------------------------------------------------
+void APU::onFrameSequencerEvent(void* ctx, [[maybe_unused]] int userData) {
+    auto* apu = static_cast<APU*>(ctx);
+    if (apu->m_masterEnable) {
+        apu->clockFrameSequencer();
     }
+    apu->scheduleFrameSequencer();
+}
 
-    // Frame sequencer at 512 Hz (every 32768 CPU cycles at 16.78 MHz)
-    // GBA frame sequencer period = CPU_FREQUENCY / 512 = 32768
-    static constexpr u32 FRAME_SEQ_PERIOD = 32768;
+void APU::onSampleEvent(void* ctx, [[maybe_unused]] int userData) {
+    auto* apu = static_cast<APU*>(ctx);
+    apu->generateSample();
+    apu->scheduleSampleGeneration();
+}
 
-    // --- Frame sequencer (batched) ---
-    m_frameSequencerTimer += cycles;
-    while (m_frameSequencerTimer >= FRAME_SEQ_PERIOD) {
-        m_frameSequencerTimer -= FRAME_SEQ_PERIOD;
-        clockFrameSequencer();
-    }
+// ---------------------------------------------------------------
+// Advance PSG frequency timers by elapsed cycles
+// ---------------------------------------------------------------
+void APU::advancePSGTimers(u32 cycles) {
+    if (cycles == 0) return;
 
-    // --- Square channel 1 frequency timer ---
+    // --- Square channel 1 ---
     if (m_square1.enabled) {
         if (cycles >= m_square1.frequencyTimer) {
             u32 rem = cycles - m_square1.frequencyTimer;
@@ -118,7 +149,7 @@ void APU::step(u32 cycles, double gameSpeed) {
         }
     }
 
-    // --- Square channel 2 frequency timer ---
+    // --- Square channel 2 ---
     if (m_square2.enabled) {
         if (cycles >= m_square2.frequencyTimer) {
             u32 rem = cycles - m_square2.frequencyTimer;
@@ -131,7 +162,7 @@ void APU::step(u32 cycles, double gameSpeed) {
         }
     }
 
-    // --- Wave channel frequency timer ---
+    // --- Wave channel ---
     if (m_wave.enabled) {
         u32 period = (2048 - m_wave.frequency) * 2;
         if (period > 0) {
@@ -146,7 +177,7 @@ void APU::step(u32 cycles, double gameSpeed) {
         }
     }
 
-    // --- Noise channel frequency timer ---
+    // --- Noise channel ---
     if (m_noise.enabled) {
         u32 rem = cycles;
         while (rem >= m_noise.frequencyTimer) {
@@ -163,9 +194,6 @@ void APU::step(u32 cycles, double gameSpeed) {
         }
         m_noise.frequencyTimer -= rem;
     }
-
-    // --- Sample generation (batched) ---
-    generateSample(gameSpeed, cycles);
 }
 
 // ---------------------------------------------------------------
@@ -200,12 +228,22 @@ void APU::clockFrameSequencer() {
 // ---------------------------------------------------------------
 // Sample generation and mixing
 // ---------------------------------------------------------------
-void APU::generateSample(double gameSpeed, u32 cycles) {
-    m_sampleTimer += cycles;
-    u32 cyclesPerSample = (CPU_FREQUENCY * gameSpeed) / m_sampleRate;
+void APU::generateSample() {
+    // Advance PSG timers by elapsed cycles since last sample
+    u64 now = m_scheduler->now();
+    u32 elapsed = static_cast<u32>(now - m_lastSampleTimestamp);
+    m_lastSampleTimestamp = now;
 
-    if (m_sampleTimer < cyclesPerSample) return;
-    m_sampleTimer -= cyclesPerSample;
+    if (!m_masterEnable) {
+        // Push silence to keep audio buffer filled
+        if (m_audioDevice) {
+            float silence[2] = {0.0f, 0.0f};
+            m_audioDevice->writeSamples(silence, sizeof(silence));
+        }
+        return;
+    }
+
+    advancePSGTimers(elapsed);
 
     // --- PSG channel outputs (0..15 range) ---
     s16 ch1 = m_square1.getOutput();
@@ -841,9 +879,8 @@ void APU::saveState(Buffer* buf) {
     buffer_write(buf, &m_masterEnable, sizeof(m_masterEnable));
     buffer_write(buf, &m_soundBias, sizeof(m_soundBias));
 
-    buffer_write(buf, &m_frameSequencerTimer, sizeof(m_frameSequencerTimer));
     buffer_write(buf, &m_frameSequencerStep, sizeof(m_frameSequencerStep));
-    buffer_write(buf, &m_sampleTimer, sizeof(m_sampleTimer));
+    buffer_write(buf, &m_lastSampleTimestamp, sizeof(m_lastSampleTimestamp));
     buffer_write(buf, &m_capacitorLeft, sizeof(m_capacitorLeft));
     buffer_write(buf, &m_capacitorRight, sizeof(m_capacitorRight));
 }
@@ -864,11 +901,19 @@ void APU::loadState(Buffer* buf) {
     buffer_read(buf, &m_masterEnable, sizeof(m_masterEnable));
     buffer_read(buf, &m_soundBias, sizeof(m_soundBias));
 
-    buffer_read(buf, &m_frameSequencerTimer, sizeof(m_frameSequencerTimer));
     buffer_read(buf, &m_frameSequencerStep, sizeof(m_frameSequencerStep));
-    buffer_read(buf, &m_sampleTimer, sizeof(m_sampleTimer));
+    buffer_read(buf, &m_lastSampleTimestamp, sizeof(m_lastSampleTimestamp));
     buffer_read(buf, &m_capacitorLeft, sizeof(m_capacitorLeft));
     buffer_read(buf, &m_capacitorRight, sizeof(m_capacitorRight));
+
+    // Reinitialize event callbacks and reschedule
+    m_frameSeqEvent.callback = onFrameSequencerEvent;
+    m_frameSeqEvent.context = this;
+    m_sampleEvent.callback = onSampleEvent;
+    m_sampleEvent.context = this;
+    if (m_scheduler) {
+        scheduleEvents();
+    }
 }
 
 } // namespace gba

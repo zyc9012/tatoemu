@@ -158,6 +158,14 @@ void GPIO::rtcBeginCommand() {
     m_rtc.bitsRead = 0;
     m_rtc.bits = 0;
 
+    log_error("[RTC] cmd=%d (%s) reading=%d bytes=%d", m_rtc.command,
+              m_rtc.command == 0 ? "RESET" :
+              m_rtc.command == 2 ? "DATETIME" :
+              m_rtc.command == 3 ? "FORCE_IRQ" :
+              m_rtc.command == 4 ? "CONTROL" :
+              m_rtc.command == 6 ? "TIME" : "UNKNOWN",
+              m_rtc.reading, m_rtc.bytesRemaining);
+
     switch (static_cast<RTCCommand>(m_rtc.command)) {
         case RTCCommand::RESET:
             m_rtc.control = 0;
