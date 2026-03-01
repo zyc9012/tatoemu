@@ -32,8 +32,8 @@ public:
     bool handleInput(SDL_Event& event) override { return m_joypad->handleInput(event); }
     void update() override;
     void updateGameSpeed(double gameSpeed) override;
-    void setAudioSampleRate(u32 sampleRate) override { if (m_apu) m_apu->setSampleRate(sampleRate); }
-    void setAudioVolume(float volume) override { if (m_apu) m_apu->setVolume(volume); }
+    void setAudioSampleRate(u32 sampleRate) override { m_apu->setSampleRate(sampleRate); }
+    void setAudioVolume(float volume) override { m_apu->setVolume(volume); }
 
     // Constants
     double getTargetFPS() const override { return TARGET_FPS; }

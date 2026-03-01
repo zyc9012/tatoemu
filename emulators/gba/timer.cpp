@@ -66,13 +66,11 @@ void Timer::checkOverflow(int channel) {
     
     // Trigger IRQ if enabled
     if (m_timers[channel].control & (1 << 6)) {
-        if (m_memory) {
-            m_memory->requestIRQ(IRQ::TIMER0 << channel);
-        }
+        m_memory->requestIRQ(IRQ::TIMER0 << channel);
     }
 
     // Notify APU of timer overflow (for DMA sound / FIFO channels)
-    if (m_apu && (channel == 0 || channel == 1)) {
+    if (channel == 0 || channel == 1) {
         m_apu->onTimerOverflow(channel);
     }
 }

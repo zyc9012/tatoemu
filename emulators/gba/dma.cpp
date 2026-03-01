@@ -157,7 +157,7 @@ void DMA::run(int channel) {
     
     // Handle completion
     bool irq = (m_channels[channel].control & (1 << 14)) != 0;
-    if (irq && m_memory) {
+    if (irq) {
         m_memory->requestIRQ(IRQ::DMA0 << channel);
     }
     
@@ -173,11 +173,9 @@ void DMA::run(int channel) {
         m_channels[channel].control &= ~(1 << 15); // Disable
         // Update the IO register to reflect DMA completion
         // Games poll DMA CNT_H bit 15 to wait for transfer to finish
-        if (m_memory) {
-            u32 cntHOffset = IO::DMA0CNT_H + channel * 12;
-            u16* reg = reinterpret_cast<u16*>(&m_memory->getIO()[cntHOffset]);
-            *reg &= ~(1 << 15);
-        }
+        u32 cntHOffset = IO::DMA0CNT_H + channel * 12;
+        u16* reg = reinterpret_cast<u16*>(&m_memory->getIO()[cntHOffset]);
+        *reg &= ~(1 << 15);
     }
 }
 
@@ -253,7 +251,7 @@ void DMA::runFIFO(int fifoIndex) {
 
         // Handle completion
         bool irq = (m_channels[i].control & (1 << 14)) != 0;
-        if (irq && m_memory) {
+        if (irq) {
             m_memory->requestIRQ(IRQ::DMA0 << i);
         }
         // FIFO DMA always repeats until disabled

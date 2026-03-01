@@ -52,8 +52,7 @@ void Joypad::handleButton(GBAButton button, bool pressed) {
     }
     
     // Check for keypad interrupt
-    if (m_memory) {
-        u16 keycnt = m_memory->readIO16(IO::KEYCNT);
+    u16 keycnt = m_memory->readIO16(IO::KEYCNT);
         if (keycnt & (1 << 14)) { // IRQ enable
             bool condition = (keycnt & (1 << 15)) != 0; // AND (1) or OR (0)
             u16 selected = keycnt & 0x3FF;
@@ -67,7 +66,6 @@ void Joypad::handleButton(GBAButton button, bool pressed) {
                 m_memory->requestIRQ(IRQ::KEYPAD);
             }
         }
-    }
 }
 
 void Joypad::saveState(Buffer* buf) {

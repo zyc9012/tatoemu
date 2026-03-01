@@ -49,15 +49,13 @@ int CPU::step(int cycles) {
     // Check for pending IRQs BEFORE executing
     checkIRQ();
 
-    if (m_memory && m_memory->isHalted())
+    if (m_memory->isHalted())
         return 1; // Halted — return minimal cycles
 
     return m_arm7.execute(cycles);
 }
 
 void CPU::checkIRQ() {
-    if (!m_memory) return;
-
     u16 IE  = m_memory->readIO16(IO::IE);
     u16 IF  = m_memory->readIO16(IO::IF);
     u16 IME = m_memory->readIO16(IO::IME);

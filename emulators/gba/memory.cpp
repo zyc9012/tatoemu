@@ -185,7 +185,7 @@ u8 Memory::read8(u32 address) {
         case REGION_ROM1H:
         case REGION_ROM2:
         case REGION_ROM2H:
-            if (m_cartridge && offset < m_cartridge->getROMSize()) {
+            if (offset < m_cartridge->getROMSize()) {
                 value = m_cartridge->getROM()[offset & (m_cartridge->getROMSize() - 1)];
             } else {
                 return m_openBus >> ((address & 3) * 8);
@@ -193,11 +193,7 @@ u8 Memory::read8(u32 address) {
             break;
         case REGION_SRAM:
         case REGION_SRAM_MIRROR:
-            if (m_cartridge) {
-                value = m_cartridge->readSave(offset);
-            } else {
-                return m_openBus >> ((address & 3) * 8);
-            }
+            value = m_cartridge->readSave(offset);
             break;
         default:
             return m_openBus >> ((address & 3) * 8);
@@ -322,7 +318,7 @@ u32 Memory::read32(u32 address, bool isFetch) {
         case REGION_ROM1H:
         case REGION_ROM2:
         case REGION_ROM2H:
-            if (m_cartridge && offset < m_cartridge->getROMSize()) {
+            if (offset < m_cartridge->getROMSize()) {
                 offset &= (m_cartridge->getROMSize() - 1);
                 value = *reinterpret_cast<u32*>(&m_cartridge->getROM()[offset]);
             } else {
@@ -331,11 +327,9 @@ u32 Memory::read32(u32 address, bool isFetch) {
             break;
         case REGION_SRAM:
         case REGION_SRAM_MIRROR:
-            if (m_cartridge) {
+            {
                 u8 val = m_cartridge->readSave(offset);
                 value = val * 0x01010101;
-            } else {
-                return m_openBus;
             }
             break;
         default:
@@ -394,7 +388,7 @@ void Memory::write8(u32 address, u8 value) {
         }
         case REGION_SRAM:
         case REGION_SRAM_MIRROR:
-            if (m_cartridge) m_cartridge->writeSave(offset, value);
+            m_cartridge->writeSave(offset, value);
             break;
         default:
             break;
@@ -451,9 +445,7 @@ void Memory::write16(u32 address, u16 value) {
             break;
         case REGION_SRAM:
         case REGION_SRAM_MIRROR:
-            if (m_cartridge) {
-                m_cartridge->writeSave(offset, value & 0xFF);
-            }
+            m_cartridge->writeSave(offset, value & 0xFF);
             break;
         default:
             break;
@@ -510,9 +502,7 @@ void Memory::write32(u32 address, u32 value) {
             break;
         case REGION_SRAM:
         case REGION_SRAM_MIRROR:
-            if (m_cartridge) {
-                m_cartridge->writeSave(offset, value & 0xFF);
-            }
+            m_cartridge->writeSave(offset, value & 0xFF);
             break;
         default:
             break;

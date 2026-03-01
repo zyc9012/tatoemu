@@ -25,8 +25,6 @@ void PPU::reset() {
 }
 
 void PPU::step(int cycles) {
-    if (!m_memory) return;
-    
     m_cycles += cycles;
     
     if (m_vcount < VISIBLE_LINES) {
@@ -59,7 +57,7 @@ void PPU::step(int cycles) {
                 m_memory->requestIRQ(IRQ::HBLANK);
             }
             // Trigger video capture DMA for vcounts 160-161 (VISIBLE_LINES to VISIBLE_LINES+1)
-            if (m_dma && m_vcount < VISIBLE_LINES + 2) m_dma->runDisplayStart(m_vcount);
+            if (m_vcount < VISIBLE_LINES + 2) m_dma->runDisplayStart(m_vcount);
             // No HBlank DMA during VBlank
         }
         
@@ -303,7 +301,7 @@ void PPU::computeWindowFlags(u16 dispcnt, int y, u8* oam, u8* vram, u8* windowFl
 }
 
 void PPU::renderScanline() {
-    if (!m_memory || m_vcount >= VISIBLE_LINES) return;
+    if (m_vcount >= VISIBLE_LINES) return;
     
     u16 dispcnt = m_memory->readIO16(IO::DISPCNT);
     u8* palette = m_memory->getPalette();
@@ -905,8 +903,6 @@ void PPU::composeScanline(u32* line, ScanPixel* top, ScanPixel* bot,
 void PPU::enterHBlank() {
     m_inHBlank = true;
     
-    if (!m_memory) return;
-    
     renderScanline();
     
     // Update affine reference points per scanline (sx += PB, sy += PD)
@@ -928,15 +924,13 @@ void PPU::enterHBlank() {
     }
     
     // Trigger HBlank DMA (visible lines 0-159)
-    if (m_dma) m_dma->runHBlank();
+    m_dma->runHBlank();
     // Trigger video capture DMA (display start, vcounts 2-159 in visible range)
-    if (m_dma && m_vcount >= 2) m_dma->runDisplayStart(m_vcount);
+    if (m_vcount >= 2) m_dma->runDisplayStart(m_vcount);
 }
 
 void PPU::enterVBlank() {
     m_inVBlank = true;
-    
-    if (!m_memory) return;
     
     // Latch affine reference points at start of VBlank
     latchAffineRefPoints();
@@ -950,7 +944,7 @@ void PPU::enterVBlank() {
     }
     
     // Trigger VBlank DMA
-    if (m_dma) m_dma->runVBlank();
+    m_dma->runVBlank();
 }
 
 void PPU::writeRegister(u32 offset, u16 value) {
@@ -958,8 +952,6 @@ void PPU::writeRegister(u32 offset, u16 value) {
     // immediately latch the new value into the internal register.
     // The IO array is already updated by memory.cpp before this call.
     (void)value;
-    
-    if (!m_memory) return;
     
     auto signExtend28 = [](s32 val) -> s32 {
         return (val << 4) >> 4;
@@ -988,8 +980,6 @@ void PPU::writeRegister(u32 offset, u16 value) {
 }
 
 void PPU::latchAffineRefPoints() {
-    if (!m_memory) return;
-    
     auto signExtend28 = [](s32 val) -> s32 {
         return (val << 4) >> 4;
     };
