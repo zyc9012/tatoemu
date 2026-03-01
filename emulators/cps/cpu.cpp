@@ -12,71 +12,45 @@ namespace cps {
 static Memory* g_memory = nullptr;
 
 static unsigned int read8_callback(unsigned int address) {
-    if (g_memory) {
-        return g_memory->read8(address & 0xFFFFFF);
-    }
-    return 0;
+    return g_memory->read8(address & 0xFFFFFF);
 }
 
 static unsigned int read16_callback(unsigned int address) {
-    if (g_memory) {
-        return g_memory->read16(address & 0xFFFFFF);
-    }
-    return 0;
+    return g_memory->read16(address & 0xFFFFFF);
 }
 
 static unsigned int read32_callback(unsigned int address) {
-    if (g_memory) {
-        return g_memory->read32(address & 0xFFFFFF);
-    }
-    return 0;
+    return g_memory->read32(address & 0xFFFFFF);
 }
 
 static unsigned int read8Data_callback(unsigned int address) {
-    if (g_memory) {
-        return g_memory->read8Data(address & 0xFFFFFF);
-    }
-    return 0;
+    return g_memory->read8Data(address & 0xFFFFFF);
 }
 
 static unsigned int read16Data_callback(unsigned int address) {
-    if (g_memory) {
-        return g_memory->read16Data(address & 0xFFFFFF);
-    }
-    return 0;
+    return g_memory->read16Data(address & 0xFFFFFF);
 }
 
 static unsigned int read32Data_callback(unsigned int address) {
-    if (g_memory) {
-        return g_memory->read32Data(address & 0xFFFFFF);
-    }
-    return 0;
+    return g_memory->read32Data(address & 0xFFFFFF);
 }
 
 static void write8_callback(unsigned int address, unsigned int value) {
-    if (g_memory) {
-        g_memory->write8(address & 0xFFFFFF, static_cast<u8>(value));
-    }
+    g_memory->write8(address & 0xFFFFFF, static_cast<u8>(value));
 }
 
 static void write16_callback(unsigned int address, unsigned int value) {
-    if (g_memory) {
-        g_memory->write16(address & 0xFFFFFF, static_cast<u16>(value));
-    }
+    g_memory->write16(address & 0xFFFFFF, static_cast<u16>(value));
 }
 
 static void write32_callback(unsigned int address, unsigned int value) {
-    if (g_memory) {
-        g_memory->write32(address & 0xFFFFFF, static_cast<u32>(value));
-    }
+    g_memory->write32(address & 0xFFFFFF, static_cast<u32>(value));
 }
 
 static void write32_pd_callback(unsigned int address, unsigned int value) {
     // Predecrement mode - write high word first, then low word
-    if (g_memory) {
-        g_memory->write16((address + 2) & 0xFFFFFF, static_cast<u16>((value >> 16) & 0xFFFF));
-        g_memory->write16(address & 0xFFFFFF, static_cast<u16>(value & 0xFFFF));
-    }
+    g_memory->write16((address + 2) & 0xFFFFFF, static_cast<u16>((value >> 16) & 0xFFFF));
+    g_memory->write16(address & 0xFFFFFF, static_cast<u16>(value & 0xFFFF));
 }
 
 CPU::CPU()

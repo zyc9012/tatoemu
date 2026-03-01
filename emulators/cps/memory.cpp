@@ -72,10 +72,7 @@ Memory::Memory()
 }
 
 u8 Memory::getCPSVersion() const {
-    if (m_cartridge) {
-        return m_cartridge->getCPSVersion();
-    }
-    return 1;  // Default to CPS1
+    return m_cartridge->getCPSVersion();
 }
 
 void Memory::reset() {
@@ -92,7 +89,7 @@ void Memory::reset() {
     if (cpsVer == 2) {
         m_eeprom.init(&cps2EEPROMInterface);
         m_eeprom.reset();
-    } else if (cpsVer == 1 && m_cartridge && m_cartridge->isCPS1QSound()) {
+    } else if (cpsVer == 1 && m_cartridge->isCPS1QSound()) {
         m_eeprom.init(&cps1QsoundEEPROMInterface);
         m_eeprom.reset();
     }
@@ -102,19 +99,17 @@ void Memory::reset() {
     m_protCalc[1] = 0;
     
     // Set board ID and memProt from game database
-    if (m_cartridge) {
-        BoardConfig config = m_cartridge->getBoardConfig();
-        
-        m_boardId[0] = config.boardIdOffset;
-        m_boardId[1] = config.boardIdValue1;
-        m_boardId[2] = config.boardIdValue2;
-        
-        // Set memory protection offsets
-        m_memProt[0] = config.memProt[0];
-        m_memProt[1] = config.memProt[1];
-        m_memProt[2] = config.memProt[2];
-        m_memProt[3] = config.memProt[3];
-    }
+    BoardConfig config = m_cartridge->getBoardConfig();
+    
+    m_boardId[0] = config.boardIdOffset;
+    m_boardId[1] = config.boardIdValue1;
+    m_boardId[2] = config.boardIdValue2;
+    
+    // Set memory protection offsets
+    m_memProt[0] = config.memProt[0];
+    m_memProt[1] = config.memProt[1];
+    m_memProt[2] = config.memProt[2];
+    m_memProt[3] = config.memProt[3];
 
     // CPS2-specific reset
     m_objectBank = 0;
@@ -139,10 +134,7 @@ u8 Memory::read8(u32 address) {
     
     // ROM (0x000000-0x3FFFFF) - use decrypted ROM for instruction fetches
     if (address < 0x400000) {
-        if (m_cartridge) {
-            return m_cartridge->readROM8(address);
-        }
-        return 0xFF;
+        return m_cartridge->readROM8(address);
     }
     
     // CPS2-specific: CPS2 Registers (0x400000-0x40000F)
@@ -196,7 +188,7 @@ u8 Memory::read8(u32 address) {
     
     // QSound shared RAM (0xF18000-0xF19FFF and 0xF1E000-0xF1FFFF, CPS1 QSound only)
     // QSound EEPROM read (0xF1C000-0xF1C007, CPS1 QSound only)
-    if (getCPSVersion() == 1 && m_cartridge && m_cartridge->isCPS1QSound()) {
+    if (getCPSVersion() == 1 && m_cartridge->isCPS1QSound()) {
         if (address >= 0xF18000 && address <= 0xF19FFF) {
             if (address & 1) {
                 u32 ramIndex = (address & 0x1FFF) >> 1;  // 0x000-0x0FFF
@@ -217,7 +209,7 @@ u8 Memory::read8(u32 address) {
     }
 
     // QSound ROM (encrypted) access (0xF00000-0xF0FFFF, CPS1 QSound only)
-    if (getCPSVersion() == 1 && m_cartridge && m_cartridge->isCPS1QSound() &&
+    if (getCPSVersion() == 1 && m_cartridge->isCPS1QSound() &&
         address >= 0xF00000 && address <= 0xF0FFFF) {
         if (address & 1) {
             return 0xFF;
@@ -269,10 +261,7 @@ u32 Memory::read32(u32 address) {
 u8 Memory::read8Data(u32 address) {
     // ROM (0x000000-0x3FFFFF) - use encrypted ROM for data reads in CPS2
     if (address < 0x400000) {
-        if (m_cartridge) {
-            return m_cartridge->readEncryptedROM8(address);
-        }
-        return 0xFF;
+        return m_cartridge->readEncryptedROM8(address);
     }
     
     // For non-ROM addresses, use regular read
@@ -282,10 +271,7 @@ u8 Memory::read8Data(u32 address) {
 u16 Memory::read16Data(u32 address) {
     // ROM (0x000000-0x3FFFFF) - use encrypted ROM for data reads in CPS2
     if (address < 0x400000) {
-        if (m_cartridge) {
-            return m_cartridge->readEncryptedROM16(address);
-        }
-        return 0xFFFF;
+        return m_cartridge->readEncryptedROM16(address);
     }
     
     // For non-ROM addresses, use regular read
@@ -357,7 +343,7 @@ void Memory::write8(u32 address, u8 value) {
     
     // QSound shared RAM (0xF18000-0xF19FFF and 0xF1E000-0xF1FFFF, CPS1 QSound only)
     // QSound EEPROM write (0xF1C000-0xF1C007, CPS1 QSound only)
-    if (getCPSVersion() == 1 && m_cartridge && m_cartridge->isCPS1QSound()) {
+    if (getCPSVersion() == 1 && m_cartridge->isCPS1QSound()) {
         if (address >= 0xF18000 && address <= 0xF19FFF) {
             if (address & 1) {
                 u32 ramIndex = (address & 0x1FFF) >> 1;  // 0x000-0x0FFF
@@ -424,42 +410,27 @@ void Memory::write32(u32 address, u32 value) {
 // ============================================================================
 
 u8 Memory::readVRAM8(u32 address) {
-    if (m_video) {
-        return m_video->readVRAM8(address);
-    }
-    return 0x00;
+    return m_video->readVRAM8(address);
 }
 
 u16 Memory::readVRAM16(u32 address) {
-    if (m_video) {
-        return m_video->readVRAM16(address);
-    }
-    return 0x0000;
+    return m_video->readVRAM16(address);
 }
 
 u32 Memory::readVRAM32(u32 address) {
-    if (m_video) {
-        return m_video->readVRAM32(address);
-    }
-    return 0x00000000;
+    return m_video->readVRAM32(address);
 }
 
 void Memory::writeVRAM8(u32 address, u8 value) {
-    if (m_video) {
-        m_video->writeVRAM8(address, value);
-    }
+    m_video->writeVRAM8(address, value);
 }
 
 void Memory::writeVRAM16(u32 address, u16 value) {
-    if (m_video) {
-        m_video->writeVRAM16(address, value);
-    }
+    m_video->writeVRAM16(address, value);
 }
 
 void Memory::writeVRAM32(u32 address, u32 value) {
-    if (m_video) {
-        m_video->writeVRAM32(address, value);
-    }
+    m_video->writeVRAM32(address, value);
 }
 
 // ============================================================================
@@ -473,10 +444,7 @@ u8 Memory::readPort(u16 port) {
     // CPS2-specific ports
     if (cpsVer == 2) {
         if (port == 0x020) {
-            if (m_controller) {
-                return ~m_controller->readPort(port);
-            }
-            return 0xFF;
+            return ~m_controller->readPort(port);
         }
         
         // Port 0x021: EEPROM read (bit 0), Diagnostic (bit 1), Service (bit 2)
@@ -523,7 +491,7 @@ u8 Memory::readPort(u16 port) {
                 }
             }
         }
-    } else if (m_cartridge && m_cartridge->isCPS1QSound()) {
+    } else if (m_cartridge->isCPS1QSound()) {
         if (port == 0xC007) {
             // CPS1 QSound EEPROM read
             return m_eeprom.read();
@@ -540,10 +508,7 @@ u8 Memory::readPort(u16 port) {
         case 0x012:
         case 0x018:
         case 0x177:
-            if (m_controller) {
-                return ~m_controller->readPort(port);
-            }
-            return 0xFF;
+            return ~m_controller->readPort(port);
 
         // DIP Switch ports (not controller inputs)
         case 0x01A:
@@ -603,9 +568,7 @@ u8 Memory::readPort(u16 port) {
         }
         
         // CPS Registers - forward to Video
-        if (m_video) {
-            return m_video->readRegister8(port & 0xFF);
-        }
+        return m_video->readRegister8(port & 0xFF);
     }
     
     // Unmapped port - return 0xFF (bus pull-up)
@@ -631,7 +594,7 @@ void Memory::writePort(u16 port, u8 value) {
             return;
         }
     } else {
-        if (m_cartridge && m_cartridge->isCPS1QSound()) {
+        if (m_cartridge->isCPS1QSound()) {
             // CPS1 QSound EEPROM write
             if (port == 0xC007) {
                 m_eeprom.write(value & 0x40, value & 0x80, value & 0x01);
@@ -664,10 +627,7 @@ void Memory::writePort(u16 port, u8 value) {
         u8 regNum = port & 0xFF;
         
         // Forward to Video for layer control and scroll registers
-        if (m_video) {
-            m_video->writeRegister8(regNum, value);
-        }
-        
+        m_video->writeRegister8(regNum, value);
         return;
     }
 }
@@ -681,25 +641,19 @@ u8 Memory::readZ80(u32 address) {
     
     // Sound ROM (0x0000-0x7FFF) - common
     if (address < 0x8000) {
-        if (m_cartridge) {
-            return m_cartridge->readSoundROM8(address);
-        }
-        return 0xFF;
+        return m_cartridge->readSoundROM8(address);
     }
     
     // Bank-switchable ROM (0x8000-0xBFFF) - common
     if (address >= 0x8000 && address < 0xC000) {
-        if (m_cartridge) {
-            u32 bankOffset = (static_cast<u32>(m_z80Bank) << 14) + 0x8000;
-            u32 romAddress = bankOffset + (address - 0x8000);
-            return m_cartridge->readSoundROM8(romAddress);
-        }
-        return 0xFF;
+        u32 bankOffset = (static_cast<u32>(m_z80Bank) << 14) + 0x8000;
+        u32 romAddress = bankOffset + (address - 0x8000);
+        return m_cartridge->readSoundROM8(romAddress);
     }
     
     if (cpsVer == 1) {
         // Check if this is a QSound game
-        bool isQSound = m_cartridge && m_cartridge->isCPS1QSound();
+        bool isQSound = m_cartridge->isCPS1QSound();
 
         if (isQSound) {
             // CPS1 QSound: Z80 RAM (0xC000-0xCFFF) - 4KB
@@ -733,10 +687,7 @@ u8 Memory::readZ80(u32 address) {
         } else {
             // Regular CPS1: ROM fallback for fetches (0xC000-0xCFFF)
             if (address >= 0xC000 && address < 0xD000) {
-                if (m_cartridge) {
-                    return m_cartridge->readSoundROM8(address - 0xC000);
-                }
-                return 0xFF;
+                return m_cartridge->readSoundROM8(address - 0xC000);
             }
 
             // Regular CPS1: Z80 RAM (0xD000-0xD7FF) - 2KB
@@ -746,10 +697,7 @@ u8 Memory::readZ80(u32 address) {
 
             // Regular CPS1: ROM fallback for fetches (0xD800-0xEFFF)
             if (address >= 0xD800 && address < 0xF000) {
-                if (m_cartridge) {
-                    return m_cartridge->readSoundROM8((address - 0xD800) & 0x7FFF);
-                }
-                return 0xFF;
+                return m_cartridge->readSoundROM8((address - 0xD800) & 0x7FFF);
             }
 
             // Regular CPS1: I/O Area (0xF000-0xFFFF) - YM2151, MSM6295
@@ -757,17 +705,11 @@ u8 Memory::readZ80(u32 address) {
                 switch (address) {
                     case 0xF001:
                         // YM2151 status register
-                        if (m_audio) {
-                            return m_audio->readPort(0x01);
-                        }
-                        return 0xFF;
+                        return m_audio->readPort(0x01);
 
                     case 0xF002:
                         // MSM6295 status
-                        if (m_audio) {
-                            return m_audio->readPort(0x02);
-                        }
-                        return 0xFF;
+                        return m_audio->readPort(0x02);
 
                     case 0xF008:
                         // Sound command latch (from 68000)
@@ -826,11 +768,8 @@ u8 Memory::readZ80Opcode(u32 address) {
     // For CPS2, opcode fetches from 0xD000-0xEFFF map directly to ROM
     // (while data reads from this range use QSound handlers)
     if (cpsVer == 2 && address >= 0xD000 && address < 0xF000) {
-        if (m_cartridge) {
-            // Map 0xD000-0xEFFF directly to ROM
-            return m_cartridge->readSoundROM8(address);
-        }
-        return 0xFF;
+        // Map 0xD000-0xEFFF directly to ROM
+        return m_cartridge->readSoundROM8(address);
     }
     
     // For CPS1 QSound games, opcode fetches from 0x0000-0x7FFF map to the second half of the decrypted opcodes
@@ -841,12 +780,9 @@ u8 Memory::readZ80Opcode(u32 address) {
         if (address < 0x8000) {
             return m_cartridge->readSoundROM8(baseOffset + address);
         } else if (address >= 0x8000 && address < 0xC000) {
-            if (m_cartridge) {
-                u32 bankOffset = (static_cast<u32>(m_z80Bank) << 14) + 0x8000;
-                u32 romAddress = bankOffset + (address - 0x8000);
-                return m_cartridge->readSoundROM8(baseOffset + romAddress);
-            }
-            return 0xFF;
+            u32 bankOffset = (static_cast<u32>(m_z80Bank) << 14) + 0x8000;
+            u32 romAddress = bankOffset + (address - 0x8000);
+            return m_cartridge->readSoundROM8(baseOffset + romAddress);
         } else if (address >= 0xD000 && address < 0xF000) {
             return m_cartridge->readSoundROM8(baseOffset + address);
         }
@@ -865,12 +801,9 @@ u8 Memory::readZ80OpcodeArg(u32 address) {
         if (address < 0x8000) {
             return m_cartridge->readSoundROM8(address);
         } else if (address >= 0x8000 && address < 0xC000) {
-            if (m_cartridge) {
-                u32 bankOffset = (static_cast<u32>(m_z80Bank) << 14) + 0x8000;
-                u32 romAddress = bankOffset + (address - 0x8000);
-                return m_cartridge->readSoundROM8(romAddress);
-            }
-            return 0xFF;
+            u32 bankOffset = (static_cast<u32>(m_z80Bank) << 14) + 0x8000;
+            u32 romAddress = bankOffset + (address - 0x8000);
+            return m_cartridge->readSoundROM8(romAddress);
         } else if (address >= 0xD000 && address < 0xF000) {
             return m_cartridge->readSoundROM8(address);
         }
@@ -895,7 +828,7 @@ void Memory::writeZ80(u32 address, u8 value) {
     
     if (cpsVer == 1) {
         // Check if this is a QSound game
-        bool isQSound = m_cartridge && m_cartridge->isCPS1QSound();
+        bool isQSound = m_cartridge->isCPS1QSound();
 
         if (isQSound) {
             // CPS1 QSound: Z80 RAM (0xC000-0xCFFF) - 4KB
@@ -968,23 +901,17 @@ void Memory::writeZ80(u32 address, u8 value) {
                 switch (address) {
                     case 0xF000:
                         // YM2151 register select
-                        if (m_audio) {
-                            m_audio->writePort(0x00, value);
-                        }
+                        m_audio->writePort(0x00, value);
                         return;
 
                     case 0xF001:
                         // YM2151 data write
-                        if (m_audio) {
-                            m_audio->writePort(0x01, value);
-                        }
+                        m_audio->writePort(0x01, value);
                         return;
 
                     case 0xF002:
                         // MSM6295 command
-                        if (m_audio) {
-                            m_audio->writePort(0x02, value);
-                        }
+                        m_audio->writePort(0x02, value);
                         return;
 
                     case 0xF004: {

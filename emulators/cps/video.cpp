@@ -110,40 +110,36 @@ void Video::reset() {
 
     m_cyclesPerScanline = m_cyclesPerFrame / TOTAL_SCANLINES;
     
-    if (m_cartridge) {
-        u8 cpsVer = m_cartridge->getCPSVersion();
-        m_boardConfig = m_cartridge->getBoardConfig();
+    u8 cpsVer = m_cartridge->getCPSVersion();
+    m_boardConfig = m_cartridge->getBoardConfig();
 
-        const GameInfo* gameInfo = m_cartridge->getGameInfo();
-        if (gameInfo) {
-            m_isVertical = (gameInfo->flags & GameFlags::GAME_FLAG_VERTICAL_SCREEN) != 0;
+    const GameInfo* gameInfo = m_cartridge->getGameInfo();
+    if (gameInfo) {
+        m_isVertical = (gameInfo->flags & GameFlags::GAME_FLAG_VERTICAL_SCREEN) != 0;
 
-            m_is_xmcota = (strcmp(gameInfo->romSetName, "xmcota") == 0);
-            bool is_hsf2 = (strcmp(gameInfo->romSetName, "hsf2") == 0);
-            m_is_ssf2 = (strncmp(gameInfo->romSetName, "ssf2", 4) == 0) || is_hsf2;
-            m_is_ssf2t = (strcmp(gameInfo->romSetName, "ssf2t") == 0) || is_hsf2;
-        }
-        
-        if (cpsVer == 1) {
-            setupGraphicsMapper();
-            m_gfxScroll[1] = 0;
-            m_gfxScroll[2] = 0;
+        m_is_xmcota = (strcmp(gameInfo->romSetName, "xmcota") == 0);
+        bool is_hsf2 = (strcmp(gameInfo->romSetName, "hsf2") == 0);
+        m_is_ssf2 = (strncmp(gameInfo->romSetName, "ssf2", 4) == 0) || is_hsf2;
+        m_is_ssf2t = (strcmp(gameInfo->romSetName, "ssf2t") == 0) || is_hsf2;
+    }
+    
+    if (cpsVer == 1) {
+        setupGraphicsMapper();
+        m_gfxScroll[1] = 0;
+        m_gfxScroll[2] = 0;
+        m_gfxScroll[3] = 0;
+    } else {
+        m_zBuffer.resize(SCREEN_WIDTH * SCREEN_HEIGHT, 0);
+        m_gfxScroll[1] = 0x800000;
+        m_gfxScroll[2] = 0x800000;
+        m_gfxScroll[3] = 0x800000;
+        if (m_is_ssf2) {
             m_gfxScroll[3] = 0;
-        } else {
-            m_zBuffer.resize(SCREEN_WIDTH * SCREEN_HEIGHT, 0);
-            m_gfxScroll[1] = 0x800000;
-            m_gfxScroll[2] = 0x800000;
-            m_gfxScroll[3] = 0x800000;
-            if (m_is_ssf2) {
-                m_gfxScroll[3] = 0;
-            }
         }
     }
 }
 
 void Video::setupGraphicsMapper() {
-    if (!m_cartridge) return;
-    
     CPSMapper mapper = m_cartridge->getMapper();
     GameDatabase::getGraphicsMapper(mapper, m_gfxBankSizes, m_gfxMapper);
 }
@@ -233,7 +229,7 @@ u8* Video::findGfxRam(u32 address, u32 len) {
 
 s32 Video::gfxRomBankMapper(u32 type, s32 code) const {
     // CPS2: Direct addressing, no mapper needed
-    if (!m_cartridge || m_cartridge->getCPSVersion() != 1) {
+    if (m_cartridge->getCPSVersion() != 1) {
         return code;
     }
     
@@ -414,7 +410,7 @@ void Video::step(u32 cycles) {
         m_scanline = newScanline;
         
         // CPS2: Handle raster interrupts
-        if (m_cartridge && m_cartridge->getCPSVersion() == 2 && m_cpu) {
+        if (m_cartridge->getCPSVersion() == 2) {
             processCPS2RasterInterrupts();
         }
         
@@ -424,9 +420,7 @@ void Video::step(u32 cycles) {
             renderFrame();
 
             // Trigger VBlank interrupt (priority 2)
-            if (m_cpu) {
-                m_cpu->irq(2);
-            }
+            m_cpu->irq(2);
         }
     }
     
@@ -520,11 +514,6 @@ void Video::renderFrame() {
 }
 
 void Video::clearScreen() {
-    if (!m_cartridge) {
-        m_frameBuffer.fill(0);
-        return;
-    }
-    
     u8 cpsVer = m_cartridge->getCPSVersion();
     
     if (cpsVer == 1) {
@@ -543,8 +532,6 @@ void Video::clearScreen() {
 // ============================================================================
 
 void Video::renderLayers() {
-    if (!m_cartridge) return;
-    
     u8 cpsVer = m_cartridge->getCPSVersion();
     
     if (cpsVer == 1) {
@@ -1707,27 +1694,23 @@ void Video::loadState(Buffer* buf) {
 // ============================================================================
 
 u8 Video::readObjRAM8(u32 offset) {
-    if (!m_memory) return 0;
     // Object RAM is at 0x708000-0x70FFFF (32KB visible at a time due to banking)
     if (offset >= 0x8000) return 0;  // 32KB max visible
     return m_memory->read8(0x708000 + offset);
 }
 
 u16 Video::readObjRAM16(u32 offset) {
-    if (!m_memory) return 0;
     if (offset >= 0x8000) return 0;
     return m_memory->read16(0x708000 + offset);
 }
 
 u8 Video::readFrgReg8(u8 reg) {
-    if (!m_memory) return 0;
     // Frg registers are at 0x400000-0x40000F (16 bytes)
     if (reg >= 0x10) return 0;
     return m_memory->read8(0x400000 + reg);
 }
 
 u16 Video::readFrgReg16(u8 reg) {
-    if (!m_memory) return 0;
     if (reg >= 0x10) return 0;
     return m_memory->read16(0x400000 + reg);
 }
@@ -1751,7 +1734,6 @@ void Video::copyRegistersToZone(u32 zone) {
 
 void Video::copyFrgRegistersToZone(u32 zone) {
     if (zone >= MAX_RASTER) return;
-    if (!m_memory) return;
     
     // Copy 16 bytes of Frg registers
     for (u8 i = 0; i < 16; i++) {

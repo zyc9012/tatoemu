@@ -47,15 +47,11 @@ bool Core::initialize() {
 }
 
 void Core::setVideoDevice(::VideoDevice* videoDevice) {
-    if (m_video) {
-        m_video->setVideoDevice(videoDevice);
-    }
+    m_video->setVideoDevice(videoDevice);
 }
 
 void Core::setAudioDevice(::AudioDevice* audioDevice) {
-    if (m_audio) {
-        m_audio->setAudioDevice(audioDevice);
-    }
+    m_audio->setAudioDevice(audioDevice);
 }
 
 bool Core::loadROM(const fs::path& filename) {

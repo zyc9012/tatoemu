@@ -16,28 +16,22 @@ SoundCPU::SoundCPU()
     , m_timerPeriod(0) {
     Z80::MemoryInterface mem{};
     mem.progRead = [](u32 addr, void* ctx) -> u8 {
-        Memory* m = static_cast<SoundCPU*>(ctx)->getMemory();
-        return m ? m->readZ80(addr) : 0xFF;
+        return static_cast<SoundCPU*>(ctx)->getMemory()->readZ80(addr);
     };
     mem.progWrite = [](u32 addr, u8 val, void* ctx) {
-        Memory* m = static_cast<SoundCPU*>(ctx)->getMemory();
-        if (m) m->writeZ80(addr, val);
+        static_cast<SoundCPU*>(ctx)->getMemory()->writeZ80(addr, val);
     };
     mem.ioRead = [](u32 port, void* ctx) -> u8 {
-        Audio* a = static_cast<SoundCPU*>(ctx)->getAudio();
-        return a ? a->readPort(port) : 0xFF;
+        return static_cast<SoundCPU*>(ctx)->getAudio()->readPort(port);
     };
     mem.ioWrite = [](u32 port, u8 val, void* ctx) {
-        Audio* a = static_cast<SoundCPU*>(ctx)->getAudio();
-        if (a) a->writePort(port, val);
+        static_cast<SoundCPU*>(ctx)->getAudio()->writePort(port, val);
     };
     mem.opRead = [](u32 addr, void* ctx) -> u8 {
-        Memory* m = static_cast<SoundCPU*>(ctx)->getMemory();
-        return m ? m->readZ80Opcode(addr) : 0xFF;
+        return static_cast<SoundCPU*>(ctx)->getMemory()->readZ80Opcode(addr);
     };
     mem.opArgRead = [](u32 addr, void* ctx) -> u8 {
-        Memory* m = static_cast<SoundCPU*>(ctx)->getMemory();
-        return m ? m->readZ80OpcodeArg(addr) : 0xFF;
+        return static_cast<SoundCPU*>(ctx)->getMemory()->readZ80OpcodeArg(addr);
     };
     mem.userData = this;
     m_z80.setMemory(mem);
@@ -59,7 +53,7 @@ void SoundCPU::reset() {
     }
 
     // Calculate timer period for CPS2 (252 Hz interrupt rate)
-    if (m_cpsVersion == 2 || (m_cpsVersion == 1 && m_cartridge && m_cartridge->isCPS1QSound())) {
+    if (m_cpsVersion == 2 || (m_cpsVersion == 1 && m_cartridge->isCPS1QSound())) {
         if (m_cartridge->isCPS1QSound()) {
             m_timerPeriod = cps1qs::SOUND_CPU_FREQUENCY / 252;
         } else {

@@ -17,9 +17,7 @@ static SoundCPU* s_ym2151SoundCpu = nullptr;
 
 // YM2151 interrupt handler - sets/clears Z80 INT line based on YM2151 interrupt status
 static void ym2151IrqHandler(s32 nStatus) {
-    if (s_ym2151SoundCpu) {
-        s_ym2151SoundCpu->irq(nStatus != 0);
-    }
+    s_ym2151SoundCpu->irq(nStatus != 0);
 }
 
 Audio::Audio()
@@ -100,10 +98,6 @@ void Audio::reset() {
 }
 
 void Audio::setROMData() {
-    if (!m_cartridge) {
-        return;
-    }
-
     // Get sound sample data from cartridge
     const u8* sampleData = m_cartridge->getSoundSample();
     u32 sampleSize = m_cartridge->getSoundSampleSize();
