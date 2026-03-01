@@ -14,9 +14,11 @@ struct TimerChannel {
     u16 counter;
     u16 control;
     int prescaler;
+    int prescalerShift;
     int prescalerCount;
     bool enabled;
     bool overflow;
+    bool countUp;
 };
 
 class Timer {

@@ -203,6 +203,7 @@ namespace DMA_TIMING {
 
 // Timer prescaler values
 constexpr int TIMER_PRESCALER[] = {1, 64, 256, 1024};
+constexpr int TIMER_PRESCALER_SHIFT[] = {0, 6, 8, 10};
 
 // Initial stack pointers
 constexpr u32 SP_USR = 0x03007F00;
