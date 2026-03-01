@@ -47,7 +47,7 @@ public:
 
 private:
     Memory* m_memory;
-    std::unique_ptr<M6502> m_cpu;
+    std::unique_ptr<M6502> m_m6502;
 
     u32 m_cycles;
     u32 m_stallCycles;

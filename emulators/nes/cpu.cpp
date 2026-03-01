@@ -8,7 +8,7 @@ namespace nes {
 
 CPU::CPU()
     : m_memory(nullptr)
-    , m_cpu(std::make_unique<M6502>(M6502::Variant::NMOS_2A03))
+    , m_m6502(std::make_unique<M6502>(M6502::Variant::NMOS_2A03))
     , m_cycles(0)
     , m_stallCycles(0) {
 }
@@ -26,7 +26,7 @@ void CPU::setMemory(Memory* memory) {
         static_cast<Memory*>(ctx)->cpuWrite(addr, val);
     };
     mem.userData = memory;
-    m_cpu->setMemory(mem);
+    m_m6502->setMemory(mem);
 }
 
 /**
@@ -35,7 +35,7 @@ void CPU::setMemory(Memory* memory) {
  * Resets the 2A03 CPU to initial state and clears cycle counters.
  */
 void CPU::reset() {
-    m_cpu->reset();
+    m_m6502->reset();
     m_cycles = 0;
     m_stallCycles = 0;
 }
@@ -55,7 +55,7 @@ void CPU::step(u32 cycles) {
     }
 
     // Execute CPU
-    int executed = m_cpu->execute(static_cast<int>(cycles));
+    int executed = m_m6502->execute(static_cast<int>(cycles));
     m_cycles += static_cast<u32>(executed);
 }
 
@@ -65,8 +65,8 @@ void CPU::step(u32 cycles) {
  * NES-specific: NMI is delayed by 2 cycles when triggered during VBLANK.
  */
 void CPU::nmi() {
-    m_cpu->setNMIDelay(2);
-    m_cpu->setHoldNMI(true);
+    m_m6502->setNMIDelay(2);
+    m_m6502->setHoldNMI(true);
 }
 
 /**
@@ -74,7 +74,7 @@ void CPU::nmi() {
  * @param state 1 = assert, 0 = clear
  */
 void CPU::irq(u32 state) {
-    m_cpu->setInterruptLine(
+    m_m6502->setInterruptLine(
         M6502::InterruptLine::IRQ,
         state ? M6502::LineState::ASSERT 
               : M6502::LineState::CLEAR
@@ -103,7 +103,7 @@ void CPU::triggerOAMDMA(u8 page) {
  */
 void CPU::saveState(Buffer* buf) {
     M6502::State state;
-    m_cpu->getContext(&state);
+    m_m6502->getContext(&state);
     
     buffer_write(buf, &state, sizeof(state));
     buffer_write(buf, &m_cycles, sizeof(m_cycles));
@@ -117,7 +117,7 @@ void CPU::saveState(Buffer* buf) {
 void CPU::loadState(Buffer* buf) {
     M6502::State state;
     buffer_read(buf, &state, sizeof(state));
-    m_cpu->setContext(&state);
+    m_m6502->setContext(&state);
     
     buffer_read(buf, &m_cycles, sizeof(m_cycles));
     buffer_read(buf, &m_stallCycles, sizeof(m_stallCycles));

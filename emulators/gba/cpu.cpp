@@ -22,27 +22,27 @@ void CPU::setMemory(Memory* memory) {
     mem.fetch32 = [](u32 a, void* c) -> u32 { return static_cast<Memory*>(c)->fetch32(a); };
     mem.consumeWaitCycles = [](void* c) -> int { return static_cast<Memory*>(c)->consumeWaitCycles(); };
     mem.userData = memory;
-    m_cpu.setMemory(mem);
+    m_arm7.setMemory(mem);
 }
 
 void CPU::reset() {
-    m_cpu.reset();
+    m_arm7.reset();
 
     // Boot through BIOS: start at the reset vector
-    m_cpu.setReg(R13, SP_USR);       // SP_usr
-    m_cpu.setReg(R15, 0x08000000);   // PC = ROM start
+    m_arm7.setReg(R13, SP_USR);       // SP_usr
+    m_arm7.setReg(R15, 0x08000000);   // PC = ROM start
 
     // Set IRQ-mode stack pointer
-    m_cpu.setCPSR(0x12 | 0xC0); // IRQ mode
-    m_cpu.setReg(R13, SP_IRQ);
+    m_arm7.setCPSR(0x12 | 0xC0); // IRQ mode
+    m_arm7.setReg(R13, SP_IRQ);
 
     // Set SVC-mode stack pointer
-    m_cpu.setCPSR(0x13 | 0xC0); // SVC mode
-    m_cpu.setReg(R13, SP_SVC);
+    m_arm7.setCPSR(0x13 | 0xC0); // SVC mode
+    m_arm7.setReg(R13, SP_SVC);
 
     // Switch to System mode for normal execution
-    m_cpu.setCPSR(0x1F | 0xC0); // System mode, IRQ/FIQ disabled
-    m_cpu.setReg(R13, SP_USR);
+    m_arm7.setCPSR(0x1F | 0xC0); // System mode, IRQ/FIQ disabled
+    m_arm7.setReg(R13, SP_USR);
 }
 
 int CPU::step(int cycles) {
@@ -52,7 +52,7 @@ int CPU::step(int cycles) {
     if (m_memory && m_memory->isHalted())
         return 1; // Halted — return minimal cycles
 
-    return m_cpu.execute(cycles);
+    return m_arm7.execute(cycles);
 }
 
 void CPU::checkIRQ() {
@@ -70,15 +70,15 @@ void CPU::checkIRQ() {
     // Only assert the IRQ line when IME is also enabled.
     // The ARM7TDMI core checks CPSR.I internally.
     if ((IME & 1) && (IE & IF)) {
-        m_cpu.setIRQLine(IRQ_IRQ, 1);
+        m_arm7.setIRQLine(IRQ_IRQ, 1);
     } else {
-        m_cpu.setIRQLine(IRQ_IRQ, 0);
+        m_arm7.setIRQLine(IRQ_IRQ, 0);
     }
 }
 
 void CPU::saveState(Buffer* buf) {
     ARM7TDMI::State st;
-    m_cpu.getContext(&st);
+    m_arm7.getContext(&st);
     buffer_write(buf, &st, sizeof(st));
     buffer_write(buf, &m_cycles, sizeof(m_cycles));
 }
@@ -86,7 +86,7 @@ void CPU::saveState(Buffer* buf) {
 void CPU::loadState(Buffer* buf) {
     ARM7TDMI::State st;
     buffer_read(buf, &st, sizeof(st));
-    m_cpu.setContext(&st);
+    m_arm7.setContext(&st);
     buffer_read(buf, &m_cycles, sizeof(m_cycles));
 }
 

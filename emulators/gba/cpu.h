@@ -25,7 +25,7 @@ public:
     void loadState(Buffer* buf);
 
 private:
-    ARM7TDMI m_cpu;
+    ARM7TDMI m_arm7;
     Memory* m_memory = nullptr;
     int m_cycles = 0;
 };
