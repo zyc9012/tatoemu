@@ -445,102 +445,63 @@ void Cartridge::createMapper() {
 }
 
 void Cartridge::reset() {
-    if (m_mapper) {
-        m_mapper->reset();
-    }
+    m_mapper->reset();
 }
 
 u32 Cartridge::getCpuCycles() const {
-    if (m_cpu) {
-        return m_cpu->getCycles();
-    }
-    return 0;
+    return m_cpu->getCycles();
 }
 
 u8 Cartridge::cpuRead(u16 address) {
-    if (m_mapper) {
-        return m_mapper->cpuRead(address);
-    }
-    return 0;
+    return m_mapper->cpuRead(address);
 }
 
 void Cartridge::cpuWrite(u16 address, u8 value) {
-    if (m_mapper) {
-        m_mapper->cpuWrite(address, value);
-    }
+    m_mapper->cpuWrite(address, value);
 }
 
 u8 Cartridge::readCHR(u16 address) {
-    if (m_mapper) {
-        return m_mapper->readCHR(address);
-    }
-    return 0;
+    return m_mapper->readCHR(address);
 }
 
 void Cartridge::writeCHR(u16 address, u8 value) {
-    if (m_mapper) {
-        m_mapper->writeCHR(address, value);
-    }
+    m_mapper->writeCHR(address, value);
 }
 
 u8 Cartridge::readCIRAM(u16 address) const {
-    if (m_ppu) {
-        return m_ppu->readCIRAM(address);
-    }
-    return 0;
+    return m_ppu->readCIRAM(address);
 }
 
 void Cartridge::writeCIRAM(u16 address, u8 value) {
-    if (m_ppu) {
-        m_ppu->writeCIRAM(address, value);
-    }
+    m_ppu->writeCIRAM(address, value);
 }
 
 bool Cartridge::readNametable(u16 address, u8& value) {
-    if (m_mapper) {
-        return m_mapper->readNametable(address, value);
-    }
-    return false;
+    return m_mapper->readNametable(address, value);
 }
 
 bool Cartridge::writeNametable(u16 address, u8 value) {
-    if (m_mapper) {
-        return m_mapper->writeNametable(address, value);
-    }
-    return false;
+    return m_mapper->writeNametable(address, value);
 }
 
 MirrorMode Cartridge::getMirrorMode() const {
-    if (m_mapper) {
-        return m_mapper->getMirrorMode();
-    }
-    return m_mirrorMode;
+    return m_mapper->getMirrorMode();
 }
 
 void Cartridge::scanlineCounter() {
-    if (m_mapper) {
-        m_mapper->scanlineCounter();
-    }
+    m_mapper->scanlineCounter();
 }
 
 void Cartridge::clockAudio() {
-    if (m_mapper) {
-        m_mapper->clockAudio();
-    }
+    m_mapper->clockAudio();
 }
 
 float Cartridge::getExpansionAudio() const {
-    if (m_mapper) {
-        return m_mapper->getAudioOutput();
-    }
-    return 0.0f;
+    return m_mapper->getAudioOutput();
 }
 
 bool Cartridge::hasExpansionAudio() const {
-    if (m_mapper) {
-        return m_mapper->hasExpansionAudio();
-    }
-    return false;
+    return m_mapper->hasExpansionAudio();
 }
 
 void Cartridge::saveBattery() const {
@@ -588,9 +549,7 @@ void Cartridge::saveState(Buffer* buf) {
         buffer_write(buf, m_chrRom.data(), m_chrRom.size());
     }
     
-    if (m_mapper) {
-        m_mapper->saveState(buf);
-    }
+    m_mapper->saveState(buf);
 }
 
 void Cartridge::loadState(Buffer* buf) {
@@ -608,9 +567,7 @@ void Cartridge::loadState(Buffer* buf) {
         buffer_read(buf, m_chrRom.data(), m_chrRom.size());
     }
     
-    if (m_mapper) {
-        m_mapper->loadState(buf);
-    }
+    m_mapper->loadState(buf);
 }
 
 } // namespace nes

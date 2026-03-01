@@ -276,7 +276,7 @@ u8 PPU::ppuRead(u16 address) {
         // Nametables
         // Check if mapper wants to handle nametable read
         u8 value;
-        if (m_cartridge && m_cartridge->readNametable(address, value)) {
+        if (m_cartridge->readNametable(address, value)) {
             return value;
         }
         return m_vram[mirrorNametableAddress(address)];
@@ -306,13 +306,11 @@ void PPU::ppuWrite(u16 address, u8 value) {
     
     if (address < 0x2000) {
         // Pattern tables - write to cartridge CHR (if CHR RAM)
-        if (m_cartridge) {
-            m_cartridge->writeCHR(address, value);
-        }
+        m_cartridge->writeCHR(address, value);
     }
     else if (address < 0x3F00) {
         // Nametables
-        if (m_cartridge && m_cartridge->writeNametable(address, value)) {
+        if (m_cartridge->writeNametable(address, value)) {
             return;
         }
         m_vram[mirrorNametableAddress(address)] = value;

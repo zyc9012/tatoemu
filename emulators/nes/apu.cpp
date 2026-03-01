@@ -582,9 +582,7 @@ void APU::step(u32 cpuCycles, double gameSpeed) {
         m_dmc.clockTimer();
         
         // Clock expansion audio (VRC6, etc.) every CPU cycle
-        if (m_cartridge) {
-            m_cartridge->clockAudio();
-        }
+        m_cartridge->clockAudio();
         
         // Pulse and Noise channels clock every other CPU cycle (APU cycle)
         if (m_oddCycle) {
@@ -745,7 +743,7 @@ float APU::mix() {
     float sample = pulseOut + tndOut;
     
     // Add expansion audio (VRC6, VRC7, etc.)
-    if (m_cartridge && m_cartridge->hasExpansionAudio()) {
+    if (m_cartridge->hasExpansionAudio()) {
         float expansionAudio = m_cartridge->getExpansionAudio();
         // Mix expansion audio - typically about 50% of total output
         sample += expansionAudio;
@@ -870,7 +868,7 @@ void APU::writeRegister(u16 address, u8 value) {
         case 0x4010:
             m_dmc.writeControl(value);
             // Clear CPU IRQ line when DMC IRQ is disabled (bit 7 = 0)
-            if ((value & 0x80) == 0 && m_cpu) {
+            if ((value & 0x80) == 0) {
                 m_dmc.irqFlag = false;
                 m_cpu->irq(0);
             }

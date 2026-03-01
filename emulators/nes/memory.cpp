@@ -29,34 +29,22 @@ u8 Memory::cpuRead(u16 address) {
     }
     else if (address < 0x4000) {
         // PPU registers (mirrored every 8 bytes)
-        if (m_ppu) {
-            return m_ppu->readRegister(address);
-        }
-        return 0;
+        return m_ppu->readRegister(address);
     }
     else if (address < 0x4018) {
         // APU and I/O registers
         switch (address) {
             case 0x4015:
                 // APU status
-                if (m_apu) {
-                    return m_apu->readStatus();
-                }
-                return 0;
+                return m_apu->readStatus();
                 
             case 0x4016:
                 // Controller 1
-                if (m_controller) {
-                    return m_controller->read(0);
-                }
-                return 0;
+                return m_controller->read(0);
                 
             case 0x4017:
                 // Controller 2
-                if (m_controller) {
-                    return m_controller->read(1);
-                }
-                return 0;
+                return m_controller->read(1);
                 
             default:
                 // Other APU registers are write-only
@@ -70,10 +58,7 @@ u8 Memory::cpuRead(u16 address) {
     }
     else {
         // Cartridge space ($4020-$FFFF)
-        if (m_cartridge) {
-            return m_cartridge->cpuRead(address);
-        }
-        return 0;
+        return m_cartridge->cpuRead(address);
     }
 }
 
@@ -84,20 +69,18 @@ void Memory::cpuWrite(u16 address, u8 value) {
     }
     else if (address < 0x4000) {
         // PPU registers (mirrored every 8 bytes)
-        if (m_ppu) {
-            m_ppu->writeRegister(address, value);
-        }
+        m_ppu->writeRegister(address, value);
     }
     else if (address < 0x4018) {
         // APU and I/O registers
         switch (address) {
             case 0x4014:
                 // OAM DMA
-                if (m_cpu && m_ppu) {
-                    // Trigger DMA - copy 256 bytes from $XX00-$XXFF to OAM
-                    m_cpu->triggerOAMDMA(value);
-                    
-                    // Perform the DMA transfer
+                // Trigger DMA - copy 256 bytes from $XX00-$XXFF to OAM
+                m_cpu->triggerOAMDMA(value);
+                
+                // Perform the DMA transfer
+                {
                     u16 baseAddr = static_cast<u16>(value) << 8;
                     for (u16 i = 0; i < 256; i++) {
                         u8 data = cpuRead(baseAddr + i);
@@ -108,10 +91,8 @@ void Memory::cpuWrite(u16 address, u8 value) {
                 
             case 0x4016:
                 // Controller strobe
-                if (m_controller) {
-                    m_controller->write(0, value);
-                    m_controller->write(1, value);
-                }
+                m_controller->write(0, value);
+                m_controller->write(1, value);
                 break;
                 
             case 0x4000: case 0x4001: case 0x4002: case 0x4003:  // Pulse 1
@@ -121,9 +102,7 @@ void Memory::cpuWrite(u16 address, u8 value) {
             case 0x4010: case 0x4011: case 0x4012: case 0x4013:  // DMC
             case 0x4015:  // APU status
             case 0x4017:  // APU frame counter
-                if (m_apu) {
-                    m_apu->writeRegister(address, value);
-                }
+                m_apu->writeRegister(address, value);
                 break;
                 
             default:
@@ -136,9 +115,7 @@ void Memory::cpuWrite(u16 address, u8 value) {
     }
     else {
         // Cartridge space ($4020-$FFFF)
-        if (m_cartridge) {
-            m_cartridge->cpuWrite(address, value);
-        }
+        m_cartridge->cpuWrite(address, value);
     }
 }
 
