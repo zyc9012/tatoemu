@@ -64,12 +64,10 @@ void Video::reset() {
     m_bankYZoom = 0;
     m_bankSize = 0;
 
-    if (m_cartridge) {
-        m_screenWidth = m_cartridge->getGameInfo()->screenWidth;
-        m_screenHeight = m_cartridge->getGameInfo()->screenHeight;
-        m_frameBuffer.resize(m_screenWidth * m_screenHeight);
-        std::fill(m_frameBuffer.begin(), m_frameBuffer.end(), 0);
-    }
+    m_screenWidth = m_cartridge->getGameInfo()->screenWidth;
+    m_screenHeight = m_cartridge->getGameInfo()->screenHeight;
+    m_frameBuffer.resize(m_screenWidth * m_screenHeight);
+    std::fill(m_frameBuffer.begin(), m_frameBuffer.end(), 0);
     
     // Initialize palette to black
     m_palette.fill(0xFF000000);
@@ -91,10 +89,6 @@ void Video::reset() {
 }
 
 void Video::initSpriteROM() {
-    if (!m_cartridge) {
-        return;
-    }
-    
     u32 spriteRomSize = m_cartridge->getSpriteROMSize();
     if (spriteRomSize == 0) {
         return;
@@ -133,10 +127,6 @@ void Video::initSpriteROM() {
 }
 
 void Video::initTextROM() {
-    if (!m_cartridge) {
-        return;
-    }
-    
     u32 textRomSize = m_cartridge->getTextROMSize();
     
     // Decode text ROM tiles
@@ -187,11 +177,6 @@ void Video::initTextROM() {
 }
 
 void Video::initTextBankSwitching() {
-    if (!m_cartridge) {
-        m_textBankMode = TextBankMode::NONE;
-        return;
-    }
-    
     u32 textRomSize = m_cartridge->getTextROMSize();
     const GameInfo* gameInfo = m_cartridge->getGameInfo();
     
@@ -271,10 +256,6 @@ void Video::clearScreen() {
 }
 
 void Video::updatePalette() {
-    if (!m_memory) {
-        return;
-    }
-    
     // Read palette bank control from memory
     bool darken = false;  // TODO: Get from I/O register
     
@@ -319,7 +300,7 @@ u32 Video::convertPaletteEntry(u16 entry, bool /* darken */) {
 }
 
 void Video::renderSprites() {
-    if (!m_cartridge || !m_enableSprites) {
+    if (!m_enableSprites) {
         return;
     }
 
@@ -449,10 +430,6 @@ void Video::calcSpriteBankLimit() {
 }
 
 void Video::renderSpriteBank(u32 bankIndex) {
-    if (!m_cartridge) {
-        return;
-    }
-    
     // Get sprite tile data base pointer (64 bytes per sprite tile)
     u32 tileDataBase = bankIndex * 0x80;
     
@@ -584,7 +561,7 @@ void Video::renderSpriteBank(u32 bankIndex) {
 
 void Video::renderSpriteLine(const u8* /* tileData */, u32* palette, s32 xPos, s32 yPos,
                           u32 tileNumber, u32 line, bool flipX, bool /* flipY */, u32 xZoom, u8 transparent) {
-    if (!palette || !m_cartridge) {
+    if (!palette) {
         return;
     }
     
@@ -678,7 +655,7 @@ void Video::renderSpriteLine(const u8* /* tileData */, u32* palette, s32 xPos, s
 }
 
 void Video::renderText() {
-    if (!m_cartridge || !m_memory || !m_enableText) {
+    if (!m_memory || !m_enableText) {
         return;
     }
     
@@ -862,7 +839,7 @@ u32 Video::alphaBlend(u32 dst, u32 src, u32 alpha) {
 
 // Sprite frame timing
 void Video::updateSpriteFrame() {
-    if (m_memory && (m_memory->getIRQControl() & 0x08) == 0) {
+    if ((m_memory->getIRQControl() & 0x08) == 0) {
         if (++m_spriteFrameTimer > m_spriteFrameSpeed) {
             m_spriteFrameTimer = 0;
             m_spriteFrame++;

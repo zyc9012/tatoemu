@@ -89,10 +89,6 @@ void Audio::init(u32 sampleRate) {
         m_cyclesPerSample = SOUND_CPU_FREQUENCY / m_sampleRate;
     }
 
-    if (!m_cartridge) {
-        return;
-    }
-    
     // Get ADPCM ROM data from cartridge
     u8* adpcmRomA = const_cast<u8*>(m_cartridge->getADPCMROM());
     int adpcmRomASize = static_cast<int>(m_cartridge->getADPCMROMSize());
@@ -275,7 +271,7 @@ void Audio::setSoundCommand(u8 command) {
     m_soundStatus = false;
     
     // Trigger NMI to Z80 if enabled
-    if (m_nmiEnabled && m_soundCpu) {
+    if (m_nmiEnabled) {
         m_soundCpu->nmi();
     }
 }

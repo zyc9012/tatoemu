@@ -51,15 +51,11 @@ bool Core::initialize() {
 }
 
 void Core::setVideoDevice(::VideoDevice* videoDevice) {
-    if (m_video) {
-        m_video->setVideoDevice(videoDevice);
-    }
+    m_video->setVideoDevice(videoDevice);
 }
 
 void Core::setAudioDevice(::AudioDevice* audioDevice) {
-    if (m_audio) {
-        m_audio->setAudioDevice(audioDevice);
-    }
+    m_audio->setAudioDevice(audioDevice);
 }
 
 bool Core::loadROM(const fs::path& filename) {
@@ -190,15 +186,11 @@ void Core::updateGameSpeed(double gameSpeed) {
 }
 
 void Core::setAudioSampleRate(u32 sampleRate) {
-    if (m_audio) {
-        m_audio->setSampleRate(sampleRate);
-    }
+    m_audio->setSampleRate(sampleRate);
 }
 
 void Core::setAudioVolume(float volume) {
-    if (m_audio) {
-        m_audio->setVolume(volume);
-    }
+    m_audio->setVolume(volume);
 }
 
 } // namespace neogeo

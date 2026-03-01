@@ -48,9 +48,7 @@ u32 SoundCPU::step(u32 cycles) {
         m_cycles += actualCycles;
 
         // Update YM2610 timers - triggers IRQs when timers expire
-        if (m_audio) {
-            m_audio->updateTimers(actualCycles);
-        }
+        m_audio->updateTimers(actualCycles);
 
         return actualCycles;
     }

@@ -91,18 +91,12 @@ void Memory::reset() {
 u8 Memory::read8(u32 address) {
     // Vector table (0x000000-0x0003FF) - can be BIOS or cartridge
     if (address < 0x400) {
-        if (m_cartridge) {
-            return m_cartridge->readVectorTable8(address);
-        }
-        return 0xFF;
+        return m_cartridge->readVectorTable8(address);
     }
     
     // Program ROM (0x000400-0x0FFFFF)
     if (address >= 0x400 && address < 0x100000) {
-        if (m_cartridge) {
-            return m_cartridge->readProgramROM8(address);
-        }
-        return 0xFF;
+        return m_cartridge->readProgramROM8(address);
     }
     
     // Work RAM mirror (0x100000-0x1FFFFF) - 64KB mirrored
@@ -112,11 +106,8 @@ u8 Memory::read8(u32 address) {
     
     // Banked ROM area (0x200000-0x2FFFFF) - for games > 1MB
     if (address >= 0x200000 && address < 0x300000) {
-        if (m_cartridge) {
-            u32 romOffset = (address - 0x200000) + m_programRomBank;
-            return m_cartridge->readProgramROM8(romOffset);
-        }
-        return 0xFF;
+        u32 romOffset = (address - 0x200000) + m_programRomBank;
+        return m_cartridge->readProgramROM8(romOffset);
     }
     
     // Input ports
@@ -127,10 +118,7 @@ u8 Memory::read8(u32 address) {
         case 0x320000:
             if ((address & 1) == 0) {
                 // Even: Sound reply
-                if (m_audio) {
-                    return m_audio->getSoundReply();
-                }
-                return 0x00;
+                return m_audio->getSoundReply();
             } else {
                 // Odd: System status byte
                 u8 inputBank3 = m_controller->getInputBank(3);
@@ -171,17 +159,12 @@ u8 Memory::read8(u32 address) {
     if (address >= 0xC00000 && address <= 0xCFFFFF) {
         if (address <= 0xC003FF) {
             // Vector table area
-            if (m_cartridge) {
-                return m_cartridge->readBiosVectorTable8(address);
-            }
+            return m_cartridge->readBiosVectorTable8(address);
         } else {
             // BIOS ROM (mirrors within 0xC00000-0xCFFFFF)
-            if (m_cartridge) {
-                u32 biosOffset = address & 0x7FFFF;  // BIOS is usually 0x80000 bytes
-                return m_cartridge->readBIOS68K8(biosOffset);
-            }
+            u32 biosOffset = address & 0x7FFFF;  // BIOS is usually 0x80000 bytes
+            return m_cartridge->readBIOS68K8(biosOffset);
         }
-        return 0xFF;
     }
     
     // NVRAM (0xD00000-0xDFFFFF) - MVS only, 64KB mirrored
@@ -239,7 +222,7 @@ void Memory::write8(u32 address, u8 value) {
         // Bank selection: bank_offset = 0x100000 + ((value & 7) << 20)
         u32 newBank = 0x100000 + ((value & 7) << 20);
         // Clamp to ROM size if needed
-        if (m_cartridge && newBank >= m_cartridge->getProgramROMSize()) {
+        if (newBank >= m_cartridge->getProgramROMSize()) {
             newBank = 0x100000;
         }
         m_programRomBank = newBank;
@@ -251,9 +234,7 @@ void Memory::write8(u32 address, u8 value) {
         case 0x300000:
             // Watchdog timer reset (odd addresses)
             if ((address & 1) == 1) {
-                if (m_core) {
-                    m_core->resetWatchdog();
-                }
+                m_core->resetWatchdog();
             }
             return;
             
@@ -261,9 +242,7 @@ void Memory::write8(u32 address, u8 value) {
             // Sound command (even addresses)
             if ((address & 1) == 0) {
                 // Send sound command (triggers NMI to Z80 if enabled)
-                if (m_audio) {
-                    m_audio->setSoundCommand(value);
-                }
+                m_audio->setSoundCommand(value);
             }
             return;
             
@@ -329,27 +308,19 @@ u16 Memory::readVideoController(u32 address) {
         case 0x00:
         case 0x02:
             // Graphics RAM read
-            if (m_video) {
-                return m_video->readVRAM();
-            }
-            return 0;
+            return m_video->readVRAM();
             
         case 0x04:
             // Graphics RAM modulo
-            if (m_video) {
-                return m_video->getVRAMModulo();
-            }
-            return 0;
+            return m_video->getVRAMModulo();
             
-        case 0x06:
+        case 0x06: {
             // Display status (scanline + sprite frame)
-            if (m_video) {
-                constexpr u32 scanlineOffset = 0xF8;
-                u32 currentScanline = ((m_cpu->frameCycles() / CPU_CYCLES_PER_SCANLINE) + 248) % 264;
-                u32 spriteFrame = m_video->getSpriteFrame();
-                return static_cast<u16>(((currentScanline + scanlineOffset) << 7) | (spriteFrame & 7));
-            }
-            return (0xF8 << 7);  // Fake VBlank
+            constexpr u32 scanlineOffset = 0xF8;
+            u32 currentScanline = ((m_cpu->frameCycles() / CPU_CYCLES_PER_SCANLINE) + 248) % 264;
+            u32 spriteFrame = m_video->getSpriteFrame();
+            return static_cast<u16>(((currentScanline + scanlineOffset) << 7) | (spriteFrame & 7));
+        }
             
         default:
             return 0;
@@ -360,31 +331,23 @@ void Memory::writeVideoController(u32 address, u16 value) {
     switch (address & 0x0E) {
         case 0x00:
             // Graphics RAM pointer
-            if (m_video) {
-                m_video->setVRAMPointer(value);
-            }
+            m_video->setVRAMPointer(value);
             break;
             
         case 0x02:
             // Graphics RAM write
-            if (m_video) {
-                m_video->writeVRAM(value);
-            }
+            m_video->writeVRAM(value);
             break;
             
         case 0x04:
             // Graphics RAM modulo
-            if (m_video) {
-                m_video->setVRAMModulo(static_cast<s16>(value));
-            }
+            m_video->setVRAMModulo(static_cast<s16>(value));
             break;
             
         case 0x06:
             // IRQ control + sprite frame speed
             m_irqControl = value;
-            if (m_video) {
-                m_video->setSpriteFrameSpeed((value >> 8) & 0xFF);
-            }
+            m_video->setSpriteFrameSpeed((value >> 8) & 0xFF);
             break;
             
         case 0x08:
@@ -400,20 +363,18 @@ void Memory::writeVideoController(u32 address, u16 value) {
             
         case 0x0C:
             // IRQ acknowledge
-            if (m_cpu) {
-                m_irqAcknowledge |= (value & 7);
-                if ((m_irqAcknowledge & 7) == 7) {
-                    m_cpu->irq(0);
-                } else {
-                    if ((m_irqAcknowledge & 1) == 0) {
-                        m_cpu->irq(3);
-                    }
-                    if ((m_irqAcknowledge & 2) == 0) {
-                        m_cpu->irq(2);
-                    }
-                    if ((m_irqAcknowledge & 4) == 0) {
-                        m_cpu->irq(1);
-                    }
+            m_irqAcknowledge |= (value & 7);
+            if ((m_irqAcknowledge & 7) == 7) {
+                m_cpu->irq(0);
+            } else {
+                if ((m_irqAcknowledge & 1) == 0) {
+                    m_cpu->irq(3);
+                }
+                if ((m_irqAcknowledge & 2) == 0) {
+                    m_cpu->irq(2);
+                }
+                if ((m_irqAcknowledge & 4) == 0) {
+                    m_cpu->irq(1);
                 }
             }
             break;
@@ -500,9 +461,7 @@ void Memory::writeIO1(u8 offset, u8 value) {
             
         case 0x51:
             // Send command to RTC (MVS only)
-            if (m_upd4990a) {
-                m_upd4990a->write(value & 2, value & 4, value & 1);
-            }
+            m_upd4990a->write(value & 2, value & 4, value & 1);
             break;
             
         case 0x61:
@@ -523,9 +482,7 @@ void Memory::writeIO1(u8 offset, u8 value) {
             
         case 0xD1:
             // Send command to RTC (MVS only)
-            if (m_upd4990a) {
-                m_upd4990a->write(value & 2, value & 4, value & 1);
-            }
+            m_upd4990a->write(value & 2, value & 4, value & 1);
             break;
             
         case 0xE1:
@@ -557,9 +514,7 @@ void Memory::writeIO2(u8 offset, u8 /* value */) {
             
         case 0x03:
             // Select BIOS vector table
-            if (m_cartridge) {
-                m_cartridge->setBiosVectorTableActive(true);
-            }
+            m_cartridge->setBiosVectorTableActive(true);
             break;
             
         case 0x0B:
@@ -586,9 +541,7 @@ void Memory::writeIO2(u8 offset, u8 /* value */) {
             
         case 0x13:
             // Select game/cartridge vector table
-            if (m_cartridge) {
-                m_cartridge->setBiosVectorTableActive(false);
-            }
+            m_cartridge->setBiosVectorTableActive(false);
             break;
             
         case 0x1B:
@@ -650,54 +603,39 @@ u8 Memory::readZ80(u32 address) {
     
     // 0x0000-0x7FFF: Z80 BIOS ROM or cartridge ROM
     if (address < 0x8000) {
-        if (m_cartridge) {
-            if (m_z80BiosRomMapped) {
-                return m_cartridge->readBIOSZ808(address);
-            } else {
-                return m_cartridge->readSoundROM8(address);
-            }
+        if (m_z80BiosRomMapped) {
+            return m_cartridge->readBIOSZ808(address);
+        } else {
+            return m_cartridge->readSoundROM8(address);
         }
-        return 0xFF;
     }
     
     // 0x8000-0xBFFF: Bank 0 (16KB)
     if (address < 0xC000) {
-        if (m_cartridge) {
-            u32 bankOffset = (m_z80Bank0 & 0x0F) << 14;  // bank << 14
-            u32 romAddress = bankOffset + (address - 0x8000);
-            return m_cartridge->readSoundROM8(romAddress);
-        }
-        return 0xFF;
+        u32 bankOffset = (m_z80Bank0 & 0x0F) << 14;  // bank << 14
+        u32 romAddress = bankOffset + (address - 0x8000);
+        return m_cartridge->readSoundROM8(romAddress);
     }
     
     // 0xC000-0xDFFF: Bank 1 (8KB)
     if (address < 0xE000) {
-        if (m_cartridge) {
-            u32 bankOffset = (m_z80Bank1 & 0x1F) << 13;  // bank << 13
-            u32 romAddress = bankOffset + (address - 0xC000);
-            return m_cartridge->readSoundROM8(romAddress);
-        }
-        return 0xFF;
+        u32 bankOffset = (m_z80Bank1 & 0x1F) << 13;  // bank << 13
+        u32 romAddress = bankOffset + (address - 0xC000);
+        return m_cartridge->readSoundROM8(romAddress);
     }
     
     // 0xE000-0xEFFF: Bank 2 (4KB)
     if (address < 0xF000) {
-        if (m_cartridge) {
-            u32 bankOffset = (m_z80Bank2 & 0x3F) << 12;  // bank << 12
-            u32 romAddress = bankOffset + (address - 0xE000);
-            return m_cartridge->readSoundROM8(romAddress);
-        }
-        return 0xFF;
+        u32 bankOffset = (m_z80Bank2 & 0x3F) << 12;  // bank << 12
+        u32 romAddress = bankOffset + (address - 0xE000);
+        return m_cartridge->readSoundROM8(romAddress);
     }
     
     // 0xF000-0xF7FF: Bank 3 (2KB)
     if (address < 0xF800) {
-        if (m_cartridge) {
-            u32 bankOffset = (m_z80Bank3 & 0x7F) << 11;  // bank << 11
-            u32 romAddress = bankOffset + (address - 0xF000);
-            return m_cartridge->readSoundROM8(romAddress);
-        }
-        return 0xFF;
+        u32 bankOffset = (m_z80Bank3 & 0x7F) << 11;  // bank << 11
+        u32 romAddress = bankOffset + (address - 0xF000);
+        return m_cartridge->readSoundROM8(romAddress);
     }
     
     // 0xF800-0xFFFF: Z80 RAM (2KB)
@@ -723,19 +661,13 @@ u8 Memory::readZ80IO(u16 port) {
     switch (portLow) {
         case 0x00:
             // Read sound command from 68000
-            if (m_audio) {
-                return m_audio->readPort(port);
-            }
-            return 0x00;
+            return m_audio->readPort(port);
             
         case 0x04:
         case 0x05:
         case 0x06:
             // YM2610 read
-            if (m_audio) {
-                return m_audio->readPort(port);
-            }
-            return 0x00;
+            return m_audio->readPort(port);
             
         case 0x08:
             // Bank 3 switch (uses high byte as bank number)
@@ -763,9 +695,7 @@ u8 Memory::readZ80IO(u16 port) {
 }
 
 void Memory::writeZ80IO(u16 port, u8 value) {
-    if (m_audio) {
-        m_audio->writePort(port, value);
-    }
+    m_audio->writePort(port, value);
 }
 
 void Memory::saveState(Buffer* buf) {
