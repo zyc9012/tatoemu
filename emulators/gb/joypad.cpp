@@ -68,7 +68,7 @@ void Joypad::handleButton(JoypadButton button, bool pressed) {
         m_buttonState &= ~(1 << button);
         
         // Request joypad interrupt on button press
-        if (!wasPressed && m_cpu) {
+        if (!wasPressed) {
             m_cpu->requestInterrupt(INT_JOYPAD);
         }
     } else {

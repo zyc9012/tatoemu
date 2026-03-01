@@ -201,9 +201,7 @@ void PPU::step(u32 cycles) {
                 // Check for STAT mode 2 (OAM) interrupt at start of VBLANK
                 // This interrupt triggers on DMG/SGB but not on CGB/AGB/AGS
                 if (m_ly >= SCREEN_HEIGHT && !m_gbcMode && (m_stat & STAT_OAM_INTERRUPT) && !m_statInterruptLine) {
-                    if (m_cpu) {
-                        m_cpu->requestInterrupt(INT_LCD_STAT);
-                    }
+                    m_cpu->requestInterrupt(INT_LCD_STAT);
                     m_statInterruptLine = true;
                 }
 
@@ -224,9 +222,7 @@ void PPU::step(u32 cycles) {
                     // Don't reset m_windowRenderedThisFrame here - it's per scanline, reset in OAM_SCAN
 
                     // Request VBlank interrupt
-                    if (m_cpu) {
-                        m_cpu->requestInterrupt(INT_VBLANK);
-                    }
+                    m_cpu->requestInterrupt(INT_VBLANK);
 
                     if (m_videoDevice) {
                         m_videoDevice->render(m_framebuffer.data());
@@ -298,7 +294,7 @@ void PPU::updateStatInterrupt() {
     }
     
     // Trigger interrupt on rising edge
-    if (newStatLine && !m_statInterruptLine && m_cpu) {
+    if (newStatLine && !m_statInterruptLine) {
         m_cpu->requestInterrupt(INT_LCD_STAT);
     }
     
@@ -687,12 +683,10 @@ void PPU::performHDMA() {
     if (m_hdmaRemaining > 0) {
         // Transfer 16 bytes
         for (u8 i = 0; i < 0x10; i++) {
-            if (m_mmu) {
-                u8 data = m_mmu->read(m_hdmaSource);
-                writeVRAM(m_hdmaDest, data);
-                m_hdmaSource++;
-                m_hdmaDest++;
-            }
+            u8 data = m_mmu->read(m_hdmaSource);
+            writeVRAM(m_hdmaDest, data);
+            m_hdmaSource++;
+            m_hdmaDest++;
         }
         
         // HBlank DMA: ~8 cycles per byte in double speed, 16 in normal
@@ -717,12 +711,10 @@ void PPU::performGDMA() {
     u16 length = m_hdmaRemaining * 0x10;
     
     for (u16 i = 0; i < length; i++) {
-        if (m_mmu) {
-            u8 data = m_mmu->read(m_hdmaSource);
-            writeVRAM(m_hdmaDest, data);
-            m_hdmaSource++;
-            m_hdmaDest++;
-        }
+        u8 data = m_mmu->read(m_hdmaSource);
+        writeVRAM(m_hdmaDest, data);
+        m_hdmaSource++;
+        m_hdmaDest++;
     }
     
     // General DMA: ~8 cycles per byte in double speed, 16 in normal
@@ -858,25 +850,24 @@ void PPU::writeRegister(u16 address, u8 value) {
             }
             updateStatInterrupt();
             break;
-        case 0xFF46:
+        case 0xFF46: {
             // OAM DMA transfer
             m_dma = value;
-            if (m_mmu) {
-                u16 source = value << 8;
-                for (u16 i = 0; i < 0xA0; i++) {
-                    writeOAM(0xFE00 + i, m_mmu->read(source + i));
-                }
-                
-                // Calculate DMA cycle cost adjusted for double speed
-                // Normal speed: 8 initial + 160 bytes * 4 cycles = 648 cycles
-                // Then multiply by (2 - doubleSpeed) to get actual cycles:
-                // Normal: 648 * 2 = 1296 cycles
-                // Double: 648 * 1 = 648 cycles
-                u32 speedMultiplier = (m_mmu && m_mmu->isDoubleSpeed()) ? 1 : 2;
-                u32 baseCycles = 8 + (160 * 4);  // 648 cycles (double speed base)
-                m_dmaCycles += baseCycles * speedMultiplier;
+            u16 source = value << 8;
+            for (u16 i = 0; i < 0xA0; i++) {
+                writeOAM(0xFE00 + i, m_mmu->read(source + i));
             }
+            
+            // Calculate DMA cycle cost adjusted for double speed
+            // Normal speed: 8 initial + 160 bytes * 4 cycles = 648 cycles
+            // Then multiply by (2 - doubleSpeed) to get actual cycles:
+            // Normal: 648 * 2 = 1296 cycles
+            // Double: 648 * 1 = 648 cycles
+            u32 speedMultiplier = (m_mmu->isDoubleSpeed()) ? 1 : 2;
+            u32 baseCycles = 8 + (160 * 4);  // 648 cycles (double speed base)
+            m_dmaCycles += baseCycles * speedMultiplier;
             break;
+        }
         case 0xFF47: m_bgp = value; break;
         case 0xFF48: m_obp0 = value; break;
         case 0xFF49: m_obp1 = value; break;

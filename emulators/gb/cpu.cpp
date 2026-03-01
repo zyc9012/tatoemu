@@ -69,10 +69,8 @@ u32 CPU::step() {
 
 void CPU::requestInterrupt(u8 interrupt) {
     // Set the corresponding bit in the IF register (0xFF0F) via the bus.
-    if (m_mmu) {
-        u8 ifReg = m_mmu->read(0xFF0F);
-        m_mmu->write(0xFF0F, ifReg | interrupt);
-    }
+    u8 ifReg = m_mmu->read(0xFF0F);
+    m_mmu->write(0xFF0F, ifReg | interrupt);
 }
 
 void CPU::saveState(Buffer* buf) {

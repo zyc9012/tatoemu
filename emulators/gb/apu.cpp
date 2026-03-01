@@ -73,7 +73,7 @@ void APU::step(u32 cycles, double playbackSpeed = 1.0) {
     // In double speed mode, we receive 2x the cycles, but we should only process
     // half of them for APU timing
     u32 apuCycles = cycles;
-    if (m_mmu && m_mmu->isDoubleSpeed()) {
+    if (m_mmu->isDoubleSpeed()) {
         // Accumulate cycles to handle odd counts properly
         m_cycleAccumulator += cycles;
         apuCycles = m_cycleAccumulator / 2;

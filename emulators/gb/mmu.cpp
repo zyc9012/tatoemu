@@ -108,17 +108,12 @@ u8 MMU::read(u16 address) const {
             }
         }
         
-        if (m_cartridge) {
-            return m_cartridge->read(address);
-        }
+        return m_cartridge->read(address);
         return 0xFF;
     }
     // VRAM (0x8000 - 0x9FFF)
     else if (address < 0xA000) {
-        if (m_ppu) {
-            return m_ppu->readVRAM(address);
-        }
-        return 0xFF;
+        return m_ppu->readVRAM(address);
     }
     // Work RAM (0xC000 - 0xDFFF)
     else if (address < 0xE000) {
@@ -147,10 +142,7 @@ u8 MMU::read(u16 address) const {
     }
     // OAM (0xFE00 - 0xFE9F)
     else if (address < 0xFEA0) {
-        if (m_ppu) {
-            return m_ppu->readOAM(address);
-        }
-        return 0xFF;
+        return m_ppu->readOAM(address);
     }
     // Unusable (0xFEA0 - 0xFEFF)
     else if (address < 0xFF00) {
@@ -173,15 +165,11 @@ u8 MMU::read(u16 address) const {
 void MMU::write(u16 address, u8 value) {
     // ROM (0x0000 - 0x7FFF) and Cartridge RAM (0xA000 - 0xBFFF)
     if (address < 0x8000 || (address >= 0xA000 && address < 0xC000)) {
-        if (m_cartridge) {
-            m_cartridge->write(address, value);
-        }
+        m_cartridge->write(address, value);
     }
     // VRAM (0x8000 - 0x9FFF)
     else if (address < 0xA000) {
-        if (m_ppu) {
-            m_ppu->writeVRAM(address, value);
-        }
+        m_ppu->writeVRAM(address, value);
     }
     // Work RAM (0xC000 - 0xDFFF)
     else if (address < 0xE000) {
@@ -209,9 +197,7 @@ void MMU::write(u16 address, u8 value) {
     }
     // OAM (0xFE00 - 0xFE9F)
     else if (address < 0xFEA0) {
-        if (m_ppu) {
-            m_ppu->writeOAM(address, value);
-        }
+        m_ppu->writeOAM(address, value);
     }
     // Unusable (0xFEA0 - 0xFEFF)
     else if (address < 0xFF00) {
@@ -234,12 +220,12 @@ void MMU::write(u16 address, u8 value) {
 u8 MMU::readIO(u16 address) const {
     switch (address) {
         case 0xFF00: // Joypad
-            return m_joypad ? m_joypad->read() : 0xFF;
+            return m_joypad->read();
         case 0xFF04: // DIV
         case 0xFF05: // TIMA
         case 0xFF06: // TMA
         case 0xFF07: // TAC
-            return m_timer ? m_timer->read(address) : 0xFF;
+            return m_timer->read(address);
         case 0xFF0F: // IF (Interrupt Flag)
             return m_if;
         // APU registers (0xFF10-0xFF26, 0xFF30-0xFF3F)
@@ -252,7 +238,7 @@ u8 MMU::readIO(u16 address) const {
         case 0xFF34: case 0xFF35: case 0xFF36: case 0xFF37:
         case 0xFF38: case 0xFF39: case 0xFF3A: case 0xFF3B:
         case 0xFF3C: case 0xFF3D: case 0xFF3E: case 0xFF3F:
-            return m_apu ? m_apu->readRegister(address) : 0xFF;
+            return m_apu->readRegister(address);
         case 0xFF40: // LCDC
         case 0xFF41: // STAT
         case 0xFF42: // SCY
@@ -265,7 +251,7 @@ u8 MMU::readIO(u16 address) const {
         case 0xFF49: // OBP1
         case 0xFF4A: // WY
         case 0xFF4B: // WX
-            return m_ppu ? m_ppu->readRegister(address) : 0xFF;
+            return m_ppu->readRegister(address);
         // GBC Speed switch (KEY1)
         case 0xFF4D:
             // Bit 7: Current Speed (0=Normal, 1=Double) (Read Only)
@@ -282,7 +268,7 @@ u8 MMU::readIO(u16 address) const {
         case 0xFF51: case 0xFF52: case 0xFF53: case 0xFF54: case 0xFF55:
         // GBC Color palette registers
         case 0xFF68: case 0xFF69: case 0xFF6A: case 0xFF6B:
-            return m_ppu ? m_ppu->readRegister(address) : 0xFF;
+            return m_ppu->readRegister(address);
         // GBC WRAM bank
         case 0xFF70:
             // Bits 0-2: WRAM bank (0-7), Bits 3-7: Always 1 (unused)
@@ -295,17 +281,13 @@ u8 MMU::readIO(u16 address) const {
 void MMU::writeIO(u16 address, u8 value) {
     switch (address) {
         case 0xFF00: // Joypad
-            if (m_joypad) {
-                m_joypad->write(value);
-            }
+            m_joypad->write(value);
             break;
         case 0xFF04: // DIV
         case 0xFF05: // TIMA
         case 0xFF06: // TMA
         case 0xFF07: // TAC
-            if (m_timer) {
-                m_timer->write(address, value);
-            }
+            m_timer->write(address, value);
             break;
         case 0xFF0F: // IF (Interrupt Flag)
             m_if = value;
@@ -320,9 +302,7 @@ void MMU::writeIO(u16 address, u8 value) {
         case 0xFF34: case 0xFF35: case 0xFF36: case 0xFF37:
         case 0xFF38: case 0xFF39: case 0xFF3A: case 0xFF3B:
         case 0xFF3C: case 0xFF3D: case 0xFF3E: case 0xFF3F:
-            if (m_apu) {
-                m_apu->writeRegister(address, value);
-            }
+            m_apu->writeRegister(address, value);
             break;
         case 0xFF40: // LCDC
         case 0xFF41: // STAT
@@ -336,9 +316,7 @@ void MMU::writeIO(u16 address, u8 value) {
         case 0xFF49: // OBP1
         case 0xFF4A: // WY
         case 0xFF4B: // WX
-            if (m_ppu) {
-                m_ppu->writeRegister(address, value);
-            }
+            m_ppu->writeRegister(address, value);
             break;
         // GBC Speed switch (KEY1)
         case 0xFF4D:
@@ -350,9 +328,7 @@ void MMU::writeIO(u16 address, u8 value) {
         // Bootrom disable register
         case 0xFF50:
             // Any write to this register disables the bootrom
-            if (m_bootrom) {
-                m_bootrom->disable();
-            }
+            m_bootrom->disable();
             break;
         // GBC VRAM bank
         case 0xFF4F:
@@ -360,9 +336,7 @@ void MMU::writeIO(u16 address, u8 value) {
         case 0xFF51: case 0xFF52: case 0xFF53: case 0xFF54: case 0xFF55:
         // GBC Color palette registers
         case 0xFF68: case 0xFF69: case 0xFF6A: case 0xFF6B:
-            if (m_ppu) {
-                m_ppu->writeRegister(address, value);
-            }
+            m_ppu->writeRegister(address, value);
             break;
         // GBC WRAM bank
         case 0xFF70:

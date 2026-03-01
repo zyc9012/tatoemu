@@ -44,9 +44,7 @@ void Timer::step(u32 cycles) {
             if (m_overflowDelay == 0) {
                 // Reload TIMA from TMA and request interrupt
                 m_tima = m_tma;
-                if (m_cpu) {
-                    m_cpu->requestInterrupt(INT_TIMER);
-                }
+                m_cpu->requestInterrupt(INT_TIMER);
                 m_timerOverflow = false;
             }
         }
