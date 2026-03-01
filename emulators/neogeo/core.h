@@ -71,6 +71,9 @@ private:
 
     // Watchdog timer (for system reset)
     s32 m_watchdogTimer = 0;
+
+    // Compute the minimum number of cycles until the next event
+    u32 cyclesToNextEvent(u32 currentCycles) const;
 };
 
 } // namespace neogeo

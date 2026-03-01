@@ -83,10 +83,9 @@ void Core::reset() {
 
 void Core::update() {
     // Run until we complete a frame
-    
-    u32 nextCpuCycles = CPU_CYCLES_PER_STEP;
-
     m_video->newFrame();
+
+    u32 nextCpuCycles = cyclesToNextEvent(m_cpu->frameCycles());
 
     while (m_cpu->frameCycles() < CPU_CYCLES_PER_FRAME) {
         // Execute CPU cycles
@@ -94,7 +93,6 @@ void Core::update() {
         u32 cpuCycles = m_cpu->step(nextCpuCycles);
         u32 newCycles = m_cpu->frameCycles();
 
-        nextCpuCycles = CPU_CYCLES_PER_STEP;
         // Run sound CPU proportionally
         s32 soundCpuCycles = static_cast<s32>(newCycles * SOUND_CYCLES_RATIO) - m_soundCpu->frameCycles();
         
@@ -113,20 +111,14 @@ void Core::update() {
         if ((irqControl & 0x10) &&
             // Skip timer IRQ for zedblade
             m_cartridge->getGameId() != 0x76) {
-            s32 cyclesToIRQ = static_cast<s32>(targetIRQCycles) - static_cast<s32>(newCycles);
-            if (cyclesToIRQ > 0 && cyclesToIRQ < static_cast<s32>(CPU_CYCLES_PER_STEP)) {
-                nextCpuCycles = cyclesToIRQ;
-            } else if (oldCycles < targetIRQCycles && newCycles >= targetIRQCycles) {
+            if (oldCycles < targetIRQCycles && newCycles >= targetIRQCycles) {
                 m_memory->timerIRQ();
                 m_video->renderSprites();
             }
         }
 
-        // Avoid overrunning the frame by too much
-        u32 cyclesLeft = CPU_CYCLES_PER_FRAME - newCycles;
-        if (cyclesLeft < CPU_CYCLES_PER_STEP && cyclesLeft < nextCpuCycles) {
-            nextCpuCycles = cyclesLeft;
-        }
+        // Compute step size to land precisely on the next event
+        nextCpuCycles = cyclesToNextEvent(newCycles);
     }
 
     // Update watchdog timer
@@ -191,6 +183,32 @@ void Core::setAudioSampleRate(u32 sampleRate) {
 
 void Core::setAudioVolume(float volume) {
     m_audio->setVolume(volume);
+}
+
+u32 Core::cyclesToNextEvent(u32 currentCycles) const {
+    // Start with cycles to end of frame
+    u32 next = CPU_CYCLES_PER_FRAME - currentCycles;
+
+    // Cycles to next scanline boundary
+    u32 toScanline = m_video->cyclesToNextScanline();
+    if (toScanline < next) {
+        next = toScanline;
+    }
+
+    // Cycles to timer IRQ
+    u16 irqControl = m_memory->getIRQControl();
+    if ((irqControl & 0x10) && m_cartridge->getGameId() != 0x76) {
+        u32 targetIRQCycles = m_memory->getTargetIRQCycles();
+        if (targetIRQCycles > currentCycles) {
+            u32 toIRQ = targetIRQCycles - currentCycles;
+            if (toIRQ < next) {
+                next = toIRQ;
+            }
+        }
+    }
+
+    // Ensure we always step at least 1 cycle
+    return next > 0 ? next : 1;
 }
 
 } // namespace neogeo

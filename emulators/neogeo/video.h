@@ -73,6 +73,7 @@ public:
         return static_cast<s16>(m_graphicsRamModulo >> 1); 
     }
     u32 getScanline() const { return m_scanline; }
+    u32 cyclesToNextScanline() const { return CPU_CYCLES_PER_SCANLINE - m_cycles; }
     
     // Rendering control
     void setEnableGraphics(bool enable) { m_enableGraphics = enable; }
