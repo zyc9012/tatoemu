@@ -64,6 +64,9 @@ private:
     
     // CPS version (1 or 2) - determined from loaded game
     u8 m_cpsVersion;
+
+    // Compute cycles to next event (scanline boundary, frame end)
+    u32 cyclesToNextEvent(u32 currentCycles) const;
 };
 
 } // namespace cps

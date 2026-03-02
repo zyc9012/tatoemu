@@ -12,8 +12,14 @@ extern "C" {
 #include "../components/buffer.h"
 #include <memory>
 #include <vector>
+#include <array>
 
 namespace cps {
+
+class CPU;
+
+// Maximum samples per frame (44100 / 59.63 ≈ 740, round up with headroom)
+static constexpr u32 AUDIO_BUFFER_SIZE = 1024;
 
 // Audio - CPS1: YM2151 + MSM6295, CPS2: + QSound
 class Audio {
@@ -22,9 +28,12 @@ public:
     ~Audio();
 
     void reset();
-    void step(u32 cycles, double gameSpeed);
+
+    // Called at end of frame — catches up Z80, renders all samples, mixes, outputs.
+    void endFrame(double gameSpeed);
     
     void setSoundCPU(SoundCPU* soundCpu);
+    void setCPU(CPU* cpu) { m_cpu = cpu; }
     void setMemory(Memory* memory);
     void setAudioDevice(::AudioDevice* audioDevice) { m_audioDevice = audioDevice; }
     void setCartridge(Cartridge* cartridge);
@@ -44,6 +53,7 @@ public:
 
 private:
     SoundCPU* m_soundCpu;
+    CPU* m_cpu;
     Memory* m_memory;
     Cartridge* m_cartridge;
     ::AudioDevice* m_audioDevice;
@@ -51,22 +61,33 @@ private:
     u32 m_sampleRate;
     float m_volume;
     
-    // Sample buffers
-    s16 m_ym2151LeftSample = 0;
-    s16 m_ym2151RightSample = 0;
-    s16 m_msm6295Samples[2] = { 0, 0 };
-    s16 m_qsoundSamples[2] = { 0, 0 };
-    
-    // Sample generation
-    double m_cycleAccumulator;   // Accumulator for cycle timing
-    u64 m_cyclesPerSample;    // CPU cycles per audio sample
-    
     // YM2151 register addressing (two-step process)
     u8 m_ym2151RegSelect;
+
+    // Cached timing constants (set during reset based on CPS version)
+    u32 m_soundCPUCyclesPerFrame;
+    u32 m_soundCPUFrequency;
+    u32 m_soundCyclesPerSample;  // m_soundCPUFrequency / m_sampleRate
+
+    // Intermediate chip-rate buffers (CPS1)
+    std::array<s16, AUDIO_BUFFER_SIZE> m_ym2151Left;
+    std::array<s16, AUDIO_BUFFER_SIZE> m_ym2151Right;
+    std::array<s16, AUDIO_BUFFER_SIZE * 2> m_msm6295Buf;  // interleaved L,R
+
+    // QSound output buffers (CPS2 / CPS1 QSound)
+    std::array<s16, AUDIO_BUFFER_SIZE> m_qsoundLeft;
+    std::array<s16, AUDIO_BUFFER_SIZE> m_qsoundRight;
+
+    // Stereo interleaved mix buffer (L,R,L,R,...)
+    std::array<float, AUDIO_BUFFER_SIZE * 2> m_mixBuffer;
     
-    u8 getCPSVersion() const;
-    void generateSamples(u32 cycles, double gameSpeed);
     void setROMData();
+
+    // Render one sample from sound chips at buffer position `index`
+    void renderOneSample(u32 index);
+
+    // Run Z80 to catch up to the given Z80 cycle position
+    void runSoundCPUTo(s32 targetZ80Cycle);
 };
 
 } // namespace cps

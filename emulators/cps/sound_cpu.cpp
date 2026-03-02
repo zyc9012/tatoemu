@@ -69,14 +69,24 @@ void SoundCPU::setCPSVersion(u8 version) {
 }
 
 u32 SoundCPU::step(u32 cycles) {
-    if (cycles > 0) {
-        s32 executed = m_z80.execute(static_cast<s32>(cycles));
+    u32 totalExecuted = 0;
+
+    while (cycles > 0) {
+        // Sub-step to the nearest timer interrupt so it fires on time
+        u32 chunk = cycles;
+        if (m_timerPeriod > 0 && m_timerPeriod - m_timerAccumulator < chunk) {
+            chunk = m_timerPeriod - m_timerAccumulator;
+            if (chunk == 0) chunk = 1;
+        }
+
+        s32 executed = m_z80.execute(static_cast<s32>(chunk));
         u32 actualCycles = static_cast<u32>(executed);
         m_cycles += actualCycles;
+        totalExecuted += actualCycles;
 
         // For CPS2 and CPS1 QSound, check timer-based interrupt
         if (m_timerPeriod > 0) {
-            m_timerAccumulator += executed;
+            m_timerAccumulator += actualCycles;
 
             while (m_timerAccumulator >= m_timerPeriod) {
                 m_timerAccumulator -= m_timerPeriod;
@@ -85,9 +95,11 @@ u32 SoundCPU::step(u32 cycles) {
             }
         }
 
-        return actualCycles;
+        if (actualCycles >= cycles) break;
+        cycles -= actualCycles;
     }
-    return 0;
+
+    return totalExecuted;
 }
 
 void SoundCPU::irq(bool state) {

@@ -30,6 +30,7 @@ bool Core::initialize() {
     m_video->setMemory(m_memory.get());
     
     m_audio->setSoundCPU(m_soundCpu.get());
+    m_audio->setCPU(m_cpu.get());
     m_audio->setMemory(m_memory.get());
     m_audio->setCartridge(m_cartridge.get());
     
@@ -90,42 +91,21 @@ bool Core::loadROM(const fs::path& filename) {
 
 void Core::update() {
     // Run until we complete a frame
-    // The Video will set frameComplete when VBlank starts
 
-    u32 nextCpuCycles = CPU_CYCLES_PER_STEP;
+    u32 nextCpuCycles = cyclesToNextEvent(m_cpu->frameCycles());
     
     while (m_cpu->frameCycles() < m_cpu->cyclesPerFrame()) {
-        // Execute CPU cycles)
+        // Execute CPU cycles
         u32 cpuCycles = m_cpu->step(nextCpuCycles);
-        nextCpuCycles = CPU_CYCLES_PER_STEP;
-        
-        // Run sound CPU proportionally
-        float soundCyclesRatio;
-        if (m_cartridge->getCPSVersion() == 2) {
-            soundCyclesRatio = ::cps2::SOUND_CYCLES_RATIO;
-        } else if (m_cartridge->isCPS1QSound()) {
-            soundCyclesRatio = ::cps1qs::SOUND_CYCLES_RATIO;
-        } else {
-            soundCyclesRatio = ::cps1::SOUND_CYCLES_RATIO;
-        }
-        s32 soundCpuCycles = static_cast<s32>(m_cpu->frameCycles() * soundCyclesRatio) - m_soundCpu->frameCycles();
-        
-        // Execute Z80 and get actual cycles executed
-        if (soundCpuCycles > 0) {
-            u32 soundCpuCyclesActual = m_soundCpu->step(static_cast<u32>(soundCpuCycles));
-            m_audio->step(soundCpuCyclesActual, m_gameSpeed);
-        }
         
         // Run Video
         m_video->step(cpuCycles);
 
-        // Avoid overrunning the frame by too much
-        u32 cyclesLeft = m_cpu->cyclesPerFrame() - m_cpu->frameCycles();
-        if (cyclesLeft < nextCpuCycles) {
-            nextCpuCycles = cyclesLeft;
-        }
+        // Compute step size to land precisely on the next event
+        nextCpuCycles = cyclesToNextEvent(m_cpu->frameCycles());
     }
 
+    m_audio->endFrame(m_gameSpeed);
     m_cpu->endFrame();
     m_soundCpu->endFrame();
 }
@@ -171,6 +151,19 @@ void Core::setAudioSampleRate(u32 sampleRate) {
 
 void Core::setAudioVolume(float volume) {
     m_audio->setVolume(volume);
+}
+
+u32 Core::cyclesToNextEvent(u32 currentCycles) const {
+    // Cycles to end of frame
+    u32 next = m_cpu->cyclesPerFrame() - currentCycles;
+
+    // Cycles to next scanline boundary
+    u32 toScanline = m_video->cyclesToNextScanline();
+    if (toScanline < next) {
+        next = toScanline;
+    }
+
+    return next > 0 ? next : 1;
 }
 
 } // namespace cps

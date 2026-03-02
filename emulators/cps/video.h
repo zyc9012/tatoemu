@@ -43,6 +43,9 @@ public:
     void setMemory(Memory* memory) { m_memory = memory; }
     void setVideoDevice(::VideoDevice* videoDevice) { m_videoDevice = videoDevice; }
     void setDecodedGraphics(const std::vector<u8>& decodedGfx);
+
+    // Cycles until the next scanline boundary
+    u32 cyclesToNextScanline() const { return m_cyclesPerScanline - (m_cycles % m_cyclesPerScanline); }
     
     // VRAM access (from Memory class)
     u8 readVRAM8(u32 address);
