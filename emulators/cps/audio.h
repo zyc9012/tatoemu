@@ -18,9 +18,6 @@ namespace cps {
 
 class CPU;
 
-// Maximum samples per frame (44100 / 59.63 ≈ 740, round up with headroom)
-static constexpr u32 AUDIO_BUFFER_SIZE = 1024;
-
 // Audio - CPS1: YM2151 + MSM6295, CPS2: + QSound
 class Audio {
 public:
@@ -69,22 +66,18 @@ private:
     u32 m_soundCPUFrequency;
     u32 m_soundCyclesPerSample;  // m_soundCPUFrequency / m_sampleRate
 
-    // Intermediate chip-rate buffers (CPS1)
-    std::array<s16, AUDIO_BUFFER_SIZE> m_ym2151Left;
-    std::array<s16, AUDIO_BUFFER_SIZE> m_ym2151Right;
-    std::array<s16, AUDIO_BUFFER_SIZE * 2> m_msm6295Buf;  // interleaved L,R
-
-    // QSound output buffers (CPS2 / CPS1 QSound)
-    std::array<s16, AUDIO_BUFFER_SIZE> m_qsoundLeft;
-    std::array<s16, AUDIO_BUFFER_SIZE> m_qsoundRight;
-
-    // Stereo interleaved mix buffer (L,R,L,R,...)
-    std::array<float, AUDIO_BUFFER_SIZE * 2> m_mixBuffer;
+    // Stereo interleaved mix buffer (L,R,L,R,...) — flushed when full
+    static constexpr u32 MIX_BUFFER_SIZE = 2048;
+    std::array<float, MIX_BUFFER_SIZE> m_mixBuffer;
+    u32 m_mixPos;
     
     void setROMData();
 
-    // Render one sample from sound chips at buffer position `index`
-    void renderOneSample(u32 index);
+    // Run Z80, render one sample, and mix it into the output buffer
+    void renderAndMixOneSample();
+
+    // Flush mix buffer to audio device
+    void flushMixBuffer();
 
     // Run Z80 to catch up to the given Z80 cycle position
     void runSoundCPUTo(s32 targetZ80Cycle);

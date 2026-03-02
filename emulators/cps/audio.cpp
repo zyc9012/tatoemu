@@ -31,7 +31,8 @@ Audio::Audio()
     , m_ym2151RegSelect(0)
     , m_soundCPUCyclesPerFrame(0)
     , m_soundCPUFrequency(0)
-    , m_soundCyclesPerSample(0) {
+    , m_soundCyclesPerSample(0)
+    , m_mixPos(0) {
 }
 
 Audio::~Audio() {
@@ -175,19 +176,40 @@ void Audio::writeQSound(u16 port, u16 value) {
     QscWrite(port, value);
 }
 
-void Audio::renderOneSample(u32 index) {
+void Audio::renderAndMixOneSample() {
+    float left, right;
+
     if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
-        // CPS1: YM2151 (1 sample)
-        s16* ymBufs[2] = { &m_ym2151Left[index], &m_ym2151Right[index] };
+        // CPS1: YM2151 (1 sample into local buffers)
+        s16 ymL, ymR;
+        s16* ymBufs[2] = { &ymL, &ymR };
         YM2151UpdateOne(0, ymBufs, 1);
 
         // CPS1: MSM6295 (1 sample, interleaved L,R)
-        MSM6295Render(0, &m_msm6295Buf[index * 2], 1);
+        s16 msmBuf[2] = {0, 0};
+        MSM6295Render(0, msmBuf, 1);
+
+        left  = (ymL * 0.35f + msmBuf[0] * 0.30f) / 32768.0f;
+        right = (ymR * 0.35f + msmBuf[1] * 0.30f) / 32768.0f;
     } else {
         // QSound (CPS2 / CPS1 QSound)
         QscUpdate(1);
-        m_qsoundLeft[index] = QscGetLeftSample();
-        m_qsoundRight[index] = QscGetRightSample();
+        left  = QscGetLeftSample() / 32768.0f;
+        right = QscGetRightSample() / 32768.0f;
+    }
+
+    m_mixBuffer[m_mixPos++] = std::clamp(left * m_volume, -1.0f, 1.0f);
+    m_mixBuffer[m_mixPos++] = std::clamp(right * m_volume, -1.0f, 1.0f);
+
+    if (m_mixPos >= MIX_BUFFER_SIZE) {
+        flushMixBuffer();
+    }
+}
+
+void Audio::flushMixBuffer() {
+    if (m_mixPos > 0) {
+        m_audioDevice->writeSamples(m_mixBuffer.data(), m_mixPos * sizeof(float));
+        m_mixPos = 0;
     }
 }
 
@@ -201,64 +223,28 @@ void Audio::runSoundCPUTo(s32 targetZ80Cycle) {
 void Audio::endFrame(double gameSpeed) {
     if (!m_audioDevice) return;
 
-    // Calculate samples for this frame
-    u32 totalSamples = m_soundCPUCyclesPerFrame / m_soundCyclesPerSample;
-    if (totalSamples > AUDIO_BUFFER_SIZE) totalSamples = AUDIO_BUFFER_SIZE;
+    // Adjust cycle stride for game speed to preserve pitch
+    u32 cyclesPerSample = (gameSpeed > 0.0)
+        ? static_cast<u32>(m_soundCyclesPerSample * gameSpeed)
+        : m_soundCyclesPerSample;
+    if (cyclesPerSample == 0) cyclesPerSample = 1;
+
+    u32 totalSamples = m_soundCPUCyclesPerFrame / cyclesPerSample;
     if (totalSamples == 0) return;
 
-    // Interleave: run Z80 for one sample's worth of cycles, then render that sample
+    // Interleave: run Z80 for one sample's worth of cycles, render & mix
+    m_mixPos = 0;
     s32 targetCycle = 0;
     for (u32 i = 0; i < totalSamples; i++) {
-        targetCycle += m_soundCyclesPerSample;
+        targetCycle += cyclesPerSample;
         runSoundCPUTo(targetCycle);
-        renderOneSample(i);
+        renderAndMixOneSample();
     }
 
-    // Compute output sample count (stretch for gameSpeed < 1)
-    u32 outputSamples = (gameSpeed > 0.0)
-        ? static_cast<u32>(totalSamples / gameSpeed)
-        : totalSamples;
+    // Ensure Z80 has reached end of frame
+    runSoundCPUTo(static_cast<s32>(m_soundCPUCyclesPerFrame));
 
-    u32 mixPos = 0;
-
-    for (u32 i = 0; i < outputSamples; i++) {
-        u32 src = (gameSpeed > 0.0 && gameSpeed != 1.0)
-            ? static_cast<u32>(i * gameSpeed)
-            : i;
-        if (src >= totalSamples) src = totalSamples - 1;
-
-        float left, right;
-
-        if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
-            // CPS1: mix YM2151 + MSM6295
-            float ymL = m_ym2151Left[src] / 32768.0f;
-            float ymR = m_ym2151Right[src] / 32768.0f;
-            float msmL = m_msm6295Buf[src * 2] / 32768.0f;
-            float msmR = m_msm6295Buf[src * 2 + 1] / 32768.0f;
-            left  = ymL * 0.35f + msmL * 0.30f;
-            right = ymR * 0.35f + msmR * 0.30f;
-        } else {
-            // QSound
-            left  = m_qsoundLeft[src] / 32768.0f;
-            right = m_qsoundRight[src] / 32768.0f;
-        }
-
-        left  = std::clamp(left * m_volume, -1.0f, 1.0f);
-        right = std::clamp(right * m_volume, -1.0f, 1.0f);
-
-        m_mixBuffer[mixPos++] = left;
-        m_mixBuffer[mixPos++] = right;
-
-        // Flush when mix buffer is full
-        if (mixPos >= m_mixBuffer.size()) {
-            m_audioDevice->writeSamples(m_mixBuffer.data(), mixPos * sizeof(float));
-            mixPos = 0;
-        }
-    }
-
-    if (mixPos > 0) {
-        m_audioDevice->writeSamples(m_mixBuffer.data(), mixPos * sizeof(float));
-    }
+    flushMixBuffer();
 }
 
 void Audio::saveState(Buffer* buf) {
