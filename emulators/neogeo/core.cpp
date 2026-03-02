@@ -26,6 +26,7 @@ bool Core::initialize() {
     m_soundCpu->setAudio(m_audio.get());
     
     m_audio->setSoundCPU(m_soundCpu.get());
+    m_audio->setCPU(m_cpu.get());
     m_audio->setMemory(m_memory.get());
     m_audio->setCartridge(m_cartridge.get());
     
@@ -93,12 +94,6 @@ void Core::update() {
         u32 cpuCycles = m_cpu->step(nextCpuCycles);
         u32 newCycles = m_cpu->frameCycles();
 
-        // Run sound CPU proportionally
-        s32 soundCpuCycles = static_cast<s32>(newCycles * SOUND_CYCLES_RATIO) - m_soundCpu->frameCycles();
-        if (soundCpuCycles > 0) {
-            m_soundCpu->step(static_cast<u32>(soundCpuCycles));
-        }
-        
         // Run Video
         m_video->step(cpuCycles);
 

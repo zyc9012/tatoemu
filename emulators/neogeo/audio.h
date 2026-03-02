@@ -8,6 +8,7 @@
 namespace neogeo {
 
 class SoundCPU;
+class CPU;
 class Memory;
 class Cartridge;
 class AudioDevice;
@@ -28,6 +29,7 @@ public:
     void endFrame(double gameSpeed);
     
     void setSoundCPU(SoundCPU* soundCpu);
+    void setCPU(CPU* cpu) { m_cpu = cpu; }
     void setMemory(Memory* memory) { m_memory = memory; }
     void setAudioDevice(::AudioDevice* audioDevice) { m_audioDevice = audioDevice; }
     void setCartridge(Cartridge* cartridge) { m_cartridge = cartridge; }
@@ -41,11 +43,14 @@ public:
     
     // Sound command from 68000
     void setSoundCommand(u8 command);
-    u8 getSoundReply() const { return m_soundReply; }
+    u8 getSoundReply();
     bool getSoundStatus() const { return m_soundStatus; }
 
     // YM2610 timer handling - called by SoundCPU during execution
     void updateTimers(u32 cycles);
+
+    // Returns Z80 cycles until the next timer fires (or UINT32_MAX if none active)
+    u32 cyclesToNextTimer() const;
     
     // Set timer value (called by YM2610 timer handler)
     // timer: 0=A, 1=B, cycles: countdown value (-1=disabled)
@@ -60,6 +65,7 @@ public:
 
 private:
     SoundCPU* m_soundCpu;
+    CPU* m_cpu;
     Memory* m_memory;
     Cartridge* m_cartridge;
     ::AudioDevice* m_audioDevice;
@@ -96,6 +102,9 @@ private:
 
     u32 computeSamplesNeeded() const;
     void renderSamples(u32 samplesNeeded);
+
+    // Run Z80 to catch up to the given Z80 cycle position
+    void runSoundCPUTo(s32 targetZ80Cycle);
 };
 
 } // namespace neogeo

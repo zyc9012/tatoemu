@@ -42,17 +42,29 @@ void SoundCPU::reset() {
 }
 
 u32 SoundCPU::step(u32 cycles) {
-    if (cycles > 0) {
-        s32 executed = m_z80.execute(static_cast<s32>(cycles));
+    u32 totalExecuted = 0;
+
+    while (cycles > 0) {
+        // Sub-step to the nearest timer expiry so timers fire on time
+        u32 chunk = cycles;
+        u32 toTimer = m_audio->cyclesToNextTimer();
+        if (toTimer < chunk) {
+            chunk = toTimer > 0 ? toTimer : 1;
+        }
+
+        s32 executed = m_z80.execute(static_cast<s32>(chunk));
         u32 actualCycles = static_cast<u32>(executed);
         m_cycles += actualCycles;
+        totalExecuted += actualCycles;
 
         // Update YM2610 timers - triggers IRQs when timers expire
         m_audio->updateTimers(actualCycles);
 
-        return actualCycles;
+        if (actualCycles >= cycles) break;
+        cycles -= actualCycles;
     }
-    return 0;
+
+    return totalExecuted;
 }
 
 void SoundCPU::irq(bool state) {
