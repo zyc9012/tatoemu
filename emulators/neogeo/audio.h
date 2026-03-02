@@ -3,6 +3,7 @@
 #include "../types.h"
 #include "../../components/buffer.h"
 #include <vector>
+#include <array>
 
 namespace neogeo {
 
@@ -10,6 +11,9 @@ class SoundCPU;
 class Memory;
 class Cartridge;
 class AudioDevice;
+
+// Maximum samples per frame (44100 / 59.18 ≈ 745, round up with headroom)
+static constexpr u32 AUDIO_BUFFER_SIZE = 1024;
 
 // NeoGeo Audio - Uses YM2610 (OPNB) for FM synthesis, SSG (AY-3-8910), and ADPCM
 class Audio {
@@ -19,7 +23,9 @@ public:
 
     void init(u32 sampleRate = 44100);
     void reset();
-    void step(u32 cycles, double gameSpeed);
+
+    void renderUpTo();
+    void endFrame(double gameSpeed);
     
     void setSoundCPU(SoundCPU* soundCpu);
     void setMemory(Memory* memory) { m_memory = memory; }
@@ -74,9 +80,22 @@ private:
     s32 m_timerA;          // Timer A countdown (cycles until fire, -1 = disabled)
     s32 m_timerB;          // Timer B countdown (cycles until fire, -1 = disabled)
     
-    // Sample generation
-    double m_cycleAccumulator;
-    u32 m_cyclesPerSample;
+    // Intermediate chip-rate buffers
+    std::array<s16, AUDIO_BUFFER_SIZE> m_ym2610Left;
+    std::array<s16, AUDIO_BUFFER_SIZE> m_ym2610Right;
+    std::array<s16, AUDIO_BUFFER_SIZE> m_ay8910A;
+    std::array<s16, AUDIO_BUFFER_SIZE> m_ay8910B;
+    std::array<s16, AUDIO_BUFFER_SIZE> m_ay8910C;
+
+    // How many samples have been rendered into the buffers so far
+    u32 m_ym2610Position;
+    u32 m_ay8910Position;
+
+    // Stereo interleaved mix buffer (L,R,L,R,...)
+    std::array<float, AUDIO_BUFFER_SIZE * 2> m_mixBuffer;
+
+    u32 computeSamplesNeeded() const;
+    void renderSamples(u32 samplesNeeded);
 };
 
 } // namespace neogeo

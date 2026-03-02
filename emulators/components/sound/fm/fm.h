@@ -68,7 +68,8 @@
 #endif
 #if BUILD_YM2610
   /* in 2610intf.c */
-#define YM2610UpdateReq(chip)
+void YM2610UpdateReqCallback(void);
+#define YM2610UpdateReq(chip) YM2610UpdateReqCallback()
 #endif
 #if BUILD_YM2612
   /* in 2612intf.c */

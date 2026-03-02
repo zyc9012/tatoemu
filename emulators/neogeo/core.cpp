@@ -95,11 +95,8 @@ void Core::update() {
 
         // Run sound CPU proportionally
         s32 soundCpuCycles = static_cast<s32>(newCycles * SOUND_CYCLES_RATIO) - m_soundCpu->frameCycles();
-        
-        // Execute Z80 and get actual cycles executed
         if (soundCpuCycles > 0) {
-            u32 soundCpuCyclesActual = m_soundCpu->step(static_cast<u32>(soundCpuCycles));
-            m_audio->step(soundCpuCyclesActual, m_gameSpeed);
+            m_soundCpu->step(static_cast<u32>(soundCpuCycles));
         }
         
         // Run Video
@@ -132,6 +129,7 @@ void Core::update() {
     }
 
     m_upd4990a->update();
+    m_audio->endFrame(m_gameSpeed);
     m_cpu->endFrame();
     m_soundCpu->endFrame();
     m_memory->endFrame();
