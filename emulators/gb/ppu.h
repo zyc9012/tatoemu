@@ -86,6 +86,9 @@ public:
     u32 getDMACycles() const { return m_dmaCycles; }
     void clearDMACycles() { m_dmaCycles = 0; }
 
+    // Event-driven scheduling
+    u32 cyclesToNextEvent() const;
+
     // Save/Load state
     void saveState(Buffer* buf);
     void loadState(Buffer* buf);
@@ -167,7 +170,7 @@ private:
     
     bool m_gbcMode;
     bool m_statInterruptLine;
-    u8 m_modeChangeDelay;
+    u32 m_modeChangeDelay;
 
     // DMA cycle tracking (for proper timing)
     u32 m_dmaCycles;

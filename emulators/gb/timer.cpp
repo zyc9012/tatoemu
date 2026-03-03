@@ -37,15 +37,17 @@ void Timer::step(u32 cycles) {
     // Update DIV register (always runs)
     updateDivider(cycles);
     
-    // Handle timer overflow delay
+    // Handle timer overflow delay (in T-cycles)
     if (m_timerOverflow) {
         if (m_overflowDelay > 0) {
-            m_overflowDelay--;
-            if (m_overflowDelay == 0) {
+            if (cycles >= m_overflowDelay) {
+                m_overflowDelay = 0;
                 // Reload TIMA from TMA and request interrupt
                 m_tima = m_tma;
                 m_cpu->requestInterrupt(INT_TIMER);
                 m_timerOverflow = false;
+            } else {
+                m_overflowDelay -= cycles;
             }
         }
     }
@@ -85,7 +87,7 @@ void Timer::updateTimer(u32 cycles) {
             // Overflow will occur
             m_tima = 0;
             m_timerOverflow = true;
-            // Interrupt fires after 4 M-cycles
+            // Interrupt fires after 1 M-cycle (4 T-cycles)
             m_overflowDelay = 4;
         } else {
             m_tima++;
@@ -102,6 +104,29 @@ u32 Timer::getTimerFrequency() const {
         case 0x03: return 256;  // CPU Clock / 256 (16384 Hz)
         default: return 1024;
     }
+}
+
+u32 Timer::cyclesToNextEvent() const {
+    // DIV always runs
+    u32 next = (m_dividerCounter < 256) ? (256 - m_dividerCounter) : 1;
+
+    // Overflow delay takes priority if pending
+    if (m_timerOverflow && m_overflowDelay > 0) {
+        if (m_overflowDelay < next) {
+            next = m_overflowDelay;
+        }
+    }
+
+    // TIMA if enabled
+    if (m_tac & 0x04) {
+        u32 freq = getTimerFrequency();
+        u32 timaNext = (m_timerCounter < freq) ? (freq - m_timerCounter) : 1;
+        if (timaNext < next) {
+            next = timaNext;
+        }
+    }
+
+    return next > 0 ? next : 1;
 }
 
 u8 Timer::read(u16 address) const {

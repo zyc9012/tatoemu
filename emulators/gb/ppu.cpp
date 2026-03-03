@@ -154,9 +154,11 @@ void PPU::step(u32 cycles) {
 
     // Check for delayed STAT interrupt from previous mode change
     if (m_modeChangeDelay > 0) {
-        m_modeChangeDelay--;
-        if (m_modeChangeDelay == 0) {
+        if (cycles >= m_modeChangeDelay) {
+            m_modeChangeDelay = 0;
             updateStatInterrupt();
+        } else {
+            m_modeChangeDelay -= cycles;
         }
     }
     
@@ -270,10 +272,35 @@ void PPU::step(u32 cycles) {
     }
 }
 
+u32 PPU::cyclesToNextEvent() const {
+    if (!(m_lcdc & LCDC_LCD_ENABLE)) {
+        return UINT32_MAX;
+    }
+
+    u32 speedMultiplier = (m_mmu && m_mmu->isDoubleSpeed()) ? 2 : 1;
+    u32 threshold;
+
+    switch (m_mode) {
+        case PPUMode::OAM_SCAN: threshold = SCANLINE_OAM_CYCLES * speedMultiplier; break;
+        case PPUMode::DRAWING:  threshold = SCANLINE_VRAM_CYCLES * speedMultiplier; break;
+        case PPUMode::HBLANK:   threshold = SCANLINE_HBLANK_CYCLES * speedMultiplier; break;
+        case PPUMode::VBLANK:   threshold = SCANLINE_CYCLES * speedMultiplier; break;
+        default:                threshold = 1; break;
+    }
+
+    u32 next = (m_modeCycles < threshold) ? (threshold - m_modeCycles) : 1;
+
+    if (m_modeChangeDelay > 0 && m_modeChangeDelay < next) {
+        next = m_modeChangeDelay;
+    }
+
+    return next;
+}
+
 void PPU::setMode(PPUMode mode) {
     m_mode = mode;
     m_stat = (m_stat & 0xFC) | static_cast<u8>(mode);
-    m_modeChangeDelay = 1;  // Delay STAT interrupt by 1 cycle
+    m_modeChangeDelay = 4;  // Delay STAT interrupt by 1 M-cycle (4 T-cycles)
 }
 
 void PPU::updateStatInterrupt() {

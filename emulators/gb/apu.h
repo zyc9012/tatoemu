@@ -140,7 +140,7 @@ private:
     void clockFrameSequencer();
     
     // Channel mixing and output
-    void generateSample(double playbackSpeed);
+    void outputSample();
     
     // Helper functions
     bool isChannelEnabled(u8 channel) const;

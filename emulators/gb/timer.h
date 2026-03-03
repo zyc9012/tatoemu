@@ -18,6 +18,9 @@ public:
     
     u8 read(u16 address) const;
     void write(u16 address, u8 value);
+
+    // Event-driven scheduling
+    u32 cyclesToNextEvent() const;
     
     // Save/Load state
     void saveState(Buffer* buf);
@@ -40,7 +43,7 @@ private:
     // Internal state
     u32 m_timerCounter;    // Internal counter for TIMA
     bool m_timerOverflow;  // Track if overflow just occurred
-    u8 m_overflowDelay;    // Delay cycles before interrupt fires
+    u32 m_overflowDelay;   // Delay in T-cycles before interrupt fires
 };
 
 } // namespace gb

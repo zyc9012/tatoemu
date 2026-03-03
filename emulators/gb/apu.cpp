@@ -81,82 +81,104 @@ void APU::step(u32 cycles, double playbackSpeed = 1.0) {
     }
     
     if (!m_enabled) {
-        // When APU is disabled, still generate silence samples
-        // to keep audio buffer filled
+        // When APU is disabled, still advance sample timer to stay in sync
         m_sampleTimer += apuCycles;
-        
         u32 cyclesPerSample = CLOCK_SPEED / m_sampleRate;
-        
         while (m_sampleTimer >= cyclesPerSample) {
             m_sampleTimer -= cyclesPerSample;
         }
         return;
     }
     
-    // Frame sequencer runs at 512 Hz (every 8192 cycles at normal APU speed)
-    m_frameSequencerTimer += apuCycles;
-    while (m_frameSequencerTimer >= 8192) {
-        m_frameSequencerTimer -= 8192;
-        clockFrameSequencer();
-    }
+    u32 cyclesPerSample = std::max(1u, (u32)(CLOCK_SPEED * playbackSpeed / m_sampleRate));
+    u32 remaining = apuCycles;
     
-    // Update channel timers and generate audio samples
-    for (u32 i = 0; i < apuCycles; i++) {
-        // Clock square channel 1
+    while (remaining > 0) {
+        // Find minimum cycles until next event
+        u32 delta = remaining;
+        
+        // Frame sequencer: fires every 8192 APU cycles
+        u32 fsRemain = 8192 - m_frameSequencerTimer;
+        if (fsRemain < delta) delta = fsRemain;
+        
+        // Sample generation
+        u32 sampleRemain = (m_sampleTimer < cyclesPerSample)
+            ? (cyclesPerSample - m_sampleTimer) : 1;
+        if (sampleRemain < delta) delta = sampleRemain;
+        
+        // Channel frequency timers
+        if (m_square1.enabled && m_square1.frequencyTimer > 0
+            && (u32)m_square1.frequencyTimer < delta)
+            delta = m_square1.frequencyTimer;
+        if (m_square2.enabled && m_square2.frequencyTimer > 0
+            && (u32)m_square2.frequencyTimer < delta)
+            delta = m_square2.frequencyTimer;
+        if (m_wave.enabled && m_wave.frequencyTimer > 0
+            && (u32)m_wave.frequencyTimer < delta)
+            delta = m_wave.frequencyTimer;
+        if (m_noise.enabled && m_noise.frequencyTimer > 0
+            && (u32)m_noise.frequencyTimer < delta)
+            delta = m_noise.frequencyTimer;
+        
+        if (delta == 0) delta = 1;
+        
+        // Advance all timers
+        remaining -= delta;
+        m_frameSequencerTimer += delta;
+        m_sampleTimer += delta;
+        
+        // Process frame sequencer
+        if (m_frameSequencerTimer >= 8192) {
+            m_frameSequencerTimer -= 8192;
+            clockFrameSequencer();
+        }
+        
+        // Process channel frequency timers
         if (m_square1.enabled && m_square1.frequencyTimer > 0) {
-            m_square1.frequencyTimer--;
+            m_square1.frequencyTimer -= delta;
             if (m_square1.frequencyTimer == 0) {
                 m_square1.frequencyTimer = m_square1.getFrequencyTimerPeriod();
                 m_square1.dutyPosition = (m_square1.dutyPosition + 1) & 7;
             }
         }
         
-        // Clock square channel 2
         if (m_square2.enabled && m_square2.frequencyTimer > 0) {
-            m_square2.frequencyTimer--;
+            m_square2.frequencyTimer -= delta;
             if (m_square2.frequencyTimer == 0) {
                 m_square2.frequencyTimer = m_square2.getFrequencyTimerPeriod();
                 m_square2.dutyPosition = (m_square2.dutyPosition + 1) & 7;
             }
         }
         
-        // Clock wave channel
         if (m_wave.enabled && m_wave.frequencyTimer > 0) {
-            m_wave.frequencyTimer--;
+            m_wave.frequencyTimer -= delta;
             if (m_wave.frequencyTimer == 0) {
-                // Wave channel uses (2048 - frequency) * 2, not * 4 like square channels
                 m_wave.frequencyTimer = (2048 - m_wave.frequency) * 2;
                 m_wave.wavePosition = (m_wave.wavePosition + 1) & 31;
             }
         }
         
-        // Clock noise channel
         if (m_noise.enabled && m_noise.frequencyTimer > 0) {
-            m_noise.frequencyTimer--;
+            m_noise.frequencyTimer -= delta;
             if (m_noise.frequencyTimer == 0) {
                 m_noise.frequencyTimer = m_noise.getFrequencyPeriod();
                 
-                // Clock LFSR
-                // XNOR of bit 0 and bit 1 (1 if identical, 0 if different)
                 u16 bit = ~(m_noise.lfsr ^ (m_noise.lfsr >> 1)) & 1;
-                
-                // Write result to bit 15
                 m_noise.lfsr &= ~0x8000;
                 m_noise.lfsr |= (bit << 15);
-                
-                // If short mode (7-bit), also write to bit 7
                 if (m_noise.widthMode) {
                     m_noise.lfsr &= ~0x0080;
                     m_noise.lfsr |= (bit << 7);
                 }
-                
-                // Shift the entire LFSR right
                 m_noise.lfsr >>= 1;
             }
         }
         
-        // Generate audio sample
-        generateSample(playbackSpeed);
+        // Generate sample if ready
+        if (m_sampleTimer >= cyclesPerSample) {
+            m_sampleTimer -= cyclesPerSample;
+            outputSample();
+        }
     }
 }
 
@@ -200,71 +222,57 @@ void APU::clockFrameSequencer() {
     updateNR52();
 }
 
-void APU::generateSample(double playbackSpeed) {
-    m_sampleTimer++;
+void APU::outputSample() {
+    // Get channel outputs
+    s16 ch1 = m_square1.getOutput() - DAC_BIAS;
+    s16 ch2 = m_square2.getOutput() - DAC_BIAS;
+    s16 ch3 = m_wave.getOutput() - DAC_BIAS;
+    s16 ch4 = m_noise.getOutput() - DAC_BIAS;
     
-    // APU always runs at normal speed, so cycles per sample is constant
-    u32 cyclesPerSample = CLOCK_SPEED * playbackSpeed / m_sampleRate;
+    // Mix left channel (NR51 bits 4-7)
+    float leftMix = 0.0f;
+    if (m_leftEnable & 0x01) leftMix += ch1;
+    if (m_leftEnable & 0x02) leftMix += ch2;
+    if (m_leftEnable & 0x04) leftMix += ch3;
+    if (m_leftEnable & 0x08) leftMix += ch4;
+    leftMix /= 4.0f;
     
-    if (m_sampleTimer >= cyclesPerSample) {
-        m_sampleTimer -= cyclesPerSample;
-        
-        // Get channel outputs
-        s16 ch1 = m_square1.getOutput() - DAC_BIAS;
-        s16 ch2 = m_square2.getOutput() - DAC_BIAS;
-        s16 ch3 = m_wave.getOutput() - DAC_BIAS;
-        s16 ch4 = m_noise.getOutput() - DAC_BIAS;
-        
-        // Mix left channel (NR51 bits 4-7)
-        float leftMix = 0.0f;
-        if (m_leftEnable & 0x01) leftMix += ch1;
-        if (m_leftEnable & 0x02) leftMix += ch2;
-        if (m_leftEnable & 0x04) leftMix += ch3;
-        if (m_leftEnable & 0x08) leftMix += ch4;
-        leftMix /= 4.0f; // Average
-        
-        // Mix right channel (NR51 bits 0-3)
-        float rightMix = 0.0f;
-        if (m_rightEnable & 0x01) rightMix += ch1;
-        if (m_rightEnable & 0x02) rightMix += ch2;
-        if (m_rightEnable & 0x04) rightMix += ch3;
-        if (m_rightEnable & 0x08) rightMix += ch4;
-        rightMix /= 4.0f; // Average
-        
-        // Apply master volume (NR50)
-        leftMix *= (m_leftVolume + 1) / 8.0f;
-        rightMix *= (m_rightVolume + 1) / 8.0f;
-        
-        // Normalize to -1.0 to 1.0 range
-        leftMix /= 15.0f;
-        rightMix /= 15.0f;
-        
-        // Apply high-pass filter (capacitor simulation)
-        // This removes DC offset and gives the characteristic Game Boy sound
-        const float highPassStrength = 0.999f;
-        
-        // High-pass filter for left channel
-        float leftFiltered = leftMix - m_capacitorLeft;
-        m_capacitorLeft = leftMix - leftFiltered * highPassStrength;
-        
-        // High-pass filter for right channel
-        float rightFiltered = rightMix - m_capacitorRight;
-        m_capacitorRight = rightMix - rightFiltered * highPassStrength;
-        
-        // Apply master gain from configuration
-        leftFiltered *= m_volume;
-        rightFiltered *= m_volume;
-        
-        // Clamp
-        if (leftFiltered > 1.0f) leftFiltered = 1.0f;
-        if (leftFiltered < -1.0f) leftFiltered = -1.0f;
-        if (rightFiltered > 1.0f) rightFiltered = 1.0f;
-        if (rightFiltered < -1.0f) rightFiltered = -1.0f;
-        
-        float sampleBuffer[2] = { leftFiltered, rightFiltered };
-        if (m_audioDevice) {
-            m_audioDevice->writeSamples(sampleBuffer, 2 * sizeof(float));
-        }
+    // Mix right channel (NR51 bits 0-3)
+    float rightMix = 0.0f;
+    if (m_rightEnable & 0x01) rightMix += ch1;
+    if (m_rightEnable & 0x02) rightMix += ch2;
+    if (m_rightEnable & 0x04) rightMix += ch3;
+    if (m_rightEnable & 0x08) rightMix += ch4;
+    rightMix /= 4.0f;
+    
+    // Apply master volume (NR50)
+    leftMix *= (m_leftVolume + 1) / 8.0f;
+    rightMix *= (m_rightVolume + 1) / 8.0f;
+    
+    // Normalize to -1.0 to 1.0 range
+    leftMix /= 15.0f;
+    rightMix /= 15.0f;
+    
+    // Apply high-pass filter (capacitor simulation)
+    const float highPassStrength = 0.999f;
+    float leftFiltered = leftMix - m_capacitorLeft;
+    m_capacitorLeft = leftMix - leftFiltered * highPassStrength;
+    float rightFiltered = rightMix - m_capacitorRight;
+    m_capacitorRight = rightMix - rightFiltered * highPassStrength;
+    
+    // Apply master gain from configuration
+    leftFiltered *= m_volume;
+    rightFiltered *= m_volume;
+    
+    // Clamp
+    if (leftFiltered > 1.0f) leftFiltered = 1.0f;
+    if (leftFiltered < -1.0f) leftFiltered = -1.0f;
+    if (rightFiltered > 1.0f) rightFiltered = 1.0f;
+    if (rightFiltered < -1.0f) rightFiltered = -1.0f;
+    
+    float sampleBuffer[2] = { leftFiltered, rightFiltered };
+    if (m_audioDevice) {
+        m_audioDevice->writeSamples(sampleBuffer, 2 * sizeof(float));
     }
 }
 

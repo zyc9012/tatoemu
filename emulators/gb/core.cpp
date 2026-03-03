@@ -88,7 +88,16 @@ void Core::update() {
     
     // Run until we've executed enough cycles for one frame
     while (m_cyclesThisFrame < targetCycles) {
-        u32 cycles = m_cpu->step(1);
+        // Calculate cycles to next event
+        u32 cyclesToRun = targetCycles - m_cyclesThisFrame;
+        
+        u32 ppuNext = m_ppu->cyclesToNextEvent();
+        if (ppuNext < cyclesToRun) cyclesToRun = ppuNext;
+        
+        u32 timerNext = m_timer->cyclesToNextEvent();
+        if (timerNext < cyclesToRun) cyclesToRun = timerNext;
+        
+        u32 cycles = m_cpu->step(cyclesToRun);
         
         m_ppu->step(cycles);
         m_timer->step(cycles);
