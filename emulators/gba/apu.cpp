@@ -149,7 +149,7 @@ void APU::step(u32 cycles, double gameSpeed) {
     // --- Noise channel frequency timer ---
     if (m_noise.enabled) {
         u32 rem = cycles;
-        while (rem >= m_noise.frequencyTimer) {
+        while (rem >= m_noise.frequencyTimer && m_noise.frequencyTimer > 0) {
             rem -= m_noise.frequencyTimer;
             m_noise.frequencyTimer = m_noise.getFrequencyPeriod();
             u16 bit = ~(m_noise.lfsr ^ (m_noise.lfsr >> 1)) & 1;
