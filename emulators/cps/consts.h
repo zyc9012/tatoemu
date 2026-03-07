@@ -30,7 +30,6 @@ constexpr u32 SOUND_CPU_FREQUENCY = 4000000;  // 4 MHz (Z80)
 // Cycles per frame
 constexpr u32 CPU_CYCLES_PER_FRAME = static_cast<u32>(CPU_FREQUENCY / TARGET_FPS);
 constexpr u32 SOUND_CPU_CYCLES_PER_FRAME = static_cast<u32>(SOUND_CPU_FREQUENCY / TARGET_FPS);
-constexpr float SOUND_CYCLES_RATIO = static_cast<float>(SOUND_CPU_FREQUENCY) / static_cast<float>(CPU_FREQUENCY);
 
 } // namespace cps1
 
@@ -46,7 +45,6 @@ constexpr u32 SOUND_CPU_FREQUENCY = 8000000;  // 8 MHz (Z80)
 // Cycles per frame
 constexpr u32 CPU_CYCLES_PER_FRAME = static_cast<u32>(CPU_FREQUENCY / TARGET_FPS);
 constexpr u32 SOUND_CPU_CYCLES_PER_FRAME = static_cast<u32>(SOUND_CPU_FREQUENCY / TARGET_FPS);
-constexpr float SOUND_CYCLES_RATIO = static_cast<float>(SOUND_CPU_FREQUENCY) / static_cast<float>(CPU_FREQUENCY);
 
 } // namespace cps1qs
 
@@ -62,6 +60,5 @@ constexpr u32 SOUND_CPU_FREQUENCY = 8000000;  // 8 MHz (Z80)
 // Cycles per frame
 constexpr u32 CPU_CYCLES_PER_FRAME = static_cast<u32>(CPU_FREQUENCY / TARGET_FPS);
 constexpr u32 SOUND_CPU_CYCLES_PER_FRAME = static_cast<u32>(SOUND_CPU_FREQUENCY / TARGET_FPS);
-constexpr float SOUND_CYCLES_RATIO = static_cast<float>(SOUND_CPU_FREQUENCY) / static_cast<float>(CPU_FREQUENCY);
 
 } // namespace cps2
