@@ -104,7 +104,7 @@ private:
     void renderSamples(u32 samplesNeeded);
 
     // Run Z80 to catch up to the given Z80 cycle position
-    void runSoundCPUTo(s32 targetZ80Cycle);
+    void runSoundCPUTo(u32 targetZ80Cycle);
 };
 
 } // namespace neogeo

@@ -583,7 +583,7 @@ void Memory::reloadIRQTimer(u8 bit) {
     // Bit 7 = 1: Reload counter when it reaches 0.
     if (m_irqControl & 0x10) {
         if (m_irqControl & (1 << bit)) {
-            m_targetIRQCycles = m_cpu->frameCycles() + static_cast<u32>(m_irqOffset * TIMER_CYCLES_TO_CPU_CYCLES_RATIO);
+            m_targetIRQCycles = m_cpu->frameCycles() + static_cast<u32>(static_cast<u64>(m_irqOffset) * CPU_FREQUENCY / IRQ_TIMER_FREQUENCY);
         }
     } else {
         m_targetIRQCycles = 0;

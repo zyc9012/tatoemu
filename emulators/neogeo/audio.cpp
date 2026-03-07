@@ -232,7 +232,7 @@ void Audio::endFrame(double gameSpeed) {
     if (!m_audioDevice) return;
 
     // Catch up Z80 to end of frame
-    runSoundCPUTo(static_cast<s32>(SOUND_CPU_CYCLES_PER_FRAME));
+    runSoundCPUTo(SOUND_CPU_CYCLES_PER_FRAME);
 
     // Render any remaining samples that haven't been rendered yet
     u32 totalSamples = computeSamplesNeeded();
@@ -345,16 +345,16 @@ void Audio::writePort(u16 port, u8 value) {
     }
 }
 
-void Audio::runSoundCPUTo(s32 targetZ80Cycle) {
-    s32 remaining = targetZ80Cycle - static_cast<s32>(m_soundCpu->frameCycles());
-    if (remaining > 0) {
-        m_soundCpu->step(static_cast<u32>(remaining));
+void Audio::runSoundCPUTo(u32 targetZ80Cycle) {
+    u32 current = m_soundCpu->frameCycles();
+    if (targetZ80Cycle > current) {
+        m_soundCpu->step(targetZ80Cycle - current);
     }
 }
 
 void Audio::setSoundCommand(u8 command) {
     // Catch up Z80 to current 68K position before delivering the command
-    runSoundCPUTo(static_cast<s32>(m_cpu->frameCycles() * SOUND_CYCLES_RATIO));
+    runSoundCPUTo(static_cast<u32>(static_cast<u64>(m_cpu->frameCycles()) * SOUND_CPU_FREQUENCY / CPU_FREQUENCY));
 
     m_soundCommand = command;
     m_soundStatus = false;
@@ -367,7 +367,7 @@ void Audio::setSoundCommand(u8 command) {
 
 u8 Audio::getSoundReply() {
     // Catch up Z80 so it has had time to process and write its reply
-    runSoundCPUTo(static_cast<s32>(m_cpu->frameCycles() * SOUND_CYCLES_RATIO));
+    runSoundCPUTo(static_cast<u32>(static_cast<u64>(m_cpu->frameCycles()) * SOUND_CPU_FREQUENCY / CPU_FREQUENCY));
     return m_soundReply;
 }
 
