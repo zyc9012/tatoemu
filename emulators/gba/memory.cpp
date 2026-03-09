@@ -142,7 +142,7 @@ bool Memory::loadBIOS(const u8* data, u32 size) {
 
 u8 Memory::read8(u32 address) {
     u32 region = (address >> 24) & 0xF;
-    u32 offset = address & 0xFFFFFF;
+    u32 offset = address & 0x1FFFFFF;
     u8 value;
     m_waitCycles += m_wsNonseq16[region];
     prefetchStep(region, m_wsNonseq16[region]);
@@ -205,7 +205,7 @@ u8 Memory::read8(u32 address) {
 u16 Memory::read16(u32 address, bool isFetch) {
     address &= ~1;
     u32 region = (address >> 24) & 0xF;
-    u32 offset = address & 0xFFFFFF;
+    u32 offset = address & 0x1FFFFFF;
     u16 value;
     m_waitCycles += m_wsNonseq16[region];
     if (!isFetch) prefetchStep(region, m_wsNonseq16[region]);
@@ -275,7 +275,7 @@ u16 Memory::read16(u32 address, bool isFetch) {
 u32 Memory::read32(u32 address, bool isFetch) {
     address &= ~3;
     u32 region = (address >> 24) & 0xF;
-    u32 offset = address & 0xFFFFFF;
+    u32 offset = address & 0x1FFFFFF;
     u32 value;
     m_waitCycles += m_wsNonseq32[region];
     if (!isFetch) prefetchStep(region, m_wsNonseq32[region]);
@@ -341,7 +341,7 @@ u32 Memory::read32(u32 address, bool isFetch) {
 
 void Memory::write8(u32 address, u8 value) {
     u32 region = (address >> 24) & 0xF;
-    u32 offset = address & 0xFFFFFF;
+    u32 offset = address & 0x1FFFFFF;
     m_waitCycles += m_wsNonseq16[region];
     prefetchStep(region, m_wsNonseq16[region]);
 
@@ -398,7 +398,7 @@ void Memory::write8(u32 address, u8 value) {
 void Memory::write16(u32 address, u16 value) {
     address &= ~1;
     u32 region = (address >> 24) & 0xF;
-    u32 offset = address & 0xFFFFFF;
+    u32 offset = address & 0x1FFFFFF;
     m_waitCycles += m_wsNonseq16[region];
     prefetchStep(region, m_wsNonseq16[region]);
 
@@ -455,7 +455,7 @@ void Memory::write16(u32 address, u16 value) {
 void Memory::write32(u32 address, u32 value) {
     address &= ~3;
     u32 region = (address >> 24) & 0xF;
-    u32 offset = address & 0xFFFFFF;
+    u32 offset = address & 0x1FFFFFF;
     m_waitCycles += m_wsNonseq32[region];
     prefetchStep(region, m_wsNonseq32[region]);
 
