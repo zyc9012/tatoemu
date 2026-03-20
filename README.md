@@ -142,6 +142,9 @@ The following options and control mappings can be customized within this config 
 - **ESC** - Quit emulator
 - **F5** - Quick save state
 - **F9** - Quick load state
+- **F10** - Quick load state (backup 1)
+- **F11** - Quick load state (backup 2)
+- **F12** - Quick load state (backup 3)
 - **P** - Pause / Resume
 
 ## Supported Systems and Cartridge/Board Types

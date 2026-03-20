@@ -466,10 +466,21 @@ void Emulator::handleInput() {
                             log_info("State saved to %s", savePath.string().c_str());
                         }
                     }
-                } else if (event.key.key == Config::Key::LoadState) { // Load state
+                } else if (event.key.key == Config::Key::LoadState ||
+                           event.key.key == Config::Key::LoadState_Backup1 ||
+                           event.key.key == Config::Key::LoadState_Backup2 ||
+                           event.key.key == Config::Key::LoadState_Backup3) { // Load state
                     if (!m_romFilename.empty() && m_core) {
                         fs::path savePath = m_romFilename;
-                        savePath.replace_extension(".state");
+                        if (event.key.key == Config::Key::LoadState) {
+                            savePath.replace_extension(".state");
+                        } else if (event.key.key == Config::Key::LoadState_Backup1) {
+                            savePath.replace_extension(".state.bak1");
+                        } else if (event.key.key == Config::Key::LoadState_Backup2) {
+                            savePath.replace_extension(".state.bak2");
+                        } else if (event.key.key == Config::Key::LoadState_Backup3) {
+                            savePath.replace_extension(".state.bak3");
+                        }
                         if (m_core->loadState(savePath)) {
                             if (m_audioDevice) {
                                 m_audioDevice->clearBuffer();

@@ -131,6 +131,9 @@ extern "C" {
             if (k == "Quit") Config::Key::Quit = kc;
             else if (k == "SaveState") Config::Key::SaveState = kc;
             else if (k == "LoadState") Config::Key::LoadState = kc;
+            else if (k == "LoadState_Backup1") Config::Key::LoadState_Backup1 = kc;
+            else if (k == "LoadState_Backup2") Config::Key::LoadState_Backup2 = kc;
+            else if (k == "LoadState_Backup3") Config::Key::LoadState_Backup3 = kc;
             else if (k == "Pause") Config::Key::Pause = kc;
             else if (k == "SpeedUp") Config::Key::GameSpeedUp = kc;
             else if (k == "SpeedDown") Config::Key::GameSpeedDown = kc;

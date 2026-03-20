@@ -93,6 +93,9 @@ static void createDefaultIni(const fs::path& iniPath) {
     fprintf(out, "Quit=%s\n", SDL_GetKeyName(Config::Key::Quit));
     fprintf(out, "SaveState=%s\n", SDL_GetKeyName(Config::Key::SaveState));
     fprintf(out, "LoadState=%s\n", SDL_GetKeyName(Config::Key::LoadState));
+    fprintf(out, "LoadState_Backup1=%s\n", SDL_GetKeyName(Config::Key::LoadState_Backup1));
+    fprintf(out, "LoadState_Backup2=%s\n", SDL_GetKeyName(Config::Key::LoadState_Backup2));
+    fprintf(out, "LoadState_Backup3=%s\n", SDL_GetKeyName(Config::Key::LoadState_Backup3));
     fprintf(out, "Pause=%s\n", SDL_GetKeyName(Config::Key::Pause));
     fprintf(out, "SpeedUp=%s\n", SDL_GetKeyName(Config::Key::GameSpeedUp));
     fprintf(out, "SpeedDown=%s\n", SDL_GetKeyName(Config::Key::GameSpeedDown));
@@ -238,6 +241,9 @@ static int configHandler(void* /*user*/, const char* section, const char* name, 
         else if (key == "Quit") set_key(Config::Key::Quit);
         else if (key == "SaveState") set_key(Config::Key::SaveState);
         else if (key == "LoadState") set_key(Config::Key::LoadState);
+        else if (key == "LoadState_Backup1") set_key(Config::Key::LoadState_Backup1);
+        else if (key == "LoadState_Backup2") set_key(Config::Key::LoadState_Backup2);
+        else if (key == "LoadState_Backup3") set_key(Config::Key::LoadState_Backup3);
         else if (key == "Pause") set_key(Config::Key::Pause);
         else if (key == "SpeedUp") set_key(Config::Key::GameSpeedUp);
         else if (key == "SpeedDown") set_key(Config::Key::GameSpeedDown);
