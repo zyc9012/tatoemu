@@ -109,7 +109,7 @@ bool Core::loadROM(const fs::path& filename) {
         #ifdef __EMSCRIPTEN__
         log_error("Failed to load BIOS. Upload gba_bios.bin and try again.");
         #else
-        log_error("Failed to load BIOS. Put specify --bios and try again.");
+        log_error("Failed to load BIOS. Please specify --bios and try again.");
         #endif
         return false;
     }
