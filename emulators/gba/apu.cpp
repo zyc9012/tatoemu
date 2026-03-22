@@ -445,8 +445,14 @@ u8 APU::readRegister(u32 offset) const {
 // ---------------------------------------------------------------
 void APU::writeRegister(u32 offset, u16 value) {
     if (!m_masterEnable && offset != SoundIO::SOUNDCNT_X) {
-        // When sound is off, only SOUNDCNT_X can be written
-        return;
+        // SOUNDCNT_H (DMA sound control), SOUNDBIAS, and FIFO writes
+        // are allowed even when master sound is disabled.
+        // PSG channel registers are blocked.
+        bool isDMARegister = (offset == SoundIO::SOUNDCNT_H ||
+                              offset == SoundIO::SOUNDBIAS ||
+                              offset == SoundIO::FIFO_A || offset == SoundIO::FIFO_A + 2 ||
+                              offset == SoundIO::FIFO_B || offset == SoundIO::FIFO_B + 2);
+        if (!isDMARegister) return;
     }
 
     switch (offset) {
