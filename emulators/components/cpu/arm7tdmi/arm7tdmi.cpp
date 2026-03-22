@@ -91,19 +91,19 @@ u32 ARM7TDMI::getSPSR() const {
 // Memory access — handles alignment per ARM7TDMI spec
 // ============================================================================
 
-// Read 8-bit—no alignment needed.
+// Read 8-bit — no alignment needed.
 u8 ARM7TDMI::read8(u32 addr) {
     return m_mem.read8(addr, m_mem.userData);
 }
 
-// Read 16-bit—mask to halfword boundary, rotate if unaligned.
-u16 ARM7TDMI::read16(u32 addr) {
-    u16 val = m_mem.read16(addr & ~1u, m_mem.userData);
-    if (addr & 1) val = (val >> 8) | (val << 8); // byte-swap on misalignment
+// Read 16-bit — ror32 of zero-extended halfword by 8 bits if unaligned.
+u32 ARM7TDMI::read16(u32 addr) {
+    u32 val = m_mem.read16(addr & ~1u, m_mem.userData);
+    if (addr & 1) val = (val >> 8) | (val << 24);
     return val;
 }
 
-// Read 32-bit—mask to word boundary, rotate if unaligned.
+// Read 32-bit — mask to word boundary, rotate if unaligned.
 // ARM7TDMI rotates the word right by 8*misalignment bits.
 u32 ARM7TDMI::read32(u32 addr) {
     if (addr & 3) {
@@ -726,8 +726,9 @@ void ARM7TDMI::armHalfwordTransfer(u32 insn) {
         case 2: // LDRSB — signed byte
             val = (u32)(s32)(s8)read8(rnv);
             break;
-        case 3: // LDRSH — signed halfword
-            val = (u32)(s32)(s16)read16(rnv);
+        case 3: // LDRSH — signed halfword; odd address → sign-extend byte per GBA
+            if (rnv & 1) val = (u32)(s32)(s8)read8(rnv);
+            else         val = (u32)(s32)(s16)(u16)read16(rnv);
             break;
         }
         if (rdIdx == 15) {
@@ -1370,8 +1371,9 @@ void ARM7TDMI::thumbExecute(u32 insn) {
         case 5: setRegBanked(rd, read16(addr)); m_cycles = 3; break;     // LDRH
         case 6: setRegBanked(rd, read8(addr)); m_cycles = 3; break;      // LDRB
         case 7: { // LDRSH
-            u32 v = read16(addr);
-            setRegBanked(rd, (v & 0x8000) ? (v | 0xFFFF0000) : v);
+            u32 v = (addr & 1) ? (u32)(s32)(s8)read8(addr)
+                               : (u32)(s32)(s16)(u16)read16(addr);
+            setRegBanked(rd, v);
             m_cycles = 3; break;
         }
         }
