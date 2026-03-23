@@ -582,6 +582,12 @@ u8 Memory::readIO8(u32 offset) {
 void Memory::writeIO8(u32 address, u8 value) {
     if (address > IO_SIZE - 1) return;
 
+    if (address == IO::HALTCNT) {
+        m_io[IO::HALTCNT] = value;
+        m_halted = true;
+        return;
+    }
+
     u32 aligned = address & ~1u;
     int shift = (address & 1) * 8;
     u16 existing = *reinterpret_cast<u16*>(&m_io[aligned]);
