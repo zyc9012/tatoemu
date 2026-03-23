@@ -49,9 +49,9 @@ void PPU::step(int cycles) {
         if (!m_inHBlank && m_cycles >= HDRAW_CYCLES) {
             m_inHBlank = true;
             
-            u16 dispstat = m_memory->readIO16(IO::DISPSTAT);
+            u16 dispstat = m_memory->readDISPSTAT();
             dispstat |= DISPSTAT::HBLANK_FLAG;
-            m_memory->writeIO16(IO::DISPSTAT, dispstat);
+            m_memory->writeDISPSTAT(dispstat);
             
             if (dispstat & DISPSTAT::HBLANK_IRQ) {
                 m_memory->requestIRQ(IRQ::HBLANK);
@@ -86,7 +86,7 @@ void PPU::step(int cycles) {
 }
 
 void PPU::updateDispstat() {
-    u16 dispstat = m_memory->readIO16(IO::DISPSTAT);
+    u16 dispstat = m_memory->readDISPSTAT();
     dispstat &= ~(DISPSTAT::HBLANK_FLAG | DISPSTAT::VBLANK_FLAG | DISPSTAT::VCOUNTER_FLAG);
     if (m_inVBlank) dispstat |= DISPSTAT::VBLANK_FLAG;
     
@@ -98,7 +98,7 @@ void PPU::updateDispstat() {
         }
     }
     
-    m_memory->writeIO16(IO::DISPSTAT, dispstat);
+    m_memory->writeDISPSTAT(dispstat);
 }
 
 static inline u32 rgb555ToARGB(u16 color555) {
@@ -915,9 +915,9 @@ void PPU::enterHBlank() {
     m_bg3RefX += bg3pb;
     m_bg3RefY += bg3pd;
     
-    u16 dispstat = m_memory->readIO16(IO::DISPSTAT);
+    u16 dispstat = m_memory->readDISPSTAT();
     dispstat |= DISPSTAT::HBLANK_FLAG;
-    m_memory->writeIO16(IO::DISPSTAT, dispstat);
+    m_memory->writeDISPSTAT(dispstat);
     
     if (dispstat & DISPSTAT::HBLANK_IRQ) {
         m_memory->requestIRQ(IRQ::HBLANK);
@@ -935,9 +935,9 @@ void PPU::enterVBlank() {
     // Latch affine reference points at start of VBlank
     latchAffineRefPoints();
     
-    u16 dispstat = m_memory->readIO16(IO::DISPSTAT);
+    u16 dispstat = m_memory->readDISPSTAT();
     dispstat |= DISPSTAT::VBLANK_FLAG;
-    m_memory->writeIO16(IO::DISPSTAT, dispstat);
+    m_memory->writeDISPSTAT(dispstat);
     
     if (dispstat & DISPSTAT::VBLANK_IRQ) {
         m_memory->requestIRQ(IRQ::VBLANK);

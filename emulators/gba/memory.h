@@ -63,6 +63,10 @@ public:
     void writeIO16(u32 offset, u16 value);
     u32 readIO32(u32 offset) const;
 
+    // Direct DISPSTAT accessors for PPU use (bypass CPU read-only masking on bits 0-2)
+    u16  readDISPSTAT() const { return *reinterpret_cast<const u16*>(&m_io[IO::DISPSTAT]); }
+    void writeDISPSTAT(u16 value) { *reinterpret_cast<u16*>(&m_io[IO::DISPSTAT]) = value; }
+
     // IRQ management
     void requestIRQ(u16 irqBit);
 

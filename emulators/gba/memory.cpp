@@ -654,6 +654,12 @@ void Memory::writeIO16(u32 offset, u16 value) {
     }
 
     switch (offset) {
+        case IO::DISPSTAT: {
+            // Bits 0-2 (VBlank/HBlank/VCounter flags) are hardware-set; CPU writes cannot change them
+            u16 hw = *reinterpret_cast<const u16*>(&m_io[IO::DISPSTAT]);
+            value = (value & ~0x0007u) | (hw & 0x0007u);
+            break;
+        }
         case IO::VCOUNT:
             return;
         case IO::SOUND1CNT_L:
