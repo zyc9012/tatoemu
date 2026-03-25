@@ -255,12 +255,21 @@ void DMA::runFIFO(int fifoIndex) {
         }
         m_channels[i].internalSource = src;
 
-        // Handle completion
+        // IRQ
         bool irq = (m_channels[i].control & (1 << 14)) != 0;
         if (irq) {
             m_memory->requestIRQ(IRQ::DMA0 << i);
         }
-        // FIFO DMA always repeats until disabled
+
+        // For non-repeating FIFO DMA, deactivate after each burst so the game's
+        // re-enable write will call trigger() and reset internalSource = source.
+        if (!m_channels[i].repeat) {
+            m_channels[i].active = false;
+            m_channels[i].control &= ~(1 << 15);
+            u32 cntHOffset = IO::DMA0CNT_H + i * 12;
+            u16* reg = reinterpret_cast<u16*>(&m_memory->getIO()[cntHOffset]);
+            *reg &= ~(1 << 15);
+        }
         break;
     }
 }
