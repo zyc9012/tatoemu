@@ -49,6 +49,12 @@ void DMA::writeRegister(u32 offset, u16 value) {
             break;
         case 10: { // CNT_H (control)
             bool wasEnabled = (m_channels[channel].control & (1 << 15)) != 0;
+            // DMA0-2: bit11 is not writable; DMA3 allows it.
+            if (channel < 3) {
+                value &= 0xF7E0;
+            } else {
+                value &= 0xFFE0;
+            }
             m_channels[channel].control = value;
             bool nowEnabled = (value & (1 << 15)) != 0;
             
