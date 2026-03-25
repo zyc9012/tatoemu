@@ -298,7 +298,7 @@ void APU::onTimerOverflow(int timerChannel) {
     if (m_fifoA.timerSelect == timerChannel) {
         m_fifoA.currentSample = m_fifoA.dequeue();
         // Request DMA refill when FIFO has <= 16 samples
-        if (m_fifoA.availableSamples() <= 16 && m_dma) {
+        if (m_fifoA.availableSamples() < 16 && m_dma) {
             // DMA 1 or DMA 2 can refill FIFO A (SPECIAL timing at dest 0x040000A0)
             m_dma->runFIFO(0);
         }
@@ -307,7 +307,7 @@ void APU::onTimerOverflow(int timerChannel) {
     // FIFO B
     if (m_fifoB.timerSelect == timerChannel) {
         m_fifoB.currentSample = m_fifoB.dequeue();
-        if (m_fifoB.availableSamples() <= 16 && m_dma) {
+        if (m_fifoB.availableSamples() < 16 && m_dma) {
             m_dma->runFIFO(1);
         }
     }
