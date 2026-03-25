@@ -578,12 +578,15 @@ void APU::writeRegister(u32 offset, u16 value) {
             bool wasEnabled = m_masterEnable;
             m_masterEnable = (value & 0x80) != 0;
             if (wasEnabled && !m_masterEnable) {
-                // Turning off: reset all PSG channels
+                // Turning off: reset all PSG channels and zero SOUNDCNT_H low byte fields
                 m_square1.reset();
                 m_square2.reset();
                 m_wave.reset();
                 m_noise.reset();
                 m_frameSequencerStep = 0;
+                m_psgMasterVolume  = 0;
+                m_fifoA.fullVolume = false;
+                m_fifoB.fullVolume = false;
             }
             break;
         }
