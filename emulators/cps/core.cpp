@@ -16,6 +16,7 @@ bool Core::initialize() {
     m_video = std::make_unique<Video>();
     m_audio = std::make_unique<Audio>();
     m_memory = std::make_unique<Memory>();
+    m_cheatMem.mem = m_memory.get();
     m_controller = std::make_unique<Controller>();
 
     // Wire up components

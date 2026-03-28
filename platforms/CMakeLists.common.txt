@@ -1,5 +1,6 @@
 # Common source files (excluding platform-specific main.cpp)
 set(COMMON_SOURCES
+    ${CMAKE_SOURCE_DIR}/emulators/cheat.cpp
     ${CMAKE_SOURCE_DIR}/emulators/gb/cpu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/gb/mmu.cpp
     ${CMAKE_SOURCE_DIR}/emulators/gb/ppu.cpp

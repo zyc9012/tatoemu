@@ -140,11 +140,11 @@ bool Memory::loadBIOS(const u8* data, u32 size) {
     return true;
 }
 
-u8 Memory::read8(u32 address) {
+u8 Memory::read8(u32 address, bool isPeek) {
     u32 region = address >> 24;
     u32 offset = address & 0x1FFFFFF;
     u8 value;
-    if (region <= REGION_SRAM_MIRROR) {
+    if (region <= REGION_SRAM_MIRROR && !isPeek) {
         m_waitCycles += m_wsNonseq16[region];
         prefetchStep(region, m_wsNonseq16[region]);
     }
@@ -204,12 +204,12 @@ u8 Memory::read8(u32 address) {
     return value;
 }
 
-u16 Memory::read16(u32 address, bool isFetch) {
+u16 Memory::read16(u32 address, bool isFetch, bool isPeek) {
     address &= ~1;
     u32 region = address >> 24;
     u32 offset = address & 0x1FFFFFF;
     u16 value;
-    if (region <= REGION_SRAM_MIRROR) {
+    if (region <= REGION_SRAM_MIRROR && !isPeek) {
         m_waitCycles += m_wsNonseq16[region];
         if (!isFetch) prefetchStep(region, m_wsNonseq16[region]);
     }
@@ -276,12 +276,12 @@ u16 Memory::read16(u32 address, bool isFetch) {
     return value;
 }
 
-u32 Memory::read32(u32 address, bool isFetch) {
+u32 Memory::read32(u32 address, bool isFetch, bool isPeek) {
     address &= ~3;
     u32 region = address >> 24;
     u32 offset = address & 0x1FFFFFF;
     u32 value;
-    if (region <= REGION_SRAM_MIRROR) {
+    if (region <= REGION_SRAM_MIRROR && !isPeek) {
         m_waitCycles += m_wsNonseq32[region];
         if (!isFetch) prefetchStep(region, m_wsNonseq32[region]);
     }
@@ -345,10 +345,10 @@ u32 Memory::read32(u32 address, bool isFetch) {
     return value;
 }
 
-void Memory::write8(u32 address, u8 value) {
+void Memory::write8(u32 address, u8 value, bool isPoke) {
     u32 region = address >> 24;
     u32 offset = address & 0x1FFFFFF;
-    if (region <= REGION_SRAM_MIRROR) {
+    if (region <= REGION_SRAM_MIRROR && !isPoke) {
         m_waitCycles += m_wsNonseq16[region];
         prefetchStep(region, m_wsNonseq16[region]);
     }
@@ -403,11 +403,11 @@ void Memory::write8(u32 address, u8 value) {
     }
 }
 
-void Memory::write16(u32 address, u16 value) {
+void Memory::write16(u32 address, u16 value, bool isPoke) {
     address &= ~1;
     u32 region = address >> 24;
     u32 offset = address & 0x1FFFFFF;
-    if (region <= REGION_SRAM_MIRROR) {
+    if (region <= REGION_SRAM_MIRROR && !isPoke) {
         m_waitCycles += m_wsNonseq16[region];
         prefetchStep(region, m_wsNonseq16[region]);
     }
@@ -462,11 +462,11 @@ void Memory::write16(u32 address, u16 value) {
     }
 }
 
-void Memory::write32(u32 address, u32 value) {
+void Memory::write32(u32 address, u32 value, bool isPoke) {
     address &= ~3;
     u32 region = address >> 24;
     u32 offset = address & 0x1FFFFFF;
-    if (region <= REGION_SRAM_MIRROR) {
+    if (region <= REGION_SRAM_MIRROR && !isPoke) {
         m_waitCycles += m_wsNonseq32[region];
         prefetchStep(region, m_wsNonseq32[region]);
     }

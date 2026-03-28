@@ -45,8 +45,28 @@ public:
     bool loadState(const fs::path& filename) override;
 
     const std::string& getGameTitle() const override { return m_cartridge->getTitle(); }
-    
+
+    ICheatMemory* getCheatMemory() override { return &m_cheatMem; }
+
 private:
+    struct CheatMemory : ICheatMemory {
+        gba::Memory* mem = nullptr;
+        u8  peek8 (u32 addr) override { return mem->read8(addr, true); }
+        u16 peek16(u32 addr) override { return mem->read16(addr, false, true); }
+        u32 peek32(u32 addr) override { return mem->read32(addr, false, true); }
+        void poke8 (u32 addr, u8  v) override { mem->write8(addr, v, true); }
+        void poke16(u32 addr, u16 v) override { mem->write16(addr, v, true); }
+        void poke32(u32 addr, u32 v) override { mem->write32(addr, v, true); }
+        std::vector<MemRegion> getSearchRegions() const override {
+            return {
+                { 0x02000000, EWRAM_SIZE },   // External Work RAM (256 KB)
+                { 0x03000000, IWRAM_SIZE },   // Internal Work RAM  (32 KB)
+                { 0x0E000000, SRAM_SIZE  },   // Cartridge SRAM/Flash (64 KB)
+            };
+        }
+    } m_cheatMem;
+
+
     // Core components
     std::unique_ptr<CPU> m_cpu;
     std::unique_ptr<Memory> m_memory;

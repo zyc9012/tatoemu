@@ -2,6 +2,7 @@
 #include "config.h"
 #include "neogeo/config.h"
 #include "configfile.h"
+#include "cheat_console.h"
 #include <string>
 #include <cstdlib>
 #include <filesystem>
@@ -127,11 +128,16 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    CheatConsole console(romFile);
+    console.start();
+    emulator.setFrameCallback([&]{ console.drain(emulator.getCheatEngine(), emulator.getSearcher()); });
+
     log_info("Starting emulation...");
     log_info("Press ESC to quit");
 
     emulator.run();
 
+    console.stop();
     return 0;
 }
 

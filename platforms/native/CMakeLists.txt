@@ -18,6 +18,7 @@ set(SOURCES
     ${COMMON_SOURCES}
     ${CMAKE_SOURCE_DIR}/platforms/native/main.cpp
     ${CMAKE_SOURCE_DIR}/platforms/native/configfile.cpp
+    ${CMAKE_SOURCE_DIR}/platforms/native/cheat_console.cpp
 )
 
 # Header files

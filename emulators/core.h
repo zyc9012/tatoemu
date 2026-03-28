@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+#include "cheat.h"
 #include <filesystem>
 #include <string>
 #include <SDL3/SDL.h>
@@ -50,6 +51,9 @@ public:
     // Save/Load state
     virtual bool saveState(const fs::path& filename) = 0;
     virtual bool loadState(const fs::path& filename) = 0;
+    
+    // Cheat / memory-search support.
+    virtual ICheatMemory* getCheatMemory() { return nullptr; }
     
     // Game information
     virtual const std::string& getGameTitle() const = 0;

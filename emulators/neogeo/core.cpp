@@ -17,6 +17,7 @@ bool Core::initialize() {
     m_audio = std::make_unique<Audio>();
     m_video = std::make_unique<Video>();
     m_memory = std::make_unique<Memory>();
+    m_cheatMem.mem = m_memory.get();
     m_controller = std::make_unique<Controller>();
     m_upd4990a = std::make_unique<UPD4990A>();
 

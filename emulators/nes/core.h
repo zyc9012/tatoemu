@@ -42,8 +42,21 @@ public:
     bool loadState(const fs::path& filename) override;
 
     const std::string& getGameTitle() const override { return m_cartridge->getTitle(); }
-    
+
+    ICheatMemory* getCheatMemory() override { return &m_cheatMem; }
+
 private:
+    // ICheatMemory adapter — 8-bit bus; multi-byte ops are little-endian.
+    struct CheatMemory : ICheatMemory {
+        nes::Memory* mem = nullptr;
+        u8   peek8 (u32 a) override { return mem->cpuRead(static_cast<u16>(a)); }
+        void poke8 (u32 a, u8  v) override { mem->cpuWrite(static_cast<u16>(a), v); }
+        std::vector<MemRegion> getSearchRegions() const override {
+            return { { 0x0000, RAM_SIZE } };  // 2 KB internal RAM
+        }
+    } m_cheatMem;
+
+
     // Core components
     std::unique_ptr<CPU> m_cpu;
     std::unique_ptr<PPU> m_ppu;

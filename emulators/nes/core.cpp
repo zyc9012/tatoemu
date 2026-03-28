@@ -15,6 +15,7 @@ bool Core::initialize() {
     m_ppu = std::make_unique<PPU>();
     m_apu = std::make_unique<APU>();
     m_memory = std::make_unique<Memory>();
+    m_cheatMem.mem = m_memory.get();
     m_controller = std::make_unique<Controller>();
 
     // Wire up components

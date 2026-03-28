@@ -349,7 +349,14 @@ bool Emulator::loadROM(const fs::path& filename) {
     }
     
     m_romFilename = filename;
-    return initialize();
+    if (!initialize()) return false;
+
+    // Connect the cheat subsystem to the active core.
+    ICheatMemory* cheatMem = m_core->getCheatMemory();
+    m_cheatEngine.setMemory(cheatMem);
+    m_searcher.setMemory(cheatMem);
+
+    return true;
 }
 
 void Emulator::runFrame() {
@@ -362,7 +369,9 @@ void Emulator::runFrame() {
 
     handleInput();
     m_core->update();
-    
+    m_cheatEngine.applyAll();
+    if (m_frameCallback) m_frameCallback();
+
     u64 currentTime = SDL_GetTicks();
     double frameTime = currentTime - m_lastFrameTime;
     

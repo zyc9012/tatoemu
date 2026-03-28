@@ -3,7 +3,9 @@
 #include "types.h"
 #include "config.h"
 #include "core.h"
+#include "cheat.h"
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
 #include <SDL3/SDL.h>
@@ -58,6 +60,14 @@ public:
     void run();
     void runFrame();
     void shutdown();
+
+    // Called once at the end of every runFrame(), before timing sleep.
+    // Use this to drain platform-specific per-frame work (e.g. cheat console).
+    void setFrameCallback(std::function<void()> cb) { m_frameCallback = std::move(cb); }
+
+    CheatEngine& getCheatEngine() { return m_cheatEngine; }
+    MemSearcher&  getSearcher()   { return m_searcher; }
+    fs::path      getRomPath()    const { return m_romFilename; }
     
 private:
     bool initialize();
@@ -79,6 +89,13 @@ private:
     
     bool m_running;
     bool m_paused;
+
+    // Per-frame callback (optional, set by platform layer).
+    std::function<void()> m_frameCallback;
+    
+    // Cheat engine and memory searcher (per loaded ROM).
+    CheatEngine m_cheatEngine;
+    MemSearcher m_searcher;
     
     // Frame timing
     u64 m_lastFrameTime;

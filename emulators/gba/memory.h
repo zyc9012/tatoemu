@@ -39,12 +39,12 @@ public:
     void setHalted(bool halted) { m_halted = halted; }
 
     // Memory access
-    u8 read8(u32 address);
-    u16 read16(u32 address, bool isFetch = false);
-    u32 read32(u32 address, bool isFetch = false);
-    void write8(u32 address, u8 value);
-    void write16(u32 address, u16 value);
-    void write32(u32 address, u32 value);
+    u8 read8(u32 address, bool isPeek = false);
+    u16 read16(u32 address, bool isFetch = false, bool isPeek = false);
+    u32 read32(u32 address, bool isFetch = false, bool isPeek = false);
+    void write8(u32 address, u8 value, bool isPoke = false);
+    void write16(u32 address, u16 value, bool isPoke = false);
+    void write32(u32 address, u32 value, bool isPoke = false);
 
     // Instruction fetch (separate for HLE interception)
     u16 fetch16(u32 address);

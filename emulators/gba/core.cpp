@@ -15,6 +15,7 @@ bool Core::initialize() {
     m_cartridge = std::make_unique<Cartridge>();
     m_cpu = std::make_unique<CPU>();
     m_memory = std::make_unique<Memory>();
+    m_cheatMem.mem = m_memory.get();
     m_ppu = std::make_unique<PPU>();
     m_joypad = std::make_unique<Joypad>();
     m_timer = std::make_unique<Timer>();

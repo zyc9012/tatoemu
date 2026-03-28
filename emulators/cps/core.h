@@ -48,8 +48,25 @@ public:
     bool loadState(const fs::path& filename) override;
 
     const std::string& getGameTitle() const override { return m_cartridge->getTitle(); }
-    
+
+    ICheatMemory* getCheatMemory() override { return &m_cheatMem; }
+
 private:
+    // ICheatMemory adapter — 68000 16-bit bus.
+    struct CheatMemory : ICheatMemory {
+        cps::Memory* mem = nullptr;
+        u8   peek8 (u32 a) override { return mem->read8(a); }
+        u16  peek16(u32 a) override { return mem->read16(a); }
+        u32  peek32(u32 a) override { return mem->read32(a); }
+        void poke8 (u32 a, u8  v) override { mem->write8(a, v); }
+        void poke16(u32 a, u16 v) override { mem->write16(a, v); }
+        void poke32(u32 a, u32 v) override { mem->write32(a, v); }
+        std::vector<MemRegion> getSearchRegions() const override {
+            return { { 0xFF0000, 64 * 1024 } };  // Work RAM (64 KB)
+        }
+    } m_cheatMem;
+
+
     // Core components
     std::unique_ptr<CPU> m_cpu;
     std::unique_ptr<SoundCPU> m_soundCpu;
