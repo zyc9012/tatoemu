@@ -1,5 +1,5 @@
 #include "cheat_console.h"
-#include "config.h"      // log_info / log_error (shared with emulators/)
+#include "config.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -56,7 +56,7 @@ CheatConsole::~CheatConsole() {
 void CheatConsole::start() {
     m_running = true;
     m_thread = std::thread(&CheatConsole::readLoop, this);
-    printf("[Cheat] Console ready. Type 'help' for commands.\n");
+    log_info("[Cheat] Console ready. Type 'help' for commands.");
     fflush(stdout);
 }
 
@@ -107,7 +107,7 @@ void CheatConsole::dispatch(const std::string& line, CheatEngine& engine, MemSea
     else if (cmd == "toggle") cmdToggle(args, engine);
     else if (cmd == "remove") cmdRemove(args, engine);
     else {
-        printf("[Cheat] Unknown command '%s'. Type 'help'.\n", cmd.c_str());
+        log_info("[Cheat] Unknown command '%s'. Type 'help'.", cmd.c_str());
         fflush(stdout);
     }
 }
@@ -115,7 +115,7 @@ void CheatConsole::dispatch(const std::string& line, CheatEngine& engine, MemSea
 // ─── commands ─────────────────────────────────────────────────────────────────
 
 void CheatConsole::cmdHelp() {
-    printf(
+    log_info_nn(
         "\nCheat console commands:\n"
         "  reset [u8|u16|u32]                  Start a new memory search (default: u16)\n"
         "  search eq   <value>                 Keep candidates equal to value\n"
@@ -142,7 +142,7 @@ void CheatConsole::cmdReset(const std::vector<std::string>& args, MemSearcher& s
         else if (w == "u16" || w == "2") searcher.setWidth(MemSearcher::Width::U16);
         else if (w == "u32" || w == "4") searcher.setWidth(MemSearcher::Width::U32);
         else {
-            printf("[Cheat] Unknown width '%s'. Valid: u8, u16, u32.\n", w.c_str());
+            log_info("[Cheat] Unknown width '%s'. Valid: u8, u16, u32.", w.c_str());
             fflush(stdout);
             return;
         }
@@ -151,19 +151,19 @@ void CheatConsole::cmdReset(const std::vector<std::string>& args, MemSearcher& s
     const char* widthStr = (searcher.getWidth() == MemSearcher::Width::U8)  ? "u8"  :
                            (searcher.getWidth() == MemSearcher::Width::U16) ? "u16" : "u32";
     searcher.reset();
-    printf("[Cheat] Search reset (%s) — %zu candidates.\n",
-           widthStr, searcher.candidateCount());
+    log_info("[Cheat] Search reset (%s) — %zu candidates.",
+             widthStr, searcher.candidateCount());
     fflush(stdout);
 }
 
 void CheatConsole::cmdSearch(const std::vector<std::string>& args, MemSearcher& searcher) {
     if (args.size() < 2) {
-        printf("[Cheat] Usage: search <eq|ne|gt|lt|changed|unchanged|list> [value]\n");
+        log_info("[Cheat] Usage: search <eq|ne|gt|lt|changed|unchanged|list> [value]");
         fflush(stdout);
         return;
     }
     if (!searcher.isInitialized()) {
-        printf("[Cheat] No active search. Run 'reset' first.\n");
+        log_info("[Cheat] No active search. Run 'reset' first.");
         fflush(stdout);
         return;
     }
@@ -173,14 +173,13 @@ void CheatConsole::cmdSearch(const std::vector<std::string>& args, MemSearcher& 
     if (filter == "list") {
         const auto& cands = searcher.candidates();
         if (cands.empty()) {
-            printf("[Cheat] No candidates.\n");
+            log_info("[Cheat] No candidates.");
             fflush(stdout);
             return;
         }
-        const int w = static_cast<int>(searcher.getWidth());
-        printf("[Cheat] %zu candidate(s):\n", cands.size());
+        log_info("[Cheat] %zu candidate(s):", cands.size());
         for (u32 addr : cands)
-            printf("  %08X = %0*X\n", addr, w * 2, searcher.readCurrent(addr));
+            log_info("  0x%08X = %u", addr, searcher.readCurrent(addr));
         fflush(stdout);
         return;
     }
@@ -188,13 +187,13 @@ void CheatConsole::cmdSearch(const std::vector<std::string>& args, MemSearcher& 
     // Filters that need a value.
     if (filter == "eq" || filter == "ne") {
         if (args.size() < 3) {
-            printf("[Cheat] Usage: search %s <hex_value>\n", filter.c_str());
+            log_info("[Cheat] Usage: search %s <value>", filter.c_str());
             fflush(stdout);
             return;
         }
         u32 value = 0;
         if (!parseValue(args[2], value)) {
-            printf("[Cheat] Invalid value: %s\n", args[2].c_str());
+            log_info("[Cheat] Invalid value: %s", args[2].c_str());
             fflush(stdout);
             return;
         }
@@ -208,33 +207,33 @@ void CheatConsole::cmdSearch(const std::vector<std::string>& args, MemSearcher& 
         else if (filter == "changed")   f = MemSearcher::Filter::Changed;
         else if (filter == "unchanged") f = MemSearcher::Filter::Unchanged;
         else {
-            printf("[Cheat] Unknown filter '%s'. Valid: eq, ne, gt, lt, changed, unchanged, list.\n",
-                   filter.c_str());
+            log_info("[Cheat] Unknown filter '%s'. Valid: eq, ne, gt, lt, changed, unchanged, list.",
+                     filter.c_str());
             fflush(stdout);
             return;
         }
         searcher.filter(f);
     }
 
-    printf("[Cheat] %zu candidates remain.\n", searcher.candidateCount());
+    log_info("[Cheat] %zu candidates remain.", searcher.candidateCount());
     fflush(stdout);
 }
 
 void CheatConsole::cmdApply(const std::vector<std::string>& args, CheatEngine& engine) {
     // apply <addr> <val> [width]
     if (args.size() < 3) {
-        printf("[Cheat] Usage: apply <hex_addr> <hex_val> [width: 1|2|4]\n");
+        log_info("[Cheat] Usage: apply <addr> <val> [width: 1|2|4]");
         fflush(stdout);
         return;
     }
     u32 addr = 0, val = 0;
     if (!parseValue(args[1], addr)) {
-        printf("[Cheat] Invalid address: %s\n", args[1].c_str());
+        log_info("[Cheat] Invalid address: %s", args[1].c_str());
         fflush(stdout);
         return;
     }
     if (!parseValue(args[2], val)) {
-        printf("[Cheat] Invalid value: %s\n", args[2].c_str());
+        log_info("[Cheat] Invalid value: %s", args[2].c_str());
         fflush(stdout);
         return;
     }
@@ -247,25 +246,25 @@ void CheatConsole::cmdApply(const std::vector<std::string>& args, CheatEngine& e
     code.width   = width;
     code.enabled = true;
     engine.apply(code);
-    printf("[Cheat] Applied: [%08X] = %X (%d byte(s)).\n", addr, val, width);
+    log_info("[Cheat] Applied: [0x%08X] = %u (%d byte(s)).", addr, val, width);
     fflush(stdout);
 }
 
 void CheatConsole::cmdAdd(const std::vector<std::string>& args, CheatEngine& engine) {
     // add <name> <addr> <val> [width]
     if (args.size() < 4) {
-        printf("[Cheat] Usage: add <name> <hex_addr> <hex_val> [width: 1|2|4]\n");
+        log_info("[Cheat] Usage: add <name> <addr> <val> [width: 1|2|4]");
         fflush(stdout);
         return;
     }
     u32 addr = 0, val = 0;
     if (!parseValue(args[2], addr)) {
-        printf("[Cheat] Invalid address: %s\n", args[2].c_str());
+        log_info("[Cheat] Invalid address: %s", args[2].c_str());
         fflush(stdout);
         return;
     }
     if (!parseValue(args[3], val)) {
-        printf("[Cheat] Invalid value: %s\n", args[3].c_str());
+        log_info("[Cheat] Invalid value: %s", args[3].c_str());
         fflush(stdout);
         return;
     }
@@ -278,63 +277,63 @@ void CheatConsole::cmdAdd(const std::vector<std::string>& args, CheatEngine& eng
     code.width   = width;
     code.enabled = true;
     engine.addCode(code);
-    printf("[Cheat] Added code #%zu '%s': [%08X] = %X (%d byte(s)).\n",
-           engine.getCodes().size() - 1, code.name.c_str(), addr, val, width);
+    log_info("[Cheat] Added code #%zu '%s': [0x%08X] = %u (%d byte(s)).",
+             engine.getCodes().size() - 1, code.name.c_str(), addr, val, width);
     fflush(stdout);
 }
 
 void CheatConsole::cmdList(CheatEngine& engine) {
     const auto& codes = engine.getCodes();
     if (codes.empty()) {
-        printf("[Cheat] No cheat codes loaded.\n");
+        log_info("[Cheat] No cheat codes loaded.");
         fflush(stdout);
         return;
     }
-    printf("[Cheat] %zu code(s):\n", codes.size());
+    log_info("[Cheat] %zu code(s):", codes.size());
     for (size_t i = 0; i < codes.size(); ++i) {
         const auto& c = codes[i];
-        printf("  [%zu] %s  addr=%08X  val=%X  width=%d  %s\n",
-               i, c.name.c_str(), c.address, c.value, c.width,
-               c.enabled ? "ON" : "OFF");
+        log_info("  [%zu] %s  addr=0x%08X  val=%u  width=%d  %s",
+                 i, c.name.c_str(), c.address, c.value, c.width,
+                 c.enabled ? "ON" : "OFF");
     }
     fflush(stdout);
 }
 
 void CheatConsole::cmdToggle(const std::vector<std::string>& args, CheatEngine& engine) {
     if (args.size() < 2) {
-        printf("[Cheat] Usage: toggle <index>\n");
+        log_info("[Cheat] Usage: toggle <index>");
         fflush(stdout);
         return;
     }
     size_t idx = static_cast<size_t>(strtoul(args[1].c_str(), nullptr, 10));
     if (idx >= engine.getCodes().size()) {
-        printf("[Cheat] Index %zu out of range (0-%zu).\n",
-               idx, engine.getCodes().size() - 1);
+        log_info("[Cheat] Index %zu out of range (0-%zu).",
+                 idx, engine.getCodes().size() - 1);
         fflush(stdout);
         return;
     }
     engine.toggleCode(idx);
     const auto& c = engine.getCodes()[idx];
-    printf("[Cheat] Code #%zu '%s' is now %s.\n", idx, c.name.c_str(),
-           c.enabled ? "ON" : "OFF");
+    log_info("[Cheat] Code #%zu '%s' is now %s.", idx, c.name.c_str(),
+             c.enabled ? "ON" : "OFF");
     fflush(stdout);
 }
 
 void CheatConsole::cmdRemove(const std::vector<std::string>& args, CheatEngine& engine) {
     if (args.size() < 2) {
-        printf("[Cheat] Usage: remove <index>\n");
+        log_info("[Cheat] Usage: remove <index>");
         fflush(stdout);
         return;
     }
     size_t idx = static_cast<size_t>(strtoul(args[1].c_str(), nullptr, 10));
     if (idx >= engine.getCodes().size()) {
-        printf("[Cheat] Index %zu out of range (0-%zu).\n",
-               idx, engine.getCodes().size() - 1);
+        log_info("[Cheat] Index %zu out of range (0-%zu).",
+                 idx, engine.getCodes().size() - 1);
         fflush(stdout);
         return;
     }
     const std::string name = engine.getCodes()[idx].name;
     engine.removeCode(idx);
-    printf("[Cheat] Removed code #%zu '%s'.\n", idx, name.c_str());
+    log_info("[Cheat] Removed code #%zu '%s'.", idx, name.c_str());
     fflush(stdout);
 }
