@@ -48,7 +48,7 @@ void MemSearcher::reset() {
     takeSnapshot();
     m_initialized = true;
 
-    log_info("[Search] Reset — %zu candidate(s), width=%d byte(s)",
+    log_info("[Search] Reset - %zu candidate(s), width=%d byte(s)",
              m_candidates.size(), w);
 }
 
@@ -76,7 +76,7 @@ void MemSearcher::filter(Filter f, u32 value) {
     m_candidates = std::move(next);
     takeSnapshot();  // advance so the next relative filter compares from now
 
-    log_info("[Search] Filter — %zu candidate(s) remain", m_candidates.size());
+    log_info("[Search] Filter - %zu candidate(s) remain", m_candidates.size());
 }
 
 // ─── Snapshot helpers ────────────────────────────────────────────────────────
