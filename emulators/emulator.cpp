@@ -251,6 +251,10 @@ bool Emulator::initialize() {
     m_maxAudioBufferSize = static_cast<int>((Config::Audio::SampleRate * 2 * sizeof(float) / static_cast<double>(m_targetFPS)) * 4.0);
 
     // Initialize SDL
+#ifdef __EMSCRIPTEN__
+    // Restrict SDL keyboard capture to the canvas only, so HTML input elements work normally
+    SDL_SetHint(SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT, "#canvas");
+#endif
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
         log_error("Failed to initialize SDL: %s", SDL_GetError());
         return false;

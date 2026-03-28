@@ -697,6 +697,204 @@
             border-top: 1px solid #333;
             flex-shrink: 0;
         }
+
+        /* Cheat Engine Modal */
+        .cheat-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 900;
+            justify-content: center;
+            align-items: center;
+        }
+        .cheat-modal.show { display: flex; }
+
+        .cheat-modal-content {
+            background: rgba(30, 30, 30, 0.98);
+            border-radius: 12px;
+            padding: 20px;
+            width: 90%;
+            max-width: 860px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .cheat-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+            flex-shrink: 0;
+        }
+        .cheat-modal-header h2 {
+            color: #e0e0e0;
+            font-size: 1.5em;
+            margin: 0;
+        }
+        .cheat-modal-close {
+            background: transparent;
+            border: none;
+            color: #e0e0e0;
+            font-size: 24px;
+            cursor: pointer;
+            width: 30px; height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .cheat-modal-close:hover { background: rgba(255,255,255,0.1); }
+
+        .cheat-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+        .cheat-tab {
+            background: #2d2d2d;
+            border: 1px solid #444;
+            color: #b0b0b0;
+            padding: 6px 20px;
+            border-radius: 6px 6px 0 0;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .cheat-tab:hover { background: #3a3a3a; color: #e0e0e0; }
+        .cheat-tab.active { background: #444; color: #e67e22; font-weight: 600; border-bottom-color: #444; }
+
+        .cheat-panel { display: none; flex: 1; flex-direction: column; overflow: hidden; min-height: 0; }
+        .cheat-panel.active { display: flex; }
+
+        /* Search panel */
+        .cheat-search-controls {
+            padding: 10px 0;
+            border-bottom: 1px solid #333;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .cheat-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .cheat-row label { color: #b0b0b0; font-size: 13px; white-space: nowrap; }
+        .cheat-row select, .cheat-row input {
+            padding: 0 8px;
+            height: 30px;
+            box-sizing: border-box;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background: #2d2d2d;
+            color: #e0e0e0;
+            font-size: 13px;
+        }
+        .cheat-row input { flex: 1; min-width: 80px; max-width: 180px; }
+
+        .cheat-width-btn {
+            background: #2d2d2d;
+            border: 1px solid #555;
+            color: #b0b0b0;
+            padding: 0 10px;
+            height: 30px;
+            box-sizing: border-box;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: monospace;
+            transition: all 0.2s;
+        }
+        .cheat-width-btn:hover { border-color: #e67e22; color: #e0e0e0; }
+        .cheat-width-btn.active { background: #3a2a1a; border-color: #e67e22; color: #e67e22; }
+
+        .cheat-action-btn {
+            background: #6c757d;
+            border: none;
+            color: white;
+            padding: 0 12px;
+            height: 30px;
+            box-sizing: border-box;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .cheat-action-btn:hover { background: #5a6268; }
+        .cheat-action-btn.primary { background: #e67e22; }
+        .cheat-action-btn.primary:hover { background: #cc6a1a; }
+        .cheat-action-btn.danger { background: #8B0000; }
+        .cheat-action-btn.danger:hover { background: #6b0000; }
+
+        .cheat-search-status {
+            font-size: 12px;
+            color: #b0b0b0;
+            padding: 2px 0;
+        }
+        .cheat-search-status.active { color: #e67e22; font-weight: 600; }
+
+        .cheat-candidate-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-height: 0;
+        }
+        .cheat-candidate-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 8px;
+            background: #2d2d2d;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .cheat-candidate-addr { color: #90caf9; flex: 0 0 110px; }
+        .cheat-candidate-val  { color: #e0e0e0; flex: 1; }
+        .cheat-empty { color: #666; font-style: italic; font-size: 13px; padding: 20px; text-align: center; }
+
+        /* Codes panel */
+        .cheat-code-form {
+            padding: 10px 0;
+            border-bottom: 1px solid #333;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+        .cheat-code-form .cheat-row input { max-width: 140px; }
+        .cheat-code-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-height: 0;
+        }
+        .cheat-code-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 10px;
+            background: #2d2d2d;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+        .cheat-code-row.disabled { opacity: 0.5; }
+        .cheat-code-name { flex: 1; color: #e0e0e0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cheat-code-info { color: #b0b0b0; font-family: monospace; font-size: 12px; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -706,6 +904,9 @@
         <input type="file" id="romInput" accept=".gb,.gbc,.gba,.nes,.zip,.sav,.state" style="display: none;">
         <button class="toolbar-btn primary" id="fileManagerBtn">
             <i class="fas fa-folder-plus"></i> Game Library
+        </button>
+        <button class="toolbar-btn" id="cheatBtn">
+            <i class="fas fa-flask"></i> Cheat
         </button>
         <button class="toolbar-btn" id="keybindBtn">
             <i class="fas fa-cog"></i> Config
@@ -743,6 +944,74 @@
                 <h3>Your Games</h3>
                 <div id="fileList" class="file-list">
                     <div class="file-manager-empty">No games uploaded yet. Use the upload button above to add some!</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cheat Engine Modal -->
+    <div id="cheatModal" class="cheat-modal">
+        <div class="cheat-modal-content">
+            <div class="cheat-modal-header">
+                <h2><i class="fas fa-flask"></i> Cheat Engine</h2>
+                <button class="cheat-modal-close" id="cheatModalClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="cheat-tabs">
+                <button class="cheat-tab active" id="cheatTabSearch">Memory Search</button>
+                <button class="cheat-tab" id="cheatTabCodes">Cheat Codes</button>
+            </div>
+
+            <!-- Search panel -->
+            <div class="cheat-panel active" id="cheatPanelSearch">
+                <div class="cheat-search-controls">
+                    <div class="cheat-row">
+                        <label>Width:</label>
+                        <button class="cheat-width-btn" data-width="1">U8</button>
+                        <button class="cheat-width-btn active" data-width="2">U16</button>
+                        <button class="cheat-width-btn" data-width="4">U32</button>
+                        <button class="cheat-action-btn primary" id="cheatSearchResetBtn">Reset Search</button>
+                    </div>
+                    <div class="cheat-row" id="cheatFilterRow">
+                        <select id="cheatFilterType">
+                            <option value="eq">Equal to</option>
+                            <option value="ne">Not equal to</option>
+                            <option value="gt">Greater than prev</option>
+                            <option value="lt">Less than prev</option>
+                            <option value="changed">Changed</option>
+                            <option value="unchanged">Unchanged</option>
+                        </select>
+                        <input type="text" id="cheatFilterValue" placeholder="Value (100 or 0x64)">
+                        <button class="cheat-action-btn" id="cheatSearchFilterBtn">Filter</button>
+                        <button class="cheat-action-btn" id="cheatSearchRefreshBtn">Refresh Values</button>
+                    </div>
+                    <div class="cheat-search-status" id="cheatSearchStatus">No active search. Press "Reset Search" to begin.</div>
+                </div>
+                <div class="cheat-candidate-list" id="cheatCandidateList">
+                    <div class="cheat-empty">Run a search to see candidates here.</div>
+                </div>
+            </div>
+
+            <!-- Codes panel -->
+            <div class="cheat-panel" id="cheatPanelCodes">
+                <div class="cheat-code-form">
+                    <div class="cheat-row">
+                        <label>Name:</label>
+                        <input type="text" id="cheatCodeName" placeholder="e.g. Infinite Lives" style="max-width:160px;">
+                        <label>Addr:</label>
+                        <input type="text" id="cheatCodeAddr" placeholder="0x02001234">
+                        <label>Val:</label>
+                        <input type="text" id="cheatCodeValue" placeholder="99">
+                        <select id="cheatCodeWidth">
+                            <option value="1">U8</option>
+                            <option value="2" selected>U16</option>
+                            <option value="4">U32</option>
+                        </select>
+                        <button class="cheat-action-btn" id="cheatApplyOnceBtn">Apply Once</button>
+                        <button class="cheat-action-btn primary" id="cheatAddFreezeBtn">Add Freeze</button>
+                    </div>
+                </div>
+                <div class="cheat-code-list" id="cheatCodeList">
+                    <div class="cheat-empty">No cheat codes. Use memory search or add one above.</div>
                 </div>
             </div>
         </div>
@@ -1186,6 +1455,209 @@
                 showLog('Error applying configuration: ' + e.message, true);
             }
         }
+
+        // ========== Cheat Engine ==========
+
+        let cheatSearchWidth = 2; // 1 | 2 | 4
+        let cheatRefreshInterval = null;
+
+        function parseCheatValue(s) {
+            s = s.trim();
+            if (!s) return NaN;
+            if (s.startsWith('0x') || s.startsWith('0X')) return parseInt(s.slice(2), 16);
+            return parseInt(s, 10);
+        }
+
+        const cheatModal     = document.getElementById('cheatModal');
+        const cheatModalClose = document.getElementById('cheatModalClose');
+        const cheatBtn       = document.getElementById('cheatBtn');
+        const cheatTabSearch = document.getElementById('cheatTabSearch');
+        const cheatTabCodes  = document.getElementById('cheatTabCodes');
+        const cheatPanelSearch = document.getElementById('cheatPanelSearch');
+        const cheatPanelCodes  = document.getElementById('cheatPanelCodes');
+
+        function cheatModalOpen() {
+            cheatModal.classList.add('show');
+            cheatRefreshSearchStatus();
+        }
+        function cheatModalClose_() {
+            cheatModal.classList.remove('show');
+            if (cheatRefreshInterval) { clearInterval(cheatRefreshInterval); cheatRefreshInterval = null; }
+        }
+        cheatBtn.addEventListener('click', cheatModalOpen);
+        cheatModalClose.addEventListener('click', cheatModalClose_);
+        cheatModal.addEventListener('click', e => { if (e.target === cheatModal) cheatModalClose_(); });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && cheatModal.classList.contains('show')) cheatModalClose_();
+        });
+
+        function cheatSwitchTab(active, inactive, activePanel, inactivePanel) {
+            active.classList.add('active');
+            inactive.classList.remove('active');
+            activePanel.classList.add('active');
+            inactivePanel.classList.remove('active');
+            if (cheatRefreshInterval) { clearInterval(cheatRefreshInterval); cheatRefreshInterval = null; }
+        }
+        cheatTabSearch.addEventListener('click', () => cheatSwitchTab(cheatTabSearch, cheatTabCodes, cheatPanelSearch, cheatPanelCodes));
+        cheatTabCodes.addEventListener('click', () => {
+            cheatSwitchTab(cheatTabCodes, cheatTabSearch, cheatPanelCodes, cheatPanelSearch);
+            cheatRefreshCodeList();
+        });
+
+        // Width buttons
+        document.querySelectorAll('.cheat-width-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.cheat-width-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                cheatSearchWidth = parseInt(this.dataset.width);
+            });
+        });
+
+        // Show/hide value input based on filter type
+        const cheatFilterType  = document.getElementById('cheatFilterType');
+        const cheatFilterValue = document.getElementById('cheatFilterValue');
+        function cheatUpdateFilterValueVisibility() {
+            const f = cheatFilterType.value;
+            cheatFilterValue.style.display = (f === 'eq' || f === 'ne') ? '' : 'none';
+        }
+        cheatFilterType.addEventListener('change', cheatUpdateFilterValueVisibility);
+        cheatUpdateFilterValueVisibility();
+
+        function cheatRefreshSearchStatus() {
+            const el = document.getElementById('cheatSearchStatus');
+            if (!romLoaded) { el.textContent = 'Load a game first.'; el.className = 'cheat-search-status'; return; }
+            const count = Module.ccall('searchCandidateCount', 'number', [], []);
+            if (count === 0 && !cheatSearchInitialized()) {
+                el.textContent = 'No active search. Press "Reset Search" to begin.';
+                el.className = 'cheat-search-status';
+            } else {
+                el.textContent = count + ' candidate' + (count !== 1 ? 's' : '');
+                el.className = 'cheat-search-status active';
+            }
+        }
+
+        function cheatSearchInitialized() {
+            // We track this JS-side; we know it's initialized once Reset was pressed
+            return document.getElementById('cheatCandidateList').dataset.initialized === '1';
+        }
+
+        document.getElementById('cheatSearchResetBtn').addEventListener('click', () => {
+            if (!romLoaded) { showLog('Load a game first.', true); return; }
+            Module.ccall('searchReset', 'void', ['number'], [cheatSearchWidth]);
+            document.getElementById('cheatCandidateList').dataset.initialized = '1';
+            cheatRefreshSearchStatus();
+            cheatRefreshCandidateList();
+        });
+
+        document.getElementById('cheatSearchFilterBtn').addEventListener('click', () => {
+            if (!romLoaded) { showLog('Load a game first.', true); return; }
+            if (!cheatSearchInitialized()) { showLog('Run Reset Search first.', true); return; }
+            const filter = cheatFilterType.value;
+            const valStr = cheatFilterValue.value.trim();
+            let value = 0;
+            if (filter === 'eq' || filter === 'ne') {
+                value = parseCheatValue(valStr);
+                if (isNaN(value)) { showLog('Invalid filter value.', true); return; }
+            }
+            Module.ccall('searchFilter', 'void', ['string', 'number'], [filter, value]);
+            cheatRefreshSearchStatus();
+            cheatRefreshCandidateList();
+        });
+
+        document.getElementById('cheatSearchRefreshBtn').addEventListener('click', cheatRefreshCandidateList);
+
+        function cheatRefreshCandidateList() {
+            const container = document.getElementById('cheatCandidateList');
+            if (!romLoaded || !cheatSearchInitialized()) return;
+            const count = Module.ccall('searchCandidateCount', 'number', [], []);
+            if (count === 0) {
+                container.innerHTML = '<div class="cheat-empty">No candidates remain.</div>';
+                return;
+            }
+            const MAX = 100;
+            const jsonStr = Module.ccall('searchGetCandidatesJson', 'string', ['number'], [MAX]);
+            const items = JSON.parse(jsonStr);
+            container.innerHTML = '';
+            for (const item of items) {
+                const addrHex = '0x' + item.address.toString(16).toUpperCase().padStart(8, '0');
+                const row = document.createElement('div');
+                row.className = 'cheat-candidate-row';
+                row.innerHTML =
+                    `<span class="cheat-candidate-addr">${addrHex}</span>` +
+                    `<span class="cheat-candidate-val">${item.value}</span>` +
+                    `<button class="cheat-action-btn" data-addr="${item.address}" data-val="${item.value}">Freeze</button>`;
+                row.querySelector('button').addEventListener('click', function() {
+                    const addr = parseInt(this.dataset.addr);
+                    const val  = parseInt(this.dataset.val);
+                    const addrStr = '0x' + addr.toString(16).toUpperCase().padStart(8, '0');
+                    Module.ccall('cheatAddCode', 'void', ['string','number','number','number'],
+                        [addrStr, addr, val, cheatSearchWidth]);
+                    showLog('Freeze added: ' + addrStr + ' = ' + val);
+                });
+                container.appendChild(row);
+            }
+            if (count > MAX) {
+                const note = document.createElement('div');
+                note.className = 'cheat-empty';
+                note.textContent = `Showing first ${MAX} of ${count} candidates. Narrow your search.`;
+                container.appendChild(note);
+            }
+        }
+
+        // Codes panel
+        function cheatRefreshCodeList() {
+            const container = document.getElementById('cheatCodeList');
+            if (!romLoaded) { container.innerHTML = '<div class="cheat-empty">Load a game first.</div>'; return; }
+            const jsonStr = Module.ccall('cheatGetCodesJson', 'string', [], []);
+            const codes = JSON.parse(jsonStr);
+            if (codes.length === 0) {
+                container.innerHTML = '<div class="cheat-empty">No cheat codes. Use memory search or add one above.</div>';
+                return;
+            }
+            container.innerHTML = '';
+            codes.forEach((c, i) => {
+                const addrHex = '0x' + c.address.toString(16).toUpperCase().padStart(8, '0');
+                const row = document.createElement('div');
+                row.className = 'cheat-code-row' + (c.enabled ? '' : ' disabled');
+                row.innerHTML =
+                    `<span class="cheat-code-name" title="${c.name}">${c.name}</span>` +
+                    `<span class="cheat-code-info">${addrHex} = ${c.value} (U${c.width * 8})</span>` +
+                    `<button class="cheat-action-btn" data-i="${i}">${c.enabled ? 'ON' : 'OFF'}</button>` +
+                    `<button class="cheat-action-btn danger" data-i="${i}">✕</button>`;
+                const [toggleBtn, removeBtn] = row.querySelectorAll('button');
+                toggleBtn.addEventListener('click', () => {
+                    Module.ccall('cheatToggleCode', 'void', ['number'], [i]);
+                    cheatRefreshCodeList();
+                });
+                removeBtn.addEventListener('click', () => {
+                    Module.ccall('cheatRemoveCode', 'void', ['number'], [i]);
+                    cheatRefreshCodeList();
+                });
+                container.appendChild(row);
+            });
+        }
+
+        document.getElementById('cheatApplyOnceBtn').addEventListener('click', () => {
+            if (!romLoaded) { showLog('Load a game first.', true); return; }
+            const addr = parseCheatValue(document.getElementById('cheatCodeAddr').value);
+            const val  = parseCheatValue(document.getElementById('cheatCodeValue').value);
+            const w    = parseInt(document.getElementById('cheatCodeWidth').value);
+            if (isNaN(addr) || isNaN(val)) { showLog('Invalid address or value.', true); return; }
+            Module.ccall('cheatApply', 'void', ['number','number','number'], [addr, val, w]);
+            showLog('Applied: 0x' + addr.toString(16).toUpperCase().padStart(8,'0') + ' = ' + val);
+        });
+
+        document.getElementById('cheatAddFreezeBtn').addEventListener('click', () => {
+            if (!romLoaded) { showLog('Load a game first.', true); return; }
+            const name = document.getElementById('cheatCodeName').value.trim() || 'Code';
+            const addr = parseCheatValue(document.getElementById('cheatCodeAddr').value);
+            const val  = parseCheatValue(document.getElementById('cheatCodeValue').value);
+            const w    = parseInt(document.getElementById('cheatCodeWidth').value);
+            if (isNaN(addr) || isNaN(val)) { showLog('Invalid address or value.', true); return; }
+            Module.ccall('cheatAddCode', 'void', ['string','number','number','number'], [name, addr, val, w]);
+            showLog('Freeze added: ' + name);
+            cheatRefreshCodeList();
+        });
 
         // ========== Key Bindings ==========
         const keyBindingSchemas = {

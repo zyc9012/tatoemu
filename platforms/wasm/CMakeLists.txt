@@ -36,7 +36,7 @@ set(EMSCRIPTEN_LINK_FLAGS
     "-sSTACK_SIZE=5MB"
     
     # Export main function and C functions for file upload and configuration
-    "-sEXPORTED_FUNCTIONS=['_main','_loadROMFile','_loadBootromFile','_setScaleMode','_setVolume','_setNeoSys','_setNeoBios','_setKeyBinding']"
+    "-sEXPORTED_FUNCTIONS=['_main','_loadROMFile','_loadBootromFile','_setScaleMode','_setVolume','_setNeoSys','_setNeoBios','_setKeyBinding','_cheatApply','_cheatAddCode','_cheatRemoveCode','_cheatToggleCode','_cheatClearCodes','_cheatGetCodesJson','_searchReset','_searchFilter','_searchCandidateCount','_searchGetCandidatesJson']"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','FS']"
     
     # Environment

@@ -117,6 +117,132 @@ extern "C" {
         neogeo::Config::BiosIndex = biosIndex;
     }
 
+    // ── Cheat engine ─────────────────────────────────────────────────────────
+
+    void cheatApply(uint32_t address, uint32_t value, int width) {
+        if (!g_emulatorWasm || !g_emulatorWasm->romLoaded) return;
+        CheatCode code;
+        code.name    = "one-shot";
+        code.address = address;
+        code.value   = value;
+        code.width   = static_cast<u8>(width);
+        code.enabled = true;
+        g_emulatorWasm->emulator.getCheatEngine().apply(code);
+    }
+
+    void cheatAddCode(const char* name, uint32_t address, uint32_t value, int width) {
+        if (!g_emulatorWasm || !g_emulatorWasm->romLoaded) return;
+        CheatCode code;
+        code.name    = name ? name : "";
+        code.address = address;
+        code.value   = value;
+        code.width   = static_cast<u8>(width);
+        code.enabled = true;
+        g_emulatorWasm->emulator.getCheatEngine().addCode(code);
+    }
+
+    void cheatRemoveCode(int index) {
+        if (!g_emulatorWasm) return;
+        g_emulatorWasm->emulator.getCheatEngine().removeCode(static_cast<size_t>(index));
+    }
+
+    void cheatToggleCode(int index) {
+        if (!g_emulatorWasm) return;
+        g_emulatorWasm->emulator.getCheatEngine().toggleCode(static_cast<size_t>(index));
+    }
+
+    void cheatClearCodes() {
+        if (!g_emulatorWasm) return;
+        g_emulatorWasm->emulator.getCheatEngine().clearCodes();
+    }
+
+    static char s_jsonBuf[65536];
+
+    static char* jsonWriteString(char* p, const char* end, const char* s) {
+        *p++ = '"';
+        for (; *s && p < end - 1; ++s) {
+            if (*s == '"' || *s == '\\') *p++ = '\\';
+            *p++ = *s;
+        }
+        *p++ = '"';
+        return p;
+    }
+
+    const char* cheatGetCodesJson() {
+        char* p   = s_jsonBuf;
+        char* end = s_jsonBuf + sizeof(s_jsonBuf) - 4;
+        *p++ = '[';
+        if (g_emulatorWasm) {
+            const auto& codes = g_emulatorWasm->emulator.getCheatEngine().getCodes();
+            for (size_t i = 0; i < codes.size() && p < end; ++i) {
+                if (i > 0) *p++ = ',';
+                const auto& c = codes[i];
+                p += snprintf(p, end - p, "{\"name\":");
+                p  = jsonWriteString(p, end, c.name.c_str());
+                p += snprintf(p, end - p,
+                    ",\"address\":%u,\"value\":%u,\"width\":%d,\"enabled\":%s}",
+                    c.address, c.value, static_cast<int>(c.width),
+                    c.enabled ? "true" : "false");
+            }
+        }
+        *p++ = ']'; *p = '\0';
+        return s_jsonBuf;
+    }
+
+    // ── Memory searcher ───────────────────────────────────────────────────────
+
+    void searchReset(int width) {
+        if (!g_emulatorWasm || !g_emulatorWasm->romLoaded) return;
+        MemSearcher::Width w = MemSearcher::Width::U16;
+        if (width == 1) w = MemSearcher::Width::U8;
+        else if (width == 4) w = MemSearcher::Width::U32;
+        auto& searcher = g_emulatorWasm->emulator.getSearcher();
+        searcher.setWidth(w);
+        searcher.reset();
+    }
+
+    void searchFilter(const char* filterStr, uint32_t value) {
+        if (!g_emulatorWasm || !g_emulatorWasm->romLoaded) return;
+        auto& searcher = g_emulatorWasm->emulator.getSearcher();
+        if (!searcher.isInitialized()) return;
+        std::string f(filterStr);
+        MemSearcher::Filter filter;
+        if      (f == "eq")        filter = MemSearcher::Filter::Equal;
+        else if (f == "ne")        filter = MemSearcher::Filter::NotEqual;
+        else if (f == "gt")        filter = MemSearcher::Filter::Greater;
+        else if (f == "lt")        filter = MemSearcher::Filter::Less;
+        else if (f == "changed")   filter = MemSearcher::Filter::Changed;
+        else if (f == "unchanged") filter = MemSearcher::Filter::Unchanged;
+        else return;
+        searcher.filter(filter, value);
+    }
+
+    int searchCandidateCount() {
+        if (!g_emulatorWasm) return 0;
+        return static_cast<int>(g_emulatorWasm->emulator.getSearcher().candidateCount());
+    }
+
+    const char* searchGetCandidatesJson(int maxResults) {
+        char* p   = s_jsonBuf;
+        char* end = s_jsonBuf + sizeof(s_jsonBuf) - 4;
+        *p++ = '[';
+        if (g_emulatorWasm) {
+            const auto& searcher = g_emulatorWasm->emulator.getSearcher();
+            const auto& cands    = searcher.candidates();
+            int count = 0;
+            for (size_t i = 0; i < cands.size() && p < end && count < maxResults; ++i, ++count) {
+                if (i > 0) *p++ = ',';
+                u32 addr = cands[i];
+                u32 val  = searcher.readCurrent(addr);
+                p += snprintf(p, end - p, "{\"address\":%u,\"value\":%u}", addr, val);
+            }
+        }
+        *p++ = ']'; *p = '\0';
+        return s_jsonBuf;
+    }
+
+    // ── Key bindings ──────────────────────────────────────────────────────────
+
     void setKeyBinding(const char* section, const char* key, const char* value) {
         SDL_Keycode kc = SDL_GetKeyFromName(value);
         if (kc == SDLK_UNKNOWN) {
