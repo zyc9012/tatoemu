@@ -56,7 +56,7 @@ CheatConsole::~CheatConsole() {
 void CheatConsole::start() {
     m_running = true;
     m_thread = std::thread(&CheatConsole::readLoop, this);
-    log_info("[Cheat] Console ready. Type 'help' for commands.");
+    log_info("Cheat console ready. Type 'help' for commands.");
     fflush(stdout);
 }
 
@@ -151,7 +151,7 @@ void CheatConsole::cmdReset(const std::vector<std::string>& args, MemSearcher& s
     const char* widthStr = (searcher.getWidth() == MemSearcher::Width::U8)  ? "u8"  :
                            (searcher.getWidth() == MemSearcher::Width::U16) ? "u16" : "u32";
     searcher.reset();
-    log_info("[Cheat] Search reset (%s) — %zu candidates.",
+    log_info("[Cheat] Search reset (%s) - %zu candidates.",
              widthStr, searcher.candidateCount());
     fflush(stdout);
 }
