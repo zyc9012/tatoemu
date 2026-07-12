@@ -2,6 +2,7 @@
 #include "config.h"
 #include "nes/config.h"
 #include "gb/config.h"
+#include "gba/config.h"
 #include "cps/config.h"
 #include "neogeo/config.h"
 #include <SDL3/SDL.h>
@@ -272,6 +273,17 @@ extern "C" {
             else if (k == "Down") gb::Config::Key::DpadDown = kc;
             else if (k == "Left") gb::Config::Key::DpadLeft = kc;
             else if (k == "Right") gb::Config::Key::DpadRight = kc;
+        } else if (sec == "GBA") {
+            if (k == "A") gba::Config::Key::ButtonA = kc;
+            else if (k == "B") gba::Config::Key::ButtonB = kc;
+            else if (k == "L") gba::Config::Key::ButtonL = kc;
+            else if (k == "R") gba::Config::Key::ButtonR = kc;
+            else if (k == "Start") gba::Config::Key::Start = kc;
+            else if (k == "Select") gba::Config::Key::Select = kc;
+            else if (k == "Up") gba::Config::Key::DpadUp = kc;
+            else if (k == "Down") gba::Config::Key::DpadDown = kc;
+            else if (k == "Left") gba::Config::Key::DpadLeft = kc;
+            else if (k == "Right") gba::Config::Key::DpadRight = kc;
         } else if (sec == "NES") {
             if (k == "A") nes::Config::Key::ButtonA = kc;
             else if (k == "B") nes::Config::Key::ButtonB = kc;

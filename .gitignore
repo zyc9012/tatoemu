@@ -2,6 +2,7 @@
 build/
 build-wasm/
 cmake-build-*/
+node_modules/
 
 # IDE files
 .vscode/

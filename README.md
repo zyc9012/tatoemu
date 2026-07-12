@@ -52,19 +52,22 @@ make
 
 ### WebAssembly Build
 
-Install and activate the Emscripten SDK
+Install and activate the Emscripten SDK. The web frontend also requires Node.js and npm.
 
 Quick start:
 ```bash
 source /path/to/emsdk/emsdk_env.sh
-mkdir build-wasm
-cd build-wasm
-emcmake cmake -DPLATFORM=wasm ..
-emmake make
+cd platforms/wasm/web
+npm install
+cd ../../..
+emcmake cmake -S . -B build-wasm -DPLATFORM=wasm
+cmake --build build-wasm -j4
 
 # Run (serves on http://localhost:8080)
-python3 -m http.server 8080
+python3 -m http.server 8080 --directory build-wasm/dist
 ```
+
+The build generates the Emscripten module in `build-wasm/emulator` and assembles the deployable Preact application in `build-wasm/dist`.
 
 ## Usage
 

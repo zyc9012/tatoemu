@@ -22,8 +22,6 @@ apply_common_target_settings(tatoemu)
 # Link SDL3
 target_link_libraries(tatoemu PRIVATE SDL3::SDL3)
 
-set(SHELL_FILE "${CMAKE_CURRENT_SOURCE_DIR}/shell.html")
-
 # Emscripten-specific settings
 set(EMSCRIPTEN_LINK_FLAGS
     # Use SDL3 port
@@ -41,6 +39,9 @@ set(EMSCRIPTEN_LINK_FLAGS
     
     # Environment
     "-sENVIRONMENT=web"
+    "-sMODULARIZE=1"
+    "-sEXPORT_ES6=1"
+    "-sEXPORT_NAME=createTatoEmuModule"
     
     # Enable filesystem for ROM loading
     "-sFORCE_FILESYSTEM=1"
@@ -50,8 +51,6 @@ set(EMSCRIPTEN_LINK_FLAGS
     "-fexceptions"
     "-sNO_DISABLE_EXCEPTION_CATCHING"
     
-    # Use custom HTML shell
-    "--shell-file=${SHELL_FILE}"
 )
 
 # Optimization flags
@@ -77,8 +76,7 @@ string(REPLACE ";" " " EMSCRIPTEN_LINK_FLAGS_STR "${EMSCRIPTEN_LINK_FLAGS}")
 set_target_properties(tatoemu PROPERTIES
     LINK_FLAGS "${EMSCRIPTEN_LINK_FLAGS_STR}"
     OUTPUT_NAME "tatoemu"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/dist"
-    LINK_DEPENDS "${SHELL_FILE}"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/emulator"
 )
 
 # Additional compiler options (warnings are in common file)
@@ -86,20 +84,30 @@ target_compile_options(tatoemu PRIVATE
     -fexceptions
 )
 
-# Shell file for HTML
 set_target_properties(tatoemu PROPERTIES
-    SUFFIX ".html"
-    OUTPUT_NAME "index"
+    SUFFIX ".js"
 )
 
-# Define a custom target to copy assets
-add_custom_target(
-    copy_assets
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${CMAKE_CURRENT_SOURCE_DIR}/../../tatoemu.png
-            ${CMAKE_BINARY_DIR}/dist/tatoemu.png
-    COMMENT "Copying assets to the build directory"
+find_program(NPM_EXECUTABLE npm REQUIRED)
+
+file(GLOB_RECURSE WEB_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/web/src/*"
+    "${CMAKE_CURRENT_SOURCE_DIR}/web/index.html"
+    "${CMAKE_CURRENT_SOURCE_DIR}/web/package.json"
+    "${CMAKE_CURRENT_SOURCE_DIR}/web/package-lock.json"
+    "${CMAKE_CURRENT_SOURCE_DIR}/web/tsconfig.json"
+    "${CMAKE_CURRENT_SOURCE_DIR}/web/vite.config.ts"
 )
 
-add_dependencies(tatoemu copy_assets)
+add_custom_target(web_frontend ALL
+    COMMAND ${CMAKE_COMMAND} -E env
+            "TATOEMU_BUILD_DIR=${CMAKE_BINARY_DIR}"
+            ${NPM_EXECUTABLE} run build
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/web"
+    DEPENDS ${WEB_SOURCES}
+    COMMENT "Building Preact frontend"
+    VERBATIM
+)
+
+add_dependencies(web_frontend tatoemu)
 
