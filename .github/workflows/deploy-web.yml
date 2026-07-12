@@ -2,76 +2,63 @@ name: Build and Deploy Web App
 
 on:
   push:
-    branches: main
+    branches:
+      - main
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      deployments: write
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
-      
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: platforms/wasm/web/package-lock.json
+
+      - name: Install web dependencies
+        working-directory: platforms/wasm/web
+        run: npm ci
+
       - name: Setup Emscripten
-        uses: pyodide/setup-emsdk@v15
+        uses: emscripten-core/setup-emsdk@v16
         with:
-          version: '4.0.22'
+          version: '6.0.2'
           actions-cache-folder: '.emsdk-cache'
-      
-      - name: Cache SDL3
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.cache/sdl3-install
-          key: sdl3-3.4.0-${{ runner.os }}-emsdk-4.0.22
-          restore-keys: |
-            sdl3-3.4.0-${{ runner.os }}-
-        id: sdl3-cache
-      
-      - name: Download and build SDL3
-        if: steps.sdl3-cache.outputs.cache-hit != 'true'
-        run: |
-          SDL3_VERSION="3.4.0"
-          SDL3_DIR="${{ github.workspace }}/.cache/sdl3-install"
-          mkdir -p $SDL3_DIR
-          
-          # Download SDL3 source
-          curl -L "https://github.com/libsdl-org/SDL/archive/refs/tags/release-${SDL3_VERSION}.tar.gz" -o sdl3.tar.gz
-          tar -xzf sdl3.tar.gz
-          cd SDL-release-${SDL3_VERSION}
-          
-          # Configure SDL3 for Emscripten
-          emcmake cmake -B build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=$SDL3_DIR \
-            -DSDL_DISABLE_INSTALL_DOCS=ON \
-            -DSDL_TESTS=OFF
-          
-          # Build and install SDL3
-          emmake cmake --build build -j$(nproc)
-          emmake cmake --install build
-      
+
+      - name: Prepare bundled SDL3
+        run: embuilder build sdl3
+
       - name: Configure CMake
-        run: |
-          mkdir -p build-wasm
-          cd build-wasm
-          SDL3_DIR="${{ github.workspace }}/.cache/sdl3-install"
-          emcmake cmake -DPLATFORM=wasm -DCMAKE_PREFIX_PATH=$SDL3_DIR -DSDL3_DIR=$SDL3_DIR/lib/cmake/SDL3 ..
-      
-      - name: Build WASM
-        run: |
-          cd build-wasm
-          emmake make -j$(nproc)
-      
+        run: >-
+          emcmake cmake -S . -B build-wasm
+          -DPLATFORM=wasm
+          -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build WASM and web frontend
+        run: cmake --build build-wasm --parallel "$(nproc)"
+
       - name: Verify build artifacts
-        run: ls -lah build-wasm/dist/
-      
+        run: |
+          test -f build-wasm/dist/index.html
+          test -f build-wasm/dist/emulator/tatoemu.js
+          test -f build-wasm/dist/emulator/tatoemu.wasm
+          ls -lah build-wasm/dist/ build-wasm/dist/emulator/
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: wasm-build
           path: build-wasm/dist/
           retention-days: 30
-      
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
