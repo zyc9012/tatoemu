@@ -398,6 +398,7 @@ select {
 
 .cheat-modal {
   height: min(760px, 90vh);
+  font-size: 13px;
 }
 
 .dialog-tabs {
