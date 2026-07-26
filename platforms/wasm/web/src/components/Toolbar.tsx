@@ -1,11 +1,13 @@
-import { FlaskConical, FolderOpen, Settings } from 'lucide-preact';
+import { FlaskConical, FolderOpen, Maximize2, Minimize2, Settings } from 'lucide-preact';
 
 interface ToolbarProps {
   gameTitle: string;
   ready: boolean;
+  fullscreen: boolean;
   onOpenLibrary(): void;
   onOpenCheats(): void;
   onOpenConfig(): void;
+  onToggleFullscreen(): void;
 }
 
 function GitHubIcon() {
@@ -25,10 +27,15 @@ function GitHubIcon() {
 export function Toolbar({
   gameTitle,
   ready,
+  fullscreen,
   onOpenLibrary,
   onOpenCheats,
   onOpenConfig,
+  onToggleFullscreen,
 }: ToolbarProps) {
+  const FullscreenIcon = fullscreen ? Minimize2 : Maximize2;
+  const fullscreenLabel = fullscreen ? 'Exit fullscreen' : 'Enter fullscreen';
+
   return (
     <header class="toolbar">
       <div class="brand-mark">
@@ -47,6 +54,15 @@ export function Toolbar({
         <button class="button" type="button" aria-label="Config" onClick={onOpenConfig} disabled={!ready}>
           <Settings aria-hidden="true" />
           <span>Config</span>
+        </button>
+        <button
+          class="icon-button"
+          type="button"
+          aria-label={fullscreenLabel}
+          title={fullscreenLabel}
+          onClick={onToggleFullscreen}
+        >
+          <FullscreenIcon aria-hidden="true" />
         </button>
         <a
           class="icon-button github-link"

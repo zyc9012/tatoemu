@@ -16,6 +16,7 @@ const NOTICE_ICONS = {
 };
 
 export function App() {
+  const appRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [status, setStatus] = useState('Loading emulator...');
   const [notice, setNotice] = useState<{ message: string; type: NoticeType } | null>(null);
@@ -26,6 +27,7 @@ export function App() {
   const [configOpen, setConfigOpen] = useState(false);
   const [files, setFiles] = useState<StoredFile[]>([]);
   const [loadedFile, setLoadedFile] = useState('');
+  const [fullscreen, setFullscreen] = useState(false);
   const [config, setConfig] = useState({ ...CONFIG_DEFAULTS });
   const [keyBindings, setKeyBindings] = useState(createDefaultKeyBindings);
 
@@ -69,6 +71,12 @@ export function App() {
     const timeout = window.setTimeout(() => setNotice(null), 5000);
     return () => window.clearTimeout(timeout);
   }, [notice]);
+
+  useEffect(() => {
+    const updateFullscreen = () => setFullscreen(document.fullscreenElement === appRef.current);
+    document.addEventListener('fullscreenchange', updateFullscreen);
+    return () => document.removeEventListener('fullscreenchange', updateFullscreen);
+  }, []);
 
   const loadFile = async (file: StoredFile) => {
     if (isSupportFile(file.name)) {
@@ -138,6 +146,18 @@ export function App() {
     }
   };
 
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await appRef.current?.requestFullscreen();
+      }
+    } catch (error) {
+      setNotice({ message: errorMessage(error), type: 'error' });
+    }
+  };
+
   const visibleNotice = busyMessage
     ? { message: busyMessage, type: 'info' as const }
     : notice;
@@ -146,13 +166,15 @@ export function App() {
     : visibleNotice ? NOTICE_ICONS[visibleNotice.type] : Info;
 
   return (
-    <main class="app-shell">
+    <main class="app-shell" ref={appRef}>
       <Toolbar
         gameTitle={loadedFile || 'TatoEmu'}
         ready={ready}
+        fullscreen={fullscreen}
         onOpenLibrary={() => setLibraryOpen(true)}
         onOpenCheats={() => setCheatsOpen(true)}
         onOpenConfig={() => setConfigOpen(true)}
+        onToggleFullscreen={() => void toggleFullscreen()}
       />
       <section class="canvas-container">
         {status && <div class="status" role="status">{status}</div>}
