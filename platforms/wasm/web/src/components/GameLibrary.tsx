@@ -7,7 +7,7 @@ interface GameLibraryProps {
   open: boolean;
   files: StoredFile[];
   loadedFile: string;
-  busyMessage: string | null;
+  busy: boolean;
   onClose(): void;
   onLoad(file: StoredFile): void;
   onUpload(file: File): void;
@@ -19,14 +19,13 @@ export function GameLibrary({
   open,
   files,
   loadedFile,
-  busyMessage,
+  busy,
   onClose,
   onLoad,
   onUpload,
   onDownload,
   onDelete,
 }: GameLibraryProps) {
-  const busy = busyMessage !== null;
   const inputRef = useRef<HTMLInputElement>(null);
   const dragDepth = useRef(0);
   const [dragging, setDragging] = useState(false);
@@ -61,7 +60,7 @@ export function GameLibrary({
       >
         <button class="button primary" type="button" onClick={() => inputRef.current?.click()} disabled={busy}>
           <HardDriveUpload aria-hidden="true" />
-          <span aria-live="polite">{busyMessage ?? 'Upload file'}</span>
+          <span>Upload file</span>
         </button>
         <input
           ref={inputRef}

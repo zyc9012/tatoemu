@@ -1,4 +1,4 @@
-import { CheckCircle2, CircleAlert, Info } from 'lucide-preact';
+import { CheckCircle2, CircleAlert, Info, LoaderCircle } from 'lucide-preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { CONFIG_DEFAULTS, createDefaultKeyBindings } from './configuration';
 import { CheatDialog } from './components/CheatDialog';
@@ -130,7 +130,12 @@ export function App() {
     }
   };
 
-  const NoticeIcon = notice ? NOTICE_ICONS[notice.type] : Info;
+  const visibleNotice = busyMessage
+    ? { message: busyMessage, type: 'info' as const }
+    : notice;
+  const NoticeIcon = busyMessage
+    ? LoaderCircle
+    : visibleNotice ? NOTICE_ICONS[visibleNotice.type] : Info;
 
   return (
     <main class="app-shell">
@@ -149,14 +154,15 @@ export function App() {
           tabIndex={-1}
           onContextMenu={(event) => event.preventDefault()}
         />
-        {notice && (
+        {visibleNotice && (
           <div
-            class={`notice ${notice.type}`}
-            role={notice.type === 'error' ? 'alert' : 'status'}
-            aria-live={notice.type === 'error' ? 'assertive' : 'polite'}
+            class={`notice ${visibleNotice.type}${busyMessage ? ' busy' : ''}`}
+            role={visibleNotice.type === 'error' ? 'alert' : 'status'}
+            aria-live={visibleNotice.type === 'error' ? 'assertive' : 'polite'}
+            aria-busy={Boolean(busyMessage)}
           >
             <NoticeIcon aria-hidden="true" />
-            <span>{notice.message}</span>
+            <span>{visibleNotice.message}</span>
           </div>
         )}
       </section>
@@ -164,7 +170,7 @@ export function App() {
         open={libraryOpen}
         files={files}
         loadedFile={loadedFile}
-        busyMessage={busyMessage}
+        busy={busyMessage !== null}
         onClose={() => setLibraryOpen(false)}
         onLoad={loadFile}
         onUpload={(file) => void uploadFile(file)}

@@ -184,6 +184,16 @@ select {
   flex: 0 0 auto;
 }
 
+.notice.busy svg {
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .notice.success {
   border-color: #477a58;
   color: #d7f5df;
