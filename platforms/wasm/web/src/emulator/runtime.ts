@@ -138,6 +138,10 @@ export class EmulatorRuntime {
     return this.fs.readFile(path);
   }
 
+  deleteFile(path: string): void {
+    this.fs.unlink(path);
+  }
+
   async loadRom(path: string, onBiosDownload?: BiosDownloadHandler): Promise<boolean> {
     const coreType = this.call<CoreType>('getCoreType', 'string', ['string'], [path]);
     const biosName = REQUIRED_BIOS[coreType];

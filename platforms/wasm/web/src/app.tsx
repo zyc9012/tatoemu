@@ -120,6 +120,16 @@ export function App() {
     setBusyMessage(downloading ? `Downloading ${name}...` : 'Loading game...');
   };
 
+  const deleteFile = (file: StoredFile) => {
+    try {
+      emulatorRuntime.deleteFile(file.path);
+      setFiles(emulatorRuntime.listFiles());
+      setNotice({ message: `${file.name} deleted.`, type: 'success' });
+    } catch (error) {
+      setNotice({ message: errorMessage(error), type: 'error' });
+    }
+  };
+
   const NoticeIcon = notice ? NOTICE_ICONS[notice.type] : Info;
 
   return (
@@ -159,6 +169,7 @@ export function App() {
         onLoad={loadFile}
         onUpload={(file) => void uploadFile(file)}
         onDownload={(file) => emulatorRuntime.readFile(file.path)}
+        onDelete={deleteFile}
       />
       <CheatDialog
         open={cheatsOpen}

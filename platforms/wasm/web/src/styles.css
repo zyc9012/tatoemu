@@ -310,7 +310,7 @@ select {
 .file-row {
   display: grid;
   min-height: 58px;
-  grid-template-columns: 32px minmax(0, 1fr) 36px;
+  grid-template-columns: 32px minmax(0, 1fr) 36px 36px;
   align-items: center;
   gap: 10px;
   padding: 7px 9px;

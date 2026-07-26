@@ -1,4 +1,4 @@
-import { Download, FileArchive, Gamepad2, HardDriveUpload, Save } from 'lucide-preact';
+import { Download, FileArchive, Gamepad2, HardDriveUpload, Save, Trash2 } from 'lucide-preact';
 import { useRef, useState } from 'preact/hooks';
 import type { StoredFile } from '../emulator/runtime';
 import { Modal } from './Modal';
@@ -12,6 +12,7 @@ interface GameLibraryProps {
   onLoad(file: StoredFile): void;
   onUpload(file: File): void;
   onDownload(file: StoredFile): Uint8Array;
+  onDelete(file: StoredFile): void;
 }
 
 export function GameLibrary({
@@ -23,6 +24,7 @@ export function GameLibrary({
   onLoad,
   onUpload,
   onDownload,
+  onDelete,
 }: GameLibraryProps) {
   const busy = busyMessage !== null;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -99,6 +101,18 @@ export function GameLibrary({
                 onClick={() => download(file, onDownload(file))}
               >
                 <Download aria-hidden="true" />
+              </button>
+              <button
+                class="icon-button danger"
+                type="button"
+                aria-label={`Delete ${file.name}`}
+                title={loadedFile === file.name ? 'The currently loaded game cannot be deleted' : `Delete ${file.name}`}
+                disabled={busy || loadedFile === file.name}
+                onClick={() => {
+                  if (window.confirm(`Delete ${file.name} from this browser?`)) onDelete(file);
+                }}
+              >
+                <Trash2 aria-hidden="true" />
               </button>
             </div>
           );
