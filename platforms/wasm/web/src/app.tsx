@@ -130,6 +130,14 @@ export function App() {
     }
   };
 
+  const refreshFiles = () => {
+    try {
+      setFiles(emulatorRuntime.listFiles());
+    } catch (error) {
+      setNotice({ message: errorMessage(error), type: 'error' });
+    }
+  };
+
   const visibleNotice = busyMessage
     ? { message: busyMessage, type: 'info' as const }
     : notice;
@@ -176,6 +184,7 @@ export function App() {
         onUpload={(file) => void uploadFile(file)}
         onDownload={(file) => emulatorRuntime.readFile(file.path)}
         onDelete={deleteFile}
+        onRefresh={refreshFiles}
       />
       <CheatDialog
         open={cheatsOpen}

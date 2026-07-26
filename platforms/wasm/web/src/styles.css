@@ -307,6 +307,13 @@ select {
   text-align: center;
 }
 
+.library-heading .library-refresh {
+  width: 32px;
+  height: 32px;
+  margin-left: auto;
+  flex-basis: 32px;
+}
+
 .file-list {
   display: flex;
   min-height: 0;

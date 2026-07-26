@@ -1,4 +1,4 @@
-import { Download, FileArchive, Gamepad2, HardDriveUpload, Save, Trash2 } from 'lucide-preact';
+import { Download, FileArchive, Gamepad2, HardDriveUpload, RefreshCw, Save, Trash2 } from 'lucide-preact';
 import { useRef, useState } from 'preact/hooks';
 import type { StoredFile } from '../emulator/runtime';
 import { Modal } from './Modal';
@@ -13,6 +13,7 @@ interface GameLibraryProps {
   onUpload(file: File): void;
   onDownload(file: StoredFile): Uint8Array;
   onDelete(file: StoredFile): void;
+  onRefresh(): void;
 }
 
 export function GameLibrary({
@@ -25,6 +26,7 @@ export function GameLibrary({
   onUpload,
   onDownload,
   onDelete,
+  onRefresh,
 }: GameLibraryProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const dragDepth = useRef(0);
@@ -78,6 +80,16 @@ export function GameLibrary({
       <div class="library-heading">
         <h3>Your files</h3>
         <span>{files.length}</span>
+        <button
+          class="icon-button library-refresh"
+          type="button"
+          aria-label="Refresh file list"
+          title="Refresh file list"
+          disabled={busy}
+          onClick={onRefresh}
+        >
+          <RefreshCw aria-hidden="true" />
+        </button>
       </div>
       <div class="file-list">
         {files.length === 0 ? (
