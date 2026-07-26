@@ -191,13 +191,13 @@ The following options and control mappings can be customized within this config 
 
 Supports FBNeo ROM sets (partial).
 
-ROM sets available at: [Myrient](https://myrient.erista.me/files/Internet%20Archive/chadmaster/fbnarcade-fullnonmerged/arcade/)
+ROM sets available at: [Internet Archive](https://archive.org/download/fbnarcade-fullnonmerged/arcade/)
 
 ### NeoGeo (AES/MVS)
 
 Supports FBNeo ROM sets (partial).
 
-ROM sets available at: [Myrient](https://myrient.erista.me/files/Internet%20Archive/chadmaster/fbnarcade-fullnonmerged/arcade/)
+ROM sets available at: [Internet Archive](https://archive.org/download/fbnarcade-fullnonmerged/arcade/)
 
 ## Resources
 
