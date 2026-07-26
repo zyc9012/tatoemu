@@ -59,8 +59,7 @@ void SDLVideoDevice::render(u32* buffer) {
     SDL_RenderPresent(m_renderer);
 }
 
-// Function to determine which core to create based on ROM file
-CoreType determineCoreType(const fs::path& romFilename) {
+CoreType Emulator::determineCoreType(const fs::path& romFilename) {
     fs::path ext = romFilename.extension();
 
     // Handle direct file extensions

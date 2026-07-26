@@ -41,6 +41,20 @@ void emscripten_main_loop() {
 
 // C functions exported to JavaScript for file loading and configuration
 extern "C" {
+    const char* getCoreType(const char* filename) {
+        if (!filename) return "unknown";
+
+        switch (Emulator::determineCoreType(filename)) {
+            case CoreType::GB: return "gb";
+            case CoreType::GBA: return "gba";
+            case CoreType::NES: return "nes";
+            case CoreType::CPS: return "cps";
+            case CoreType::NEOGEO: return "neogeo";
+            case CoreType::UNKNOWN:
+            default: return "unknown";
+        }
+    }
+
     // Load ROM from uploaded file
     int loadROMFile(const char* filename) {
         if (!g_emulatorWasm || !g_emulatorWasm->initialized) {

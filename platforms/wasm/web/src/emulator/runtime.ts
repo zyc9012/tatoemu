@@ -14,6 +14,13 @@ import {
 const ROM_DIRECTORY = '/roms';
 const CONFIG_FILE_PATH = `${ROM_DIRECTORY}/config.json`;
 const MODULE_URL = '/emulator/tatoemu.js';
+const BIOS_DIRECTORY = '/bios';
+const REQUIRED_BIOS: Partial<Record<CoreType, string>> = {
+  neogeo: 'neogeo.zip',
+  gba: 'gba_bios.bin',
+};
+
+type CoreType = 'gb' | 'gba' | 'nes' | 'cps' | 'neogeo' | 'unknown';
 
 export interface StoredFile {
   name: string;
@@ -130,7 +137,11 @@ export class EmulatorRuntime {
     return this.fs.readFile(path);
   }
 
-  loadRom(path: string): boolean {
+  async loadRom(path: string): Promise<boolean> {
+    const coreType = this.call<CoreType>('getCoreType', 'string', ['string'], [path]);
+    const biosName = REQUIRED_BIOS[coreType];
+    if (biosName) await this.ensureFile(biosName);
+
     return this.call<number>('loadROMFile', 'number', ['string'], [path]) === 1;
   }
 
@@ -174,6 +185,17 @@ export class EmulatorRuntime {
   getSearchCandidates(maxResults: number): SearchCandidate[] {
     const json = this.call<string>('searchGetCandidatesJson', 'string', ['number'], [maxResults]);
     return JSON.parse(json) as SearchCandidate[];
+  }
+
+  private async ensureFile(name: string): Promise<void> {
+    const path = `${ROM_DIRECTORY}/${name}`;
+    if (this.fs.analyzePath(path).exists) return;
+
+    const response = await fetch(`${BIOS_DIRECTORY}/${name}`);
+    if (!response.ok) {
+      throw new Error(`Could not download ${name} (${response.status})`);
+    }
+    this.fs.writeFile(path, new Uint8Array(await response.arrayBuffer()));
   }
 
   private async createModule(

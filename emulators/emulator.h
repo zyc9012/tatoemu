@@ -55,6 +55,8 @@ public:
     Emulator();
     ~Emulator();
 
+    static CoreType determineCoreType(const fs::path& filename);
+
     bool loadBootrom(const fs::path& filename);
     bool loadROM(const fs::path& filename);
     void run();

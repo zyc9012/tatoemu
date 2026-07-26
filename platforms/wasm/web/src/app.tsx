@@ -70,7 +70,7 @@ export function App() {
     return () => window.clearTimeout(timeout);
   }, [notice]);
 
-  const loadFile = (file: StoredFile) => {
+  const loadFile = async (file: StoredFile) => {
     if (isSupportFile(file.name)) {
       setNotice({ message: 'Choose a game ROM to start the emulator.', type: 'info' });
       return;
@@ -79,7 +79,7 @@ export function App() {
     setBusy(true);
     try {
       emulatorRuntime.applySettings(config, keyBindings);
-      if (!emulatorRuntime.loadRom(file.path)) {
+      if (!await emulatorRuntime.loadRom(file.path)) {
         throw new Error(`Could not load ${file.name}`);
       }
       setLoadedFile(file.name);
@@ -101,7 +101,7 @@ export function App() {
         setNotice({ message: `${file.name} stored in this browser.`, type: 'success' });
       } else {
         emulatorRuntime.applySettings(config, keyBindings);
-        if (!emulatorRuntime.loadRom(storedFile.path)) {
+        if (!await emulatorRuntime.loadRom(storedFile.path)) {
           throw new Error(`Could not load ${file.name}`);
         }
         setLoadedFile(file.name);
