@@ -6,6 +6,8 @@ TatoEmu is a multi-system retro game emulator written in C++ with SDL3 and WebAs
 
 This project is just for fun. It aims to build minimal emulators that work for most games, with only basic features like saving and loading states. It prioritizes playability over accuracy.
 
+**"Write the emulator before playing the game."** This is my motivation for the project.
+
 ## Try it Online
 
 **Play in your browser**: [https://emu.tatoz.net](https://emu.tatoz.net)
