@@ -21,6 +21,7 @@ const REQUIRED_BIOS: Partial<Record<CoreType, string>> = {
 };
 
 type CoreType = 'gb' | 'gba' | 'nes' | 'cps' | 'neogeo' | 'unknown';
+type BiosDownloadHandler = (name: string, downloading: boolean) => void;
 
 export interface StoredFile {
   name: string;
@@ -137,10 +138,10 @@ export class EmulatorRuntime {
     return this.fs.readFile(path);
   }
 
-  async loadRom(path: string): Promise<boolean> {
+  async loadRom(path: string, onBiosDownload?: BiosDownloadHandler): Promise<boolean> {
     const coreType = this.call<CoreType>('getCoreType', 'string', ['string'], [path]);
     const biosName = REQUIRED_BIOS[coreType];
-    if (biosName) await this.ensureFile(biosName);
+    if (biosName) await this.ensureFile(biosName, onBiosDownload);
 
     return this.call<number>('loadROMFile', 'number', ['string'], [path]) === 1;
   }
@@ -187,15 +188,20 @@ export class EmulatorRuntime {
     return JSON.parse(json) as SearchCandidate[];
   }
 
-  private async ensureFile(name: string): Promise<void> {
+  private async ensureFile(name: string, onDownload?: BiosDownloadHandler): Promise<void> {
     const path = `${ROM_DIRECTORY}/${name}`;
     if (this.fs.analyzePath(path).exists) return;
 
-    const response = await fetch(`${BIOS_DIRECTORY}/${name}`);
-    if (!response.ok) {
-      throw new Error(`Could not download ${name} (${response.status})`);
+    onDownload?.(name, true);
+    try {
+      const response = await fetch(`${BIOS_DIRECTORY}/${name}`);
+      if (!response.ok) {
+        throw new Error(`Could not download ${name} (${response.status})`);
+      }
+      this.fs.writeFile(path, new Uint8Array(await response.arrayBuffer()));
+    } finally {
+      onDownload?.(name, false);
     }
-    this.fs.writeFile(path, new Uint8Array(await response.arrayBuffer()));
   }
 
   private async createModule(

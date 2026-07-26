@@ -20,7 +20,7 @@ export function App() {
   const [status, setStatus] = useState('Loading emulator...');
   const [notice, setNotice] = useState<{ message: string; type: NoticeType } | null>(null);
   const [ready, setReady] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [cheatsOpen, setCheatsOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
@@ -76,10 +76,10 @@ export function App() {
       return;
     }
 
-    setBusy(true);
+    setBusyMessage('Loading game...');
     try {
       emulatorRuntime.applySettings(config, keyBindings);
-      if (!await emulatorRuntime.loadRom(file.path)) {
+      if (!await emulatorRuntime.loadRom(file.path, updateBiosDownloadState)) {
         throw new Error(`Could not load ${file.name}`);
       }
       setLoadedFile(file.name);
@@ -88,12 +88,12 @@ export function App() {
     } catch (error) {
       setNotice({ message: errorMessage(error), type: 'error' });
     } finally {
-      setBusy(false);
+      setBusyMessage(null);
     }
   };
 
   const uploadFile = async (file: File) => {
-    setBusy(true);
+    setBusyMessage('Importing...');
     try {
       const storedFile = await emulatorRuntime.storeFile(file);
       setFiles(emulatorRuntime.listFiles());
@@ -101,7 +101,8 @@ export function App() {
         setNotice({ message: `${file.name} stored in this browser.`, type: 'success' });
       } else {
         emulatorRuntime.applySettings(config, keyBindings);
-        if (!await emulatorRuntime.loadRom(storedFile.path)) {
+        setBusyMessage('Loading game...');
+        if (!await emulatorRuntime.loadRom(storedFile.path, updateBiosDownloadState)) {
           throw new Error(`Could not load ${file.name}`);
         }
         setLoadedFile(file.name);
@@ -111,8 +112,12 @@ export function App() {
     } catch (error) {
       setNotice({ message: errorMessage(error), type: 'error' });
     } finally {
-      setBusy(false);
+      setBusyMessage(null);
     }
+  };
+
+  const updateBiosDownloadState = (name: string, downloading: boolean) => {
+    setBusyMessage(downloading ? `Downloading ${name}...` : 'Loading game...');
   };
 
   const NoticeIcon = notice ? NOTICE_ICONS[notice.type] : Info;
@@ -149,7 +154,7 @@ export function App() {
         open={libraryOpen}
         files={files}
         loadedFile={loadedFile}
-        busy={busy}
+        busyMessage={busyMessage}
         onClose={() => setLibraryOpen(false)}
         onLoad={loadFile}
         onUpload={(file) => void uploadFile(file)}
