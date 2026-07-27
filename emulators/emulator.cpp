@@ -449,6 +449,16 @@ void Emulator::run() {
     }
 }
 
+bool Emulator::handleKeyInput(SDL_Keycode keycode, bool pressed) {
+    if (!m_core) return false;
+
+    SDL_Event event{};
+    event.type = pressed ? SDL_EVENT_KEY_DOWN : SDL_EVENT_KEY_UP;
+    event.key.key = keycode;
+    event.key.down = pressed;
+    return m_core->handleInput(event);
+}
+
 void Emulator::handleInput() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {

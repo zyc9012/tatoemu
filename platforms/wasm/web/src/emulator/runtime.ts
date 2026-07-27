@@ -20,7 +20,7 @@ const REQUIRED_BIOS: Partial<Record<CoreType, string>> = {
   gba: 'gba_bios.bin',
 };
 
-type CoreType = 'gb' | 'gba' | 'nes' | 'cps' | 'neogeo' | 'unknown';
+export type CoreType = 'gb' | 'gba' | 'nes' | 'cps' | 'neogeo' | 'unknown';
 type BiosDownloadHandler = (name: string, downloading: boolean) => void;
 
 export interface StoredFile {
@@ -142,12 +142,16 @@ export class EmulatorRuntime {
     this.fs.unlink(path);
   }
 
-  async loadRom(path: string, onBiosDownload?: BiosDownloadHandler): Promise<boolean> {
+  async loadRom(path: string, onBiosDownload?: BiosDownloadHandler): Promise<CoreType | null> {
     const coreType = this.call<CoreType>('getCoreType', 'string', ['string'], [path]);
     const biosName = REQUIRED_BIOS[coreType];
     if (biosName) await this.ensureFile(biosName, onBiosDownload);
 
-    return this.call<number>('loadROMFile', 'number', ['string'], [path]) === 1;
+    return this.call<number>('loadROMFile', 'number', ['string'], [path]) === 1 ? coreType : null;
+  }
+
+  setVirtualKey(keyName: string, pressed: boolean): boolean {
+    return this.call<number>('virtualKey', 'number', ['string', 'number'], [keyName, pressed ? 1 : 0]) === 1;
   }
 
   getCheatCodes(): CheatCode[] {

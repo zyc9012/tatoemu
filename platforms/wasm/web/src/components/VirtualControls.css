@@ -1,0 +1,205 @@
+.virtual-controls {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.virtual-dpad,
+.virtual-button {
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.virtual-dpad {
+  position: absolute;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  left: max(24px, env(safe-area-inset-left));
+  width: 144px;
+  height: 144px;
+}
+
+.virtual-dpad span {
+  position: absolute;
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 24%);
+  background: rgb(22 21 19 / 68%);
+  color: rgb(255 255 255 / 72%);
+  pointer-events: none;
+}
+
+.virtual-dpad span.active {
+  border-color: rgb(255 173 112 / 80%);
+  background: rgb(216 97 37 / 82%);
+  color: #fff;
+}
+
+.virtual-dpad svg {
+  width: 24px;
+  height: 24px;
+}
+
+.dpad-up {
+  top: 0;
+  left: 48px;
+  border-radius: 8px 8px 0 0;
+}
+
+.dpad-right {
+  top: 48px;
+  right: 0;
+  border-radius: 0 8px 8px 0;
+}
+
+.dpad-down {
+  bottom: 0;
+  left: 48px;
+  border-radius: 0 0 8px 8px;
+}
+
+.dpad-left {
+  top: 48px;
+  left: 0;
+  border-radius: 8px 0 0 8px;
+}
+
+.virtual-dpad .dpad-center {
+  top: 48px;
+  left: 48px;
+  border-color: transparent;
+  background: rgb(22 21 19 / 68%);
+}
+
+.virtual-actions {
+  position: absolute;
+  right: max(24px, env(safe-area-inset-right));
+  bottom: max(28px, env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-columns: repeat(2, 58px);
+  gap: 10px;
+  transform: rotate(-8deg);
+  pointer-events: none;
+}
+
+.virtual-actions.count-2 {
+  grid-template-columns: repeat(2, 62px);
+  align-items: end;
+}
+
+.virtual-actions.count-2 .virtual-button {
+  width: 62px;
+  height: 62px;
+}
+
+.virtual-actions.count-2 .virtual-button:first-child {
+  transform: translateY(16px);
+}
+
+.virtual-actions.count-6 {
+  grid-template-columns: repeat(3, 50px);
+  gap: 8px;
+}
+
+.virtual-actions.count-6 .virtual-button {
+  width: 50px;
+  height: 50px;
+  font-size: 12px;
+}
+
+.virtual-button {
+  display: inline-grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 26%);
+  border-radius: 50%;
+  background: rgb(22 21 19 / 68%);
+  color: rgb(255 255 255 / 82%);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 28%);
+}
+
+.virtual-button.active {
+  border-color: rgb(255 173 112 / 85%);
+  background: rgb(216 97 37 / 86%);
+  color: #fff;
+  transform: scale(0.94);
+}
+
+.virtual-actions.count-2 .virtual-button:first-child.active {
+  transform: translateY(16px) scale(0.94);
+}
+
+.virtual-system {
+  position: absolute;
+  bottom: max(22px, env(safe-area-inset-bottom));
+  left: 50%;
+  display: flex;
+  gap: 8px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.virtual-system .virtual-button {
+  width: auto;
+  min-width: 54px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 15px;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.virtual-shoulders {
+  position: absolute;
+  top: max(18px, env(safe-area-inset-top));
+  right: max(24px, env(safe-area-inset-right));
+  left: max(24px, env(safe-area-inset-left));
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.virtual-shoulders .virtual-button {
+  width: 84px;
+  height: 38px;
+  border-radius: 8px;
+}
+
+@media (max-width: 480px) {
+  .virtual-dpad {
+    bottom: max(14px, env(safe-area-inset-bottom));
+    left: max(12px, env(safe-area-inset-left));
+    transform: scale(0.84);
+    transform-origin: bottom left;
+  }
+
+  .virtual-actions {
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(18px, env(safe-area-inset-bottom));
+    transform: rotate(-8deg) scale(0.84);
+    transform-origin: bottom right;
+  }
+
+  .virtual-system {
+    bottom: max(142px, calc(env(safe-area-inset-bottom) + 122px));
+    transform: translateX(-50%) scale(0.86);
+  }
+
+  .virtual-shoulders {
+    top: max(10px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    left: max(12px, env(safe-area-inset-left));
+  }
+}

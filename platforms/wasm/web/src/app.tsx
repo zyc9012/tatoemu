@@ -5,7 +5,10 @@ import { CheatDialog } from './components/CheatDialog';
 import { ConfigDialog } from './components/ConfigDialog';
 import { GameLibrary } from './components/GameLibrary';
 import { Toolbar } from './components/Toolbar';
-import { emulatorRuntime, type StoredFile } from './emulator/runtime';
+import { VirtualControls } from './components/VirtualControls';
+import { emulatorRuntime, type CoreType, type StoredFile } from './emulator/runtime';
+
+const VIRTUAL_CONTROLS_QUERY = '(hover: none) and (pointer: coarse)';
 
 type NoticeType = 'success' | 'info' | 'error';
 
@@ -27,6 +30,10 @@ export function App() {
   const [configOpen, setConfigOpen] = useState(false);
   const [files, setFiles] = useState<StoredFile[]>([]);
   const [loadedFile, setLoadedFile] = useState('');
+  const [loadedCore, setLoadedCore] = useState<CoreType | null>(null);
+  const [virtualControlsAvailable, setVirtualControlsAvailable] = useState(
+    () => window.matchMedia(VIRTUAL_CONTROLS_QUERY).matches,
+  );
   const [fullscreen, setFullscreen] = useState(false);
   const [toolbarVisible, setToolbarVisible] = useState(true);
   const [config, setConfig] = useState({ ...CONFIG_DEFAULTS });
@@ -83,6 +90,13 @@ export function App() {
     setToolbarVisible(!fullscreen || !loadedFile);
   }, [fullscreen, loadedFile]);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(VIRTUAL_CONTROLS_QUERY);
+    const updateAvailability = () => setVirtualControlsAvailable(mediaQuery.matches);
+    mediaQuery.addEventListener('change', updateAvailability);
+    return () => mediaQuery.removeEventListener('change', updateAvailability);
+  }, []);
+
   const loadFile = async (file: StoredFile) => {
     if (isSupportFile(file.name)) {
       setNotice({ message: 'Choose a game ROM to start the emulator.', type: 'info' });
@@ -92,10 +106,12 @@ export function App() {
     setBusyMessage('Loading game...');
     try {
       emulatorRuntime.applySettings(config, keyBindings);
-      if (!await emulatorRuntime.loadRom(file.path, updateBiosDownloadState)) {
+      const core = await emulatorRuntime.loadRom(file.path, updateBiosDownloadState);
+      if (!core) {
         throw new Error(`Could not load ${file.name}`);
       }
       setLoadedFile(file.name);
+      setLoadedCore(core);
       setLibraryOpen(false);
       setNotice({ message: `${file.name} loaded.`, type: 'success' });
     } catch (error) {
@@ -115,10 +131,12 @@ export function App() {
       } else {
         emulatorRuntime.applySettings(config, keyBindings);
         setBusyMessage('Loading game...');
-        if (!await emulatorRuntime.loadRom(storedFile.path, updateBiosDownloadState)) {
+        const core = await emulatorRuntime.loadRom(storedFile.path, updateBiosDownloadState);
+        if (!core) {
           throw new Error(`Could not load ${file.name}`);
         }
         setLoadedFile(file.name);
+        setLoadedCore(core);
         setLibraryOpen(false);
         setNotice({ message: `${file.name} loaded.`, type: 'success' });
       }
@@ -208,6 +226,13 @@ export function App() {
           tabIndex={-1}
           onContextMenu={(event) => event.preventDefault()}
         />
+        {loadedCore && virtualControlsAvailable && (
+          <VirtualControls
+            core={loadedCore}
+            keyBindings={keyBindings}
+            onInput={(keyName, pressed) => emulatorRuntime.setVirtualKey(keyName, pressed)}
+          />
+        )}
         {visibleNotice && (
           <div
             class={`notice ${visibleNotice.type}${busyMessage ? ' busy' : ''}`}

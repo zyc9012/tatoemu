@@ -110,6 +110,18 @@ extern "C" {
         Config::Audio::Volume = static_cast<u32>(volume);
     }
 
+    int virtualKey(const char* keyName, int pressed) {
+        if (!g_emulatorWasm || !g_emulatorWasm->romLoaded || !keyName) return 0;
+
+        SDL_Keycode keycode = SDL_GetKeyFromName(keyName);
+        if (keycode == SDLK_UNKNOWN) {
+            log_error("Unknown virtual key name: %s", keyName);
+            return 0;
+        }
+
+        return g_emulatorWasm->emulator.handleKeyInput(keycode, pressed != 0) ? 1 : 0;
+    }
+
     void setNeoSys(const char* sys) {
         std::string sysStr = sys;
         std::transform(sysStr.begin(), sysStr.end(), sysStr.begin(), ::tolower);

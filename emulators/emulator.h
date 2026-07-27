@@ -61,6 +61,7 @@ public:
     bool loadROM(const fs::path& filename);
     void run();
     void runFrame();
+    bool handleKeyInput(SDL_Keycode keycode, bool pressed);
     void shutdown();
 
     // Called once at the end of every runFrame(), before timing sleep.
