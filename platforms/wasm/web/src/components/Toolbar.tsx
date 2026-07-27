@@ -1,13 +1,15 @@
-import { FlaskConical, FolderOpen, Maximize2, Minimize2, Settings } from 'lucide-preact';
+import { ChevronUp, FlaskConical, FolderOpen, Maximize2, Minimize2, Settings } from 'lucide-preact';
 
 interface ToolbarProps {
   gameTitle: string;
   ready: boolean;
   fullscreen: boolean;
+  collapsible: boolean;
   onOpenLibrary(): void;
   onOpenCheats(): void;
   onOpenConfig(): void;
   onToggleFullscreen(): void;
+  onCollapse(): void;
 }
 
 function GitHubIcon() {
@@ -28,10 +30,12 @@ export function Toolbar({
   gameTitle,
   ready,
   fullscreen,
+  collapsible,
   onOpenLibrary,
   onOpenCheats,
   onOpenConfig,
   onToggleFullscreen,
+  onCollapse,
 }: ToolbarProps) {
   const FullscreenIcon = fullscreen ? Minimize2 : Maximize2;
   const fullscreenLabel = fullscreen ? 'Exit fullscreen' : 'Enter fullscreen';
@@ -64,6 +68,17 @@ export function Toolbar({
         >
           <FullscreenIcon aria-hidden="true" />
         </button>
+        {collapsible && (
+          <button
+            class="icon-button"
+            type="button"
+            aria-label="Hide toolbar"
+            title="Hide toolbar"
+            onClick={onCollapse}
+          >
+            <ChevronUp aria-hidden="true" />
+          </button>
+        )}
         <a
           class="icon-button github-link"
           href="https://github.com/zyc9012/tatoemu"

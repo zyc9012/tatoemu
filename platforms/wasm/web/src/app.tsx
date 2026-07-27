@@ -1,4 +1,4 @@
-import { CheckCircle2, CircleAlert, Info, LoaderCircle } from 'lucide-preact';
+import { CheckCircle2, ChevronDown, CircleAlert, Info, LoaderCircle } from 'lucide-preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { CONFIG_DEFAULTS, createDefaultKeyBindings } from './configuration';
 import { CheatDialog } from './components/CheatDialog';
@@ -28,6 +28,7 @@ export function App() {
   const [files, setFiles] = useState<StoredFile[]>([]);
   const [loadedFile, setLoadedFile] = useState('');
   const [fullscreen, setFullscreen] = useState(false);
+  const [toolbarVisible, setToolbarVisible] = useState(true);
   const [config, setConfig] = useState({ ...CONFIG_DEFAULTS });
   const [keyBindings, setKeyBindings] = useState(createDefaultKeyBindings);
 
@@ -77,6 +78,10 @@ export function App() {
     document.addEventListener('fullscreenchange', updateFullscreen);
     return () => document.removeEventListener('fullscreenchange', updateFullscreen);
   }, []);
+
+  useEffect(() => {
+    setToolbarVisible(!fullscreen || !loadedFile);
+  }, [fullscreen, loadedFile]);
 
   const loadFile = async (file: StoredFile) => {
     if (isSupportFile(file.name)) {
@@ -164,18 +169,37 @@ export function App() {
   const NoticeIcon = busyMessage
     ? LoaderCircle
     : visibleNotice ? NOTICE_ICONS[visibleNotice.type] : Info;
+  const fullscreenGame = fullscreen && Boolean(loadedFile);
 
   return (
-    <main class="app-shell" ref={appRef}>
-      <Toolbar
-        gameTitle={loadedFile || 'TatoEmu'}
-        ready={ready}
-        fullscreen={fullscreen}
-        onOpenLibrary={() => setLibraryOpen(true)}
-        onOpenCheats={() => setCheatsOpen(true)}
-        onOpenConfig={() => setConfigOpen(true)}
-        onToggleFullscreen={() => void toggleFullscreen()}
-      />
+    <main
+      class={`app-shell${fullscreenGame ? ' fullscreen-game' : ''}`}
+      ref={appRef}
+    >
+      {(!fullscreenGame || toolbarVisible) && (
+        <Toolbar
+          gameTitle={loadedFile || 'TatoEmu'}
+          ready={ready}
+          fullscreen={fullscreen}
+          collapsible={fullscreenGame}
+          onOpenLibrary={() => setLibraryOpen(true)}
+          onOpenCheats={() => setCheatsOpen(true)}
+          onOpenConfig={() => setConfigOpen(true)}
+          onToggleFullscreen={() => void toggleFullscreen()}
+          onCollapse={() => setToolbarVisible(false)}
+        />
+      )}
+      {fullscreenGame && !toolbarVisible && (
+        <button
+          class="toolbar-reveal"
+          type="button"
+          aria-label="Show toolbar"
+          title="Show toolbar"
+          onClick={() => setToolbarVisible(true)}
+        >
+          <ChevronDown aria-hidden="true" />
+        </button>
+      )}
       <section class="canvas-container">
         {status && <div class="status" role="status">{status}</div>}
         <canvas
