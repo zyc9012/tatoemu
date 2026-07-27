@@ -151,7 +151,7 @@ bool Cartridge::load(const fs::path& filename) {
     for (u8 i = 0; i < 8; i++) m_banks[i] = i;
 
     m_savePath = filename;
-    m_savePath.replace_extension(".srm");
+    m_savePath.replace_extension(".sav");
 
     if (m_hasSram) {
         u32 sramSize = m_sramEnd - m_sramStart + 1;
