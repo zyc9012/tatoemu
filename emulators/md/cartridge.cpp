@@ -1,6 +1,7 @@
 #include "cartridge.h"
 #include "../../utilities/zip_reader.h"
 #include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 
@@ -11,23 +12,40 @@ namespace {
 constexpr u32 BANK_SIZE = 0x80000;  // 512 KB per SSF2 bank slot
 
 // Trim padding and collapse runs of spaces in the 48-byte header title fields.
+// Bytes outside printable ASCII are dropped: Japanese and fan-translated carts
+// store Shift-JIS or GBK text here, which would otherwise produce an invalid
+// UTF-8 string and crash the platform layer when used as a window title.
 std::string cleanTitle(const u8* src, size_t length) {
     std::string out;
     out.reserve(length);
     bool lastSpace = true;
     for (size_t i = 0; i < length; i++) {
-        char c = static_cast<char>(src[i]);
-        if (c == '\0') break;
-        if (c == ' ') {
+        const u8 b = src[i];
+        if (b == '\0') break;
+        if (b < 0x20 || b > 0x7E || b == ' ') {
             if (!lastSpace) out.push_back(' ');
             lastSpace = true;
         } else {
-            out.push_back(c);
+            out.push_back(static_cast<char>(b));
             lastSpace = false;
         }
     }
     while (!out.empty() && out.back() == ' ') out.pop_back();
     return out;
+}
+
+// Shift-JIS or GBK titles survive sanitising as scattered single letters, so
+// require at least one real word before trusting the field.
+bool looksLikeTitle(const std::string& title) {
+    size_t run = 0;
+    for (char c : title) {
+        if (std::isalnum(static_cast<unsigned char>(c))) {
+            if (++run >= 4) return true;
+        } else {
+            run = 0;
+        }
+    }
+    return false;
 }
 
 } // namespace
@@ -124,6 +142,11 @@ bool Cartridge::load(const fs::path& filename) {
 
     parseHeader();
 
+    // Headers that hold no readable ASCII fall back to the file name.
+    if (m_title.empty()) {
+        m_title = filename.stem().string();
+    }
+
     // Default identity bank mapping.
     for (u8 i = 0; i < 8; i++) m_banks[i] = i;
 
@@ -153,8 +176,8 @@ void Cartridge::parseHeader() {
 
     // Prefer the overseas title, fall back to the domestic one.
     m_title = cleanTitle(&m_rom[0x150], 48);
-    if (m_title.empty()) m_title = cleanTitle(&m_rom[0x120], 48);
-    if (m_title.empty()) m_title = "Unknown";
+    if (!looksLikeTitle(m_title)) m_title = cleanTitle(&m_rom[0x120], 48);
+    if (!looksLikeTitle(m_title)) m_title.clear();
 
     // Region field: any of E/A/4/8/C implies PAL-capable; prefer NTSC when the
     // cartridge supports both.
