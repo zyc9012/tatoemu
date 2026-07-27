@@ -28,6 +28,16 @@ select {
   flex-direction: column;
   width: 100%;
   height: 100%;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.modal {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 }
 
 .toolbar {
@@ -37,6 +47,9 @@ select {
   min-height: 58px;
   padding: 8px 16px;
   border-bottom: 1px solid #34312d;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
   background:
     linear-gradient(90deg, rgb(240 123 52 / 8%), transparent 30%),
     #181715;
@@ -183,6 +196,11 @@ select {
   justify-content: center;
   overflow: hidden;
   background: #000;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 #canvas {
@@ -192,6 +210,11 @@ select {
   object-fit: contain;
   outline: none;
   image-rendering: pixelated;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .status,

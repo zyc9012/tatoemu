@@ -294,8 +294,7 @@ bool Emulator::initialize() {
         return false;
     }
 
-    // Disable VSync - we'll sync to audio instead for better compatibility
-    SDL_SetRenderVSync(m_renderer, 0);
+    SDL_SetRenderVSync(m_renderer, FramePacer::kVSyncInterval);
 
     // Create texture for framebuffer
     m_texture = SDL_CreateTexture(
@@ -359,6 +358,12 @@ bool Emulator::loadROM(const fs::path& filename) {
     m_cheatEngine.setMemory(cheatMem);
     m_searcher.setMemory(cheatMem);
 
+    m_lastFrameTime = SDL_GetTicks();
+    m_pacer.reset(m_lastFrameTime);
+    m_statsTimer = m_lastFrameTime;
+    m_frameCount = 0;
+    m_emulationSpeed = 1.0;
+
     return true;
 }
 
@@ -366,34 +371,40 @@ void Emulator::runFrame() {
     if (m_paused) {
         handleInput();
         updateWindowStats();
-        SDL_Delay(static_cast<u32>(m_targetFrameTime));
+        m_pacer.idle(SDL_GetTicks(), m_targetFrameTime);
         return;
     }
 
     handleInput();
+
+    if (!m_pacer.frameIsDue(SDL_GetTicks(), m_targetFrameTime / m_emulationSpeed)) {
+        return;
+    }
+
     m_core->update();
     m_cheatEngine.applyAll();
     if (m_frameCallback) m_frameCallback();
 
-    u64 currentTime = SDL_GetTicks();
-    double frameTime = currentTime - m_lastFrameTime;
-    
-    // Detect if we've been paused (e.g., window dragging, debugging)
+    const u64 currentTime = SDL_GetTicks();
+    const double frameTime = static_cast<double>(currentTime - m_lastFrameTime);
+
+    // Detect if we've been stalled (e.g., window dragging, debugging, hidden tab)
     if (frameTime > m_targetFrameTime * 3.0) {
         // Clear audio buffer to prevent audio glitches
         if (m_audioDevice) {
             m_audioDevice->clearBuffer();
         }
+        m_pacer.reset(currentTime);
         m_lastFrameTime = currentTime;
         m_emulationSpeed = 1.0;
         m_statsTimer = currentTime;  // Reset stats timer
         return;
     }
-    
+
     // Audio-driven synchronization
     if (m_audioDevice) {
         int queuedAudio = m_audioDevice->getQueuedSize();
-        
+
         // Dynamically adjust emulation speed based on audio buffer level
         if (queuedAudio < m_minAudioBufferSize) {
             // Buffer is running low - speed up slightly to catch up
@@ -411,27 +422,12 @@ void Emulator::runFrame() {
         }
         m_emulationSpeed = std::clamp(m_emulationSpeed, 0.8, 1.2);
     }
-    
-    // Calculate target frame time adjusted for emulation speed
-    double adjustedFrameTime = m_targetFrameTime / m_emulationSpeed;
-    
-    // Frame rate limiting with adaptive timing
-    if (frameTime < adjustedFrameTime) {
-        double remaining = adjustedFrameTime - frameTime;
-        if (remaining > 1.0) {
-            // Use high-precision delay for longer waits
-            SDL_Delay(static_cast<u32>(remaining));
-        } else if (remaining > 0.0) {
-            // // Busy-wait for sub-millisecond precision
-            // while ((SDL_GetTicks() - currentTime) < adjustedFrameTime) {
-            //     // Spin
-            // }
-        }
-    }
-    
+
+    m_pacer.waitForNextFrame(m_targetFrameTime / m_emulationSpeed, frameTime);
+
     m_lastFrameTime = SDL_GetTicks();
     m_frameCount++;
-    
+
     // Update window title with real-time stats
     updateWindowStats();
 }
@@ -440,8 +436,9 @@ void Emulator::run() {
     m_running = true;
     m_paused = false;
     m_lastFrameTime = SDL_GetTicks();
+    m_pacer.reset(m_lastFrameTime);
     m_emulationSpeed = 1.0;
-    m_statsTimer = SDL_GetTicks();
+    m_statsTimer = m_lastFrameTime;
     m_frameCount = 0;
     
     while (m_running) {

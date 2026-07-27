@@ -218,7 +218,13 @@ export function App() {
           <ChevronDown aria-hidden="true" />
         </button>
       )}
-      <section class="canvas-container">
+      <section
+        class="canvas-container"
+        onContextMenu={(event) => event.preventDefault()}
+        onPointerDown={(event) => {
+          if (event.pointerType !== 'mouse') event.preventDefault();
+        }}
+      >
         {status && <div class="status" role="status">{status}</div>}
         <canvas
           id="canvas"

@@ -4,6 +4,7 @@
 #include "config.h"
 #include "core.h"
 #include "cheat.h"
+#include "frame_pacer.h"
 #include <filesystem>
 #include <functional>
 #include <memory>
@@ -105,6 +106,7 @@ private:
     double m_targetFPS;
     double m_gameSpeed = 1.0;
     double m_targetFrameTime;
+    FramePacer m_pacer;
 
     // Audio-driven synchronization
     int m_minAudioBufferSize;
