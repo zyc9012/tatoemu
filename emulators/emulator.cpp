@@ -6,6 +6,7 @@
 #include "neogeo/core.h"
 #include "neogeo/db.h"
 #include "gba/core.h"
+#include "md/core.h"
 #include "../utilities/zip_reader.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -69,6 +70,8 @@ CoreType Emulator::determineCoreType(const fs::path& romFilename) {
         return CoreType::NES;
     } else if (ext == ".gba") {
         return CoreType::GBA;
+    } else if (ext == ".gen" || ext == ".md" || ext == ".smd") {
+        return CoreType::MD;
     } else if (ext == ".zip") {
         // Check ZIP contents for GB/GBC/NES files
         util::ZipReader zip;
@@ -91,6 +94,8 @@ CoreType Emulator::determineCoreType(const fs::path& romFilename) {
                 return CoreType::NES;
             } else if (fileExt == ".gba") {
                 return CoreType::GBA;
+            } else if (fileExt == ".gen" || fileExt == ".md" || fileExt == ".smd") {
+                return CoreType::MD;
             }
         }
 
@@ -208,6 +213,9 @@ bool Emulator::initialize() {
             break;
         case CoreType::GBA:
             m_core = std::make_unique<gba::Core>();
+            break;
+        case CoreType::MD:
+            m_core = std::make_unique<md::Core>();
             break;
         case CoreType::UNKNOWN:
         default:

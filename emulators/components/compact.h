@@ -116,7 +116,7 @@ typedef void (*write8_handler)(UINT32 offset, UINT32 data);
 #define HAS_YM2608  0
 #define HAS_YM2610  1
 #define HAS_YM2610B 0
-#define HAS_YM2612  0
+#define HAS_YM2612  1
 #define HAS_YM3438  0
 /* OPL */
 #define HAS_YM3812  0

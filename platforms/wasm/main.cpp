@@ -50,6 +50,7 @@ extern "C" {
             case CoreType::NES: return "nes";
             case CoreType::CPS: return "cps";
             case CoreType::NEOGEO: return "neogeo";
+            case CoreType::MD: return "md";
             case CoreType::UNKNOWN:
             default: return "unknown";
         }

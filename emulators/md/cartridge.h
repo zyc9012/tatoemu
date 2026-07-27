@@ -1,0 +1,72 @@
+#pragma once
+
+#include "consts.h"
+#include "../types.h"
+#include "../components/buffer.h"
+#include <array>
+#include <string>
+#include <vector>
+
+namespace md {
+
+// ---------------------------------------------------------------------------
+// Mega Drive cartridge
+//
+// Handles ROM loading (.bin/.gen/.md raw images, .smd interleaved images and
+// ZIP archives containing either), header parsing, battery-backed SRAM and the
+// SSF2/"Super Street Fighter 2" style 512 KB bank mapper exposed through
+// 0xA130F3-0xA130FF.
+// ---------------------------------------------------------------------------
+class Cartridge {
+public:
+    Cartridge();
+    ~Cartridge();
+
+    bool load(const fs::path& filename);
+    void reset();
+
+    // 68000 ROM/SRAM area reads (0x000000-0x3FFFFF)
+    u8  read8(u32 address) const;
+    u16 read16(u32 address) const;
+    void write8(u32 address, u8 value);
+    void write16(u32 address, u16 value);
+
+    // Cartridge control registers at 0xA130F0-0xA130FF
+    void writeControl(u32 address, u8 value);
+
+    bool isLoaded() const { return m_loaded; }
+    const std::string& getTitle() const { return m_title; }
+    bool isPAL() const { return m_pal; }
+
+    void saveBattery();
+    void loadBattery();
+
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
+
+private:
+    void parseHeader();
+    static void deinterleaveSMD(std::vector<u8>& data);
+    // Translate a 68000 address into a linear ROM offset through the bank map.
+    u32 mapRomOffset(u32 address) const;
+
+    std::vector<u8> m_rom;
+    std::vector<u8> m_sram;
+
+    // SSF2 mapper: eight 512 KB windows covering 0x000000-0x3FFFFF.
+    std::array<u8, 8> m_banks{};
+
+    bool m_loaded = false;
+    bool m_pal = false;
+
+    bool m_hasSram = false;
+    bool m_sramEnabled = false;
+    u32  m_sramStart = 0x200000;
+    u32  m_sramEnd   = 0x20FFFF;
+    bool m_sramDirty = false;
+
+    std::string m_title;
+    fs::path m_savePath;
+};
+
+} // namespace md

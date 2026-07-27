@@ -4539,4 +4539,88 @@ int YM2612TimerOver(int n,int c)
 	return F2612->OPN.ST.irq;
 }
 
+static void YM2612_postload(void)
+{
+	int num , r;
+
+	FM_IS_POSTLOADING = 1;
+
+	for(num=0;num<YM2612NumChips;num++)
+	{
+		YM2612 *F2612 = &(FM2612[num]);
+
+		/* OPN registers */
+		/* DT / MULTI , TL , KS / AR , AMON / DR , SR , SL / RR , SSG-EG */
+		for(r=0x30;r<0x9e;r++)
+			if((r&3) != 3)
+			{
+				OPNWriteReg(&F2612->OPN,r,F2612->REGS[r]);
+				OPNWriteReg(&F2612->OPN,r|0x100,F2612->REGS[r|0x100]);
+			}
+		/* FB / CONNECT , L / R / AMS / PMS */
+		for(r=0xb0;r<0xb6;r++)
+			if((r&3) != 3)
+			{
+				OPNWriteReg(&F2612->OPN,r,F2612->REGS[r]);
+				OPNWriteReg(&F2612->OPN,r|0x100,F2612->REGS[r|0x100]);
+			}
+	}
+
+	FM_IS_POSTLOADING = 0;
+
+	cur_chip = NULL;
+}
+
+void YM2612SaveContext(Buffer* buf)
+{
+	int i;
+
+	if (!buf || !FM2612) return;
+
+	buffer_write(buf, &YM2612NumChips, sizeof(YM2612NumChips));
+
+	for (i = 0; i < YM2612NumChips; i++) {
+		YM2612 *F2612 = &(FM2612[i]);
+		buffer_write(buf, F2612->REGS, 512);
+		FMsave_state_st(buf, &F2612->OPN.ST);
+		FMsave_state_channel(buf, F2612->CH, 6);
+		/* 3slots */
+		buffer_write(buf, F2612->OPN.SL3.fc, 3 * sizeof(UINT32));
+		buffer_write(buf, &F2612->OPN.SL3.fn_h, sizeof(UINT8));
+		buffer_write(buf, F2612->OPN.SL3.kcode, 3 * sizeof(UINT8));
+		/* address register1 */
+		buffer_write(buf, &F2612->addr_A1, sizeof(UINT8));
+		/* DAC */
+		buffer_write(buf, &F2612->dacen, sizeof(int));
+		buffer_write(buf, &F2612->dacout, sizeof(INT32));
+	}
+}
+
+void YM2612LoadContext(Buffer* buf)
+{
+	int i;
+
+	if (!buf || !FM2612) return;
+
+	buffer_read(buf, &YM2612NumChips, sizeof(YM2612NumChips));
+
+	for (i = 0; i < YM2612NumChips; i++) {
+		YM2612 *F2612 = &(FM2612[i]);
+		buffer_read(buf, F2612->REGS, 512);
+		FMload_state_st(buf, &F2612->OPN.ST);
+		FMload_state_channel(buf, F2612->CH, 6);
+		/* 3slots */
+		buffer_read(buf, F2612->OPN.SL3.fc, 3 * sizeof(UINT32));
+		buffer_read(buf, &F2612->OPN.SL3.fn_h, sizeof(UINT8));
+		buffer_read(buf, F2612->OPN.SL3.kcode, 3 * sizeof(UINT8));
+		/* address register1 */
+		buffer_read(buf, &F2612->addr_A1, sizeof(UINT8));
+		/* DAC */
+		buffer_read(buf, &F2612->dacen, sizeof(int));
+		buffer_read(buf, &F2612->dacout, sizeof(INT32));
+	}
+
+	YM2612_postload();
+}
+
 #endif /* BUILD_YM2612 */

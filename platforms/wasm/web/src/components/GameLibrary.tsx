@@ -68,7 +68,7 @@ export function GameLibrary({
           ref={inputRef}
           class="visually-hidden"
           type="file"
-          accept=".gb,.gbc,.gba,.nes,.zip,.sav,.state,.bin"
+          accept=".gb,.gbc,.gba,.nes,.zip,.sav,.state,.bin,.md,.gen,.smd"
           onChange={(event) => upload(event.currentTarget.files?.[0])}
         />
         <p>

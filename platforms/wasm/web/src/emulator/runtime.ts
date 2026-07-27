@@ -20,7 +20,7 @@ const REQUIRED_BIOS: Partial<Record<CoreType, string>> = {
   gba: 'gba_bios.bin',
 };
 
-export type CoreType = 'gb' | 'gba' | 'nes' | 'cps' | 'neogeo' | 'unknown';
+export type CoreType = 'gb' | 'gba' | 'nes' | 'cps' | 'neogeo' | 'md' | 'unknown';
 type BiosDownloadHandler = (name: string, downloading: boolean) => void;
 
 export interface StoredFile {

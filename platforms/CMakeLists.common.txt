@@ -71,6 +71,14 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/gba/eeprom.cpp
     ${CMAKE_SOURCE_DIR}/emulators/gba/gpio.cpp
     ${CMAKE_SOURCE_DIR}/emulators/gba/core.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/md/cpu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/md/sound_cpu.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/md/memory.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/md/vdp.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/md/audio.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/md/cartridge.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/md/controller.cpp
+    ${CMAKE_SOURCE_DIR}/emulators/md/core.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/eeprom/eeprom.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/arm7tdmi/arm7tdmi.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/cpu/z80/z80.cpp
@@ -85,6 +93,7 @@ set(COMMON_SOURCES
     ${CMAKE_SOURCE_DIR}/emulators/components/sound/fm/fm.c
     ${CMAKE_SOURCE_DIR}/emulators/components/sound/fm/ymdeltat.c
     ${CMAKE_SOURCE_DIR}/emulators/components/sound/ay8910/ay8910.c
+    ${CMAKE_SOURCE_DIR}/emulators/components/sound/sn76496/sn76496.cpp
     ${CMAKE_SOURCE_DIR}/emulators/components/buffer.cpp
     ${CMAKE_SOURCE_DIR}/emulators/emulator.cpp
     ${CMAKE_SOURCE_DIR}/utilities/zip_reader.cpp
@@ -149,6 +158,17 @@ set(COMMON_HEADERS
     ${CMAKE_SOURCE_DIR}/emulators/gba/core.h
     ${CMAKE_SOURCE_DIR}/emulators/gba/config.h
     ${CMAKE_SOURCE_DIR}/emulators/gba/consts.h
+    ${CMAKE_SOURCE_DIR}/emulators/md/cpu.h
+    ${CMAKE_SOURCE_DIR}/emulators/md/sound_cpu.h
+    ${CMAKE_SOURCE_DIR}/emulators/md/memory.h
+    ${CMAKE_SOURCE_DIR}/emulators/md/vdp.h
+    ${CMAKE_SOURCE_DIR}/emulators/md/audio.h
+    ${CMAKE_SOURCE_DIR}/emulators/md/cartridge.h
+    ${CMAKE_SOURCE_DIR}/emulators/md/controller.h
+    ${CMAKE_SOURCE_DIR}/emulators/md/core.h
+    ${CMAKE_SOURCE_DIR}/emulators/md/config.h
+    ${CMAKE_SOURCE_DIR}/emulators/md/consts.h
+    ${CMAKE_SOURCE_DIR}/emulators/components/sound/sn76496/sn76496.h
     ${CMAKE_SOURCE_DIR}/emulators/emulator.h
     ${CMAKE_SOURCE_DIR}/emulators/core.h
     ${CMAKE_SOURCE_DIR}/emulators/types.h
@@ -173,6 +193,7 @@ function(apply_common_target_settings target_name)
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/qsound
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/fm
         ${CMAKE_SOURCE_DIR}/emulators/components/sound/ay8910
+        ${CMAKE_SOURCE_DIR}/emulators/components/sound/sn76496
         ${CMAKE_SOURCE_DIR}/emulators/components/eeprom
         ${CMAKE_SOURCE_DIR}/utilities
     )

@@ -17,6 +17,7 @@ enum class CoreType {
     NES,
     CPS,
     NEOGEO,
+    MD,
     UNKNOWN
 };
 
