@@ -2,7 +2,7 @@
 
 # TatoEmu - Multi-System Retro Game Emulator
 
-TatoEmu is a multi-system retro game emulator written in C++ with SDL3 and WebAssembly targets. It currently supports GB/GBC, GBA, NES, CPS1, CPS2, and NeoGeo ROMs.
+TatoEmu is a multi-system retro game emulator written in C++ with SDL3 and WebAssembly targets. It currently supports GB/GBC, GBA, NES, Mega Drive/Genesis, CPS1, CPS2, and NeoGeo ROMs.
 
 This project is just for fun. It aims to build minimal emulators that work for most games, with only basic features like saving and loading states. It prioritizes playability over accuracy.
 
@@ -109,6 +109,17 @@ The following options and control mappings can be customized within this config 
 - **Enter** - Start Button
 - **Right Shift** - Select Button
 
+#### Mega Drive / Genesis
+- **Arrow Keys** - D-Pad (Up/Down/Left/Right)
+- **Z** - A Button
+- **X** - B Button
+- **C** - C Button
+- **A** - X Button
+- **S** - Y Button
+- **D** - Z Button
+- **Enter** - Start Button
+- **Right Shift** - Mode Button
+
 #### CPS1 / CPS2
 - **Player 1:**
   - **Arrow Keys** - Movement (Up/Down/Left/Right)
@@ -187,6 +198,12 @@ The following options and control mappings can be customized within this config 
 - **Sunsoft**: FME-7 (069)
 - **Unlicensed**: Waixing (162/164/178), Nanjing (163)
 
+### Mega Drive / Genesis
+
+- Plain ROM - Up to 4MB, no banking
+- SRAM / FRAM - Battery-backed saves declared in the cartridge header
+- SSF2 mapper - Eight 512KB banks via the registers at 0xA130F3-0xA130FF (for ROMs larger than 4MB)
+
 ### Capcom Play System 1/2
 
 Supports FBNeo ROM sets (partial).
@@ -207,4 +224,5 @@ ROM sets available at: [Internet Archive](https://archive.org/download/fbnarcade
 - [NESDev Wiki](https://www.nesdev.org/wiki/Main_Page) - NES architecture, mappers, tests
 - [Mesen2](https://github.com/SourMesen/Mesen2)
 - [FBNeo](https://github.com/finalburnneo/FBNeo) - Reference implementation for CPS1/CPS2/NeoGeo
+- [Sega Retro](https://segaretro.org/Sega_Mega_Drive/Technical_specifications) - Mega Drive hardware documentation
 - [NeoGeo Development Wiki](https://wiki.neogeodev.org/) - NeoGeo hardware documentation
