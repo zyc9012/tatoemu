@@ -182,7 +182,9 @@ bool Cartridge::load(const fs::path& filename) {
 
     log_info("Loaded ROM: %s", m_title.c_str());
     log_info("  Size: %zu KB", m_rom.size() / 1024);
-    log_info("  Region: %s", m_pal ? "PAL" : "NTSC");
+    log_info("  Region: %s (%s)",
+             m_region == 0 ? "Japan" : (m_region == 1 ? "USA" : "Europe"),
+             m_pal ? "PAL" : "NTSC");
     log_info("  SRAM: %s", m_hasSram ? "yes" : "no");
 
     return true;
@@ -196,23 +198,30 @@ void Cartridge::parseHeader() {
     if (!looksLikeTitle(m_title)) m_title = cleanTitle(&m_rom[0x120], 48);
     if (!looksLikeTitle(m_title)) m_title.clear();
 
-    // Region field: any of E/A/4/8/C implies PAL-capable; prefer NTSC when the
-    // cartridge supports both.
-    bool ntscCapable = false;
-    bool palCapable = false;
+    // Region field: either up to three of the letters J/U/E, or a single hex
+    // digit bitmask.  Bit 0 = Japan NTSC, bit 1 = Japan PAL, bit 2 = USA NTSC,
+    // bit 3 = Europe PAL.
+    u8 supported = 0;
     for (int i = 0; i < 3; i++) {
         char c = static_cast<char>(m_rom[0x1F0 + i]);
         switch (c) {
-            case 'J': case 'U': case '1': case '5': case '6': case 'B':
-                ntscCapable = true; break;
-            case 'E':
-                palCapable = true; break;
-            case 'A': case '8': case 'C': case '4':
-                palCapable = true; ntscCapable = true; break;
-            default: break;
+            case 'J': supported |= 0x1; break;
+            case 'U': case 'K': supported |= 0x4; break;
+            case 'E': case 'A': case 'D': supported |= 0x8; break;
+            case 'F': supported |= 0xC; break;
+            default:
+                if (c >= '0' && c <= '9')      supported |= static_cast<u8>(c - '0');
+                else if (c >= 'A' && c <= 'F') supported |= static_cast<u8>(c - 'A' + 10);
+                break;
         }
     }
-    m_pal = palCapable && !ntscCapable;
+
+    // Report a console the cartridge accepts, preferring NTSC hardware.
+    if (supported & 0x4)      { m_region = 1; m_pal = false; }
+    else if (supported & 0x1) { m_region = 0; m_pal = false; }
+    else if (supported & 0x8) { m_region = 2; m_pal = true;  }
+    else if (supported & 0x2) { m_region = 0; m_pal = true;  }
+    else                      { m_region = 1; m_pal = false; }
 
     // SRAM descriptor: "RA" magic at 0x1B0.
     if (m_rom[0x1B0] == 'R' && m_rom[0x1B1] == 'A') {

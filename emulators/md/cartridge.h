@@ -43,6 +43,11 @@ public:
     const std::string& getTitle() const { return m_title; }
     bool isPAL() const { return m_pal; }
 
+    // Console region the cartridge expects: 0 = Japan, 1 = USA, 2 = Europe.
+    // Games that lock themselves out with a "region" screen read this back
+    // through the version register at 0xA10001.
+    u8 getRegion() const { return m_region; }
+
     void saveBattery();
     void loadBattery();
 
@@ -63,6 +68,7 @@ private:
 
     bool m_loaded = false;
     bool m_pal = false;
+    u8   m_region = 1;
 
     bool m_hasSram = false;
     bool m_sramEnabled = false;

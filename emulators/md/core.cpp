@@ -47,9 +47,10 @@ bool Core::loadROM(const fs::path& filename) {
         return false;
     }
 
-    // The cartridge header decides whether we run as a PAL or NTSC machine.
+    // The cartridge header decides which console we present ourselves as;
+    // games that are region locked check this through the version register.
     m_vdp->setPAL(m_cartridge->isPAL());
-    Config::Region = m_cartridge->isPAL() ? 2u : 1u;
+    Config::Region = m_cartridge->getRegion();
 
     reset();
     return true;
