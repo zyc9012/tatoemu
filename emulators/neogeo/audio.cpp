@@ -6,23 +6,7 @@
 #include "consts.h"
 #include <cstring>
 
-extern "C" {
-
 #include "../components/sound/fm/fm.h"
-#include "../components/sound/ay8910/ay8910.h"
-
-}  // extern "C"
-
-// Forward declare the Audio pointer used by the update-request callback
-namespace neogeo { class Audio; }
-static neogeo::Audio* s_ym2610Audio = nullptr;
-
-// YM2610UpdateReq callback - called from within YM2610Write (in fm.c)
-extern "C" void YM2610UpdateReqCallback(void) {
-    if (s_ym2610Audio) {
-        s_ym2610Audio->renderUpTo();
-    }
-}
 
 namespace neogeo {
 
@@ -31,33 +15,6 @@ static constexpr u32 YM2610_CLOCK = 8000000;
 
 // Static pointer to SoundCPU for interrupt handler callback
 static SoundCPU* s_ym2610SoundCpu = nullptr;
-
-// YM2610 IRQ handler - sets/clears Z80 IRQ line based on YM2610 timer interrupt status
-static void ym2610IrqHandler(int chip, int irq) {
-    (void)chip;  // Unused, we only have one chip
-    if (s_ym2610SoundCpu) {
-        s_ym2610SoundCpu->irq(irq != 0);
-    }
-}
-
-// YM2610 Timer handler - called when YM2610 starts/stops a timer
-// n: chip number, c: timer (0=A, 1=B), cnt: counter value (0=stop), stepTime: time per tick in seconds
-static void ym2610TimerHandler(int n, int c, int cnt, double stepTime) {
-    (void)n;  // Unused, we only have one chip
-    if (!s_ym2610Audio) return;
-    
-    if (cnt == 0) {
-        // Timer stopped
-        s_ym2610Audio->setTimer(c, -1);
-    } else {
-        // Timer started
-        // Calculate Z80 cycles until timer fires: cnt * stepTime * SOUND_CPU_FREQUENCY
-        // stepTime is the time per timer tick in seconds (TimerBase from YM2610)
-        double periodSeconds = cnt * stepTime;
-        s32 cycles = static_cast<s32>(periodSeconds * SOUND_CPU_FREQUENCY);
-        s_ym2610Audio->setTimer(c, cycles);
-    }
-}
 
 Audio::Audio()
     : m_soundCpu(nullptr)
@@ -83,47 +40,45 @@ Audio::Audio()
 }
 
 Audio::~Audio() {
-    YM2610Shutdown();
-    AY8910Exit(0);
-    
     s_ym2610SoundCpu = nullptr;
-    s_ym2610Audio = nullptr;
 }
 
 void Audio::setSoundCPU(SoundCPU* soundCpu) {
     m_soundCpu = soundCpu;
     // Update the static pointers so the IRQ/timer handlers can work
     s_ym2610SoundCpu = soundCpu;
-    s_ym2610Audio = this;
 }
 
 void Audio::init(u32 sampleRate) {
     m_sampleRate = sampleRate;
 
     // Get ADPCM ROM data from cartridge
-    u8* adpcmRomA = const_cast<u8*>(m_cartridge->getADPCMROM());
-    int adpcmRomASize = static_cast<int>(m_cartridge->getADPCMROMSize());
+    u8* adpcmRom = const_cast<u8*>(m_cartridge->getADPCMROM());
+    u32 adpcmRomSize = static_cast<u32>(m_cartridge->getADPCMROMSize());
     // For Neo Geo, ADPCM-A and ADPCM-B use the same ROM
-    u8* adpcmRomB = adpcmRomA;
-    int adpcmRomBSize = adpcmRomASize;
-    
-    // Initialize AY8910 (must be done before YM2610)
-    AY8910Exit(0);
-    AY8910InitYM(0, YM2610_CLOCK, static_cast<int>(sampleRate), nullptr, nullptr, nullptr, nullptr, []{});
 
-    // Initialize YM2610 with timer and IRQ handlers
-    YM2610Shutdown();
-    int result = YM2610Init(1, 0, YM2610_CLOCK, static_cast<int>(sampleRate),
-                           (void**)&adpcmRomA, &adpcmRomASize,
-                           (void**)&adpcmRomB, &adpcmRomBSize,
-                           ym2610TimerHandler, ym2610IrqHandler);
-    
-    if (result != 0) {
-        log_error("Error: Failed to initialize YM2610");
-    }
+    m_ym2610.init(
+        YM2610_CLOCK, static_cast<int>(sampleRate),
+        adpcmRom, adpcmRomSize, adpcmRom, adpcmRomSize,
+        // The chip starts or stops one of its two timers. count == 0 stops it,
+        // otherwise stepTime is the length of one count in seconds.
+        [this](int timer, int count, double stepTime) {
+            if (count == 0) {
+                setTimer(timer, -1);
+            } else {
+                double periodSeconds = count * stepTime;
+                setTimer(timer, static_cast<s32>(periodSeconds * SOUND_CPU_FREQUENCY));
+            }
+        },
+        [](bool asserted) {
+            if (s_ym2610SoundCpu) {
+                s_ym2610SoundCpu->irq(asserted);
+            }
+        });
 
-    // Reset YM2610
-    YM2610ResetChip(0);
+    // Called before a register write lands so the chip's internal state is
+    // captured into the buffers before it changes.
+    m_ym2610.setUpdateRequestHandler([this] { renderUpTo(); });
 }
 
 void Audio::reset() {
@@ -162,7 +117,7 @@ void Audio::updateTimers(u32 cycles) {
     if (m_timerA >= 0) {
         m_timerA -= static_cast<s32>(cycles);
         if (m_timerA <= 0) {
-            YM2610TimerOver(0, 0);
+            m_ym2610.timerOver(0);
         }
     }
     
@@ -170,7 +125,7 @@ void Audio::updateTimers(u32 cycles) {
     if (m_timerB >= 0) {
         m_timerB -= static_cast<s32>(cycles);
         if (m_timerB <= 0) {
-            YM2610TimerOver(0, 1);
+            m_ym2610.timerOver(1);
         }
     }
 }
@@ -201,23 +156,19 @@ void Audio::renderSamples(u32 samplesNeeded) {
     // Render YM2610 (FM + ADPCM)
     if (samplesNeeded > m_ym2610Position) {
         u32 count = samplesNeeded - m_ym2610Position;
-        s16* bufs[2] = {
-            m_ym2610Left.data() + m_ym2610Position,
-            m_ym2610Right.data() + m_ym2610Position
-        };
-        YM2610UpdateOne(0, bufs, static_cast<int>(count));
+        m_ym2610.update(m_ym2610Left.data() + m_ym2610Position,
+                        m_ym2610Right.data() + m_ym2610Position,
+                        static_cast<int>(count));
         m_ym2610Position = samplesNeeded;
     }
 
-    // Render AY8910 (SSG)
+    // Render the SSG section
     if (samplesNeeded > m_ay8910Position) {
         u32 count = samplesNeeded - m_ay8910Position;
-        s16* bufs[3] = {
-            m_ay8910A.data() + m_ay8910Position,
-            m_ay8910B.data() + m_ay8910Position,
-            m_ay8910C.data() + m_ay8910Position
-        };
-        AY8910Update(0, bufs, static_cast<int>(count));
+        m_ym2610.updateSsg(m_ay8910A.data() + m_ay8910Position,
+                           m_ay8910B.data() + m_ay8910Position,
+                           m_ay8910C.data() + m_ay8910Position,
+                           static_cast<int>(count));
         m_ay8910Position = samplesNeeded;
     }
 }
@@ -289,7 +240,7 @@ u8 Audio::readPort(u16 port) {
         case 0x04:
         case 0x05:
         case 0x06:
-            return YM2610Read(0, port & 3);
+            return m_ym2610.read(port & 3);
             
         case 0x08:
         case 0x09:
@@ -315,7 +266,7 @@ void Audio::writePort(u16 port, u8 value) {
         case 0x06:
         case 0x07:
             // YM2610 data write
-            YM2610Write(0, port & 3, value);
+            m_ym2610.write(port & 3, value);
             break;
             
         case 0x08:
@@ -379,8 +330,7 @@ void Audio::saveState(Buffer* buf) {
     buffer_write(buf, &m_timerA, sizeof(m_timerA));
     buffer_write(buf, &m_timerB, sizeof(m_timerB));
 
-    AY8910SaveContext(buf);
-    YM2610SaveContext(buf);
+    m_ym2610.saveState(buf);
 }
 
 void Audio::loadState(Buffer* buf) {
@@ -391,8 +341,7 @@ void Audio::loadState(Buffer* buf) {
     buffer_read(buf, &m_timerA, sizeof(m_timerA));
     buffer_read(buf, &m_timerB, sizeof(m_timerB));
 
-    AY8910LoadContext(buf);
-    YM2610LoadContext(buf);
+    m_ym2610.loadState(buf);
 }
 
 } // namespace neogeo

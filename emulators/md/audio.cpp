@@ -3,11 +3,7 @@
 #include <algorithm>
 #include <cstring>
 
-#include "../components/compact.h"
-
-extern "C" {
 #include "../components/sound/fm/fm.h"
-}
 
 namespace md {
 
@@ -21,47 +17,32 @@ constexpr u32 PSG_CLOCK    = Z80_CLOCK;
 constexpr float FM_GAIN  = 1.0f;
 constexpr float PSG_GAIN = 0.5f;
 
-Audio* s_audio = nullptr;
-
-// The YM2612 interrupt line is not connected on the Mega Drive.
-void ym2612IrqHandler(int, int) {}
-
-// Called by fm.c whenever a timer is started or stopped.
-void ym2612TimerHandler(int, int channel, int count, double stepTime) {
-    if (!s_audio) return;
-
-    if (count == 0) {
-        s_audio->setTimer(channel, -1);
-        return;
-    }
-
-    const double periodSeconds = count * stepTime;
-    s_audio->setTimer(channel, static_cast<s32>(periodSeconds * M68K_CLOCK));
-}
-
 } // namespace
 
 Audio::Audio() {
-    s_audio = this;
     m_fmLeft.fill(0);
     m_fmRight.fill(0);
     m_psgOut.fill(0);
 }
 
-Audio::~Audio() {
-    YM2612Shutdown();
-    if (s_audio == this) s_audio = nullptr;
-}
+Audio::~Audio() = default;
 
 void Audio::init(u32 sampleRate) {
     m_sampleRate = sampleRate ? sampleRate : 44100;
 
-    YM2612Shutdown();
-    if (YM2612Init(1, 0, static_cast<int>(YM2612_CLOCK), static_cast<int>(m_sampleRate),
-                   ym2612TimerHandler, ym2612IrqHandler) != 0) {
-        log_error("Error: Failed to initialize YM2612");
-    }
-    YM2612ResetChip(0);
+    m_ym2612.init(
+        static_cast<int>(YM2612_CLOCK), static_cast<int>(m_sampleRate),
+        // Called whenever a timer is started or stopped.
+        [this](int timer, int count, double stepTime) {
+            if (count == 0) {
+                setTimer(timer, -1);
+                return;
+            }
+            const double periodSeconds = count * stepTime;
+            setTimer(timer, static_cast<s32>(periodSeconds * M68K_CLOCK));
+        },
+        // The YM2612 interrupt line is not connected on the Mega Drive.
+        [](bool) {});
 
     m_psg.init(PSG_CLOCK, m_sampleRate);
 }
@@ -88,21 +69,21 @@ void Audio::setTimer(int timer, s32 cycles) {
 void Audio::updateTimers(u32 m68kCycles) {
     if (m_timerA >= 0) {
         m_timerA -= static_cast<s32>(m68kCycles);
-        if (m_timerA <= 0) YM2612TimerOver(0, 0);
+        if (m_timerA <= 0) m_ym2612.timerOver(0);
     }
     if (m_timerB >= 0) {
         m_timerB -= static_cast<s32>(m68kCycles);
-        if (m_timerB <= 0) YM2612TimerOver(0, 1);
+        if (m_timerB <= 0) m_ym2612.timerOver(1);
     }
 }
 
 void Audio::writeFM(u8 port, u8 value) {
     renderUpTo();
-    YM2612Write(0, port & 3, value);
+    m_ym2612.write(port & 3, value);
 }
 
 u8 Audio::readFM(u8 port) {
-    return YM2612Read(0, port & 3);
+    return m_ym2612.read(port & 3);
 }
 
 void Audio::writePSG(u8 value) {
@@ -122,11 +103,9 @@ void Audio::renderSamples(u32 samplesNeeded) {
 
     if (samplesNeeded > m_fmPosition) {
         const u32 count = samplesNeeded - m_fmPosition;
-        s16* buffers[2] = {
-            m_fmLeft.data() + m_fmPosition,
-            m_fmRight.data() + m_fmPosition
-        };
-        YM2612UpdateOne(0, buffers, static_cast<int>(count));
+        m_ym2612.update(m_fmLeft.data() + m_fmPosition,
+                        m_fmRight.data() + m_fmPosition,
+                        static_cast<int>(count));
         m_fmPosition = samplesNeeded;
     }
 
@@ -190,14 +169,14 @@ void Audio::saveState(Buffer* buf) {
     buffer_write(buf, &m_timerA, sizeof(m_timerA));
     buffer_write(buf, &m_timerB, sizeof(m_timerB));
     m_psg.saveState(buf);
-    YM2612SaveContext(buf);
+    m_ym2612.saveState(buf);
 }
 
 void Audio::loadState(Buffer* buf) {
     buffer_read(buf, &m_timerA, sizeof(m_timerA));
     buffer_read(buf, &m_timerB, sizeof(m_timerB));
     m_psg.loadState(buf);
-    YM2612LoadContext(buf);
+    m_ym2612.loadState(buf);
 
     m_fmPosition = 0;
     m_psgPosition = 0;

@@ -10,463 +10,289 @@
 // 2: too much top-end (treble) loss
 // conclusion: if at least #1 can be fixed, it will be re-instated.
 
-// Options will now be:
-//  1: No interpolation (recording sounds like PCB re: sf2)
-//  2: Linear Interpolation (nInterpolation >= 3)
+#include <array>
+#include <cmath>
+#include <cstring>
 
-#define CUBIC_ENABLED   0
-
-#include <math.h>
-#include "../../compact.h"
 #include "msm6295.h"
-#include <stddef.h>
 
-UINT8* MSM6295ROM;
+// Position within a sample is tracked in 20.12 fixed point.
+#define POSITION_ONE (0x1000)
 
-UINT32 nMSM6295Status[MAX_MSM6295];
+static constexpr s32 stepShift[8] = { -1, -1, -1, -1, 2, 4, 6, 8 };
 
-struct MSM6295ChannelInfo {
-	INT32 nOutput;
-	INT32 nVolume;
-	INT32 nPosition;
-	INT32 nSampleCount;
-	INT32 nSample;
-	INT32 nStep;
-	INT32 nDelta;
-
-	INT32 nBufPos;
-	INT32 nPlaying;
-};
-
-struct MSM6295Struct {
-	// All current settings for each channel
-	MSM6295ChannelInfo ChannelInfo[4];
-
-	// Used for sending commands
-	bool bIsCommand;
-	INT32 nSampleInfo;
-
-	INT32 nVolume;
-	INT32 nOutputDir;
-	INT32 nSampleRate;
-	INT32 nSampleSize;
-	INT32 nFractionalPosition;
-
-};
-
-static struct MSM6295Struct MSM6295[MAX_MSM6295];
-
-static UINT8 *pBankPointer[MAX_MSM6295][0x40000/0x100];
-INT32 nLastMSM6295Chip;
-
-void MSM6295SetBank(INT32 nChip, UINT8 *pRomData, INT32 nStart, INT32 nEnd)
+// ADPCM delta for each (step, nibble) pair.
+static std::array<s32, 49 * 16> makeDeltaTable()
 {
-	if (pRomData == NULL) return;
+    std::array<s32, 49 * 16> tab{};
 
-//	if (nEnd >= nStart) return;
-//	if (nEnd >= 0x40000) nEnd = 0x40000;
+    for (s32 i = 0; i < 49; i++) {
+        s32 step = (s32)(pow(1.1, (double)i) * 16.0);
+        for (s32 n = 0; n < 16; n++) {
+            s32 delta = step >> 3;
+            if (n & 1) {
+                delta += step >> 2;
+            }
+            if (n & 2) {
+                delta += step >> 1;
+            }
+            if (n & 4) {
+                delta += step;
+            }
+            if (n & 8) {
+                delta = -delta;
+            }
+            tab[(i << 4) + n] = delta;
+        }
+    }
 
-	for (INT32 i = 0; i < ((nEnd - nStart) >> 8) + 1; i++)
-	{
-		pBankPointer[nChip][(nStart >> 8) + i] = pRomData + (i << 8);
-	}
+    return tab;
 }
 
-#define MSM6295ReadData(chip, addr)	\
-	pBankPointer[chip][((addr) >> 8) & 0x3ff][((addr) & 0xff)]
-
-static UINT32 MSM6295VolumeTable[16];
-static INT32 MSM6295DeltaTable[49 * 16];
-static INT32 MSM6295StepShift[8] = {-1, -1, -1, -1, 2, 4, 6, 8};
-
-static INT32* MSM6295ChannelData[MAX_MSM6295][4];
-
-static INT32* pLeftBuffer = NULL;
-static INT32* pRightBuffer = NULL;
-
-static INT32 nPreviousSample[MAX_MSM6295], nCurrentSample[MAX_MSM6295];
-
-static bool bAdd;
-
-// Host sound rate and interpolation setting (configurable through MSM6295Init)
-static INT32 nHostSoundRate = 44100;
-static INT32 nInterpolation = 0;
-
-void MSM6295Reset(INT32 nChip)
+// Attenuation for each of the 16 volume levels, roughly 3 dB per step.
+static std::array<s32, 16> makeVolumeTable()
 {
-	nMSM6295Status[nChip] = 0;
-	MSM6295[nChip].bIsCommand = false;
+    std::array<s32, 16> tab{};
 
-	MSM6295[nChip].nFractionalPosition = 0;
+    for (s32 i = 0; i < 16; i++) {
+        double volume = 256.0;
+        for (s32 n = i; n > 0; n--) {
+            volume /= 1.412537545;
+        }
+        tab[i] = (s32)(volume + 0.5);
+    }
 
-	memset(&nPreviousSample, 0, sizeof(nPreviousSample));
-	memset(&nCurrentSample, 0, sizeof(nCurrentSample));
-
-	for (INT32 nChannel = 0; nChannel < 4; nChannel++) {
-		MSM6295[nChip].ChannelInfo[nChannel].nPlaying = 0;
-		memset(MSM6295ChannelData[nChip][nChannel], 0, 0x1000 * sizeof(INT32));
-		MSM6295[nChip].ChannelInfo[nChannel].nBufPos = 4;
-	}
-
-	// set bank data only if DataPointer has not already been set
-	if (pBankPointer[nChip][0] == NULL) {
-		MSM6295SetBank(nChip, MSM6295ROM + (nChip * 0x0100000), 0, 0x3ffff); // set initial bank (compatibility)
-	}
+    return tab;
 }
 
-void MSM6295ResetAll(void)
+static const std::array<s32, 49 * 16> deltaTable = makeDeltaTable();
+static const std::array<s32, 16> volumeTable = makeVolumeTable();
+
+
+void Msm6295::init(u32 chipRate, u32 hostRate)
 {
-	for (INT32 nChip = 0; nChip <= nLastMSM6295Chip; nChip++)
-	{
-		MSM6295Reset(nChip);
-	}
+    for (Channel& channel : m_channel) {
+        channel = Channel{};
+    }
+    std::memset(m_page, 0, sizeof(m_page));
+
+    m_volume = 256;
+    setSampleRate(chipRate, hostRate);
+    reset();
 }
 
-void MSM6295SaveContext(Buffer* buf)
+void Msm6295::reset()
 {
-	// Save number of chips
-	INT32 numChips = nLastMSM6295Chip + 1;
-	buffer_write(buf, &numChips, sizeof(numChips));
-	
-	// Save each chip's state and status
-	for (INT32 nChip = 0; nChip <= nLastMSM6295Chip; nChip++)
-	{
-		buffer_write(buf, &MSM6295[nChip], sizeof(MSM6295Struct));
-		buffer_write(buf, &nMSM6295Status[nChip], sizeof(UINT32));
-	}
+    m_status = 0;
+    m_isCommand = false;
+    m_fractionalPosition = 0;
+    m_currentSample = 0;
+
+    for (Channel& channel : m_channel) {
+        channel.playing = 0;
+    }
 }
 
-void MSM6295LoadContext(Buffer* buf)
+void Msm6295::setSampleRate(u32 chipRate, u32 hostRate)
 {
-	// Load number of chips
-	INT32 numChips;
-	buffer_read(buf, &numChips, sizeof(numChips));
-	
-	nLastMSM6295Chip = numChips - 1;
-	
-	// Load each chip's state and status
-	for (INT32 nChip = 0; nChip < numChips; nChip++)
-	{
-		buffer_read(buf, &MSM6295[nChip], sizeof(MSM6295Struct));
-		buffer_read(buf, &nMSM6295Status[nChip], sizeof(UINT32));
-	}
+    if (hostRate == 0) {
+        hostRate = 11025;   // avoid division by 0
+    }
+
+    m_sampleSize = (s32)((chipRate << 12) / hostRate);
 }
 
-static void MSM6295Render_Linear(INT32 nChip, INT32* pLeftBuf, INT32 *pRightBuf, INT32 nSegmentLength)
+void Msm6295::setVolume(double volume)
 {
-	INT32 nVolume = MSM6295[nChip].nVolume;
-	INT32 nFractionalPosition = MSM6295[nChip].nFractionalPosition;
-
-	INT32 nChannel, nDelta, nSample;
-	MSM6295ChannelInfo* pChannelInfo;
-
-	while (nSegmentLength--) {
-		if (nFractionalPosition >= 0x1000) {
-
-			nPreviousSample[nChip] = nCurrentSample[nChip];
-
-			do {
-				nCurrentSample[nChip] = 0;
-
-				for (nChannel = 0; nChannel < 4; nChannel++) {
-					if (nMSM6295Status[nChip] & (1 << nChannel)) {
-						pChannelInfo = &MSM6295[nChip].ChannelInfo[nChannel];
-
-						// Check for end of sample
-						if (pChannelInfo->nSampleCount-- <= 0) {
-							nMSM6295Status[nChip] &= ~(1 << nChannel);
-							MSM6295[nChip].ChannelInfo[nChannel].nPlaying = 0;
-							continue;
-						}
-
-						// Get new delta from ROM
-						if (pChannelInfo->nPosition & 1) {
-							nDelta = pChannelInfo->nDelta & 0x0F;
-						} else {
-							pChannelInfo->nDelta = MSM6295ReadData(nChip, (pChannelInfo->nPosition >> 1) & 0x3ffff);
-							nDelta = pChannelInfo->nDelta >> 4;
-						}
-
-						// Compute new sample
-						nSample = pChannelInfo->nSample + MSM6295DeltaTable[(pChannelInfo->nStep << 4) + nDelta];
-						if (nSample > 2047) {
-							nSample = 2047;
-						} else {
-							if (nSample < -2048) {
-								nSample = -2048;
-							}
-						}
-						pChannelInfo->nSample = nSample;
-						pChannelInfo->nOutput = (nSample * pChannelInfo->nVolume);
-
-						// Update step value
-						pChannelInfo->nStep = pChannelInfo->nStep + MSM6295StepShift[nDelta & 7];
-						if (pChannelInfo->nStep > 48) {
-							pChannelInfo->nStep = 48;
-						} else {
-							if (pChannelInfo->nStep < 0) {
-								pChannelInfo->nStep = 0;
-							}
-						}
-
-						nCurrentSample[nChip] += pChannelInfo->nOutput / 16;
-
-						// Advance sample position
-						pChannelInfo->nPosition++;
-					}
-				}
-
-				nFractionalPosition -= 0x1000;
-
-			} while (nFractionalPosition >= 0x1000);
-		}
-
-		// Compute linearly interpolated sample
-		if (nInterpolation >= 3) {
-			nSample = nPreviousSample[nChip] + (((nCurrentSample[nChip] - nPreviousSample[nChip]) * nFractionalPosition) >> 12);
-		} else {
-			nSample = nCurrentSample[nChip];
-		}
-		// Scale all 4 channels
-		nSample *= nVolume;
-
-		if ((MSM6295[nChip].nOutputDir & BURN_SND_ROUTE_LEFT) == BURN_SND_ROUTE_LEFT) {
-			*pLeftBuf++ += nSample;
-		}
-		if ((MSM6295[nChip].nOutputDir & BURN_SND_ROUTE_RIGHT) == BURN_SND_ROUTE_RIGHT) {
-			*pRightBuf++ += nSample;
-		}
-
-		nFractionalPosition += MSM6295[nChip].nSampleSize;
-	}
-
-	MSM6295[nChip].nFractionalPosition = nFractionalPosition;
+    m_volume = (s32)(volume * 256.0 + 0.5);
 }
 
-INT32 MSM6295Render(INT32 nChip, INT16* pSoundBuf, INT32 nSegmentLength) // render per-chip
+void Msm6295::setBank(const u8* romData, u32 start, u32 end)
 {
-	if (nChip == 0) {
-		memset(pLeftBuffer, 0, nSegmentLength * sizeof(INT32));
-		memset(pRightBuffer, 0, nSegmentLength * sizeof(INT32));
-	}
+    if (romData == nullptr) return;
 
-	MSM6295Render_Linear(nChip, pLeftBuffer, pRightBuffer, nSegmentLength);
-
-	if (nChip == nLastMSM6295Chip)	{
-		for (INT32 i = 0; i < nSegmentLength; i++) {
-			if (bAdd) {
-				pSoundBuf[0] = BURN_SND_CLIP(pSoundBuf[0] + (pLeftBuffer[i] >> 8));
-				pSoundBuf[1] = BURN_SND_CLIP(pSoundBuf[1] + (pRightBuffer[i] >> 8));
-			} else {
-				pSoundBuf[0] = BURN_SND_CLIP(pLeftBuffer[i] >> 8);
-				pSoundBuf[1] = BURN_SND_CLIP(pRightBuffer[i] >> 8);
-			}
-			pSoundBuf += 2;
-		}
-	}
-
-	return 0;
+    for (u32 i = 0; i < ((end - start) >> PAGE_SHIFT) + 1; i++) {
+        m_page[(start >> PAGE_SHIFT) + i] = romData + (i << PAGE_SHIFT);
+    }
 }
 
-INT32 MSM6295RenderAll(INT16* pSoundBuf, INT32 nSegmentLength) // render all chips
+u8 Msm6295::readData(u32 addr) const
 {
-    for (INT32 nChip = 0; nChip <= nLastMSM6295Chip; nChip++)
-	{
-		MSM6295Render(nChip, pSoundBuf, nSegmentLength);
-	}
-
-	return 0;
+    return m_page[(addr >> PAGE_SHIFT) & (PAGE_COUNT - 1)][addr & 0xff];
 }
 
-void MSM6295Write(INT32 nChip, UINT8 nCommand)
+// Decode one ADPCM nibble on every active channel and sum them.
+void Msm6295::stepChannels()
 {
-	if (MSM6295[nChip].bIsCommand) {
-		// Process second half of command
-		INT32 nChannel, nSampleStart, nSampleCount;
-		INT32 nVolume = nCommand & 0x0F;
-		nCommand >>= 4;
+    m_currentSample = 0;
 
-		MSM6295[nChip].bIsCommand = false;
+    for (s32 nChannel = 0; nChannel < 4; nChannel++) {
+        if (!(m_status & (1 << nChannel))) {
+            continue;
+        }
 
-		for (nChannel = 0; nChannel < 4; nChannel++) {
-			if (nCommand & (0x01 << nChannel)) {
-				if (MSM6295[nChip].ChannelInfo[nChannel].nPlaying == 0) {
+        Channel* channel = &m_channel[nChannel];
 
-					nSampleStart  = MSM6295ReadData(nChip, (MSM6295[nChip].nSampleInfo & 0x03ff) + 0) << 17;
-					nSampleStart |= MSM6295ReadData(nChip, (MSM6295[nChip].nSampleInfo & 0x03ff) + 1) <<  9;
-					nSampleStart |= MSM6295ReadData(nChip, (MSM6295[nChip].nSampleInfo & 0x03ff) + 2) <<  1;
+        // Check for end of sample
+        if (channel->sampleCount-- <= 0) {
+            m_status &= ~(1u << nChannel);
+            channel->playing = 0;
+            continue;
+        }
 
-					nSampleCount  = MSM6295ReadData(nChip, (MSM6295[nChip].nSampleInfo & 0x03ff) + 3) << 17;
-					nSampleCount |= MSM6295ReadData(nChip, (MSM6295[nChip].nSampleInfo & 0x03ff) + 4) <<  9;
-					nSampleCount |= MSM6295ReadData(nChip, (MSM6295[nChip].nSampleInfo & 0x03ff) + 5) <<  1;
+        // Get new delta from ROM
+        s32 delta;
+        if (channel->position & 1) {
+            delta = channel->delta & 0x0F;
+        } else {
+            channel->delta = readData((channel->position >> 1) & 0x3ffff);
+            delta = channel->delta >> 4;
+        }
 
-					MSM6295[nChip].nSampleInfo &= 0xFF;
+        // Compute new sample
+        s32 sample = channel->sample + deltaTable[(channel->step << 4) + delta];
+        if (sample > 2047) {
+            sample = 2047;
+        } else {
+            if (sample < -2048) {
+                sample = -2048;
+            }
+        }
+        channel->sample = sample;
+        channel->output = sample * channel->volume;
 
-					nSampleCount -= nSampleStart;
-					
-					if (nSampleCount < 0x80000) {
-						// Start playing channel
-						MSM6295[nChip].ChannelInfo[nChannel].nVolume = MSM6295VolumeTable[nVolume];
-						MSM6295[nChip].ChannelInfo[nChannel].nPosition = nSampleStart;
-						MSM6295[nChip].ChannelInfo[nChannel].nSampleCount = nSampleCount;
-						MSM6295[nChip].ChannelInfo[nChannel].nStep = 0;
-						MSM6295[nChip].ChannelInfo[nChannel].nSample = -1;
-						MSM6295[nChip].ChannelInfo[nChannel].nPlaying = 1;
-						MSM6295[nChip].ChannelInfo[nChannel].nOutput = 0;
+        // Update step value
+        channel->step = channel->step + stepShift[delta & 7];
+        if (channel->step > 48) {
+            channel->step = 48;
+        } else {
+            if (channel->step < 0) {
+                channel->step = 0;
+            }
+        }
 
-						nMSM6295Status[nChip] |= nCommand;
+        m_currentSample += channel->output / 16;
 
-					}
-				}
-			}
-		}
-
-	} else {
-		// Process command
-		if (nCommand & 0x80) {
-			MSM6295[nChip].nSampleInfo = (nCommand & 0x7F) << 3;
-			MSM6295[nChip].bIsCommand = true;
-		} else {
-			// Stop playing samples
-			INT32 nChannel;
-			nCommand >>= 3;
-			nMSM6295Status[nChip] &= ~nCommand;
-
-			for (nChannel = 0; nChannel < 4; nChannel++, nCommand>>=1) {
-				if (nCommand & 1) {
-					MSM6295[nChip].ChannelInfo[nChannel].nPlaying = 0;
-				}
-			}
-		}
-	}
+        // Advance sample position
+        channel->position++;
+    }
 }
 
-void MSM6295Exit(INT32 nChip)
+void Msm6295::render(s16* out, u32 samples)
 {
-	if (pLeftBuffer) BurnFree(pLeftBuffer);
-	if (pRightBuffer) BurnFree(pRightBuffer);
-	pLeftBuffer = NULL;
-	pRightBuffer = NULL;
+    while (samples--) {
+        while (m_fractionalPosition >= POSITION_ONE) {
+            stepChannels();
+            m_fractionalPosition -= POSITION_ONE;
+        }
 
-	for (INT32 nChannel = 0; nChannel < 4; nChannel++) {
-		BurnFree(MSM6295ChannelData[nChip][nChannel]);
-	}
+        // Scale all 4 channels
+        s32 sample = (m_currentSample * m_volume) >> 8;
+        if (sample > 32767) {
+            sample = 32767;
+        } else if (sample < -32768) {
+            sample = -32768;
+        }
+        *out++ = (s16)sample;
+
+        m_fractionalPosition += m_sampleSize;
+    }
 }
 
-void MSM6295ExitAll(void)
+void Msm6295::write(u8 command)
 {
-	for (INT32 nChip = 0; nChip <= nLastMSM6295Chip; nChip++)
-	{
-		MSM6295Exit(nChip);
-	}
+    if (m_isCommand) {
+        // Process second half of command
+        s32 volume = command & 0x0F;
+        command >>= 4;
+
+        m_isCommand = false;
+
+        for (s32 nChannel = 0; nChannel < 4; nChannel++) {
+            if (!(command & (0x01 << nChannel))) {
+                continue;
+            }
+            if (m_channel[nChannel].playing != 0) {
+                continue;
+            }
+
+            const u32 header = (u32)(m_sampleInfo & 0x03ff);
+
+            s32 sampleStart  = readData(header + 0) << 17;
+            sampleStart     |= readData(header + 1) <<  9;
+            sampleStart     |= readData(header + 2) <<  1;
+
+            s32 sampleCount  = readData(header + 3) << 17;
+            sampleCount     |= readData(header + 4) <<  9;
+            sampleCount     |= readData(header + 5) <<  1;
+
+            m_sampleInfo &= 0xFF;
+
+            sampleCount -= sampleStart;
+
+            if (sampleCount < 0x80000) {
+                // Start playing channel
+                Channel& channel = m_channel[nChannel];
+                channel.volume = volumeTable[volume];
+                channel.position = sampleStart;
+                channel.sampleCount = sampleCount;
+                channel.step = 0;
+                channel.sample = -1;
+                channel.playing = 1;
+                channel.output = 0;
+
+                m_status |= command;
+            }
+        }
+    } else {
+        // Process command
+        if (command & 0x80) {
+            m_sampleInfo = (command & 0x7F) << 3;
+            m_isCommand = true;
+        } else {
+            // Stop playing samples
+            command >>= 3;
+            m_status &= ~(u32)command;
+
+            for (s32 nChannel = 0; nChannel < 4; nChannel++, command >>= 1) {
+                if (command & 1) {
+                    m_channel[nChannel].playing = 0;
+                }
+            }
+        }
+    }
 }
 
-void MSM6295SetSamplerate(INT32 nChip, INT32 nSamplerate, INT32 nHostSoundRateParam)
+// The bank pointers are rebuilt when the ROM is loaded, and m_volume and
+// m_sampleSize come from the current configuration, so neither belongs in a
+// save state.
+template <typename Visit>
+void Msm6295::visitState(Visit visit)
 {
-	// Update host sound rate if provided (only on first chip)
-	if (nChip == 0 && nHostSoundRateParam > 0) {
-		nHostSoundRate = nHostSoundRateParam;
-	}
-	
-	MSM6295[nChip].nSampleRate = nSamplerate;
-	if (nHostSoundRate > 0) {
-		MSM6295[nChip].nSampleSize = (nSamplerate << 12) / nHostSoundRate;
-	} else {
-		MSM6295[nChip].nSampleSize = (nSamplerate << 12) / 11025;
-	}
+    for (Channel& channel : m_channel) {
+        visit(channel.output);
+        visit(channel.volume);
+        visit(channel.position);
+        visit(channel.sampleCount);
+        visit(channel.sample);
+        visit(channel.step);
+        visit(channel.delta);
+        visit(channel.playing);
+    }
+
+    visit(m_isCommand);
+    visit(m_sampleInfo);
+    visit(m_status);
+    visit(m_fractionalPosition);
+    visit(m_currentSample);
 }
 
-INT32 MSM6295Init(INT32 nChip, INT32 nSamplerate, bool bAddSignal, INT32 nHostSoundRateParam, INT32 nInterpolationParam)
+void Msm6295::saveState(Buffer* buf)
 {
-	// Set host sound rate and interpolation (only on first chip init)
-	if (nChip == 0) {
-		nHostSoundRate = nHostSoundRateParam;
-		nInterpolation = nInterpolationParam;
-	}
-	
-	if (nHostSoundRate > 0) {
-		if (pLeftBuffer == NULL) {
-			pLeftBuffer = (INT32*)BurnMalloc(nHostSoundRate * sizeof(INT32));
-		}
-		if (pRightBuffer == NULL) {
-			pRightBuffer = (INT32*)BurnMalloc(nHostSoundRate * sizeof(INT32));
-		}
-	}
-
-	if (nChip == 0) {
-		memset(&MSM6295, 0, sizeof(MSM6295));
-
-		bAdd = bAddSignal;
-	}
-
-	// Convert volume from percentage
-	MSM6295[nChip].nVolume = INT32(100.0 * 256.0 / 100.0 + 0.5);
-
-	MSM6295[nChip].nSampleRate = nSamplerate;
-	if (nHostSoundRate > 0) {
-		MSM6295[nChip].nSampleSize = (nSamplerate << 12) / nHostSoundRate;
-	} else {
-		MSM6295[nChip].nSampleSize = (nSamplerate << 12) / 11025;
-	}
-
-	MSM6295[nChip].nFractionalPosition = 0;
-
-	nMSM6295Status[nChip] = 0;
-	MSM6295[nChip].bIsCommand = false;
-
-	if (nChip == 0) {
-		nLastMSM6295Chip = 0;
-	} else {
-		if (nLastMSM6295Chip < nChip) {
-			nLastMSM6295Chip = nChip;
-		}
-	}
-
-	// Compute sample deltas
-	for (INT32 i = 0; i < 49; i++) {
-		INT32 nStep = (INT32)(pow(1.1, (double)i) * 16.0);
-		for (INT32 n = 0; n < 16; n++) {
-			INT32 nDelta = nStep >> 3;
-			if (n & 1) {
-				nDelta += nStep >> 2;
-			}
-			if (n & 2) {
-				nDelta += nStep >> 1;
-			}
-			if (n & 4) {
-				nDelta += nStep;
-			}
-			if (n & 8) {
-				nDelta = -nDelta;
-			}
-			MSM6295DeltaTable[(i << 4) + n] = nDelta;
-		}
-	}
-
-	// Compute volume levels
-	for (INT32 i = 0; i < 16; i++) {
-		double nVolume = 256.0;
-		for (INT32 n = i; n > 0; n--) {
-			nVolume /= 1.412537545;
-		}
-		MSM6295VolumeTable[i] = (UINT32)(nVolume + 0.5);
-	}
-
-	for (INT32 nChannel = 0; nChannel < 4; nChannel++) {
-		MSM6295ChannelData[nChip][nChannel] = (INT32*)BurnMalloc(0x1000 * sizeof(INT32));
-	}
-	
-	MSM6295[nChip].nOutputDir = BURN_SND_ROUTE_BOTH;
-
-	memset (pBankPointer[nChip], 0, (0x40000/0x100) * sizeof(UINT8*));
-
-	MSM6295Reset(nChip);
-
-	return 0;
+    visitState(StateWriter{buf});
 }
 
-void MSM6295SetRoute(INT32 nChip, double nVolume, INT32 nRouteDir)
+void Msm6295::loadState(Buffer* buf)
 {
-	MSM6295[nChip].nVolume = INT32(nVolume * 256.0 + 0.5);
-	MSM6295[nChip].nOutputDir = nRouteDir;
+    visitState(StateReader{buf});
 }

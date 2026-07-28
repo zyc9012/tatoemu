@@ -3,6 +3,7 @@
 #include "consts.h"
 #include "../types.h"
 #include "../components/buffer.h"
+#include "../../components/sound/fm/fm.h"
 #include "../../components/sound/sn76496/sn76496.h"
 #include <array>
 
@@ -59,6 +60,7 @@ private:
     float m_volume = 1.0f;
     u32 m_frameCycles = 1;
 
+    Ym2612 m_ym2612;
     SN76496 m_psg;
 
     // YM2612 timers, counted in 68000 cycles (-1 when disabled).

@@ -33,3 +33,19 @@ bool buffer_save_to_file(Buffer* buf, const std::filesystem::path& filename, boo
 #ifdef __cplusplus
 }
 #endif
+
+#ifdef __cplusplus
+struct StateWriter {
+    Buffer* buf;
+    template <typename T> void operator()(T& field) const {
+        buffer_write(buf, &field, sizeof(field));
+    }
+};
+
+struct StateReader {
+    Buffer* buf;
+    template <typename T> void operator()(T& field) const {
+        buffer_read(buf, &field, sizeof(field));
+    }
+};
+#endif

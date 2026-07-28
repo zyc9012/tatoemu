@@ -4,21 +4,12 @@
 #include "memory.h"
 #include "cartridge.h"
 #include "../types.h"
-#include "../components/compact.h"
 #include <cstring>
 #include <cmath>
 #include <algorithm>
 #include "consts.h"
 
 namespace cps {
-
-// Static pointer to SoundCPU for interrupt handler callback
-static SoundCPU* s_ym2151SoundCpu = nullptr;
-
-// YM2151 interrupt handler - sets/clears Z80 INT line based on YM2151 interrupt status
-static void ym2151IrqHandler(s32 nStatus) {
-    s_ym2151SoundCpu->irq(nStatus != 0);
-}
 
 Audio::Audio()
     : m_soundCpu(nullptr)
@@ -36,17 +27,10 @@ Audio::Audio()
 }
 
 Audio::~Audio() {
-    if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
-        YM2151Shutdown();
-        MSM6295Exit(0);
-    } else {
-        QscExit();
-    }
 }
 
 void Audio::setSoundCPU(SoundCPU* soundCpu) {
     m_soundCpu = soundCpu;
-    s_ym2151SoundCpu = soundCpu;
 }
 
 void Audio::setMemory(Memory* memory) {
@@ -61,23 +45,17 @@ void Audio::reset() {
     // Reset sound chips
     if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
         // Initialize YM2151
-        YM2151Init(1, 0, 3579540, m_sampleRate, nullptr);
-        YM2151SetIrqHandler(0, ym2151IrqHandler);
-        
-        // Initialize MSM6295
-        MSM6295Init(0, 7576, false, m_sampleRate, 0);
-        MSM6295SetRoute(0, 1, BURN_SND_ROUTE_BOTH);
+        m_ym2151.init(3579540, m_sampleRate);
+        m_ym2151.setIrqHandler([this](bool asserted) { m_soundCpu->irq(asserted); });
 
-        YM2151ResetChip(0);
-        MSM6295Reset(0);
+        // Initialize MSM6295
+        m_msm6295.init(7576, m_sampleRate);
+        m_msm6295.setVolume(1.0);
 
         m_ym2151RegSelect = 0;
     } else {
         // Initialize QSound (for both CPS2 and CPS1 QSound games)
-        QscInit(m_sampleRate);
-        QscSetRoute(BURN_SND_QSND_OUTPUT_1, 1.0, BURN_SND_ROUTE_LEFT);
-        QscSetRoute(BURN_SND_QSND_OUTPUT_2, 1.0, BURN_SND_ROUTE_RIGHT);
-        QscReset();
+        m_qsound.init(m_sampleRate);
     }
 
     // Cache timing constants
@@ -105,11 +83,10 @@ void Audio::setROMData() {
     if (sampleData && sampleSize > 0) {
         if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
             // CPS1: MSM6295 samples
-            s32 endAddr = static_cast<s32>(sampleSize - 1);
-            MSM6295SetBank(0, const_cast<u8*>(sampleData), 0, endAddr);
+            m_msm6295.setBank(sampleData, 0, sampleSize - 1);
         } else {
             // QSound samples (CPS1 QSound games and CPS2)
-            QscSetSampleROM(const_cast<u8*>(sampleData), sampleSize);
+            m_qsound.setSampleROM(sampleData, sampleSize);
         }
     }
 }
@@ -118,10 +95,10 @@ void Audio::setSampleRate(u32 sampleRate) {
     m_sampleRate = sampleRate;
 
     if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
-        YM2151SetSampleRate(0, sampleRate);
-        MSM6295SetSamplerate(0, 7576, static_cast<s32>(sampleRate));
+        m_ym2151.setSampleRate(sampleRate);
+        m_msm6295.setSampleRate(7576, sampleRate);
     } else {
-        QscSetSampleRate(sampleRate);
+        m_qsound.setSampleRate(sampleRate);
     }
 }
 
@@ -134,11 +111,11 @@ u8 Audio::readPort(u16 port) {
         // CPS1: YM2151 and MSM6295
         // YM2151 status register (port 0x01)
         if (port == 0x01) {
-            return static_cast<u8>(YM2151ReadStatus(0));
+            return m_ym2151.readStatus();
         }
         // MSM6295 status register (port 0x02)
         if (port == 0x02) {
-            return static_cast<u8>(MSM6295Read(0));
+            return m_msm6295.readStatus();
         }
     } else if (m_cartridge->isCPS1QSound()) {
         // QSound status register (port 0x07)
@@ -151,7 +128,7 @@ u8 Audio::readPort(u16 port) {
 }
 
 u8 Audio::readQSound() {
-    return QscRead();
+    return m_qsound.readStatus();
 }
 
 void Audio::writePort(u16 port, u8 value) {
@@ -162,18 +139,18 @@ void Audio::writePort(u16 port, u8 value) {
             return;
         }
         if (port == 0x01) {
-            YM2151WriteReg(0, m_ym2151RegSelect, value);
+            m_ym2151.write(m_ym2151RegSelect, value);
             return;
         }
         if (port == 0x02) {
-            MSM6295Write(0, value);
+            m_msm6295.write(value);
             return;
         }
     }
 }
 
 void Audio::writeQSound(u16 port, u16 value) {
-    QscWrite(port, value);
+    m_qsound.write(static_cast<u8>(port), value);
 }
 
 void Audio::renderAndMixOneSample() {
@@ -182,20 +159,19 @@ void Audio::renderAndMixOneSample() {
     if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
         // CPS1: YM2151 (1 sample into local buffers)
         s16 ymL, ymR;
-        s16* ymBufs[2] = { &ymL, &ymR };
-        YM2151UpdateOne(0, ymBufs, 1);
+        m_ym2151.update(&ymL, &ymR, 1);
 
-        // CPS1: MSM6295 (1 sample, interleaved L,R)
-        s16 msmBuf[2] = {0, 0};
-        MSM6295Render(0, msmBuf, 1);
+        // CPS1: MSM6295 (1 mono sample)
+        s16 msm;
+        m_msm6295.render(&msm, 1);
 
-        left  = (ymL * 0.35f + msmBuf[0] * 0.30f) / 32768.0f;
-        right = (ymR * 0.35f + msmBuf[1] * 0.30f) / 32768.0f;
+        left  = (ymL * 0.35f + msm * 0.30f) / 32768.0f;
+        right = (ymR * 0.35f + msm * 0.30f) / 32768.0f;
     } else {
         // QSound (CPS2 / CPS1 QSound)
-        QscUpdate(1);
-        left  = QscGetLeftSample() / 32768.0f;
-        right = QscGetRightSample() / 32768.0f;
+        m_qsound.update(1);
+        left  = m_qsound.getLeftSample() / 32768.0f;
+        right = m_qsound.getRightSample() / 32768.0f;
     }
 
     m_mixBuffer[m_mixPos++] = std::clamp(left * m_volume, -1.0f, 1.0f);
@@ -253,10 +229,10 @@ void Audio::saveState(Buffer* buf) {
     buffer_write(buf, &m_ym2151RegSelect, sizeof(m_ym2151RegSelect));
 
     if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
-        YM2151SaveContext(buf);
-        MSM6295SaveContext(buf);
+        m_ym2151.saveState(buf);
+        m_msm6295.saveState(buf);
     } else {
-        QscSaveContext(buf);
+        m_qsound.saveState(buf);
     }
 }
 
@@ -266,10 +242,10 @@ void Audio::loadState(Buffer* buf) {
     buffer_read(buf, &m_ym2151RegSelect, sizeof(m_ym2151RegSelect));
 
     if (m_cartridge->getCPSVersion() == 1 && !m_cartridge->isCPS1QSound()) {
-        YM2151LoadContext(buf);
-        MSM6295LoadContext(buf);
+        m_ym2151.loadState(buf);
+        m_msm6295.loadState(buf);
     } else {
-        QscLoadContext(buf);
+        m_qsound.loadState(buf);
     }
 }
 

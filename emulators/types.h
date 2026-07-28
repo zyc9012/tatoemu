@@ -13,6 +13,7 @@ using u64 = uint64_t;
 using s8 = int8_t;
 using s16 = int16_t;
 using s32 = int32_t;
+using s64 = int64_t;
 
 #define log_info_nn(fmt, ...) fprintf(stdout, fmt __VA_OPT__(,) __VA_ARGS__) // no newline
 #define log_info(fmt, ...) fprintf(stdout, fmt "\n" __VA_OPT__(,) __VA_ARGS__)

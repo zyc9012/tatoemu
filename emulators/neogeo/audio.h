@@ -2,6 +2,7 @@
 
 #include "../types.h"
 #include "../../components/buffer.h"
+#include "../components/sound/fm/fm.h"
 #include <vector>
 #include <array>
 
@@ -64,6 +65,8 @@ public:
     void loadState(Buffer* buf);
 
 private:
+    Ym2610 m_ym2610;
+
     SoundCPU* m_soundCpu;
     CPU* m_cpu;
     Memory* m_memory;

@@ -3,12 +3,9 @@
 #include "../types.h"
 #include "memory.h"
 #include "cartridge.h"
-extern "C" {
 #include "../components/sound/ym2151/ym2151.h"
-}
 #include "../components/sound/msm6295/msm6295.h"
 #include "../components/sound/qsound/qsound.h"
-#include "../components/compact.h"
 #include "../components/buffer.h"
 #include <memory>
 #include <vector>
@@ -57,7 +54,11 @@ private:
     
     u32 m_sampleRate;
     float m_volume;
-    
+
+    Ym2151 m_ym2151;
+    Msm6295 m_msm6295;
+    Qsound m_qsound;
+
     // YM2151 register addressing (two-step process)
     u8 m_ym2151RegSelect;
 

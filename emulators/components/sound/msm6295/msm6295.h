@@ -1,41 +1,63 @@
-// MSM6295 module header
+// OKI MSM6295 module
+// Emulation by Jan Klaassen
 
-#ifndef _H_MSM6295_
-#define _H_MSM6295_
+#pragma once
 
-#include "../../compact.h"
+#include "../../../types.h"
 #include "../../buffer.h"
 
-#define MAX_MSM6295 (4)
-#define MSM6295_PIN7_HIGH (132)
-#define MSM6295_PIN7_LOW (165)
+// Four-channel ADPCM sample player. The real chip has a single analogue
+// output pin, so rendering is mono.
+class Msm6295 {
+public:
+    // chipRate is the chip's own sample rate (set by its pin 7 divider),
+    // hostRate the rate render() should resample to.
+    void init(u32 chipRate, u32 hostRate);
+    void reset();
+    void setSampleRate(u32 chipRate, u32 hostRate);
+    void setVolume(double volume);
 
-INT32 MSM6295Init(INT32 nChip, INT32 nSamplerate, bool bAddSignal, INT32 nHostSoundRate = 44100, INT32 nInterpolation = 0);
-void MSM6295SetSamplerate(INT32 nChip, INT32 nSamplerate, INT32 nHostSoundRateParam = 44100);
-void MSM6295SetRoute(INT32 nChip, double nVolume, INT32 nRouteDir);
-void MSM6295Reset(INT32 nChip);
-void MSM6295Exit(INT32 nChip);
-void MSM6295ResetAll(void); // reset all
-void MSM6295ExitAll(void); // exit all
+    // Point part of the 256 KB sample address space at ROM. Both bounds are
+    // byte offsets into that space, rounded down to a 256-byte page.
+    void setBank(const u8* romData, u32 start, u32 end);
 
-INT32 MSM6295RenderAll(INT16* pSoundBuf, INT32 nSegmenLength); // render all
-INT32 MSM6295Render(INT32 nChip, INT16* pSoundBuf, INT32 nSegmenLength);
-void MSM6295Write(INT32 nChip, UINT8 nCommand);
+    u8 readStatus() const { return static_cast<u8>(m_status); }
+    void write(u8 command);
+    void render(s16* out, u32 samples);
 
-void MSM6295SaveContext(Buffer* buf);
-void MSM6295LoadContext(Buffer* buf);
+    void saveState(Buffer* buf);
+    void loadState(Buffer* buf);
 
-// for backwards compatibility. Remove when done configuring all banks
-extern UINT8* MSM6295ROM;
+private:
+    struct Channel {
+        s32 output;
+        s32 volume;
+        s32 position;
+        s32 sampleCount;
+        s32 sample;
+        s32 step;
+        s32 delta;
+        s32 playing;
+    };
 
-// Call this in the driver to set the bank
-void MSM6295SetBank(INT32 nChip, UINT8 *pRomData, INT32 nStart, INT32 nEnd);
+    static constexpr u32 PAGE_SHIFT = 8;
+    static constexpr u32 PAGE_COUNT = 0x40000 >> PAGE_SHIFT;
 
-inline static UINT32 MSM6295Read(const INT32 nChip)
-{
-	extern UINT32 nMSM6295Status[MAX_MSM6295];
+    u8 readData(u32 addr) const;
+    void stepChannels();
+    template <typename Visit> void visitState(Visit visit);
 
-	return nMSM6295Status[nChip];
-}
+    Channel m_channel[4] = {};
+    const u8* m_page[PAGE_COUNT] = {};
 
-#endif
+    // A sample-start command arrives as two bytes; this holds the first one.
+    bool m_isCommand = false;
+    s32 m_sampleInfo = 0;
+
+    u32 m_status = 0;
+
+    s32 m_volume = 256;
+    s32 m_sampleSize = 0;
+    s32 m_fractionalPosition = 0;
+    s32 m_currentSample = 0;
+};
