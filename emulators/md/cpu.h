@@ -25,8 +25,11 @@ public:
 
     void setMemory(Memory* memory) { m_memory = memory; }
 
-    // Raise an autovectored interrupt.  Level 0 clears the line.
-    void setIRQLevel(u8 level);
+    // The VDP drives two autovectored interrupts (level 4 and 6).  Raising
+    // never lowers a request the CPU has not acknowledged yet, and clearing
+    // only releases the line if that exact level is still pending.
+    void raiseIRQ(u8 level);
+    void clearIRQ(u8 level);
 
     // Steal cycles from the current timeslice (VDP DMA / FIFO stalls).
     void stall(u32 cycles);

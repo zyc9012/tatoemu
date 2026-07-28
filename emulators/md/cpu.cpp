@@ -122,9 +122,13 @@ u32 CPU::step(u32 cycles) {
     return consumed;
 }
 
-void CPU::setIRQLevel(u8 level) {
-    if (level > 7) level = 7;
-    m68k_set_irq(level);
+void CPU::raiseIRQ(u8 level) {
+    if (level == 0 || level > 7) return;
+    if (level > m68k_get_irq()) m68k_set_irq(level);
+}
+
+void CPU::clearIRQ(u8 level) {
+    if (m68k_get_irq() == level) m68k_set_irq(0);
 }
 
 void CPU::stall(u32 cycles) {

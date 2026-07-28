@@ -48,7 +48,9 @@ void VDP::reset() {
     m_readBuffer = 0;
     m_dmaFillPending = false;
 
-    m_status = 0x3400;  // FIFO empty, unused bits read high
+    // Bit 9 is the FIFO-empty flag: writes complete instantly here, so the
+    // FIFO is always reported empty and never full.  Bits 10-13 read high.
+    m_status = 0x3600;
     m_line = 0;
     m_hintCounter = 0;
     m_vintPending = false;
@@ -110,10 +112,19 @@ void VDP::writeRegister(u8 index, u8 value) {
     u8 previous = m_regs[index];
     m_regs[index] = value;
 
+    if (index == 0 && ((previous ^ value) & 0x10)) {
+        // Masking the horizontal interrupt releases the line immediately.
+        if (!(value & 0x10) && m_cpu) m_cpu->clearIRQ(IRQ_HBLANK);
+    }
+
     // Enabling the vertical interrupt while one is already pending fires it
     // immediately, which some games rely on.
-    if (index == 1 && !(previous & 0x20) && (value & 0x20) && m_vintPending && m_cpu) {
-        m_cpu->setIRQLevel(IRQ_VBLANK);
+    if (index == 1 && ((previous ^ value) & 0x20) && m_cpu) {
+        if (value & 0x20) {
+            if (m_vintPending) m_cpu->raiseIRQ(IRQ_VBLANK);
+        } else {
+            m_cpu->clearIRQ(IRQ_VBLANK);
+        }
     }
 }
 
@@ -152,6 +163,7 @@ u16 VDP::readControl() {
     m_status &= ~0x0080;
     m_status &= ~0x0060;
     m_vintPending = false;
+    if (m_cpu) m_cpu->clearIRQ(IRQ_VBLANK);
 
     return status;
 }
@@ -336,12 +348,20 @@ void VDP::beginFrame() {
     if (m_oddFrame) m_status |= 0x0010;
     else            m_status &= ~0x0010;
     m_status &= ~0x0008;
+
+    // Backstop: a vertical interrupt that was never acknowledged during the
+    // whole of vertical blanking is dropped rather than left asserted.
+    m_vintPending = false;
+    if (m_cpu) m_cpu->clearIRQ(IRQ_VBLANK);
 }
 
 void VDP::beginLine(u32 line) {
     m_line = line;
     m_lineProgressNum = 0;
     m_status &= ~0x0004;
+
+    // The horizontal interrupt is asserted for at most one line.
+    if (m_cpu) m_cpu->clearIRQ(IRQ_HBLANK);
 }
 
 void VDP::endActiveDisplay(u32 line) {
@@ -359,7 +379,7 @@ void VDP::endActiveDisplay(u32 line) {
         if (--m_hintCounter < 0) {
             m_hintCounter = m_regs[10];
             if ((m_regs[0] & 0x10) && m_cpu) {
-                m_cpu->setIRQLevel(IRQ_HBLANK);
+                m_cpu->raiseIRQ(IRQ_HBLANK);
             }
         }
     } else {
@@ -372,7 +392,7 @@ void VDP::endActiveDisplay(u32 line) {
         m_vintPending = true;
         m_vintEvent = true;
         if ((m_regs[1] & 0x20) && m_cpu) {
-            m_cpu->setIRQLevel(IRQ_VBLANK);
+            m_cpu->raiseIRQ(IRQ_VBLANK);
         }
     }
 }
