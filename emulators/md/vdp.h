@@ -36,6 +36,11 @@ public:
     void writeControl(u16 value);
     u16  readHVCounter() const;
 
+    // Called from the 68000 interrupt acknowledge cycle.  The VDP holds both
+    // interrupt lines until the CPU acknowledges them, and only the level that
+    // is actually being serviced is retired.
+    void acknowledgeIRQ(u8 level);
+
     // --- Frame sequencing, driven by Core ---
     void beginFrame();
     void beginLine(u32 line);
@@ -70,6 +75,7 @@ public:
 private:
     // --- register / port helpers ---
     void writeRegister(u8 index, u8 value);
+    void updateIRQ();
     void writeDataInternal(u16 value);
     void bumpAddress();
     u32  dmaLength() const;
@@ -120,6 +126,7 @@ private:
     u32  m_line = 0;
     s32  m_hintCounter = 0;
     bool m_vintPending = false;
+    bool m_hintPending = false;
     bool m_vintEvent = false;
     bool m_pal = false;
     bool m_oddFrame = false;

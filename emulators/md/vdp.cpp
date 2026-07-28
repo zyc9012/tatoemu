@@ -54,6 +54,7 @@ void VDP::reset() {
     m_line = 0;
     m_hintCounter = 0;
     m_vintPending = false;
+    m_hintPending = false;
     m_oddFrame = false;
 
     m_framebuffer.fill(0xFF000000);
@@ -113,19 +114,26 @@ void VDP::writeRegister(u8 index, u8 value) {
     m_regs[index] = value;
 
     if (index == 0 && ((previous ^ value) & 0x10)) {
-        // Masking the horizontal interrupt releases the line immediately.
-        if (!(value & 0x10) && m_cpu) m_cpu->clearIRQ(IRQ_HBLANK);
+        // Masking the horizontal interrupt releases the line immediately;
+        // unmasking it while a request is latched asserts it.
+        updateIRQ();
     }
 
     // Enabling the vertical interrupt while one is already pending fires it
     // immediately, which some games rely on.
-    if (index == 1 && ((previous ^ value) & 0x20) && m_cpu) {
-        if (value & 0x20) {
-            if (m_vintPending) m_cpu->raiseIRQ(IRQ_VBLANK);
-        } else {
-            m_cpu->clearIRQ(IRQ_VBLANK);
-        }
+    if (index == 1 && ((previous ^ value) & 0x20)) {
+        updateIRQ();
     }
+}
+
+// The VDP holds both interrupt lines itself: it asserts the highest enabled
+// pending level and releases the line once nothing is left to service.
+void VDP::updateIRQ() {
+    if (!m_cpu) return;
+
+    if ((m_regs[1] & 0x20) && m_vintPending)      m_cpu->setIRQLevel(IRQ_VBLANK);
+    else if ((m_regs[0] & 0x10) && m_hintPending) m_cpu->setIRQLevel(IRQ_HBLANK);
+    else                                          m_cpu->setIRQLevel(0);
 }
 
 void VDP::writeControl(u16 value) {
@@ -158,14 +166,29 @@ u16 VDP::readControl() {
 
     u16 status = m_status;
 
-    // Reading the status acknowledges the vertical interrupt and clears the
-    // sticky sprite flags.
-    m_status &= ~0x0080;
+    // While the display is disabled the VDP reports a permanent vertical
+    // blank, because it never leaves blanking.
+    if (!(m_regs[1] & 0x40)) status |= 0x0008;
+
+    // Only the sticky sprite flags are cleared by a status read.  The vertical
+    // interrupt is *not* acknowledged here: the flag and the interrupt line
+    // survive until the 68000 runs its acknowledge cycle.
     m_status &= ~0x0060;
-    m_vintPending = false;
-    if (m_cpu) m_cpu->clearIRQ(IRQ_VBLANK);
 
     return status;
+}
+
+void VDP::acknowledgeIRQ(u8 level) {
+    // The vertical interrupt has priority when both are asserted; the other
+    // request stays latched and is re-asserted by updateIRQ().
+    if (level == IRQ_VBLANK && (m_regs[1] & 0x20) && m_vintPending) {
+        m_vintPending = false;
+        m_status &= ~0x0080;
+    } else {
+        m_hintPending = false;
+    }
+
+    updateIRQ();
 }
 
 void VDP::writeData(u16 value) {
@@ -260,7 +283,7 @@ u16 VDP::readHVCounter() const {
 
     // Counting is not contiguous: the hardware skips a block of values partway
     // through horizontal blanking.
-    const u32 total = isH40() ? 210u : 171u;
+    const u32 total = isH40() ? 211u : 171u;
     const u32 lastBeforeJump = isH40() ? 0xB6u : 0x93u;
     const u32 firstAfterJump = isH40() ? 0xE4u : 0xE9u;
 
@@ -365,11 +388,6 @@ void VDP::beginFrame() {
     if (m_oddFrame) m_status |= 0x0010;
     else            m_status &= ~0x0010;
     m_status &= ~0x0008;
-
-    // Backstop: a vertical interrupt that was never acknowledged during the
-    // whole of vertical blanking is dropped rather than left asserted.
-    m_vintPending = false;
-    if (m_cpu) m_cpu->clearIRQ(IRQ_VBLANK);
 }
 
 void VDP::beginLine(u32 line) {
@@ -396,9 +414,8 @@ void VDP::endActiveDisplay(u32 line) {
     if (line <= active) {
         if (--m_hintCounter < 0) {
             m_hintCounter = m_regs[10];
-            if ((m_regs[0] & 0x10) && m_cpu) {
-                m_cpu->raiseIRQ(IRQ_HBLANK);
-            }
+            m_hintPending = true;
+            updateIRQ();
         }
     } else {
         m_hintCounter = m_regs[10];
@@ -409,9 +426,7 @@ void VDP::endActiveDisplay(u32 line) {
         m_status |= 0x0080;  // vertical interrupt pending
         m_vintPending = true;
         m_vintEvent = true;
-        if ((m_regs[1] & 0x20) && m_cpu) {
-            m_cpu->raiseIRQ(IRQ_VBLANK);
-        }
+        updateIRQ();
     }
 }
 
@@ -751,6 +766,7 @@ void VDP::saveState(Buffer* buf) {
     buffer_write(buf, &m_line, sizeof(m_line));
     buffer_write(buf, &m_hintCounter, sizeof(m_hintCounter));
     buffer_write(buf, &m_vintPending, sizeof(m_vintPending));
+    buffer_write(buf, &m_hintPending, sizeof(m_hintPending));
     buffer_write(buf, &m_oddFrame, sizeof(m_oddFrame));
 }
 
@@ -769,6 +785,7 @@ void VDP::loadState(Buffer* buf) {
     buffer_read(buf, &m_line, sizeof(m_line));
     buffer_read(buf, &m_hintCounter, sizeof(m_hintCounter));
     buffer_read(buf, &m_vintPending, sizeof(m_vintPending));
+    buffer_read(buf, &m_hintPending, sizeof(m_hintPending));
     buffer_read(buf, &m_oddFrame, sizeof(m_oddFrame));
 
     for (u32 i = 0; i < CRAM_ENTRIES; i++) updatePaletteEntry(i);

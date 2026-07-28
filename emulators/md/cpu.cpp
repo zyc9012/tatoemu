@@ -1,5 +1,6 @@
 #include "cpu.h"
 #include "memory.h"
+#include "vdp.h"
 #include <algorithm>
 #include <cstring>
 #include <vector>
@@ -10,6 +11,14 @@
 namespace md {
 
 static Memory* g_memory = nullptr;
+static VDP* g_vdp = nullptr;
+
+// The VDP is the only interrupt source, and it decides which request the
+// acknowledge cycle actually retires.  Both levels are autovectored.
+static int int_ack_callback(int level) {
+    if (g_vdp) g_vdp->acknowledgeIRQ(static_cast<u8>(level));
+    return M68K_INT_ACK_AUTOVECTOR;
+}
 
 static unsigned int read8_callback(unsigned int address) {
     return g_memory->read8(address & 0xFFFFFF);
@@ -58,6 +67,7 @@ CPU::~CPU() = default;
 
 void CPU::reset() {
     g_memory = m_memory;
+    g_vdp = m_vdp;
 
     m68k_memory_callbacks callbacks = {};
     callbacks.read_memory_8 = read8_callback;
@@ -76,6 +86,7 @@ void CPU::reset() {
     callbacks.write_memory_32 = write32_callback;
     callbacks.write_memory_32_pd = write32_pd_callback;
     m68k_set_memory_callbacks(&callbacks);
+    m68k_set_int_ack_callback(int_ack_callback);
 
     m68k_pulse_reset();
 
@@ -122,13 +133,9 @@ u32 CPU::step(u32 cycles) {
     return consumed;
 }
 
-void CPU::raiseIRQ(u8 level) {
-    if (level == 0 || level > 7) return;
-    if (level > m68k_get_irq()) m68k_set_irq(level);
-}
-
-void CPU::clearIRQ(u8 level) {
-    if (m68k_get_irq() == level) m68k_set_irq(0);
+void CPU::setIRQLevel(u8 level) {
+    if (level > 7) return;
+    m68k_set_irq(level);
 }
 
 void CPU::stall(u32 cycles) {

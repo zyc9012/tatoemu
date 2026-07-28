@@ -7,6 +7,7 @@
 namespace md {
 
 class Memory;
+class VDP;
 
 // ---------------------------------------------------------------------------
 // Motorola 68000 main CPU.
@@ -24,12 +25,12 @@ public:
     void endFrame(u32 frameCycles) { m_cycles -= frameCycles; }
 
     void setMemory(Memory* memory) { m_memory = memory; }
+    void setVDP(VDP* vdp) { m_vdp = vdp; }
 
-    // The VDP drives two autovectored interrupts (level 4 and 6).  Raising
-    // never lowers a request the CPU has not acknowledged yet, and clearing
-    // only releases the line if that exact level is still pending.
-    void raiseIRQ(u8 level);
-    void clearIRQ(u8 level);
+    // The VDP is the only interrupt source and owns the pending state for both
+    // of its autovectored levels, so it simply drives the line to the level it
+    // wants serviced (0 releases it).
+    void setIRQLevel(u8 level);
 
     // Steal cycles from the current timeslice (VDP DMA / FIFO stalls).
     void stall(u32 cycles);
@@ -42,6 +43,7 @@ public:
 
 private:
     Memory* m_memory = nullptr;
+    VDP* m_vdp = nullptr;
     u32 m_cycles = 0;
     // Cycles taken from the current timeslice by VDP DMA, and the remainder
     // that did not fit and must be charged to the next slice.

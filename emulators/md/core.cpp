@@ -26,6 +26,7 @@ bool Core::initialize() {
     m_memory->setCartridge(m_cartridge.get());
     m_memory->setController(m_controller.get());
 
+    m_cpu->setVDP(m_vdp.get());
     m_vdp->setCPU(m_cpu.get());
     m_vdp->setMemory(m_memory.get());
 

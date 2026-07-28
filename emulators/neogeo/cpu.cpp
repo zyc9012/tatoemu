@@ -80,6 +80,8 @@ void CPU::reset() {
     m68k_set_memory_callbacks(&callbacks);
     
     // Reset the Musashi emulator
+    m68k_set_int_ack_callback(nullptr);
+
     m68k_pulse_reset();
     
     // Reset cycle counter
