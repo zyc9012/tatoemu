@@ -243,11 +243,16 @@ void Cartridge::parseHeader() {
         m_sramEnd = 0x203FFF;
         m_hasSram = false;  // only enabled via the 0xA130F1 control register
     }
+
+    // A few cartridges (mostly oversized translations) declare SRAM in a
+    // window the ROM image itself covers.  Mapping the SRAM there by default
+    // would hide real code, so leave ROM visible until 0xA130F1 asks for SRAM.
+    m_sramOverlapsRom = m_hasSram && m_rom.size() > m_sramStart;
 }
 
 void Cartridge::reset() {
     for (u8 i = 0; i < 8; i++) m_banks[i] = i;
-    m_sramEnabled = m_hasSram;
+    m_sramEnabled = m_hasSram && !m_sramOverlapsRom;
 }
 
 u32 Cartridge::mapRomOffset(u32 address) const {

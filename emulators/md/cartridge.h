@@ -72,6 +72,9 @@ private:
 
     bool m_hasSram = false;
     bool m_sramEnabled = false;
+    // True when the ROM image extends into the declared SRAM window; SRAM then
+    // stays hidden until the game selects it through 0xA130F1.
+    bool m_sramOverlapsRom = false;
     u32  m_sramStart = 0x200000;
     u32  m_sramEnd   = 0x20FFFF;
     bool m_sramDirty = false;
