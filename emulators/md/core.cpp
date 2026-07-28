@@ -129,6 +129,12 @@ void Core::update() {
     const u32 frameCycles68k = (totalLines * MASTER_CYCLES_PER_LINE) / M68K_CLOCK_DIVIDER;
     const u32 frameCyclesZ80 = (totalLines * MASTER_CYCLES_PER_LINE) / Z80_CLOCK_DIVIDER;
 
+    // Bring the Z80 exactly up to the frame boundary before rebasing both
+    // cycle counters.
+    if (frameCyclesZ80 > m_soundCpu->frameCycles()) {
+        m_soundCpu->step(frameCyclesZ80 - m_soundCpu->frameCycles());
+    }
+
     m_audio->endFrame(m_gameSpeed);
     m_vdp->endFrame();
 

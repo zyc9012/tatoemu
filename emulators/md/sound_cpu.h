@@ -21,7 +21,9 @@ public:
     u32 step(u32 cycles);
 
     u32 frameCycles() const { return m_cycles; }
-    void endFrame(u32 frameCycles) { m_cycles -= frameCycles; }
+    void endFrame(u32 frameCycles) {
+        m_cycles = (m_cycles > frameCycles) ? m_cycles - frameCycles : 0;
+    }
 
     void setMemory(Memory* memory) { m_memory = memory; }
     Memory* getMemory() const { return m_memory; }
