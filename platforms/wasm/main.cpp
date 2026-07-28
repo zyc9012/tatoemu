@@ -5,6 +5,7 @@
 #include "gba/config.h"
 #include "cps/config.h"
 #include "neogeo/config.h"
+#include "md/config.h"
 #include <SDL3/SDL.h>
 #include <emscripten.h>
 #include <emscripten/html5.h>
@@ -372,6 +373,19 @@ extern "C" {
             else if (k == "P2_Select") neogeo::Config::Key::P2_Select = kc;
             else if (k == "Test") neogeo::Config::Key::Test = kc;
             else if (k == "Service") neogeo::Config::Key::Service = kc;
+        } else if (sec == "MD") {
+            if (k == "Up") md::Config::Key::DpadUp = kc;
+            else if (k == "Down") md::Config::Key::DpadDown = kc;
+            else if (k == "Left") md::Config::Key::DpadLeft = kc;
+            else if (k == "Right") md::Config::Key::DpadRight = kc;
+            else if (k == "A") md::Config::Key::ButtonA = kc;
+            else if (k == "B") md::Config::Key::ButtonB = kc;
+            else if (k == "C") md::Config::Key::ButtonC = kc;
+            else if (k == "X") md::Config::Key::ButtonX = kc;
+            else if (k == "Y") md::Config::Key::ButtonY = kc;
+            else if (k == "Z") md::Config::Key::ButtonZ = kc;
+            else if (k == "Start") md::Config::Key::Start = kc;
+            else if (k == "Mode") md::Config::Key::Mode = kc;
         }
     }
 }

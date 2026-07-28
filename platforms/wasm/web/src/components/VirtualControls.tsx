@@ -73,6 +73,19 @@ const CONTROL_LAYOUTS: Partial<Record<CoreType, ControlLayout>> = {
       { binding: 'P1_Start', label: 'Start' },
     ],
   },
+  md: {
+    section: 'MD',
+    directions: STANDARD_DIRECTIONS,
+    actions: [
+      { binding: 'X', label: 'X' },
+      { binding: 'Y', label: 'Y' },
+      { binding: 'Z', label: 'Z' },
+      { binding: 'A', label: 'A' },
+      { binding: 'B', label: 'B' },
+      { binding: 'C', label: 'C' },
+    ],
+    system: [{ binding: 'Mode', label: 'Mode' }, { binding: 'Start', label: 'Start' }],
+  },
 };
 
 export function VirtualControls({ core, keyBindings, onInput }: VirtualControlsProps) {

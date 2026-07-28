@@ -144,6 +144,25 @@ export const KEY_BINDING_SCHEMAS: Record<string, KeyBindingSection> = {
       ],
     },
   },
+  MD: {
+    label: 'Mega Drive',
+    groups: {
+      Controls: [
+        binding('Up', 'D-Pad Up', 'Up'),
+        binding('Down', 'D-Pad Down', 'Down'),
+        binding('Left', 'D-Pad Left', 'Left'),
+        binding('Right', 'D-Pad Right', 'Right'),
+        binding('A', 'A Button', 'Z'),
+        binding('B', 'B Button', 'X'),
+        binding('C', 'C Button', 'C'),
+        binding('X', 'X Button', 'A'),
+        binding('Y', 'Y Button', 'S'),
+        binding('Z', 'Z Button', 'D'),
+        binding('Start', 'Start', 'Return'),
+        binding('Mode', 'Mode', 'Right Shift'),
+      ],
+    },
+  },
 };
 
 export const BROWSER_KEY_TO_SDL: Record<string, string> = {
