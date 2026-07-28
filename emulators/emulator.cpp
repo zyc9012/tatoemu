@@ -7,6 +7,7 @@
 #include "neogeo/db.h"
 #include "gba/core.h"
 #include "md/core.h"
+#include "md/cartridge.h"
 #include "../utilities/zip_reader.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -72,6 +73,8 @@ CoreType Emulator::determineCoreType(const fs::path& romFilename) {
         return CoreType::GBA;
     } else if (ext == ".gen" || ext == ".md" || ext == ".smd") {
         return CoreType::MD;
+    } else if (ext == ".bin" && md::Cartridge::fileHasHeader(romFilename)) {
+        return CoreType::MD;
     } else if (ext == ".zip") {
         // Check ZIP contents for GB/GBC/NES files
         util::ZipReader zip;
@@ -111,6 +114,20 @@ CoreType Emulator::determineCoreType(const fs::path& romFilename) {
         const neogeo::GameInfo* neogeoGameInfo = neogeo::GameDatabase::findGame(romSetName);
         if (neogeoGameInfo) {
             return CoreType::NEOGEO;
+        }
+
+        // Last resort: a lone ".bin" entry carrying a Mega Drive header.  This
+        // runs after the arcade lookups so arcade sets are never misdetected.
+        for (const auto& filename : files) {
+            if (fs::path(filename).extension() != ".bin") continue;
+
+            std::vector<u8> data;
+            if (zip.open(romFilename) && zip.extractFile(filename, data)) {
+                zip.close();
+                if (md::Cartridge::hasHeader(data.data(), data.size())) {
+                    return CoreType::MD;
+                }
+            }
         }
 
         log_error("Unknown game in ZIP: %s", romSetName.c_str());

@@ -25,6 +25,11 @@ public:
     bool load(const fs::path& filename);
     void reset();
 
+    // ".bin" is shared with other consoles, so callers can sniff the console
+    // name in the cartridge header at 0x100 to identify a Mega Drive image.
+    static bool hasHeader(const u8* data, size_t size);
+    static bool fileHasHeader(const fs::path& filename);
+
     // 68000 ROM/SRAM area reads (0x000000-0x3FFFFF)
     u8  read8(u32 address) const;
     u16 read16(u32 address) const;

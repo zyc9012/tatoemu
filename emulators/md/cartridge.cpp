@@ -58,6 +58,23 @@ Cartridge::~Cartridge() {
     }
 }
 
+// ".bin" is used by several consoles, so a Mega Drive dump is only recognised
+// when the console name is present in the cartridge header at 0x100.
+bool Cartridge::hasHeader(const u8* data, size_t size) {
+    if (size < 0x110) return false;
+    return std::memcmp(data + 0x100, "SEGA", 4) == 0 ||
+           std::memcmp(data + 0x101, "SEGA", 4) == 0;  // some dumps are byte-shifted
+}
+
+bool Cartridge::fileHasHeader(const fs::path& filename) {
+    FILE* file = fopen(filename.string().c_str(), "rb");
+    if (!file) return false;
+    u8 header[0x110] = {};
+    size_t read = fread(header, 1, sizeof(header), file);
+    fclose(file);
+    return hasHeader(header, read);
+}
+
 // SMD images store each 16 KB block as 8 KB of odd bytes followed by 8 KB of
 // even bytes, preceded by a 512-byte header.
 void Cartridge::deinterleaveSMD(std::vector<u8>& data) {
@@ -94,7 +111,7 @@ bool Cartridge::load(const fs::path& filename) {
             return false;
         }
         std::string found;
-        const std::set<std::string> exts = { ".gen", ".md", ".smd" };
+        const std::set<std::string> exts = { ".gen", ".md", ".smd", ".bin" };
         if (!zip.findAndExtractFile(exts, data, found)) {
             zip.close();
             log_error("No Mega Drive ROM found in ZIP: %s", filename.string().c_str());
