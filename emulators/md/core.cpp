@@ -103,7 +103,7 @@ void Core::update() {
         const u32 activeEnd = lineStart + (lineCycles * 3) / 4;
 
         m_vdp->beginLine(line);
-        m_vdp->setLineProgress(0, lineCycles);
+        m_vdp->setLineWindow(lineStart, lineCycles);
 
         // Clear the previous frame's vertical interrupt pulse to the Z80.
         if (m_z80IrqAsserted) {
@@ -113,7 +113,6 @@ void Core::update() {
 
         runTo(activeEnd);
 
-        m_vdp->setLineProgress((lineCycles * 3) / 4, lineCycles);
         m_vdp->endActiveDisplay(line);
 
         if (m_vdp->consumeVIntEvent()) {
@@ -122,7 +121,6 @@ void Core::update() {
         }
 
         runTo(lineEnd);
-        m_vdp->endLine();
         m_controller->endLine();
     }
 

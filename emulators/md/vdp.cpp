@@ -248,12 +248,29 @@ u16 VDP::readHVCounter() const {
         v = (line <= 0x0EA) ? line : (line + 0x1E5 - 0x0EB);
     }
 
-    // Horizontal counter, approximated linearly across the line.
-    u32 span = isH40() ? 420u : 342u;
-    u32 pixel = (m_lineProgressNum * span) / m_lineProgressDen;
-    u32 h = (pixel >> 1) & 0xFF;
+    // Horizontal counter.  It ticks once per two pixels and is derived from
+    // how far the 68000 has advanced into the current scanline, so busy-wait
+    // loops on a given value actually terminate.
+    u32 elapsed = 0;
+    if (m_cpu) {
+        const u32 now = m_cpu->frameCycles();
+        if (now > m_lineStartCycle) elapsed = now - m_lineStartCycle;
+        if (elapsed > m_lineCycles) elapsed = m_lineCycles;
+    }
 
-    return static_cast<u16>(((v & 0xFF) << 8) | h);
+    // Counting is not contiguous: the hardware skips a block of values partway
+    // through horizontal blanking.
+    const u32 total = isH40() ? 210u : 171u;
+    const u32 lastBeforeJump = isH40() ? 0xB6u : 0x93u;
+    const u32 firstAfterJump = isH40() ? 0xE4u : 0xE9u;
+
+    u32 index = (elapsed * total) / m_lineCycles;
+    if (index >= total) index = total - 1;
+
+    const u32 h = (index <= lastBeforeJump) ? index
+                                            : (firstAfterJump + (index - lastBeforeJump - 1));
+
+    return static_cast<u16>(((v & 0xFF) << 8) | (h & 0xFF));
 }
 
 // ---------------------------------------------------------------------------
@@ -357,11 +374,12 @@ void VDP::beginFrame() {
 
 void VDP::beginLine(u32 line) {
     m_line = line;
-    m_lineProgressNum = 0;
     m_status &= ~0x0004;
 
-    // The horizontal interrupt is asserted for at most one line.
-    if (m_cpu) m_cpu->clearIRQ(IRQ_HBLANK);
+    // The horizontal interrupt request is *not* released here: the VDP holds
+    // the level on the interrupt lines until the 68000 acknowledges it.  Games
+    // that spend more than a scanline inside an interrupt handler rely on a
+    // request raised meanwhile still being serviced afterwards.
 }
 
 void VDP::endActiveDisplay(u32 line) {
@@ -395,10 +413,6 @@ void VDP::endActiveDisplay(u32 line) {
             m_cpu->raiseIRQ(IRQ_VBLANK);
         }
     }
-}
-
-void VDP::endLine() {
-    m_lineProgressNum = m_lineProgressDen;
 }
 
 void VDP::endFrame() {

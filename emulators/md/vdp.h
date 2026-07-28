@@ -42,7 +42,6 @@ public:
     // Called when the active portion of the line has elapsed: renders the line
     // and evaluates the H/V interrupt sources.
     void endActiveDisplay(u32 line);
-    void endLine();
     void endFrame();
 
     // True once per frame, on the line where the vertical interrupt fires.
@@ -55,10 +54,12 @@ public:
     u32  activeScanlines() const { return (m_regs[1] & 0x08) ? 240u : 224u; }
     double targetFPS() const { return m_pal ? TARGET_FPS_PAL : TARGET_FPS_NTSC; }
 
-    // Progress through the current scanline, used for the H counter.
-    void setLineProgress(u32 numerator, u32 denominator) {
-        m_lineProgressNum = numerator;
-        m_lineProgressDen = denominator ? denominator : 1;
+    // Cycle window of the scanline being emulated.  The H counter interpolates
+    // the 68000's position inside it so that software which busy-waits on a
+    // particular counter value sees it advance.
+    void setLineWindow(u32 startCycle, u32 cycles) {
+        m_lineStartCycle = startCycle;
+        m_lineCycles = cycles ? cycles : 1;
     }
 
     u8* getVRAM() { return m_vram.data(); }
@@ -123,8 +124,8 @@ private:
     bool m_pal = false;
     bool m_oddFrame = false;
 
-    u32 m_lineProgressNum = 0;
-    u32 m_lineProgressDen = 1;
+    u32 m_lineStartCycle = 0;
+    u32 m_lineCycles = 1;
 
     // --- rendering scratch ---
     // Each entry: bit 6 = priority, bits 5-0 = palette<<4 | colour index.
