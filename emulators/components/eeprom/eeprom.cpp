@@ -60,7 +60,7 @@ void EEPROM::reset()
     m_resetDelay = m_interface->reset_delay;
 }
 
-bool EEPROM::commandMatch(const char* buf, const char* cmd, UINT32 len)
+bool EEPROM::commandMatch(const char* buf, const char* cmd, u32 len)
 {
     if (cmd == nullptr) return false;
     if (len == 0) return false;
@@ -107,7 +107,7 @@ bool EEPROM::commandMatch(const char* buf, const char* cmd, UINT32 len)
     return (*cmd == 0);
 }
 
-void EEPROM::processWrite(UINT32 bit)
+void EEPROM::processWrite(u32 bit)
 {
     if (m_serialCount >= SERIAL_BUFFER_LENGTH - 1)
     {
@@ -123,7 +123,7 @@ void EEPROM::processWrite(UINT32 bit)
         commandMatch((char*)m_serialBuffer, m_interface->cmd_read,
                     std::strlen((char*)m_serialBuffer) - m_interface->address_bits))
     {
-        UINT32 i, address = 0;
+        u32 i, address = 0;
 
         for (i = m_serialCount - m_interface->address_bits; i < m_serialCount; i++)
         {
@@ -146,7 +146,7 @@ void EEPROM::processWrite(UINT32 bit)
              commandMatch((char*)m_serialBuffer, m_interface->cmd_erase,
                          std::strlen((char*)m_serialBuffer) - m_interface->address_bits))
     {
-        UINT32 i, address = 0;
+        u32 i, address = 0;
 
         for (i = m_serialCount - m_interface->address_bits; i < m_serialCount; i++)
         {
@@ -171,7 +171,7 @@ void EEPROM::processWrite(UINT32 bit)
              commandMatch((char*)m_serialBuffer, m_interface->cmd_write,
                          std::strlen((char*)m_serialBuffer) - (m_interface->address_bits + m_interface->data_bits)))
     {
-        UINT32 i, address = 0, data = 0;
+        u32 i, address = 0, data = 0;
 
         for (i = m_serialCount - m_interface->data_bits - m_interface->address_bits;
              i < (m_serialCount - m_interface->data_bits); i++)
@@ -214,13 +214,13 @@ void EEPROM::processWrite(UINT32 bit)
     }
 }
 
-void EEPROM::writeBit(UINT32 bit)
+void EEPROM::writeBit(u32 bit)
 {
     if (!m_initialized) return;
     m_latch = bit;
 }
 
-void EEPROM::setCSLine(UINT32 state)
+void EEPROM::setCSLine(u32 state)
 {
     if (!m_initialized) return;
 
@@ -230,7 +230,7 @@ void EEPROM::setCSLine(UINT32 state)
         reset();
 }
 
-void EEPROM::setClockLine(UINT32 state)
+void EEPROM::setClockLine(u32 state)
 {
     if (!m_initialized) return;
 
@@ -262,11 +262,11 @@ void EEPROM::setClockLine(UINT32 state)
     m_clockLine = state;
 }
 
-UINT32 EEPROM::read()
+u32 EEPROM::read()
 {
     if (!m_initialized) return 1;
 
-    UINT32 res;
+    u32 res;
 
     if (m_sending)
     {
@@ -289,32 +289,32 @@ UINT32 EEPROM::read()
     return res;
 }
 
-void EEPROM::write(UINT32 clock, UINT32 cs, UINT32 bit)
+void EEPROM::write(u32 clock, u32 cs, u32 bit)
 {
     writeBit(bit);
     setCSLine(cs ? CLEAR_LINE : ASSERT_LINE);
     setClockLine(clock ? ASSERT_LINE : CLEAR_LINE);
 }
 
-void EEPROM::fillData(const UINT8* data, UINT32 offset, UINT32 length)
+void EEPROM::fillData(const u8* data, u32 offset, u32 length)
 {
     if (!m_initialized) return;
     std::memcpy(m_eepromData + offset, data, length);
 }
 
-void EEPROM::fillByte(UINT8 byte, UINT32 length)
+void EEPROM::fillByte(u8 byte, u32 length)
 {
     if (!m_initialized) return;
     std::memset(m_eepromData, byte, length);
 }
 
-UINT8 EEPROM::readByte(UINT32 offset)
+u8 EEPROM::readByte(u32 offset)
 {
     if (!m_initialized) return 0xFF;
     return m_eepromData[offset];
 }
 
-void EEPROM::writeByte(UINT32 offset, UINT8 data)
+void EEPROM::writeByte(u32 offset, u8 data)
 {
     if (!m_initialized) return;
     m_eepromData[offset] = data;

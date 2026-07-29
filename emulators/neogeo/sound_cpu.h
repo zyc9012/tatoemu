@@ -2,7 +2,6 @@
 
 #include "consts.h"
 #include "../types.h"
-#include "../components/compact.h"
 #include "../components/buffer.h"
 #include "../components/cpu/z80/z80.h"
 

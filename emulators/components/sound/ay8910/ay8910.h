@@ -10,8 +10,8 @@
 
 #include <array>
 
-#include "../../types.h"
-#include "../buffer.h"
+#include "../../../types.h"
+#include "../../buffer.h"
 
 class Ay8910 {
 public:

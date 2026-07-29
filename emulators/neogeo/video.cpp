@@ -574,8 +574,8 @@ void Video::renderSpriteLine(const u8* /* tileData */, u32* palette, s32 xPos, s
     u32* lineBuffer = &m_frameBuffer[yPos * m_screenWidth];
     
     // Sprite ROM is decoded into 32-bit words
-    // Each sprite tile is 128 bytes = 32 UINT32 values
-    // Each scanline uses 2 UINT32 values (16 pixels, 4bpp = 64 bits = 8 bytes)
+    // Each sprite tile is 128 bytes = 32 u32 values
+    // Each scanline uses 2 u32 values (16 pixels, 4bpp = 64 bits = 8 bytes)
     u32 tileOffset = tileNumber * 128 + line * 8;
     
     if (tileOffset + 8 > m_cartridge->getSpriteROMSize()) {
