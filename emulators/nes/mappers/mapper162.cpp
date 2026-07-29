@@ -80,18 +80,20 @@ void Mapper162::writeCHR(u16 address, u8 value) {
     m_cartridge->getCHR()[m_chrBankOffset + (address & 0x1FFF)] = value;
 }
 
+template <typename Visit>
+void Mapper162::visitState(Visit visit) {
+    Mapper::visitState(visit);
+    visit(m_regs);
+    visit(m_prgBankOffset);
+    visit(m_chrBankOffset);
+}
+
 void Mapper162::saveState(Buffer* buf) {
-    Mapper::saveState(buf);
-    buffer_write(buf, m_regs, sizeof(m_regs));
-    buffer_write(buf, &m_prgBankOffset, sizeof(m_prgBankOffset));
-    buffer_write(buf, &m_chrBankOffset, sizeof(m_chrBankOffset));
+    visitState(StateWriter{buf});
 }
 
 void Mapper162::loadState(Buffer* buf) {
-    Mapper::loadState(buf);
-    buffer_read(buf, m_regs, sizeof(m_regs));
-    buffer_read(buf, &m_prgBankOffset, sizeof(m_prgBankOffset));
-    buffer_read(buf, &m_chrBankOffset, sizeof(m_chrBankOffset));
+    visitState(StateReader{buf});
     updateState();
 }
 

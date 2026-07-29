@@ -94,6 +94,8 @@ public:
     void loadState(Buffer* buf);
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     void setMode(PPUMode mode);
     void updateStatInterrupt();
     void renderScanline();

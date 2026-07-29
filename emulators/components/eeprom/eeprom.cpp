@@ -320,48 +320,34 @@ void EEPROM::writeByte(UINT32 offset, UINT8 data)
     m_eepromData[offset] = data;
 }
 
+template <typename Visit>
+void EEPROM::visitState(Visit visit)
+{
+    visit(m_eepromData);
+    visit(m_serialBuffer);
+
+    visit(m_serialCount);
+    visit(m_eepromDataBits);
+    visit(m_eepromReadAddress);
+    visit(m_eepromClockCount);
+    visit(m_latch);
+    visit(m_resetLine);
+    visit(m_clockLine);
+    visit(m_sending);
+    visit(m_locked);
+    visit(m_resetDelay);
+}
+
 void EEPROM::saveState(Buffer* buf)
 {
     if (!m_initialized) return;
-
-    // Save EEPROM data
-    buffer_write(buf, m_eepromData, MEMORY_SIZE);
-
-    // Save serial buffer
-    buffer_write(buf, m_serialBuffer, SERIAL_BUFFER_LENGTH);
-
-    // Save state variables
-    buffer_write(buf, &m_serialCount, sizeof(m_serialCount));
-    buffer_write(buf, &m_eepromDataBits, sizeof(m_eepromDataBits));
-    buffer_write(buf, &m_eepromReadAddress, sizeof(m_eepromReadAddress));
-    buffer_write(buf, &m_eepromClockCount, sizeof(m_eepromClockCount));
-    buffer_write(buf, &m_latch, sizeof(m_latch));
-    buffer_write(buf, &m_resetLine, sizeof(m_resetLine));
-    buffer_write(buf, &m_clockLine, sizeof(m_clockLine));
-    buffer_write(buf, &m_sending, sizeof(m_sending));
-    buffer_write(buf, &m_locked, sizeof(m_locked));
-    buffer_write(buf, &m_resetDelay, sizeof(m_resetDelay));
+    visitState(StateWriter{buf});
 }
 
 void EEPROM::loadState(Buffer* buf)
 {
     if (!m_initialized) return;
-
-    // Load EEPROM data
-    buffer_read(buf, m_eepromData, MEMORY_SIZE);
-
-    // Load serial buffer
-    buffer_read(buf, m_serialBuffer, SERIAL_BUFFER_LENGTH);
-
-    // Load state variables
-    buffer_read(buf, &m_serialCount, sizeof(m_serialCount));
-    buffer_read(buf, &m_eepromDataBits, sizeof(m_eepromDataBits));
-    buffer_read(buf, &m_eepromReadAddress, sizeof(m_eepromReadAddress));
-    buffer_read(buf, &m_eepromClockCount, sizeof(m_eepromClockCount));
-    buffer_read(buf, &m_latch, sizeof(m_latch));
-    buffer_read(buf, &m_resetLine, sizeof(m_resetLine));
-    buffer_read(buf, &m_clockLine, sizeof(m_clockLine));
-    buffer_read(buf, &m_sending, sizeof(m_sending));
-    buffer_read(buf, &m_locked, sizeof(m_locked));
-    buffer_read(buf, &m_resetDelay, sizeof(m_resetDelay));
+    visitState(StateReader{buf});
 }
+
+

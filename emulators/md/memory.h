@@ -53,6 +53,8 @@ public:
     void loadState(Buffer* buf);
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     u8   readIO(u32 address);
     void writeIO(u32 address, u8 value);
     u16  readVDPPort(u32 address);

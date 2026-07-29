@@ -35,62 +35,42 @@ Cartridge::~Cartridge() {
     }
 }
 
-void Cartridge::saveState(Buffer* buf) {
-    // Save RAM (if present)
+template <typename Visit>
+void Cartridge::visitState(Visit visit) {
+    // Cartridge RAM.  A state whose RAM size does not match the loaded
+    // cartridge is left alone rather than read back.
     size_t ramSize = m_ram.size();
-    buffer_write(buf, &ramSize, sizeof(ramSize));
-    if (ramSize > 0) {
-        buffer_write(buf, m_ram.data(), ramSize);
+    visit(ramSize);
+    if (ramSize > 0 && ramSize == m_ram.size()) {
+        visit.bytes(m_ram.data(), ramSize);
     }
-    
-    // Save MBC state
-    buffer_write(buf, &m_currentRomBank, sizeof(m_currentRomBank));
-    buffer_write(buf, &m_currentRamBank, sizeof(m_currentRamBank));
-    buffer_write(buf, &m_ramEnabled, sizeof(m_ramEnabled));
-    buffer_write(buf, &m_bankingMode, sizeof(m_bankingMode));
-    
-    // Save MBC-specific state
-    buffer_write(buf, &m_romBankHigh, sizeof(m_romBankHigh));
-    buffer_write(buf, &m_rtcRegister, sizeof(m_rtcRegister));
-    buffer_write(buf, &m_rtcLatched, sizeof(m_rtcLatched));
-    buffer_write(buf, &m_romBankHighBits, sizeof(m_romBankHighBits));
-    buffer_write(buf, &m_accelX, sizeof(m_accelX));
-    buffer_write(buf, &m_accelY, sizeof(m_accelY));
-    buffer_write(buf, &m_accelZ, sizeof(m_accelZ));
-    buffer_write(buf, &m_accelRegister, sizeof(m_accelRegister));
-    buffer_write(buf, &m_accelEnabled, sizeof(m_accelEnabled));
-    
-    // Save RTC state
-    buffer_write(buf, &m_rtc, sizeof(m_rtc));
+
+    // MBC state
+    visit(m_currentRomBank);
+    visit(m_currentRamBank);
+    visit(m_ramEnabled);
+    visit(m_bankingMode);
+
+    // MBC-specific state
+    visit(m_romBankHigh);
+    visit(m_rtcRegister);
+    visit(m_rtcLatched);
+    visit(m_romBankHighBits);
+    visit(m_accelX);
+    visit(m_accelY);
+    visit(m_accelZ);
+    visit(m_accelRegister);
+    visit(m_accelEnabled);
+
+    visit(m_rtc);
+}
+
+void Cartridge::saveState(Buffer* buf) {
+    visitState(StateWriter{buf});
 }
 
 void Cartridge::loadState(Buffer* buf) {
-    // Load RAM
-    size_t ramSize;
-    buffer_read(buf, &ramSize, sizeof(ramSize));
-    if (ramSize > 0 && ramSize == m_ram.size()) {
-        buffer_read(buf, m_ram.data(), ramSize);
-    }
-    
-    // Load MBC state
-    buffer_read(buf, &m_currentRomBank, sizeof(m_currentRomBank));
-    buffer_read(buf, &m_currentRamBank, sizeof(m_currentRamBank));
-    buffer_read(buf, &m_ramEnabled, sizeof(m_ramEnabled));
-    buffer_read(buf, &m_bankingMode, sizeof(m_bankingMode));
-    
-    // Load MBC-specific state
-    buffer_read(buf, &m_romBankHigh, sizeof(m_romBankHigh));
-    buffer_read(buf, &m_rtcRegister, sizeof(m_rtcRegister));
-    buffer_read(buf, &m_rtcLatched, sizeof(m_rtcLatched));
-    buffer_read(buf, &m_romBankHighBits, sizeof(m_romBankHighBits));
-    buffer_read(buf, &m_accelX, sizeof(m_accelX));
-    buffer_read(buf, &m_accelY, sizeof(m_accelY));
-    buffer_read(buf, &m_accelZ, sizeof(m_accelZ));
-    buffer_read(buf, &m_accelRegister, sizeof(m_accelRegister));
-    buffer_read(buf, &m_accelEnabled, sizeof(m_accelEnabled));
-    
-    // Load RTC state
-    buffer_read(buf, &m_rtc, sizeof(m_rtc));
+    visitState(StateReader{buf});
 }
 
 bool Cartridge::load(const fs::path& filename) {

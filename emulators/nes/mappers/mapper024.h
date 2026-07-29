@@ -14,8 +14,7 @@ public:
     u8 getVolume() const;
     
     // State save/load
-    void saveState(Buffer* buf);
-    void loadState(Buffer* buf);
+    template <typename Visit> void visitState(Visit visit);
     
 private:
     u8 m_volume = 0;           // Volume (0-15)
@@ -39,8 +38,7 @@ public:
     u8 getVolume() const;
     
     // State save/load
-    void saveState(Buffer* buf);
-    void loadState(Buffer* buf);
+    template <typename Visit> void visitState(Visit visit);
     
 private:
     u8 m_accumulatorRate = 0;  // Rate added to accumulator
@@ -62,8 +60,7 @@ public:
     float getOutput() const;
     
     // State save/load
-    void saveState(Buffer* buf);
-    void loadState(Buffer* buf);
+    template <typename Visit> void visitState(Visit visit);
     
 private:
     VRC6Pulse m_pulse1;
@@ -96,6 +93,8 @@ public:
     void loadState(Buffer* buf) override;
     
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     void updateBanks();
     void updateMirroring();
     void clockIRQ();

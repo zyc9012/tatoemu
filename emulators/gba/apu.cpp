@@ -834,50 +834,36 @@ s8 APU::FIFOChannel::dequeue() {
 // ---------------------------------------------------------------
 // Save / Load state
 // ---------------------------------------------------------------
+template <typename Visit>
+void APU::visitState(Visit visit) {
+    visit(m_square1);
+    visit(m_square2);
+    visit(m_wave);
+    visit(m_noise);
+    visit(m_fifoA);
+    visit(m_fifoB);
+
+    visit(m_psgVolumeRight);
+    visit(m_psgVolumeLeft);
+    visit(m_psgEnableRight);
+    visit(m_psgEnableLeft);
+    visit(m_psgMasterVolume);
+    visit(m_masterEnable);
+    visit(m_soundBias);
+
+    visit(m_frameSequencerTimer);
+    visit(m_frameSequencerStep);
+    visit(m_sampleTimer);
+    visit(m_capacitorLeft);
+    visit(m_capacitorRight);
+}
+
 void APU::saveState(Buffer* buf) {
-    buffer_write(buf, &m_square1, sizeof(m_square1));
-    buffer_write(buf, &m_square2, sizeof(m_square2));
-    buffer_write(buf, &m_wave, sizeof(m_wave));
-    buffer_write(buf, &m_noise, sizeof(m_noise));
-    buffer_write(buf, &m_fifoA, sizeof(m_fifoA));
-    buffer_write(buf, &m_fifoB, sizeof(m_fifoB));
-
-    buffer_write(buf, &m_psgVolumeRight, sizeof(m_psgVolumeRight));
-    buffer_write(buf, &m_psgVolumeLeft, sizeof(m_psgVolumeLeft));
-    buffer_write(buf, &m_psgEnableRight, sizeof(m_psgEnableRight));
-    buffer_write(buf, &m_psgEnableLeft, sizeof(m_psgEnableLeft));
-    buffer_write(buf, &m_psgMasterVolume, sizeof(m_psgMasterVolume));
-    buffer_write(buf, &m_masterEnable, sizeof(m_masterEnable));
-    buffer_write(buf, &m_soundBias, sizeof(m_soundBias));
-
-    buffer_write(buf, &m_frameSequencerTimer, sizeof(m_frameSequencerTimer));
-    buffer_write(buf, &m_frameSequencerStep, sizeof(m_frameSequencerStep));
-    buffer_write(buf, &m_sampleTimer, sizeof(m_sampleTimer));
-    buffer_write(buf, &m_capacitorLeft, sizeof(m_capacitorLeft));
-    buffer_write(buf, &m_capacitorRight, sizeof(m_capacitorRight));
+    visitState(StateWriter{buf});
 }
 
 void APU::loadState(Buffer* buf) {
-    buffer_read(buf, &m_square1, sizeof(m_square1));
-    buffer_read(buf, &m_square2, sizeof(m_square2));
-    buffer_read(buf, &m_wave, sizeof(m_wave));
-    buffer_read(buf, &m_noise, sizeof(m_noise));
-    buffer_read(buf, &m_fifoA, sizeof(m_fifoA));
-    buffer_read(buf, &m_fifoB, sizeof(m_fifoB));
-
-    buffer_read(buf, &m_psgVolumeRight, sizeof(m_psgVolumeRight));
-    buffer_read(buf, &m_psgVolumeLeft, sizeof(m_psgVolumeLeft));
-    buffer_read(buf, &m_psgEnableRight, sizeof(m_psgEnableRight));
-    buffer_read(buf, &m_psgEnableLeft, sizeof(m_psgEnableLeft));
-    buffer_read(buf, &m_psgMasterVolume, sizeof(m_psgMasterVolume));
-    buffer_read(buf, &m_masterEnable, sizeof(m_masterEnable));
-    buffer_read(buf, &m_soundBias, sizeof(m_soundBias));
-
-    buffer_read(buf, &m_frameSequencerTimer, sizeof(m_frameSequencerTimer));
-    buffer_read(buf, &m_frameSequencerStep, sizeof(m_frameSequencerStep));
-    buffer_read(buf, &m_sampleTimer, sizeof(m_sampleTimer));
-    buffer_read(buf, &m_capacitorLeft, sizeof(m_capacitorLeft));
-    buffer_read(buf, &m_capacitorRight, sizeof(m_capacitorRight));
+    visitState(StateReader{buf});
 }
 
 } // namespace gba

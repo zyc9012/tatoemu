@@ -169,34 +169,28 @@ void Mapper025::clockAudio() {
     }
 }
 
+template <typename Visit>
+void Mapper025::visitState(Visit visit) {
+    Mapper::visitState(visit);
+    visit(m_prgBank);
+    visit(m_chrBank);
+    visit(m_chrBankHigh);
+    visit(m_prgSwapMode);
+    visit(m_irqLatch);
+    visit(m_irqCounter);
+    visit(m_irqPrescaler);
+    visit(m_irqPrescalerCounter);
+    visit(m_irqEnable);
+    visit(m_irqEnableOnAck);
+    visit(m_irqMode);
+}
+
 void Mapper025::saveState(Buffer* buf) {
-    Mapper::saveState(buf);
-    buffer_write(buf, m_prgBank, sizeof(m_prgBank));
-    buffer_write(buf, m_chrBank, sizeof(m_chrBank));
-    buffer_write(buf, m_chrBankHigh, sizeof(m_chrBankHigh));
-    buffer_write(buf, &m_prgSwapMode, sizeof(m_prgSwapMode));
-    buffer_write(buf, &m_irqLatch, sizeof(m_irqLatch));
-    buffer_write(buf, &m_irqCounter, sizeof(m_irqCounter));
-    buffer_write(buf, &m_irqPrescaler, sizeof(m_irqPrescaler));
-    buffer_write(buf, &m_irqPrescalerCounter, sizeof(m_irqPrescalerCounter));
-    buffer_write(buf, &m_irqEnable, sizeof(m_irqEnable));
-    buffer_write(buf, &m_irqEnableOnAck, sizeof(m_irqEnableOnAck));
-    buffer_write(buf, &m_irqMode, sizeof(m_irqMode));
+    visitState(StateWriter{buf});
 }
 
 void Mapper025::loadState(Buffer* buf) {
-    Mapper::loadState(buf);
-    buffer_read(buf, m_prgBank, sizeof(m_prgBank));
-    buffer_read(buf, m_chrBank, sizeof(m_chrBank));
-    buffer_read(buf, m_chrBankHigh, sizeof(m_chrBankHigh));
-    buffer_read(buf, &m_prgSwapMode, sizeof(m_prgSwapMode));
-    buffer_read(buf, &m_irqLatch, sizeof(m_irqLatch));
-    buffer_read(buf, &m_irqCounter, sizeof(m_irqCounter));
-    buffer_read(buf, &m_irqPrescaler, sizeof(m_irqPrescaler));
-    buffer_read(buf, &m_irqPrescalerCounter, sizeof(m_irqPrescalerCounter));
-    buffer_read(buf, &m_irqEnable, sizeof(m_irqEnable));
-    buffer_read(buf, &m_irqEnableOnAck, sizeof(m_irqEnableOnAck));
-    buffer_read(buf, &m_irqMode, sizeof(m_irqMode));
+    visitState(StateReader{buf});
     updateBanks();
 }
 

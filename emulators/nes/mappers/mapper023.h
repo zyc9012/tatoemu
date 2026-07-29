@@ -21,6 +21,8 @@ public:
     void loadState(Buffer* buf) override;
     
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     void updateBanks();
     
     u8 m_prgBank[2];        // 8KB PRG banks

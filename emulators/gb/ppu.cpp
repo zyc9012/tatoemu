@@ -964,93 +964,60 @@ void PPU::writeRegister(u16 address, u8 value) {
     }
 }
 
-void PPU::saveState(Buffer* buf) {
-    buffer_write(buf, m_vram.data(), m_vram.size());
-    buffer_write(buf, m_oam.data(), m_oam.size());
-    
-    buffer_write(buf, &m_vramBank, sizeof(m_vramBank));
-    buffer_write(buf, &m_lcdc, sizeof(m_lcdc));
-    buffer_write(buf, &m_stat, sizeof(m_stat));
-    buffer_write(buf, &m_scy, sizeof(m_scy));
-    buffer_write(buf, &m_scx, sizeof(m_scx));
-    buffer_write(buf, &m_ly, sizeof(m_ly));
-    buffer_write(buf, &m_lyc, sizeof(m_lyc));
-    buffer_write(buf, &m_dma, sizeof(m_dma));
-    buffer_write(buf, &m_bgp, sizeof(m_bgp));
-    buffer_write(buf, &m_obp0, sizeof(m_obp0));
-    buffer_write(buf, &m_obp1, sizeof(m_obp1));
-    buffer_write(buf, &m_wy, sizeof(m_wy));
-    buffer_write(buf, &m_wx, sizeof(m_wx));
-    
-    buffer_write(buf, &m_bgpi, sizeof(m_bgpi));
-    buffer_write(buf, &m_obpi, sizeof(m_obpi));
-    buffer_write(buf, m_bgPaletteData.data(), m_bgPaletteData.size());
-    buffer_write(buf, m_objPaletteData.data(), m_objPaletteData.size());
-    
-    buffer_write(buf, &m_hdma1, sizeof(m_hdma1));
-    buffer_write(buf, &m_hdma2, sizeof(m_hdma2));
-    buffer_write(buf, &m_hdma3, sizeof(m_hdma3));
-    buffer_write(buf, &m_hdma4, sizeof(m_hdma4));
-    buffer_write(buf, &m_hdma5, sizeof(m_hdma5));
-    buffer_write(buf, &m_hdmaActive, sizeof(m_hdmaActive));
-    buffer_write(buf, &m_hdmaSource, sizeof(m_hdmaSource));
-    buffer_write(buf, &m_hdmaDest, sizeof(m_hdmaDest));
-    buffer_write(buf, &m_hdmaRemaining, sizeof(m_hdmaRemaining));
-    
+template <typename Visit>
+void PPU::visitState(Visit visit) {
+    visit(m_vram);
+    visit(m_oam);
+
+    visit(m_vramBank);
+    visit(m_lcdc);
+    visit(m_stat);
+    visit(m_scy);
+    visit(m_scx);
+    visit(m_ly);
+    visit(m_lyc);
+    visit(m_dma);
+    visit(m_bgp);
+    visit(m_obp0);
+    visit(m_obp1);
+    visit(m_wy);
+    visit(m_wx);
+
+    visit(m_bgpi);
+    visit(m_obpi);
+    visit(m_bgPaletteData);
+    visit(m_objPaletteData);
+
+    visit(m_hdma1);
+    visit(m_hdma2);
+    visit(m_hdma3);
+    visit(m_hdma4);
+    visit(m_hdma5);
+    visit(m_hdmaActive);
+    visit(m_hdmaSource);
+    visit(m_hdmaDest);
+    visit(m_hdmaRemaining);
+
+    // PPUMode is stored as a single byte, not as the enum's underlying int.
     u8 modeValue = static_cast<u8>(m_mode);
-    buffer_write(buf, &modeValue, sizeof(modeValue));
-    buffer_write(buf, &m_modeCycles, sizeof(m_modeCycles));
-    buffer_write(buf, &m_windowLineCounter, sizeof(m_windowLineCounter));
-    buffer_write(buf, &m_windowRenderedThisFrame, sizeof(m_windowRenderedThisFrame));
-    buffer_write(buf, &m_gbcMode, sizeof(m_gbcMode));
-    buffer_write(buf, &m_statInterruptLine, sizeof(m_statInterruptLine));
-    buffer_write(buf, &m_modeChangeDelay, sizeof(m_modeChangeDelay));
-    buffer_write(buf, &m_dmaCycles, sizeof(m_dmaCycles));
+    visit(modeValue);
+    m_mode = static_cast<PPUMode>(modeValue);
+
+    visit(m_modeCycles);
+    visit(m_windowLineCounter);
+    visit(m_windowRenderedThisFrame);
+    visit(m_gbcMode);
+    visit(m_statInterruptLine);
+    visit(m_modeChangeDelay);
+    visit(m_dmaCycles);
+}
+
+void PPU::saveState(Buffer* buf) {
+    visitState(StateWriter{buf});
 }
 
 void PPU::loadState(Buffer* buf) {
-    buffer_read(buf, m_vram.data(), m_vram.size());
-    buffer_read(buf, m_oam.data(), m_oam.size());
-    
-    buffer_read(buf, &m_vramBank, sizeof(m_vramBank));
-    buffer_read(buf, &m_lcdc, sizeof(m_lcdc));
-    buffer_read(buf, &m_stat, sizeof(m_stat));
-    buffer_read(buf, &m_scy, sizeof(m_scy));
-    buffer_read(buf, &m_scx, sizeof(m_scx));
-    buffer_read(buf, &m_ly, sizeof(m_ly));
-    buffer_read(buf, &m_lyc, sizeof(m_lyc));
-    buffer_read(buf, &m_dma, sizeof(m_dma));
-    buffer_read(buf, &m_bgp, sizeof(m_bgp));
-    buffer_read(buf, &m_obp0, sizeof(m_obp0));
-    buffer_read(buf, &m_obp1, sizeof(m_obp1));
-    buffer_read(buf, &m_wy, sizeof(m_wy));
-    buffer_read(buf, &m_wx, sizeof(m_wx));
-
-    buffer_read(buf, &m_bgpi, sizeof(m_bgpi));
-    buffer_read(buf, &m_obpi, sizeof(m_obpi));
-    buffer_read(buf, m_bgPaletteData.data(), m_bgPaletteData.size());
-    buffer_read(buf, m_objPaletteData.data(), m_objPaletteData.size());
-    
-    buffer_read(buf, &m_hdma1, sizeof(m_hdma1));
-    buffer_read(buf, &m_hdma2, sizeof(m_hdma2));
-    buffer_read(buf, &m_hdma3, sizeof(m_hdma3));
-    buffer_read(buf, &m_hdma4, sizeof(m_hdma4));
-    buffer_read(buf, &m_hdma5, sizeof(m_hdma5));
-    buffer_read(buf, &m_hdmaActive, sizeof(m_hdmaActive));
-    buffer_read(buf, &m_hdmaSource, sizeof(m_hdmaSource));
-    buffer_read(buf, &m_hdmaDest, sizeof(m_hdmaDest));
-    buffer_read(buf, &m_hdmaRemaining, sizeof(m_hdmaRemaining));
-    
-    u8 modeValue;
-    buffer_read(buf, &modeValue, sizeof(modeValue));
-    m_mode = static_cast<PPUMode>(modeValue);
-    buffer_read(buf, &m_modeCycles, sizeof(m_modeCycles));
-    buffer_read(buf, &m_windowLineCounter, sizeof(m_windowLineCounter));
-    buffer_read(buf, &m_windowRenderedThisFrame, sizeof(m_windowRenderedThisFrame));
-    buffer_read(buf, &m_gbcMode, sizeof(m_gbcMode));
-    buffer_read(buf, &m_statInterruptLine, sizeof(m_statInterruptLine));
-    buffer_read(buf, &m_modeChangeDelay, sizeof(m_modeChangeDelay));
-    buffer_read(buf, &m_dmaCycles, sizeof(m_dmaCycles));
+    visitState(StateReader{buf});
 }
 
 } // namespace gb

@@ -45,30 +45,29 @@ u8 MMC5Square::getOutput() const {
     return m_channel.envelope.volume();
 }
 
+template <typename Visit>
+void MMC5Square::visitState(Visit visit) {
+    // The entire PulseChannel state
+    visit(m_channel.timerPeriod);
+    visit(m_channel.timerCounter);
+    visit(m_channel.dutyMode);
+    visit(m_channel.sequencerStep);
+    visit(m_channel.envelope);
+    visit(m_channel.sweep);
+    visit(m_channel.lengthCounter);
+    visit(m_channel.isPulse1);
+    // The MMC5 pulse channels have no sweep unit, whatever the state says.
+    if constexpr (Visit::loading) {
+        m_channel.sweep.enabled = false;
+    }
+}
+
 void MMC5Square::saveState(Buffer* buf) {
-    // Save the entire PulseChannel state
-    buffer_write(buf, &m_channel.timerPeriod, sizeof(m_channel.timerPeriod));
-    buffer_write(buf, &m_channel.timerCounter, sizeof(m_channel.timerCounter));
-    buffer_write(buf, &m_channel.dutyMode, sizeof(m_channel.dutyMode));
-    buffer_write(buf, &m_channel.sequencerStep, sizeof(m_channel.sequencerStep));
-    buffer_write(buf, &m_channel.envelope, sizeof(m_channel.envelope));
-    buffer_write(buf, &m_channel.sweep, sizeof(m_channel.sweep));
-    buffer_write(buf, &m_channel.lengthCounter, sizeof(m_channel.lengthCounter));
-    buffer_write(buf, &m_channel.isPulse1, sizeof(m_channel.isPulse1));
+    visitState(StateWriter{buf});
 }
 
 void MMC5Square::loadState(Buffer* buf) {
-    // Load the entire PulseChannel state
-    buffer_read(buf, &m_channel.timerPeriod, sizeof(m_channel.timerPeriod));
-    buffer_read(buf, &m_channel.timerCounter, sizeof(m_channel.timerCounter));
-    buffer_read(buf, &m_channel.dutyMode, sizeof(m_channel.dutyMode));
-    buffer_read(buf, &m_channel.sequencerStep, sizeof(m_channel.sequencerStep));
-    buffer_read(buf, &m_channel.envelope, sizeof(m_channel.envelope));
-    buffer_read(buf, &m_channel.sweep, sizeof(m_channel.sweep));
-    buffer_read(buf, &m_channel.lengthCounter, sizeof(m_channel.lengthCounter));
-    buffer_read(buf, &m_channel.isPulse1, sizeof(m_channel.isPulse1));
-    // Ensure sweep stays disabled
-    m_channel.sweep.enabled = false;
+    visitState(StateReader{buf});
 }
 
 // ============================================================
@@ -198,24 +197,23 @@ float MMC5Audio::getOutput() const {
     return normalized;
 }
 
+template <typename Visit>
+void MMC5Audio::visitState(Visit visit) {
+    m_square1.visitState(visit);
+    m_square2.visitState(visit);
+    visit(m_pcmReadMode);
+    visit(m_pcmIrqEnabled);
+    visit(m_pcmOutput);
+    visit(m_frameCounter);
+    visit(m_oddCycle);
+}
+
 void MMC5Audio::saveState(Buffer* buf) {
-    m_square1.saveState(buf);
-    m_square2.saveState(buf);
-    buffer_write(buf, &m_pcmReadMode, sizeof(m_pcmReadMode));
-    buffer_write(buf, &m_pcmIrqEnabled, sizeof(m_pcmIrqEnabled));
-    buffer_write(buf, &m_pcmOutput, sizeof(m_pcmOutput));
-    buffer_write(buf, &m_frameCounter, sizeof(m_frameCounter));
-    buffer_write(buf, &m_oddCycle, sizeof(m_oddCycle));
+    visitState(StateWriter{buf});
 }
 
 void MMC5Audio::loadState(Buffer* buf) {
-    m_square1.loadState(buf);
-    m_square2.loadState(buf);
-    buffer_read(buf, &m_pcmReadMode, sizeof(m_pcmReadMode));
-    buffer_read(buf, &m_pcmIrqEnabled, sizeof(m_pcmIrqEnabled));
-    buffer_read(buf, &m_pcmOutput, sizeof(m_pcmOutput));
-    buffer_read(buf, &m_frameCounter, sizeof(m_frameCounter));
-    buffer_read(buf, &m_oddCycle, sizeof(m_oddCycle));
+    visitState(StateReader{buf});
 }
 
 // ============================================================
@@ -934,70 +932,46 @@ float Mapper005::getAudioOutput() const {
     return m_audio.getOutput();
 }
 
-void Mapper005::saveState(Buffer* buf) {
-    Mapper::saveState(buf);
-    buffer_write(buf, &m_prgMode, sizeof(m_prgMode));
-    buffer_write(buf, m_prgBankRegs, sizeof(m_prgBankRegs));
-    buffer_write(buf, &m_prgRamProtect1, sizeof(m_prgRamProtect1));
-    buffer_write(buf, &m_prgRamProtect2, sizeof(m_prgRamProtect2));
-    buffer_write(buf, &m_chrMode, sizeof(m_chrMode));
-    buffer_write(buf, &m_chrUpperBits, sizeof(m_chrUpperBits));
-    buffer_write(buf, m_chrBankRegs, sizeof(m_chrBankRegs));
-    buffer_write(buf, &m_lastChrReg, sizeof(m_lastChrReg));
-    buffer_write(buf, &m_nametableMapping, sizeof(m_nametableMapping));
-    buffer_write(buf, &m_fillModeTile, sizeof(m_fillModeTile));
-    buffer_write(buf, &m_fillModeAttr, sizeof(m_fillModeAttr));
-    buffer_write(buf, m_exRam.data(), m_exRam.size());
-    buffer_write(buf, &m_exRamMode, sizeof(m_exRamMode));
-    buffer_write(buf, &m_irqScanline, sizeof(m_irqScanline));
-    buffer_write(buf, &m_irqStatus, sizeof(m_irqStatus));
-    buffer_write(buf, &m_irqEnable, sizeof(m_irqEnable));
-    buffer_write(buf, &m_inFrame, sizeof(m_inFrame));
-    buffer_write(buf, &m_scanlineCounter, sizeof(m_scanlineCounter));
-    buffer_write(buf, &m_multiplicand, sizeof(m_multiplicand));
-    buffer_write(buf, &m_multiplier, sizeof(m_multiplier));
-    buffer_write(buf, m_prgRamExt.data(), m_prgRamExt.size());
-    buffer_write(buf, &m_capturedExRam, sizeof(m_capturedExRam));
-    buffer_write(buf, &m_splitMode, sizeof(m_splitMode));
-    buffer_write(buf, &m_splitScroll, sizeof(m_splitScroll));
-    buffer_write(buf, &m_splitBank, sizeof(m_splitBank));
-    buffer_write(buf, &m_lastScanline, sizeof(m_lastScanline));
+template <typename Visit>
+void Mapper005::visitState(Visit visit) {
+    Mapper::visitState(visit);
+    visit(m_prgMode);
+    visit(m_prgBankRegs);
+    visit(m_prgRamProtect1);
+    visit(m_prgRamProtect2);
+    visit(m_chrMode);
+    visit(m_chrUpperBits);
+    visit(m_chrBankRegs);
+    visit(m_lastChrReg);
+    visit(m_nametableMapping);
+    visit(m_fillModeTile);
+    visit(m_fillModeAttr);
+    visit(m_exRam);
+    visit(m_exRamMode);
+    visit(m_irqScanline);
+    visit(m_irqStatus);
+    visit(m_irqEnable);
+    visit(m_inFrame);
+    visit(m_scanlineCounter);
+    visit(m_multiplicand);
+    visit(m_multiplier);
+    visit(m_prgRamExt);
+    visit(m_capturedExRam);
+    visit(m_splitMode);
+    visit(m_splitScroll);
+    visit(m_splitBank);
+    visit(m_lastScanline);
     
-    // Save audio state
-    m_audio.saveState(buf);
+    // Audio state
+    m_audio.visitState(visit);
+}
+
+void Mapper005::saveState(Buffer* buf) {
+    visitState(StateWriter{buf});
 }
 
 void Mapper005::loadState(Buffer* buf) {
-    Mapper::loadState(buf);
-    buffer_read(buf, &m_prgMode, sizeof(m_prgMode));
-    buffer_read(buf, m_prgBankRegs, sizeof(m_prgBankRegs));
-    buffer_read(buf, &m_prgRamProtect1, sizeof(m_prgRamProtect1));
-    buffer_read(buf, &m_prgRamProtect2, sizeof(m_prgRamProtect2));
-    buffer_read(buf, &m_chrMode, sizeof(m_chrMode));
-    buffer_read(buf, &m_chrUpperBits, sizeof(m_chrUpperBits));
-    buffer_read(buf, m_chrBankRegs, sizeof(m_chrBankRegs));
-    buffer_read(buf, &m_lastChrReg, sizeof(m_lastChrReg));
-    buffer_read(buf, &m_nametableMapping, sizeof(m_nametableMapping));
-    buffer_read(buf, &m_fillModeTile, sizeof(m_fillModeTile));
-    buffer_read(buf, &m_fillModeAttr, sizeof(m_fillModeAttr));
-    buffer_read(buf, m_exRam.data(), m_exRam.size());
-    buffer_read(buf, &m_exRamMode, sizeof(m_exRamMode));
-    buffer_read(buf, &m_irqScanline, sizeof(m_irqScanline));
-    buffer_read(buf, &m_irqStatus, sizeof(m_irqStatus));
-    buffer_read(buf, &m_irqEnable, sizeof(m_irqEnable));
-    buffer_read(buf, &m_inFrame, sizeof(m_inFrame));
-    buffer_read(buf, &m_scanlineCounter, sizeof(m_scanlineCounter));
-    buffer_read(buf, &m_multiplicand, sizeof(m_multiplicand));
-    buffer_read(buf, &m_multiplier, sizeof(m_multiplier));
-    buffer_read(buf, m_prgRamExt.data(), m_prgRamExt.size());
-    buffer_read(buf, &m_capturedExRam, sizeof(m_capturedExRam));
-    buffer_read(buf, &m_splitMode, sizeof(m_splitMode));
-    buffer_read(buf, &m_splitScroll, sizeof(m_splitScroll));
-    buffer_read(buf, &m_splitBank, sizeof(m_splitBank));
-    buffer_read(buf, &m_lastScanline, sizeof(m_lastScanline));
-    
-    // Load audio state
-    m_audio.loadState(buf);
+    visitState(StateReader{buf});
     
     updatePRGBanks();
     updateCHRBanks();

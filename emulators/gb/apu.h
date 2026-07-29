@@ -35,6 +35,8 @@ public:
     void setVolume(float volume) { m_volume = volume; }
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     // Channel structures
     struct SquareChannel {
         // NRx0 - Sweep (Channel 1 only)

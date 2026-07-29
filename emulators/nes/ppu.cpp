@@ -931,102 +931,62 @@ void PPU::step() {
 // Save/Load State
 // ============================================================================
 
-void PPU::saveState(Buffer* buf) {
+template <typename Visit>
+void PPU::visitState(Visit visit) {
     // Timing
-    buffer_write(buf, &m_cycle, sizeof(m_cycle));
-    buffer_write(buf, &m_scanline, sizeof(m_scanline));
-    buffer_write(buf, &m_oddFrame, sizeof(m_oddFrame));
+    visit(m_cycle);
+    visit(m_scanline);
+    visit(m_oddFrame);
     
     // Registers
-    buffer_write(buf, &m_ppuCtrl, sizeof(m_ppuCtrl));
-    buffer_write(buf, &m_ppuMask, sizeof(m_ppuMask));
-    buffer_write(buf, &m_ppuStatus, sizeof(m_ppuStatus));
-    buffer_write(buf, &m_oamAddr, sizeof(m_oamAddr));
+    visit(m_ppuCtrl);
+    visit(m_ppuMask);
+    visit(m_ppuStatus);
+    visit(m_oamAddr);
     
     // Internal registers
-    buffer_write(buf, &m_vramAddr, sizeof(m_vramAddr));
-    buffer_write(buf, &m_tempAddr, sizeof(m_tempAddr));
-    buffer_write(buf, &m_fineX, sizeof(m_fineX));
-    buffer_write(buf, &m_writeToggle, sizeof(m_writeToggle));
-    buffer_write(buf, &m_dataBuffer, sizeof(m_dataBuffer));
+    visit(m_vramAddr);
+    visit(m_tempAddr);
+    visit(m_fineX);
+    visit(m_writeToggle);
+    visit(m_dataBuffer);
     
     // Background shift registers
-    buffer_write(buf, &m_bgShiftPatternLow, sizeof(m_bgShiftPatternLow));
-    buffer_write(buf, &m_bgShiftPatternHigh, sizeof(m_bgShiftPatternHigh));
-    buffer_write(buf, &m_bgShiftAttrLow, sizeof(m_bgShiftAttrLow));
-    buffer_write(buf, &m_bgShiftAttrHigh, sizeof(m_bgShiftAttrHigh));
+    visit(m_bgShiftPatternLow);
+    visit(m_bgShiftPatternHigh);
+    visit(m_bgShiftAttrLow);
+    visit(m_bgShiftAttrHigh);
     
     // Background latches
-    buffer_write(buf, &m_bgNextTileId, sizeof(m_bgNextTileId));
-    buffer_write(buf, &m_bgNextTileAttr, sizeof(m_bgNextTileAttr));
-    buffer_write(buf, &m_bgNextTileLow, sizeof(m_bgNextTileLow));
-    buffer_write(buf, &m_bgNextTileHigh, sizeof(m_bgNextTileHigh));
+    visit(m_bgNextTileId);
+    visit(m_bgNextTileAttr);
+    visit(m_bgNextTileLow);
+    visit(m_bgNextTileHigh);
     
     // Memory
-    buffer_write(buf, m_vram.data(), m_vram.size());
-    buffer_write(buf, m_palette.data(), m_palette.size());
-    buffer_write(buf, m_oam.data(), m_oam.size());
-    buffer_write(buf, m_secondaryOam.data(), m_secondaryOam.size());
+    visit(m_vram);
+    visit(m_palette);
+    visit(m_oam);
+    visit(m_secondaryOam);
     
     // Sprite state
-    buffer_write(buf, &m_spriteCount, sizeof(m_spriteCount));
-    buffer_write(buf, &m_sprite0OnScanline, sizeof(m_sprite0OnScanline));
-    buffer_write(buf, &m_sprite0HitPossible, sizeof(m_sprite0HitPossible));
+    visit(m_spriteCount);
+    visit(m_sprite0OnScanline);
+    visit(m_sprite0HitPossible);
     
     // NMI state
-    buffer_write(buf, &m_nmiOccurred, sizeof(m_nmiOccurred));
-    buffer_write(buf, &m_nmiOutput, sizeof(m_nmiOutput));
+    visit(m_nmiOccurred);
+    visit(m_nmiOutput);
     
-    buffer_write(buf, &m_openBus, sizeof(m_openBus));
+    visit(m_openBus);
+}
+
+void PPU::saveState(Buffer* buf) {
+    visitState(StateWriter{buf});
 }
 
 void PPU::loadState(Buffer* buf) {
-    // Timing
-    buffer_read(buf, &m_cycle, sizeof(m_cycle));
-    buffer_read(buf, &m_scanline, sizeof(m_scanline));
-    buffer_read(buf, &m_oddFrame, sizeof(m_oddFrame));
-    
-    // Registers
-    buffer_read(buf, &m_ppuCtrl, sizeof(m_ppuCtrl));
-    buffer_read(buf, &m_ppuMask, sizeof(m_ppuMask));
-    buffer_read(buf, &m_ppuStatus, sizeof(m_ppuStatus));
-    buffer_read(buf, &m_oamAddr, sizeof(m_oamAddr));
-    
-    // Internal registers
-    buffer_read(buf, &m_vramAddr, sizeof(m_vramAddr));
-    buffer_read(buf, &m_tempAddr, sizeof(m_tempAddr));
-    buffer_read(buf, &m_fineX, sizeof(m_fineX));
-    buffer_read(buf, &m_writeToggle, sizeof(m_writeToggle));
-    buffer_read(buf, &m_dataBuffer, sizeof(m_dataBuffer));
-    
-    // Background shift registers
-    buffer_read(buf, &m_bgShiftPatternLow, sizeof(m_bgShiftPatternLow));
-    buffer_read(buf, &m_bgShiftPatternHigh, sizeof(m_bgShiftPatternHigh));
-    buffer_read(buf, &m_bgShiftAttrLow, sizeof(m_bgShiftAttrLow));
-    buffer_read(buf, &m_bgShiftAttrHigh, sizeof(m_bgShiftAttrHigh));
-    
-    // Background latches
-    buffer_read(buf, &m_bgNextTileId, sizeof(m_bgNextTileId));
-    buffer_read(buf, &m_bgNextTileAttr, sizeof(m_bgNextTileAttr));
-    buffer_read(buf, &m_bgNextTileLow, sizeof(m_bgNextTileLow));
-    buffer_read(buf, &m_bgNextTileHigh, sizeof(m_bgNextTileHigh));
-    
-    // Memory
-    buffer_read(buf, m_vram.data(), m_vram.size());
-    buffer_read(buf, m_palette.data(), m_palette.size());
-    buffer_read(buf, m_oam.data(), m_oam.size());
-    buffer_read(buf, m_secondaryOam.data(), m_secondaryOam.size());
-    
-    // Sprite state
-    buffer_read(buf, &m_spriteCount, sizeof(m_spriteCount));
-    buffer_read(buf, &m_sprite0OnScanline, sizeof(m_sprite0OnScanline));
-    buffer_read(buf, &m_sprite0HitPossible, sizeof(m_sprite0HitPossible));
-    
-    // NMI state
-    buffer_read(buf, &m_nmiOccurred, sizeof(m_nmiOccurred));
-    buffer_read(buf, &m_nmiOutput, sizeof(m_nmiOutput));
-    
-    buffer_read(buf, &m_openBus, sizeof(m_openBus));
+    visitState(StateReader{buf});
 }
 
 } // namespace nes

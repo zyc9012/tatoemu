@@ -109,6 +109,8 @@ public:
     void timerIRQ();
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     // Component pointers
     CPU* m_cpu;
     SoundCPU* m_soundCpu;

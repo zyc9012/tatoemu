@@ -529,58 +529,39 @@ void APU::writeRegister(u16 address, u8 value) {
     }
 }
 
+template <typename Visit>
+void APU::visitState(Visit visit) {
+    visit(m_square1);
+    visit(m_square2);
+    visit(m_wave);
+    visit(m_noise);
+
+    // Master control
+    visit(m_leftVolume);
+    visit(m_rightVolume);
+    visit(m_leftVinEnable);
+    visit(m_rightVinEnable);
+    visit(m_leftEnable);
+    visit(m_rightEnable);
+    visit(m_enabled);
+
+    // Frame sequencer
+    visit(m_frameSequencerTimer);
+    visit(m_frameSequencerStep);
+
+    // Sample generation
+    visit(m_sampleTimer);
+    visit(m_cycleAccumulator);
+    visit(m_capacitorLeft);
+    visit(m_capacitorRight);
+}
+
 void APU::saveState(Buffer* buf) {
-    // Save square channel 1
-    buffer_write(buf, &m_square1, sizeof(m_square1));
-    buffer_write(buf, &m_square2, sizeof(m_square2));
-    buffer_write(buf, &m_wave, sizeof(m_wave));
-    buffer_write(buf, &m_noise, sizeof(m_noise));
-    
-    // Save master control
-    buffer_write(buf, &m_leftVolume, sizeof(m_leftVolume));
-    buffer_write(buf, &m_rightVolume, sizeof(m_rightVolume));
-    buffer_write(buf, &m_leftVinEnable, sizeof(m_leftVinEnable));
-    buffer_write(buf, &m_rightVinEnable, sizeof(m_rightVinEnable));
-    buffer_write(buf, &m_leftEnable, sizeof(m_leftEnable));
-    buffer_write(buf, &m_rightEnable, sizeof(m_rightEnable));
-    buffer_write(buf, &m_enabled, sizeof(m_enabled));
-    
-    // Save frame sequencer state
-    buffer_write(buf, &m_frameSequencerTimer, sizeof(m_frameSequencerTimer));
-    buffer_write(buf, &m_frameSequencerStep, sizeof(m_frameSequencerStep));
-    
-    // Save sample generation state
-    buffer_write(buf, &m_sampleTimer, sizeof(m_sampleTimer));
-    buffer_write(buf, &m_cycleAccumulator, sizeof(m_cycleAccumulator));
-    buffer_write(buf, &m_capacitorLeft, sizeof(m_capacitorLeft));
-    buffer_write(buf, &m_capacitorRight, sizeof(m_capacitorRight));
+    visitState(StateWriter{buf});
 }
 
 void APU::loadState(Buffer* buf) {
-    // Load square channel 1
-    buffer_read(buf, &m_square1, sizeof(m_square1));
-    buffer_read(buf, &m_square2, sizeof(m_square2));
-    buffer_read(buf, &m_wave, sizeof(m_wave));
-    buffer_read(buf, &m_noise, sizeof(m_noise));
-    
-    // Load master control
-    buffer_read(buf, &m_leftVolume, sizeof(m_leftVolume));
-    buffer_read(buf, &m_rightVolume, sizeof(m_rightVolume));
-    buffer_read(buf, &m_leftVinEnable, sizeof(m_leftVinEnable));
-    buffer_read(buf, &m_rightVinEnable, sizeof(m_rightVinEnable));
-    buffer_read(buf, &m_leftEnable, sizeof(m_leftEnable));
-    buffer_read(buf, &m_rightEnable, sizeof(m_rightEnable));
-    buffer_read(buf, &m_enabled, sizeof(m_enabled));
-    
-    // Load frame sequencer state
-    buffer_read(buf, &m_frameSequencerTimer, sizeof(m_frameSequencerTimer));
-    buffer_read(buf, &m_frameSequencerStep, sizeof(m_frameSequencerStep));
-    
-    // Load sample generation state
-    buffer_read(buf, &m_sampleTimer, sizeof(m_sampleTimer));
-    buffer_read(buf, &m_cycleAccumulator, sizeof(m_cycleAccumulator));
-    buffer_read(buf, &m_capacitorLeft, sizeof(m_capacitorLeft));
-    buffer_read(buf, &m_capacitorRight, sizeof(m_capacitorRight));
+    visitState(StateReader{buf});
 }
 
 // SquareChannel implementation

@@ -269,6 +269,8 @@ public:
     void loadState(Buffer* buf);
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     // Clock different APU components
     void clockTimers();           // Every CPU cycle
     void clockQuarterFrame();     // Envelopes and linear counter

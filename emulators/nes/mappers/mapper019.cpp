@@ -152,22 +152,22 @@ void Mapper019::clockAudio() {
     }
 }
 
+template <typename Visit>
+void Mapper019::visitState(Visit visit) {
+    Mapper::visitState(visit);
+    visit(m_prgBank);
+    visit(m_chrBank);
+    visit(m_chrUseCiram);
+    visit(m_irqCounter);
+    visit(m_irqEnable);
+}
+
 void Mapper019::saveState(Buffer* buf) {
-    Mapper::saveState(buf);
-    buffer_write(buf, m_prgBank, sizeof(m_prgBank));
-    buffer_write(buf, m_chrBank, sizeof(m_chrBank));
-    buffer_write(buf, m_chrUseCiram, sizeof(m_chrUseCiram));
-    buffer_write(buf, &m_irqCounter, sizeof(m_irqCounter));
-    buffer_write(buf, &m_irqEnable, sizeof(m_irqEnable));
+    visitState(StateWriter{buf});
 }
 
 void Mapper019::loadState(Buffer* buf) {
-    Mapper::loadState(buf);
-    buffer_read(buf, m_prgBank, sizeof(m_prgBank));
-    buffer_read(buf, m_chrBank, sizeof(m_chrBank));
-    buffer_read(buf, m_chrUseCiram, sizeof(m_chrUseCiram));
-    buffer_read(buf, &m_irqCounter, sizeof(m_irqCounter));
-    buffer_read(buf, &m_irqEnable, sizeof(m_irqEnable));
+    visitState(StateReader{buf});
 }
 
 void Mapper019::updateChrMapping(u8 bankIndex, u8 value) {

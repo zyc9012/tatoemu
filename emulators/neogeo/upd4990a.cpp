@@ -236,44 +236,38 @@ u8 UPD4990A::read() {
     return (out << 1) | m_tp;
 }
 
+template <typename Visit>
+void UPD4990A::visitState(Visit visit) {
+    // Calendar
+    visit(m_seconds);
+    visit(m_minutes);
+    visit(m_hours);
+    visit(m_day);
+    visit(m_month);
+    visit(m_year);
+    visit(m_weekDay);
+
+    // Serial interface
+    visit(m_mode);
+    visit(m_tpMode);
+    visit(m_register);
+    visit(m_command);
+    visit(m_count);
+    visit(m_tpCount);
+    visit(m_interval);
+    visit(m_tp);
+    visit(m_prevCLK);
+    visit(m_prevSTB);
+}
+
 void UPD4990A::saveState(Buffer* buf) {
-    buffer_write(buf, &m_seconds, sizeof(m_seconds));
-    buffer_write(buf, &m_minutes, sizeof(m_minutes));
-    buffer_write(buf, &m_hours, sizeof(m_hours));
-    buffer_write(buf, &m_day, sizeof(m_day));
-    buffer_write(buf, &m_month, sizeof(m_month));
-    buffer_write(buf, &m_year, sizeof(m_year));
-    buffer_write(buf, &m_weekDay, sizeof(m_weekDay));
-    buffer_write(buf, &m_mode, sizeof(m_mode));
-    buffer_write(buf, &m_tpMode, sizeof(m_tpMode));
-    buffer_write(buf, &m_register, sizeof(m_register));
-    buffer_write(buf, &m_command, sizeof(m_command));
-    buffer_write(buf, &m_count, sizeof(m_count));
-    buffer_write(buf, &m_tpCount, sizeof(m_tpCount));
-    buffer_write(buf, &m_interval, sizeof(m_interval));
-    buffer_write(buf, &m_tp, sizeof(m_tp));
-    buffer_write(buf, &m_prevCLK, sizeof(m_prevCLK));
-    buffer_write(buf, &m_prevSTB, sizeof(m_prevSTB));
+    visitState(StateWriter{buf});
 }
 
 void UPD4990A::loadState(Buffer* buf) {
-    buffer_read(buf, &m_seconds, sizeof(m_seconds));
-    buffer_read(buf, &m_minutes, sizeof(m_minutes));
-    buffer_read(buf, &m_hours, sizeof(m_hours));
-    buffer_read(buf, &m_day, sizeof(m_day));
-    buffer_read(buf, &m_month, sizeof(m_month));
-    buffer_read(buf, &m_year, sizeof(m_year));
-    buffer_read(buf, &m_weekDay, sizeof(m_weekDay));
-    buffer_read(buf, &m_mode, sizeof(m_mode));
-    buffer_read(buf, &m_tpMode, sizeof(m_tpMode));
-    buffer_read(buf, &m_register, sizeof(m_register));
-    buffer_read(buf, &m_command, sizeof(m_command));
-    buffer_read(buf, &m_count, sizeof(m_count));
-    buffer_read(buf, &m_tpCount, sizeof(m_tpCount));
-    buffer_read(buf, &m_interval, sizeof(m_interval));
-    buffer_read(buf, &m_tp, sizeof(m_tp));
-    buffer_read(buf, &m_prevCLK, sizeof(m_prevCLK));
-    buffer_read(buf, &m_prevSTB, sizeof(m_prevSTB));
+    visitState(StateReader{buf});
 }
+
+
 
 } // namespace neogeo

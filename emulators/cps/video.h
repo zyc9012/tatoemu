@@ -71,6 +71,8 @@ public:
     void loadState(Buffer* buf);
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     CPU* m_cpu;
     Cartridge* m_cartridge;
     Memory* m_memory;

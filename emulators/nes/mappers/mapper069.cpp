@@ -189,39 +189,34 @@ void Mapper069::clockAudio() {
     }
 }
 
-void Mapper069::saveState(Buffer* buf) {
-    Mapper::saveState(buf);
-    buffer_write(buf, &m_command, sizeof(m_command));
-    buffer_write(buf, m_chrBanks, sizeof(m_chrBanks));
-    buffer_write(buf, m_prgBanks, sizeof(m_prgBanks));
-    buffer_write(buf, &m_workRamValue, sizeof(m_workRamValue));
-    buffer_write(buf, &m_irqEnabled, sizeof(m_irqEnabled));
-    buffer_write(buf, &m_irqCounterEnabled, sizeof(m_irqCounterEnabled));
-    buffer_write(buf, &m_irqCounter, sizeof(m_irqCounter));
+template <typename Visit>
+void Mapper069::visitState(Visit visit) {
+    Mapper::visitState(visit);
+    visit(m_command);
+    visit(m_chrBanks);
+    visit(m_prgBanks);
+    visit(m_workRamValue);
+    visit(m_irqEnabled);
+    visit(m_irqCounterEnabled);
+    visit(m_irqCounter);
     
-    // Save work RAM
+    // Work RAM, sized by the state rather than by the cartridge
     u32 workRamSize = static_cast<u32>(m_workRam.size());
-    buffer_write(buf, &workRamSize, sizeof(workRamSize));
-    buffer_write(buf, m_workRam.data(), workRamSize);
+    visit(workRamSize);
+    if constexpr (Visit::loading) {
+        if (workRamSize != m_workRam.size()) {
+            m_workRam.resize(workRamSize);
+        }
+    }
+    visit.bytes(m_workRam.data(), workRamSize);
+}
+
+void Mapper069::saveState(Buffer* buf) {
+    visitState(StateWriter{buf});
 }
 
 void Mapper069::loadState(Buffer* buf) {
-    Mapper::loadState(buf);
-    buffer_read(buf, &m_command, sizeof(m_command));
-    buffer_read(buf, m_chrBanks, sizeof(m_chrBanks));
-    buffer_read(buf, m_prgBanks, sizeof(m_prgBanks));
-    buffer_read(buf, &m_workRamValue, sizeof(m_workRamValue));
-    buffer_read(buf, &m_irqEnabled, sizeof(m_irqEnabled));
-    buffer_read(buf, &m_irqCounterEnabled, sizeof(m_irqCounterEnabled));
-    buffer_read(buf, &m_irqCounter, sizeof(m_irqCounter));
-    
-    // Load work RAM
-    u32 workRamSize;
-    buffer_read(buf, &workRamSize, sizeof(workRamSize));
-    if (workRamSize != m_workRam.size()) {
-        m_workRam.resize(workRamSize);
-    }
-    buffer_read(buf, m_workRam.data(), workRamSize);
+    visitState(StateReader{buf});
     
     updateBanks();
     updateWorkRam();

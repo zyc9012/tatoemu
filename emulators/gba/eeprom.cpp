@@ -134,45 +134,6 @@ void EEPROM::write(u16 value, u32 writeSize) {
     }
 }
 
-void EEPROM::saveState(Buffer* buf) {
-    u8 initialized = m_initialized ? 1 : 0;
-    u8 is8k = m_is8K ? 1 : 0;
-    buffer_write(buf, &initialized, sizeof(initialized));
-    buffer_write(buf, &is8k, sizeof(is8k));
-    
-    if (m_initialized) {
-        u32 size = static_cast<u32>(m_data.size());
-        buffer_write(buf, &size, sizeof(size));
-        buffer_write(buf, m_data.data(), size);
-        
-        u8 cmd = static_cast<u8>(m_command);
-        buffer_write(buf, &cmd, sizeof(cmd));
-        buffer_write(buf, &m_writeAddress, sizeof(m_writeAddress));
-        buffer_write(buf, &m_readAddress, sizeof(m_readAddress));
-        buffer_write(buf, &m_readBitsRemaining, sizeof(m_readBitsRemaining));
-    }
-}
 
-void EEPROM::loadState(Buffer* buf) {
-    u8 initialized, is8k;
-    buffer_read(buf, &initialized, sizeof(initialized));
-    buffer_read(buf, &is8k, sizeof(is8k));
-    m_initialized = initialized != 0;
-    m_is8K = is8k != 0;
-    
-    if (m_initialized) {
-        u32 size;
-        buffer_read(buf, &size, sizeof(size));
-        m_data.resize(size);
-        buffer_read(buf, m_data.data(), size);
-        
-        u8 cmd;
-        buffer_read(buf, &cmd, sizeof(cmd));
-        m_command = static_cast<EEPROMCommand>(cmd);
-        buffer_read(buf, &m_writeAddress, sizeof(m_writeAddress));
-        buffer_read(buf, &m_readAddress, sizeof(m_readAddress));
-        buffer_read(buf, &m_readBitsRemaining, sizeof(m_readBitsRemaining));
-    }
-}
 
 } // namespace gba

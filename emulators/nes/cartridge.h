@@ -109,6 +109,8 @@ public:
     bool hasTrainer() const { return m_hasTrainer; }
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     bool parseINES(const std::vector<u8>& data);
     void createMapper();
     
@@ -167,15 +169,14 @@ public:
     virtual float getAudioOutput() const { return 0.0f; }
     virtual bool hasExpansionAudio() const { return false; }
     
-    // Save/Load state
-    virtual void saveState(Buffer* buf) {
-        buffer_write(buf, &m_baseMirrorMode, sizeof(m_baseMirrorMode));
-        buffer_write(buf, &m_mirrorMode, sizeof(m_mirrorMode));
+    // Save/Load state.  The walk every mapper shares; a mapper with state of
+    // its own calls Mapper::visitState() first from its own visitState().
+    template <typename Visit> void visitState(Visit visit) {
+        visit(m_baseMirrorMode);
+        visit(m_mirrorMode);
     }
-    virtual void loadState(Buffer* buf) {
-        buffer_read(buf, &m_baseMirrorMode, sizeof(m_baseMirrorMode));
-        buffer_read(buf, &m_mirrorMode, sizeof(m_mirrorMode));
-    }
+    virtual void saveState(Buffer* buf) { visitState(StateWriter{buf}); }
+    virtual void loadState(Buffer* buf) { visitState(StateReader{buf}); }
     
 protected:
     Cartridge* m_cartridge;

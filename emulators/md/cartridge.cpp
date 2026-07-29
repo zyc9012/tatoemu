@@ -358,25 +358,28 @@ void Cartridge::loadBattery() {
     fclose(file);
 }
 
-void Cartridge::saveState(Buffer* buf) {
-    buffer_write(buf, m_banks.data(), m_banks.size());
-    buffer_write(buf, &m_sramEnabled, sizeof(m_sramEnabled));
+template <typename Visit>
+void Cartridge::visitState(Visit visit) {
+    visit(m_banks);
+    visit(m_sramEnabled);
 
+    // Battery RAM, sized by the state rather than by the cartridge
     u32 sramSize = static_cast<u32>(m_sram.size());
-    buffer_write(buf, &sramSize, sizeof(sramSize));
-    if (sramSize) buffer_write(buf, m_sram.data(), sramSize);
+    visit(sramSize);
+    if (sramSize) {
+        if constexpr (Visit::loading) {
+            m_sram.resize(sramSize);
+        }
+        visit.bytes(m_sram.data(), sramSize);
+    }
+}
+
+void Cartridge::saveState(Buffer* buf) {
+    visitState(StateWriter{buf});
 }
 
 void Cartridge::loadState(Buffer* buf) {
-    buffer_read(buf, m_banks.data(), m_banks.size());
-    buffer_read(buf, &m_sramEnabled, sizeof(m_sramEnabled));
-
-    u32 sramSize = 0;
-    buffer_read(buf, &sramSize, sizeof(sramSize));
-    if (sramSize) {
-        m_sram.resize(sramSize);
-        buffer_read(buf, m_sram.data(), sramSize);
-    }
+    visitState(StateReader{buf});
 }
 
 } // namespace md

@@ -27,6 +27,7 @@ public:
     bool isEnabled() const { return !m_channel.lengthCounter.isZero(); }
     
     // State save/load
+    template <typename Visit> void visitState(Visit visit);
     void saveState(Buffer* buf);
     void loadState(Buffer* buf);
     
@@ -47,6 +48,7 @@ public:
     float getOutput() const;
     
     // State save/load
+    template <typename Visit> void visitState(Visit visit);
     void saveState(Buffer* buf);
     void loadState(Buffer* buf);
     
@@ -92,6 +94,8 @@ public:
     void loadState(Buffer* buf) override;
     
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     u32 mapCHR(u16 address);
     void updatePRGBanks();
     void updateCHRBanks();

@@ -19,6 +19,8 @@ public:
     void loadState(Buffer* buf) override;
     
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     u8 m_prgBank;
     u8 m_chrBank0FD;
     u8 m_chrBank0FE;

@@ -322,26 +322,26 @@ u8 Audio::getSoundReply() {
     return m_soundReply;
 }
 
-void Audio::saveState(Buffer* buf) {
-    buffer_write(buf, &m_soundCommand, sizeof(m_soundCommand));
-    buffer_write(buf, &m_soundReply, sizeof(m_soundReply));
-    buffer_write(buf, &m_soundStatus, sizeof(m_soundStatus));
-    buffer_write(buf, &m_nmiEnabled, sizeof(m_nmiEnabled));
-    buffer_write(buf, &m_timerA, sizeof(m_timerA));
-    buffer_write(buf, &m_timerB, sizeof(m_timerB));
+template <typename Visit>
+void Audio::visitState(Visit visit) {
+    visit(m_soundCommand);
+    visit(m_soundReply);
+    visit(m_soundStatus);
+    visit(m_nmiEnabled);
+    visit(m_timerA);
+    visit(m_timerB);
+}
 
+void Audio::saveState(Buffer* buf) {
+    visitState(StateWriter{buf});
     m_ym2610.saveState(buf);
 }
 
 void Audio::loadState(Buffer* buf) {
-    buffer_read(buf, &m_soundCommand, sizeof(m_soundCommand));
-    buffer_read(buf, &m_soundReply, sizeof(m_soundReply));
-    buffer_read(buf, &m_soundStatus, sizeof(m_soundStatus));
-    buffer_read(buf, &m_nmiEnabled, sizeof(m_nmiEnabled));
-    buffer_read(buf, &m_timerA, sizeof(m_timerA));
-    buffer_read(buf, &m_timerB, sizeof(m_timerB));
-
+    visitState(StateReader{buf});
     m_ym2610.loadState(buf);
 }
+
+
 
 } // namespace neogeo

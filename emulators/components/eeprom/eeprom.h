@@ -61,6 +61,8 @@ public:
     bool isAvailable() const { return m_available; }
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     static constexpr UINT32 SERIAL_BUFFER_LENGTH = 40;
     static constexpr UINT32 MEMORY_SIZE = 1024;
 

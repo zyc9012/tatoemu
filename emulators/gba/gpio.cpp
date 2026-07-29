@@ -256,20 +256,21 @@ void GPIO::rtcUpdateClock() {
     m_rtc.time[6] = toBCD(date->tm_sec);     // Second
 }
 
+template <typename Visit>
+void GPIO::visitState(Visit visit) {
+    visit(m_pinState);
+    visit(m_direction);
+    visit(m_writeLatch);
+    visit(m_readable);
+    visit(m_rtc);
+}
+
 void GPIO::saveState(Buffer* buf) {
-    buffer_write(buf, &m_pinState, sizeof(m_pinState));
-    buffer_write(buf, &m_direction, sizeof(m_direction));
-    buffer_write(buf, &m_writeLatch, sizeof(m_writeLatch));
-    buffer_write(buf, &m_readable, sizeof(m_readable));
-    buffer_write(buf, &m_rtc, sizeof(m_rtc));
+    visitState(StateWriter{buf});
 }
 
 void GPIO::loadState(Buffer* buf) {
-    buffer_read(buf, &m_pinState, sizeof(m_pinState));
-    buffer_read(buf, &m_direction, sizeof(m_direction));
-    buffer_read(buf, &m_writeLatch, sizeof(m_writeLatch));
-    buffer_read(buf, &m_readable, sizeof(m_readable));
-    buffer_read(buf, &m_rtc, sizeof(m_rtc));
+    visitState(StateReader{buf});
 
     // Restore ROM-mapped values
     storeToROM();

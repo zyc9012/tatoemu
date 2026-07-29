@@ -939,135 +939,84 @@ void APU::writeRegister(u16 address, u8 value) {
     }
 }
 
+template <typename Visit>
+void APU::visitState(Visit visit) {
+    // Pulse 1
+    visit(m_pulse1.timerPeriod);
+    visit(m_pulse1.timerCounter);
+    visit(m_pulse1.dutyMode);
+    visit(m_pulse1.sequencerStep);
+    visit(m_pulse1.envelope);
+    visit(m_pulse1.sweep);
+    visit(m_pulse1.lengthCounter);
+    
+    // Pulse 2
+    visit(m_pulse2.timerPeriod);
+    visit(m_pulse2.timerCounter);
+    visit(m_pulse2.dutyMode);
+    visit(m_pulse2.sequencerStep);
+    visit(m_pulse2.envelope);
+    visit(m_pulse2.sweep);
+    visit(m_pulse2.lengthCounter);
+    
+    // Triangle
+    visit(m_triangle.timerPeriod);
+    visit(m_triangle.timerCounter);
+    visit(m_triangle.sequencerStep);
+    visit(m_triangle.linearCounterReload);
+    visit(m_triangle.linearCounterPeriod);
+    visit(m_triangle.linearCounter);
+    visit(m_triangle.controlFlag);
+    visit(m_triangle.lengthCounter);
+    
+    // Noise
+    visit(m_noise.timerPeriod);
+    visit(m_noise.timerCounter);
+    visit(m_noise.shiftRegister);
+    visit(m_noise.mode);
+    visit(m_noise.envelope);
+    visit(m_noise.lengthCounter);
+    
+    // DMC
+    visit(m_dmc.timerPeriod);
+    visit(m_dmc.timerCounter);
+    visit(m_dmc.sampleAddress);
+    visit(m_dmc.sampleLength);
+    visit(m_dmc.addressStart);
+    visit(m_dmc.lengthStart);
+    visit(m_dmc.sampleBuffer);
+    visit(m_dmc.sampleBufferEmpty);
+    visit(m_dmc.shiftRegister);
+    visit(m_dmc.bitsRemaining);
+    visit(m_dmc.outputLevel);
+    visit(m_dmc.silenceFlag);
+    visit(m_dmc.irqEnabled);
+    visit(m_dmc.loopFlag);
+    visit(m_dmc.irqFlag);
+    
+    // Frame counter
+    visit(m_frameCounter);
+    
+    // Timing state
+    visit(m_totalCycles);
+    visit(m_lastFrameCycle);
+    visit(m_oddCycle);
+}
+
 void APU::saveState(Buffer* buf) {
-    // Save pulse 1
-    buffer_write(buf, &m_pulse1.timerPeriod, sizeof(m_pulse1.timerPeriod));
-    buffer_write(buf, &m_pulse1.timerCounter, sizeof(m_pulse1.timerCounter));
-    buffer_write(buf, &m_pulse1.dutyMode, sizeof(m_pulse1.dutyMode));
-    buffer_write(buf, &m_pulse1.sequencerStep, sizeof(m_pulse1.sequencerStep));
-    buffer_write(buf, &m_pulse1.envelope, sizeof(m_pulse1.envelope));
-    buffer_write(buf, &m_pulse1.sweep, sizeof(m_pulse1.sweep));
-    buffer_write(buf, &m_pulse1.lengthCounter, sizeof(m_pulse1.lengthCounter));
-    
-    // Save pulse 2
-    buffer_write(buf, &m_pulse2.timerPeriod, sizeof(m_pulse2.timerPeriod));
-    buffer_write(buf, &m_pulse2.timerCounter, sizeof(m_pulse2.timerCounter));
-    buffer_write(buf, &m_pulse2.dutyMode, sizeof(m_pulse2.dutyMode));
-    buffer_write(buf, &m_pulse2.sequencerStep, sizeof(m_pulse2.sequencerStep));
-    buffer_write(buf, &m_pulse2.envelope, sizeof(m_pulse2.envelope));
-    buffer_write(buf, &m_pulse2.sweep, sizeof(m_pulse2.sweep));
-    buffer_write(buf, &m_pulse2.lengthCounter, sizeof(m_pulse2.lengthCounter));
-    
-    // Save triangle
-    buffer_write(buf, &m_triangle.timerPeriod, sizeof(m_triangle.timerPeriod));
-    buffer_write(buf, &m_triangle.timerCounter, sizeof(m_triangle.timerCounter));
-    buffer_write(buf, &m_triangle.sequencerStep, sizeof(m_triangle.sequencerStep));
-    buffer_write(buf, &m_triangle.linearCounterReload, sizeof(m_triangle.linearCounterReload));
-    buffer_write(buf, &m_triangle.linearCounterPeriod, sizeof(m_triangle.linearCounterPeriod));
-    buffer_write(buf, &m_triangle.linearCounter, sizeof(m_triangle.linearCounter));
-    buffer_write(buf, &m_triangle.controlFlag, sizeof(m_triangle.controlFlag));
-    buffer_write(buf, &m_triangle.lengthCounter, sizeof(m_triangle.lengthCounter));
-    
-    // Save noise
-    buffer_write(buf, &m_noise.timerPeriod, sizeof(m_noise.timerPeriod));
-    buffer_write(buf, &m_noise.timerCounter, sizeof(m_noise.timerCounter));
-    buffer_write(buf, &m_noise.shiftRegister, sizeof(m_noise.shiftRegister));
-    buffer_write(buf, &m_noise.mode, sizeof(m_noise.mode));
-    buffer_write(buf, &m_noise.envelope, sizeof(m_noise.envelope));
-    buffer_write(buf, &m_noise.lengthCounter, sizeof(m_noise.lengthCounter));
-    
-    // Save DMC
-    buffer_write(buf, &m_dmc.timerPeriod, sizeof(m_dmc.timerPeriod));
-    buffer_write(buf, &m_dmc.timerCounter, sizeof(m_dmc.timerCounter));
-    buffer_write(buf, &m_dmc.sampleAddress, sizeof(m_dmc.sampleAddress));
-    buffer_write(buf, &m_dmc.sampleLength, sizeof(m_dmc.sampleLength));
-    buffer_write(buf, &m_dmc.addressStart, sizeof(m_dmc.addressStart));
-    buffer_write(buf, &m_dmc.lengthStart, sizeof(m_dmc.lengthStart));
-    buffer_write(buf, &m_dmc.sampleBuffer, sizeof(m_dmc.sampleBuffer));
-    buffer_write(buf, &m_dmc.sampleBufferEmpty, sizeof(m_dmc.sampleBufferEmpty));
-    buffer_write(buf, &m_dmc.shiftRegister, sizeof(m_dmc.shiftRegister));
-    buffer_write(buf, &m_dmc.bitsRemaining, sizeof(m_dmc.bitsRemaining));
-    buffer_write(buf, &m_dmc.outputLevel, sizeof(m_dmc.outputLevel));
-    buffer_write(buf, &m_dmc.silenceFlag, sizeof(m_dmc.silenceFlag));
-    buffer_write(buf, &m_dmc.irqEnabled, sizeof(m_dmc.irqEnabled));
-    buffer_write(buf, &m_dmc.loopFlag, sizeof(m_dmc.loopFlag));
-    buffer_write(buf, &m_dmc.irqFlag, sizeof(m_dmc.irqFlag));
-    
-    // Save frame counter
-    buffer_write(buf, &m_frameCounter, sizeof(m_frameCounter));
-    
-    // Save timing state
-    buffer_write(buf, &m_totalCycles, sizeof(m_totalCycles));
-    buffer_write(buf, &m_lastFrameCycle, sizeof(m_lastFrameCycle));
-    buffer_write(buf, &m_oddCycle, sizeof(m_oddCycle));
+    visitState(StateWriter{buf});
 }
 
 void APU::loadState(Buffer* buf) {
-    // Load pulse 1
-    buffer_read(buf, &m_pulse1.timerPeriod, sizeof(m_pulse1.timerPeriod));
-    buffer_read(buf, &m_pulse1.timerCounter, sizeof(m_pulse1.timerCounter));
-    buffer_read(buf, &m_pulse1.dutyMode, sizeof(m_pulse1.dutyMode));
-    buffer_read(buf, &m_pulse1.sequencerStep, sizeof(m_pulse1.sequencerStep));
-    buffer_read(buf, &m_pulse1.envelope, sizeof(m_pulse1.envelope));
-    buffer_read(buf, &m_pulse1.sweep, sizeof(m_pulse1.sweep));
-    buffer_read(buf, &m_pulse1.lengthCounter, sizeof(m_pulse1.lengthCounter));
+    visitState(StateReader{buf});
+    
+    // Identity and back references are not state: they say which object this
+    // is, not what it holds.
     m_pulse1.isPulse1 = true;
     m_pulse1.sweep.pulseChannel = true;
-    
-    // Load pulse 2
-    buffer_read(buf, &m_pulse2.timerPeriod, sizeof(m_pulse2.timerPeriod));
-    buffer_read(buf, &m_pulse2.timerCounter, sizeof(m_pulse2.timerCounter));
-    buffer_read(buf, &m_pulse2.dutyMode, sizeof(m_pulse2.dutyMode));
-    buffer_read(buf, &m_pulse2.sequencerStep, sizeof(m_pulse2.sequencerStep));
-    buffer_read(buf, &m_pulse2.envelope, sizeof(m_pulse2.envelope));
-    buffer_read(buf, &m_pulse2.sweep, sizeof(m_pulse2.sweep));
-    buffer_read(buf, &m_pulse2.lengthCounter, sizeof(m_pulse2.lengthCounter));
     m_pulse2.isPulse1 = false;
     m_pulse2.sweep.pulseChannel = false;
-    
-    // Load triangle
-    buffer_read(buf, &m_triangle.timerPeriod, sizeof(m_triangle.timerPeriod));
-    buffer_read(buf, &m_triangle.timerCounter, sizeof(m_triangle.timerCounter));
-    buffer_read(buf, &m_triangle.sequencerStep, sizeof(m_triangle.sequencerStep));
-    buffer_read(buf, &m_triangle.linearCounterReload, sizeof(m_triangle.linearCounterReload));
-    buffer_read(buf, &m_triangle.linearCounterPeriod, sizeof(m_triangle.linearCounterPeriod));
-    buffer_read(buf, &m_triangle.linearCounter, sizeof(m_triangle.linearCounter));
-    buffer_read(buf, &m_triangle.controlFlag, sizeof(m_triangle.controlFlag));
-    buffer_read(buf, &m_triangle.lengthCounter, sizeof(m_triangle.lengthCounter));
-    
-    // Load noise
-    buffer_read(buf, &m_noise.timerPeriod, sizeof(m_noise.timerPeriod));
-    buffer_read(buf, &m_noise.timerCounter, sizeof(m_noise.timerCounter));
-    buffer_read(buf, &m_noise.shiftRegister, sizeof(m_noise.shiftRegister));
-    buffer_read(buf, &m_noise.mode, sizeof(m_noise.mode));
-    buffer_read(buf, &m_noise.envelope, sizeof(m_noise.envelope));
-    buffer_read(buf, &m_noise.lengthCounter, sizeof(m_noise.lengthCounter));
-    
-    // Load DMC
-    buffer_read(buf, &m_dmc.timerPeriod, sizeof(m_dmc.timerPeriod));
-    buffer_read(buf, &m_dmc.timerCounter, sizeof(m_dmc.timerCounter));
-    buffer_read(buf, &m_dmc.sampleAddress, sizeof(m_dmc.sampleAddress));
-    buffer_read(buf, &m_dmc.sampleLength, sizeof(m_dmc.sampleLength));
-    buffer_read(buf, &m_dmc.addressStart, sizeof(m_dmc.addressStart));
-    buffer_read(buf, &m_dmc.lengthStart, sizeof(m_dmc.lengthStart));
-    buffer_read(buf, &m_dmc.sampleBuffer, sizeof(m_dmc.sampleBuffer));
-    buffer_read(buf, &m_dmc.sampleBufferEmpty, sizeof(m_dmc.sampleBufferEmpty));
-    buffer_read(buf, &m_dmc.shiftRegister, sizeof(m_dmc.shiftRegister));
-    buffer_read(buf, &m_dmc.bitsRemaining, sizeof(m_dmc.bitsRemaining));
-    buffer_read(buf, &m_dmc.outputLevel, sizeof(m_dmc.outputLevel));
-    buffer_read(buf, &m_dmc.silenceFlag, sizeof(m_dmc.silenceFlag));
-    buffer_read(buf, &m_dmc.irqEnabled, sizeof(m_dmc.irqEnabled));
-    buffer_read(buf, &m_dmc.loopFlag, sizeof(m_dmc.loopFlag));
-    buffer_read(buf, &m_dmc.irqFlag, sizeof(m_dmc.irqFlag));
     m_dmc.memory = m_memory;
-    
-    // Load frame counter
-    buffer_read(buf, &m_frameCounter, sizeof(m_frameCounter));
-    
-    // Load timing state
-    buffer_read(buf, &m_totalCycles, sizeof(m_totalCycles));
-    buffer_read(buf, &m_lastFrameCycle, sizeof(m_lastFrameCycle));
-    buffer_read(buf, &m_oddCycle, sizeof(m_oddCycle));
     
     // Reset audio state
     m_sampleCounter = 0;

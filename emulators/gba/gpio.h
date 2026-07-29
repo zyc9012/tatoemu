@@ -73,6 +73,8 @@ public:
     void loadState(Buffer* buf);
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     void updatePinState();
     void outputPins(u8 pins);
     void storeToROM();

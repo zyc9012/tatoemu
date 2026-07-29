@@ -43,6 +43,8 @@ public:
     void loadState(Buffer* buf);
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     Cartridge* m_cartridge;
     PPU* m_ppu;
     Joypad* m_joypad;

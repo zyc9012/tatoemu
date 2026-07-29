@@ -134,26 +134,25 @@ void SN76496::update(s16* buffer, u32 samples) {
     }
 }
 
+template <typename Visit>
+void SN76496::visitState(Visit visit) {
+    visit(m_period);
+    visit(m_counter);
+    visit(m_volume);
+    visit(m_output);
+    visit(m_noiseShift);
+    visit(m_noiseMode);
+    visit(m_latchedChannel);
+    visit(m_latchedVolume);
+    visit(m_accumulator);
+}
+
 void SN76496::saveState(Buffer* buf) {
-    buffer_write(buf, m_period, sizeof(m_period));
-    buffer_write(buf, m_counter, sizeof(m_counter));
-    buffer_write(buf, m_volume, sizeof(m_volume));
-    buffer_write(buf, m_output, sizeof(m_output));
-    buffer_write(buf, &m_noiseShift, sizeof(m_noiseShift));
-    buffer_write(buf, &m_noiseMode, sizeof(m_noiseMode));
-    buffer_write(buf, &m_latchedChannel, sizeof(m_latchedChannel));
-    buffer_write(buf, &m_latchedVolume, sizeof(m_latchedVolume));
-    buffer_write(buf, &m_accumulator, sizeof(m_accumulator));
+    visitState(StateWriter{buf});
 }
 
 void SN76496::loadState(Buffer* buf) {
-    buffer_read(buf, m_period, sizeof(m_period));
-    buffer_read(buf, m_counter, sizeof(m_counter));
-    buffer_read(buf, m_volume, sizeof(m_volume));
-    buffer_read(buf, m_output, sizeof(m_output));
-    buffer_read(buf, &m_noiseShift, sizeof(m_noiseShift));
-    buffer_read(buf, &m_noiseMode, sizeof(m_noiseMode));
-    buffer_read(buf, &m_latchedChannel, sizeof(m_latchedChannel));
-    buffer_read(buf, &m_latchedVolume, sizeof(m_latchedVolume));
-    buffer_read(buf, &m_accumulator, sizeof(m_accumulator));
+    visitState(StateReader{buf});
 }
+
+

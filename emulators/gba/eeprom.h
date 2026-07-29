@@ -44,10 +44,35 @@ public:
     // Upgrade from 512B to 8K if needed
     void upgradeTo8K();
     
-    // Save/Load state
-    void saveState(Buffer* buf);
-    void loadState(Buffer* buf);
-    
+    // One walk over the persistent state.  Defined here rather than in the
+    // .cpp because the cartridge walks the chip as part of its own state.
+    template <typename Visit> void visitState(Visit visit) {
+        // The two flags are stored as bytes, not as bool.
+        u8 initialized = m_initialized ? 1 : 0;
+        u8 is8k = m_is8K ? 1 : 0;
+        visit(initialized);
+        visit(is8k);
+        m_initialized = initialized != 0;
+        m_is8K = is8k != 0;
+
+        // An uninitialized chip holds nothing else.
+        if (m_initialized) {
+            u32 size = static_cast<u32>(m_data.size());
+            visit(size);
+            if constexpr (Visit::loading) {
+                m_data.resize(size);
+            }
+            visit.bytes(m_data.data(), size);
+
+            u8 cmd = static_cast<u8>(m_command);
+            visit(cmd);
+            m_command = static_cast<EEPROMCommand>(cmd);
+            visit(m_writeAddress);
+            visit(m_readAddress);
+            visit(m_readBitsRemaining);
+        }
+    }
+
 private:
     bool m_initialized = false;
     bool m_is8K = false;

@@ -42,6 +42,8 @@ public:
     void loadState(Buffer* buf);
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     // Returns 0 when the button is held (the pad is active low).
     u8 bit(Button button, u32 shift) const {
         return m_pressed[static_cast<u32>(button)] ? 0 : static_cast<u8>(1u << shift);

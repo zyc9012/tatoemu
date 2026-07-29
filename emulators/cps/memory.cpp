@@ -987,68 +987,43 @@ void Memory::writeZ80(u32 address, u8 value) {
 // Save/Load State
 // ============================================================================
 
-void Memory::saveState(Buffer* buf) {
+template <typename Visit>
+void Memory::visitState(Visit visit) {
     u8 cpsVer = getCPSVersion();
-    
-    // Save RAM (common)
-    buffer_write(buf, m_workRam.data(), m_workRam.size());
-    buffer_write(buf, m_soundRam.data(), m_soundRam.size());
-    
-    // Save CPS1-specific state
-    if (cpsVer == 1) {
-        buffer_write(buf, &m_protCalc, sizeof(m_protCalc));
-        buffer_write(buf, &m_memProt, sizeof(m_memProt));
-        buffer_write(buf, &m_boardId, sizeof(m_boardId));
-    }
-    
-    // Save CPS2-specific state
-    if (cpsVer == 2) {
-        buffer_write(buf, m_extraRam.data(), m_extraRam.size());
-        buffer_write(buf, m_objRam.data(), m_objRam.size());
-        buffer_write(buf, m_frgRegs.data(), m_frgRegs.size());
-        buffer_write(buf, &m_n664001, sizeof(m_n664001));
-        buffer_write(buf, m_qscCmd, sizeof(m_qscCmd));
-    }
-    
-    // Save Z80 state (common)
-    buffer_write(buf, &m_z80Bank, sizeof(m_z80Bank));
-    buffer_write(buf, &m_soundCommand, sizeof(m_soundCommand));
-    buffer_write(buf, &m_soundFade, sizeof(m_soundFade));
 
-    // Save EEPROM state
+    visit(m_workRam);
+    visit(m_soundRam);
+
+    if (cpsVer == 1) {
+        visit(m_protCalc);
+        visit(m_memProt);
+        visit(m_boardId);
+    }
+
+    if (cpsVer == 2) {
+        visit(m_extraRam);
+        visit(m_objRam);
+        visit(m_frgRegs);
+        visit(m_n664001);
+        visit(m_qscCmd);
+    }
+
+    // Z80 state, on both boards
+    visit(m_z80Bank);
+    visit(m_soundCommand);
+    visit(m_soundFade);
+}
+
+void Memory::saveState(Buffer* buf) {
+    visitState(StateWriter{buf});
     m_eeprom.saveState(buf);
 }
 
 void Memory::loadState(Buffer* buf) {
-    u8 cpsVer = getCPSVersion();
-    
-    // Load RAM (common)
-    buffer_read(buf, m_workRam.data(), m_workRam.size());
-    buffer_read(buf, m_soundRam.data(), m_soundRam.size());
-    
-    // Load CPS1-specific state
-    if (cpsVer == 1) {
-        buffer_read(buf, &m_protCalc, sizeof(m_protCalc));
-        buffer_read(buf, &m_memProt, sizeof(m_memProt));
-        buffer_read(buf, &m_boardId, sizeof(m_boardId));
-    }
-    
-    // Load CPS2-specific state
-    if (cpsVer == 2) {
-        buffer_read(buf, m_extraRam.data(), m_extraRam.size());
-        buffer_read(buf, m_objRam.data(), m_objRam.size());
-        buffer_read(buf, m_frgRegs.data(), m_frgRegs.size());
-        buffer_read(buf, &m_n664001, sizeof(m_n664001));
-        buffer_read(buf, m_qscCmd, sizeof(m_qscCmd));
-    }
-    
-    // Load Z80 state (common)
-    buffer_read(buf, &m_z80Bank, sizeof(m_z80Bank));
-    buffer_read(buf, &m_soundCommand, sizeof(m_soundCommand));
-    buffer_read(buf, &m_soundFade, sizeof(m_soundFade));
-
-    // Load EEPROM state
+    visitState(StateReader{buf});
     m_eeprom.loadState(buf);
 }
+
+
 
 } // namespace cps

@@ -108,6 +108,8 @@ public:
     void loadState(Buffer* buf);
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     // PPU internal memory access
     u8 ppuRead(u16 address);
     void ppuWrite(u16 address, u8 value);

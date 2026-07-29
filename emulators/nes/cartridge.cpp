@@ -536,36 +536,38 @@ void Cartridge::loadBattery() {
     }
 }
 
-void Cartridge::saveState(Buffer* buf) {
-    buffer_write(buf, &m_mirrorMode, sizeof(m_mirrorMode));
+template <typename Visit>
+void Cartridge::visitState(Visit visit) {
+    visit(m_mirrorMode);
     
+    // PRG RAM, sized by the state rather than by the cartridge
     u32 prgRamSize = static_cast<u32>(m_prgRam.size());
-    buffer_write(buf, &prgRamSize, sizeof(prgRamSize));
-    buffer_write(buf, m_prgRam.data(), m_prgRam.size());
-    
-    if (m_chrBanks == 0) {  // Only save CHR RAM, not ROM
-        u32 chrSize = static_cast<u32>(m_chrRom.size());
-        buffer_write(buf, &chrSize, sizeof(chrSize));
-        buffer_write(buf, m_chrRom.data(), m_chrRom.size());
+    visit(prgRamSize);
+    if constexpr (Visit::loading) {
+        m_prgRam.resize(prgRamSize);
     }
+    visit.bytes(m_prgRam.data(), m_prgRam.size());
     
+    // Only CHR RAM belongs in a state; CHR ROM comes from the file
+    if (m_chrBanks == 0) {
+        u32 chrSize = static_cast<u32>(m_chrRom.size());
+        visit(chrSize);
+        if constexpr (Visit::loading) {
+            m_chrRom.resize(chrSize);
+        }
+        visit.bytes(m_chrRom.data(), m_chrRom.size());
+    }
+}
+
+void Cartridge::saveState(Buffer* buf) {
+    visitState(StateWriter{buf});
+    
+    // The mapper is reached through a virtual call, so it walks itself.
     m_mapper->saveState(buf);
 }
 
 void Cartridge::loadState(Buffer* buf) {
-    buffer_read(buf, &m_mirrorMode, sizeof(m_mirrorMode));
-    
-    u32 prgRamSize;
-    buffer_read(buf, &prgRamSize, sizeof(prgRamSize));
-    m_prgRam.resize(prgRamSize);
-    buffer_read(buf, m_prgRam.data(), m_prgRam.size());
-    
-    if (m_chrBanks == 0) {  // Only restore CHR RAM, not ROM
-        u32 chrSize;
-        buffer_read(buf, &chrSize, sizeof(chrSize));
-        m_chrRom.resize(chrSize);
-        buffer_read(buf, m_chrRom.data(), m_chrRom.size());
-    }
+    visitState(StateReader{buf});
     
     m_mapper->loadState(buf);
 }

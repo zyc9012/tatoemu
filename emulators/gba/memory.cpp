@@ -791,36 +791,29 @@ void Memory::requestIRQ(u16 irqBit) {
     }
 }
 
+template <typename Visit>
+void Memory::visitState(Visit visit) {
+    visit(m_ewram);
+    visit(m_iwram);
+    visit(m_io);
+    visit(m_palette);
+    visit(m_vram);
+    visit(m_oam);
+    visit(m_halted);
+    visit(m_openBus);
+    visit(m_waitCycles);
+    visit(m_wsNonseq16);
+    visit(m_wsNonseq32);
+    visit(m_wsSeq16);
+    visit(m_wsSeq32);
+}
+
 void Memory::saveState(Buffer* buf) {
-    buffer_write(buf, m_ewram, sizeof(m_ewram));
-    buffer_write(buf, m_iwram, sizeof(m_iwram));
-    buffer_write(buf, m_io, sizeof(m_io));
-    buffer_write(buf, m_palette, sizeof(m_palette));
-    buffer_write(buf, m_vram, sizeof(m_vram));
-    buffer_write(buf, m_oam, sizeof(m_oam));
-    buffer_write(buf, &m_halted, sizeof(m_halted));
-    buffer_write(buf, &m_openBus, sizeof(m_openBus));
-    buffer_write(buf, &m_waitCycles, sizeof(m_waitCycles));
-    buffer_write(buf, m_wsNonseq16, sizeof(m_wsNonseq16));
-    buffer_write(buf, m_wsNonseq32, sizeof(m_wsNonseq32));
-    buffer_write(buf, m_wsSeq16, sizeof(m_wsSeq16));
-    buffer_write(buf, m_wsSeq32, sizeof(m_wsSeq32));
+    visitState(StateWriter{buf});
 }
 
 void Memory::loadState(Buffer* buf) {
-    buffer_read(buf, m_ewram, sizeof(m_ewram));
-    buffer_read(buf, m_iwram, sizeof(m_iwram));
-    buffer_read(buf, m_io, sizeof(m_io));
-    buffer_read(buf, m_palette, sizeof(m_palette));
-    buffer_read(buf, m_vram, sizeof(m_vram));
-    buffer_read(buf, m_oam, sizeof(m_oam));
-    buffer_read(buf, &m_halted, sizeof(m_halted));
-    buffer_read(buf, &m_openBus, sizeof(m_openBus));
-    buffer_read(buf, &m_waitCycles, sizeof(m_waitCycles));
-    buffer_read(buf, m_wsNonseq16, sizeof(m_wsNonseq16));
-    buffer_read(buf, m_wsNonseq32, sizeof(m_wsNonseq32));
-    buffer_read(buf, m_wsSeq16, sizeof(m_wsSeq16));
-    buffer_read(buf, m_wsSeq32, sizeof(m_wsSeq32));
+    visitState(StateReader{buf});
 }
 
 } // namespace gba

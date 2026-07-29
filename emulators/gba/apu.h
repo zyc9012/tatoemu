@@ -40,6 +40,8 @@ public:
     void setVolume(float volume) { m_volume = volume; }
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     // -------------------------------------------------------
     // GB-compatible PSG channels
     // -------------------------------------------------------

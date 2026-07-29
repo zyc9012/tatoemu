@@ -202,24 +202,23 @@ void Mapper163::writeCHR(u16 address, u8 value) {
     }
 }
 
+template <typename Visit>
+void Mapper163::visitState(Visit visit) {
+    Mapper::visitState(visit);
+    visit(m_registers);
+    visit(m_toggle);
+    visit(m_autoSwitchCHR);
+    visit(m_prgBank);
+    visit(m_chrBank0);
+    visit(m_chrBank1);
+}
+
 void Mapper163::saveState(Buffer* buf) {
-    Mapper::saveState(buf);
-    buffer_write(buf, m_registers, sizeof(m_registers));
-    buffer_write(buf, &m_toggle, sizeof(m_toggle));
-    buffer_write(buf, &m_autoSwitchCHR, sizeof(m_autoSwitchCHR));
-    buffer_write(buf, &m_prgBank, sizeof(m_prgBank));
-    buffer_write(buf, &m_chrBank0, sizeof(m_chrBank0));
-    buffer_write(buf, &m_chrBank1, sizeof(m_chrBank1));
+    visitState(StateWriter{buf});
 }
 
 void Mapper163::loadState(Buffer* buf) {
-    Mapper::loadState(buf);
-    buffer_read(buf, m_registers, sizeof(m_registers));
-    buffer_read(buf, &m_toggle, sizeof(m_toggle));
-    buffer_read(buf, &m_autoSwitchCHR, sizeof(m_autoSwitchCHR));
-    buffer_read(buf, &m_prgBank, sizeof(m_prgBank));
-    buffer_read(buf, &m_chrBank0, sizeof(m_chrBank0));
-    buffer_read(buf, &m_chrBank1, sizeof(m_chrBank1));
+    visitState(StateReader{buf});
 }
 
 } // namespace nes

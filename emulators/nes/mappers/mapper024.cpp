@@ -75,26 +75,16 @@ u8 VRC6Pulse::getVolume() const {
     return (m_step <= m_dutyCycle) ? m_volume : 0;
 }
 
-void VRC6Pulse::saveState(Buffer* buf) {
-    buffer_write(buf, &m_volume, sizeof(m_volume));
-    buffer_write(buf, &m_dutyCycle, sizeof(m_dutyCycle));
-    buffer_write(buf, &m_ignoreDuty, sizeof(m_ignoreDuty));
-    buffer_write(buf, &m_frequency, sizeof(m_frequency));
-    buffer_write(buf, &m_enabled, sizeof(m_enabled));
-    buffer_write(buf, &m_timer, sizeof(m_timer));
-    buffer_write(buf, &m_step, sizeof(m_step));
-    buffer_write(buf, &m_frequencyShift, sizeof(m_frequencyShift));
-}
-
-void VRC6Pulse::loadState(Buffer* buf) {
-    buffer_read(buf, &m_volume, sizeof(m_volume));
-    buffer_read(buf, &m_dutyCycle, sizeof(m_dutyCycle));
-    buffer_read(buf, &m_ignoreDuty, sizeof(m_ignoreDuty));
-    buffer_read(buf, &m_frequency, sizeof(m_frequency));
-    buffer_read(buf, &m_enabled, sizeof(m_enabled));
-    buffer_read(buf, &m_timer, sizeof(m_timer));
-    buffer_read(buf, &m_step, sizeof(m_step));
-    buffer_read(buf, &m_frequencyShift, sizeof(m_frequencyShift));
+template <typename Visit>
+void VRC6Pulse::visitState(Visit visit) {
+    visit(m_volume);
+    visit(m_dutyCycle);
+    visit(m_ignoreDuty);
+    visit(m_frequency);
+    visit(m_enabled);
+    visit(m_timer);
+    visit(m_step);
+    visit(m_frequencyShift);
 }
 
 // ============================================================
@@ -167,24 +157,15 @@ u8 VRC6Saw::getVolume() const {
     return m_accumulator >> 3;
 }
 
-void VRC6Saw::saveState(Buffer* buf) {
-    buffer_write(buf, &m_accumulatorRate, sizeof(m_accumulatorRate));
-    buffer_write(buf, &m_accumulator, sizeof(m_accumulator));
-    buffer_write(buf, &m_frequency, sizeof(m_frequency));
-    buffer_write(buf, &m_enabled, sizeof(m_enabled));
-    buffer_write(buf, &m_timer, sizeof(m_timer));
-    buffer_write(buf, &m_step, sizeof(m_step));
-    buffer_write(buf, &m_frequencyShift, sizeof(m_frequencyShift));
-}
-
-void VRC6Saw::loadState(Buffer* buf) {
-    buffer_read(buf, &m_accumulatorRate, sizeof(m_accumulatorRate));
-    buffer_read(buf, &m_accumulator, sizeof(m_accumulator));
-    buffer_read(buf, &m_frequency, sizeof(m_frequency));
-    buffer_read(buf, &m_enabled, sizeof(m_enabled));
-    buffer_read(buf, &m_timer, sizeof(m_timer));
-    buffer_read(buf, &m_step, sizeof(m_step));
-    buffer_read(buf, &m_frequencyShift, sizeof(m_frequencyShift));
+template <typename Visit>
+void VRC6Saw::visitState(Visit visit) {
+    visit(m_accumulatorRate);
+    visit(m_accumulator);
+    visit(m_frequency);
+    visit(m_enabled);
+    visit(m_timer);
+    visit(m_step);
+    visit(m_frequencyShift);
 }
 
 // ============================================================
@@ -253,20 +234,13 @@ float VRC6Audio::getOutput() const {
     return static_cast<float>(outputLevel) / 61.0f * 0.5f;
 }
 
-void VRC6Audio::saveState(Buffer* buf) {
-    m_pulse1.saveState(buf);
-    m_pulse2.saveState(buf);
-    m_saw.saveState(buf);
-    buffer_write(buf, &m_haltAudio, sizeof(m_haltAudio));
-    buffer_write(buf, &m_lastOutput, sizeof(m_lastOutput));
-}
-
-void VRC6Audio::loadState(Buffer* buf) {
-    m_pulse1.loadState(buf);
-    m_pulse2.loadState(buf);
-    m_saw.loadState(buf);
-    buffer_read(buf, &m_haltAudio, sizeof(m_haltAudio));
-    buffer_read(buf, &m_lastOutput, sizeof(m_lastOutput));
+template <typename Visit>
+void VRC6Audio::visitState(Visit visit) {
+    m_pulse1.visitState(visit);
+    m_pulse2.visitState(visit);
+    m_saw.visitState(visit);
+    visit(m_haltAudio);
+    visit(m_lastOutput);
 }
 
 // ============================================================
@@ -612,34 +586,28 @@ float Mapper024::getAudioOutput() const {
     return m_audio.getOutput();
 }
 
+template <typename Visit>
+void Mapper024::visitState(Visit visit) {
+    Mapper::visitState(visit);
+    visit(m_prgBank16k);
+    visit(m_prgBank8k);
+    visit(m_chrBank);
+    visit(m_bankingMode);
+    visit(m_irqLatch);
+    visit(m_irqCounter);
+    visit(m_irqEnable);
+    visit(m_irqEnableOnAck);
+    visit(m_irqCycleMode);
+    visit(m_irqPrescaler);
+    m_audio.visitState(visit);
+}
+
 void Mapper024::saveState(Buffer* buf) {
-    Mapper::saveState(buf);
-    buffer_write(buf, &m_prgBank16k, sizeof(m_prgBank16k));
-    buffer_write(buf, &m_prgBank8k, sizeof(m_prgBank8k));
-    buffer_write(buf, m_chrBank, sizeof(m_chrBank));
-    buffer_write(buf, &m_bankingMode, sizeof(m_bankingMode));
-    buffer_write(buf, &m_irqLatch, sizeof(m_irqLatch));
-    buffer_write(buf, &m_irqCounter, sizeof(m_irqCounter));
-    buffer_write(buf, &m_irqEnable, sizeof(m_irqEnable));
-    buffer_write(buf, &m_irqEnableOnAck, sizeof(m_irqEnableOnAck));
-    buffer_write(buf, &m_irqCycleMode, sizeof(m_irqCycleMode));
-    buffer_write(buf, &m_irqPrescaler, sizeof(m_irqPrescaler));
-    m_audio.saveState(buf);
+    visitState(StateWriter{buf});
 }
 
 void Mapper024::loadState(Buffer* buf) {
-    Mapper::loadState(buf);
-    buffer_read(buf, &m_prgBank16k, sizeof(m_prgBank16k));
-    buffer_read(buf, &m_prgBank8k, sizeof(m_prgBank8k));
-    buffer_read(buf, m_chrBank, sizeof(m_chrBank));
-    buffer_read(buf, &m_bankingMode, sizeof(m_bankingMode));
-    buffer_read(buf, &m_irqLatch, sizeof(m_irqLatch));
-    buffer_read(buf, &m_irqCounter, sizeof(m_irqCounter));
-    buffer_read(buf, &m_irqEnable, sizeof(m_irqEnable));
-    buffer_read(buf, &m_irqEnableOnAck, sizeof(m_irqEnableOnAck));
-    buffer_read(buf, &m_irqCycleMode, sizeof(m_irqCycleMode));
-    buffer_read(buf, &m_irqPrescaler, sizeof(m_irqPrescaler));
-    m_audio.loadState(buf);
+    visitState(StateReader{buf});
     updateBanks();
 }
 

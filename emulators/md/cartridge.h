@@ -55,6 +55,8 @@ public:
     void loadState(Buffer* buf);
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     void parseHeader();
     static void deinterleaveSMD(std::vector<u8>& data);
     // Translate a 68000 address into a linear ROM offset through the bank map.

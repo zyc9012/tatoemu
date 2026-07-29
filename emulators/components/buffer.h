@@ -36,16 +36,27 @@ bool buffer_save_to_file(Buffer* buf, const std::filesystem::path& filename, boo
 
 #ifdef __cplusplus
 struct StateWriter {
+    static constexpr bool loading = false;
+
     Buffer* buf;
     template <typename T> void operator()(T& field) const {
         buffer_write(buf, &field, sizeof(field));
     }
+    // For state that is not a plain object, such as the contents of a vector.
+    void bytes(void* data, size_t size) const {
+        buffer_write(buf, data, size);
+    }
 };
 
 struct StateReader {
+    static constexpr bool loading = true;
+
     Buffer* buf;
     template <typename T> void operator()(T& field) const {
         buffer_read(buf, &field, sizeof(field));
+    }
+    void bytes(void* data, size_t size) const {
+        buffer_read(buf, data, size);
     }
 };
 #endif

@@ -698,49 +698,38 @@ void Memory::writeZ80IO(u16 port, u8 value) {
     m_audio->writePort(port, value);
 }
 
+template <typename Visit>
+void Memory::visitState(Visit visit) {
+    visit(m_workRam);
+    visit(m_nvram);
+    visit(m_paletteRam);
+    visit(m_z80Ram);
+    visit(m_inputSelect);
+    visit(m_nvramWritable);
+    visit(m_paletteBank);
+    visit(m_darkenPalette);
+    visit(m_biosTextRomEnabled);
+    visit(m_irqControl);
+    visit(m_irqOffset);
+    visit(m_targetIRQCycles);
+    visit(m_irqAcknowledge);
+    visit(m_z80Bank0);
+    visit(m_z80Bank1);
+    visit(m_z80Bank2);
+    visit(m_z80Bank3);
+    visit(m_z80BiosRomMapped);
+    visit(m_programRomBank);
+}
+
 void Memory::saveState(Buffer* buf) {
-    buffer_write(buf, m_workRam.data(), m_workRam.size());
-    buffer_write(buf, m_nvram.data(), m_nvram.size());
-    buffer_write(buf, m_paletteRam.data(), m_paletteRam.size() * sizeof(u16));
-    buffer_write(buf, m_z80Ram.data(), m_z80Ram.size());
-    buffer_write(buf, &m_inputSelect, sizeof(m_inputSelect));
-    buffer_write(buf, &m_nvramWritable, sizeof(m_nvramWritable));
-    buffer_write(buf, &m_paletteBank, sizeof(m_paletteBank));
-    buffer_write(buf, &m_darkenPalette, sizeof(m_darkenPalette));
-    buffer_write(buf, &m_biosTextRomEnabled, sizeof(m_biosTextRomEnabled));
-    buffer_write(buf, &m_irqControl, sizeof(m_irqControl));
-    buffer_write(buf, &m_irqOffset, sizeof(m_irqOffset));
-    buffer_write(buf, &m_targetIRQCycles, sizeof(m_targetIRQCycles));
-    buffer_write(buf, &m_irqAcknowledge, sizeof(m_irqAcknowledge));
-    buffer_write(buf, &m_z80Bank0, sizeof(m_z80Bank0));
-    buffer_write(buf, &m_z80Bank1, sizeof(m_z80Bank1));
-    buffer_write(buf, &m_z80Bank2, sizeof(m_z80Bank2));
-    buffer_write(buf, &m_z80Bank3, sizeof(m_z80Bank3));
-    buffer_write(buf, &m_z80BiosRomMapped, sizeof(m_z80BiosRomMapped));
-    buffer_write(buf, &m_programRomBank, sizeof(m_programRomBank));
+    visitState(StateWriter{buf});
 }
 
 void Memory::loadState(Buffer* buf) {
-    buffer_read(buf, m_workRam.data(), m_workRam.size());
-    buffer_read(buf, m_nvram.data(), m_nvram.size());
-    buffer_read(buf, m_paletteRam.data(), m_paletteRam.size() * sizeof(u16));
-    buffer_read(buf, m_z80Ram.data(), m_z80Ram.size());
-    buffer_read(buf, &m_inputSelect, sizeof(m_inputSelect));
-    buffer_read(buf, &m_nvramWritable, sizeof(m_nvramWritable));
-    buffer_read(buf, &m_paletteBank, sizeof(m_paletteBank));
-    buffer_read(buf, &m_darkenPalette, sizeof(m_darkenPalette));
-    buffer_read(buf, &m_biosTextRomEnabled, sizeof(m_biosTextRomEnabled));
-    buffer_read(buf, &m_irqControl, sizeof(m_irqControl));
-    buffer_read(buf, &m_irqOffset, sizeof(m_irqOffset));
-    buffer_read(buf, &m_targetIRQCycles, sizeof(m_targetIRQCycles));
-    buffer_read(buf, &m_irqAcknowledge, sizeof(m_irqAcknowledge));
-    buffer_read(buf, &m_z80Bank0, sizeof(m_z80Bank0));
-    buffer_read(buf, &m_z80Bank1, sizeof(m_z80Bank1));
-    buffer_read(buf, &m_z80Bank2, sizeof(m_z80Bank2));
-    buffer_read(buf, &m_z80Bank3, sizeof(m_z80Bank3));
-    buffer_read(buf, &m_z80BiosRomMapped, sizeof(m_z80BiosRomMapped));
-    buffer_read(buf, &m_programRomBank, sizeof(m_programRomBank));
+    visitState(StateReader{buf});
 }
+
+
 
 void Memory::saveNVRAM() {
     if (m_romFilename.empty()) {

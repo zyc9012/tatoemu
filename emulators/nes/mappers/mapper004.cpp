@@ -173,25 +173,11 @@ void Mapper004::scanlineCounter() {
 }
 
 void Mapper004::saveState(Buffer* buf) {
-    Mapper::saveState(buf);
-    buffer_write(buf, &m_bankSelect, sizeof(m_bankSelect));
-    buffer_write(buf, m_bankData, sizeof(m_bankData));
-    buffer_write(buf, &m_irqLatch, sizeof(m_irqLatch));
-    buffer_write(buf, &m_irqCounter, sizeof(m_irqCounter));
-    buffer_write(buf, &m_irqEnable, sizeof(m_irqEnable));
-    buffer_write(buf, &m_irqReload, sizeof(m_irqReload));
-    buffer_write(buf, &m_prgRamEnable, sizeof(m_prgRamEnable));
+    visitState(StateWriter{buf});
 }
 
 void Mapper004::loadState(Buffer* buf) {
-    Mapper::loadState(buf);
-    buffer_read(buf, &m_bankSelect, sizeof(m_bankSelect));
-    buffer_read(buf, m_bankData, sizeof(m_bankData));
-    buffer_read(buf, &m_irqLatch, sizeof(m_irqLatch));
-    buffer_read(buf, &m_irqCounter, sizeof(m_irqCounter));
-    buffer_read(buf, &m_irqEnable, sizeof(m_irqEnable));
-    buffer_read(buf, &m_irqReload, sizeof(m_irqReload));
-    buffer_read(buf, &m_prgRamEnable, sizeof(m_prgRamEnable));
+    visitState(StateReader{buf});
     updateBanks();
 }
 

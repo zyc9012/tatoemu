@@ -990,28 +990,25 @@ void PPU::latchAffineRefPoints() {
     m_bg3RefY = signExtend28((s32)m_memory->readIO32(IO::BG3Y));
 }
 
+template <typename Visit>
+void PPU::visitState(Visit visit) {
+    visit(m_framebuffer);
+    visit(m_vcount);
+    visit(m_cycles);
+    visit(m_inHBlank);
+    visit(m_inVBlank);
+    visit(m_bg2RefX);
+    visit(m_bg2RefY);
+    visit(m_bg3RefX);
+    visit(m_bg3RefY);
+}
+
 void PPU::saveState(Buffer* buf) {
-    buffer_write(buf, m_framebuffer, sizeof(m_framebuffer));
-    buffer_write(buf, &m_vcount, sizeof(m_vcount));
-    buffer_write(buf, &m_cycles, sizeof(m_cycles));
-    buffer_write(buf, &m_inHBlank, sizeof(m_inHBlank));
-    buffer_write(buf, &m_inVBlank, sizeof(m_inVBlank));
-    buffer_write(buf, &m_bg2RefX, sizeof(m_bg2RefX));
-    buffer_write(buf, &m_bg2RefY, sizeof(m_bg2RefY));
-    buffer_write(buf, &m_bg3RefX, sizeof(m_bg3RefX));
-    buffer_write(buf, &m_bg3RefY, sizeof(m_bg3RefY));
+    visitState(StateWriter{buf});
 }
 
 void PPU::loadState(Buffer* buf) {
-    buffer_read(buf, m_framebuffer, sizeof(m_framebuffer));
-    buffer_read(buf, &m_vcount, sizeof(m_vcount));
-    buffer_read(buf, &m_cycles, sizeof(m_cycles));
-    buffer_read(buf, &m_inHBlank, sizeof(m_inHBlank));
-    buffer_read(buf, &m_inVBlank, sizeof(m_inVBlank));
-    buffer_read(buf, &m_bg2RefX, sizeof(m_bg2RefX));
-    buffer_read(buf, &m_bg2RefY, sizeof(m_bg2RefY));
-    buffer_read(buf, &m_bg3RefX, sizeof(m_bg3RefX));
-    buffer_read(buf, &m_bg3RefY, sizeof(m_bg3RefY));
+    visitState(StateReader{buf});
 }
 
 } // namespace gba

@@ -47,6 +47,8 @@ public:
     void loadState(Buffer* buf);
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     void renderScanline();
     void enterHBlank();
     void enterVBlank();

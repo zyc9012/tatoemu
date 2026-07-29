@@ -65,6 +65,8 @@ public:
     void loadState(Buffer* buf);
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     Ym2610 m_ym2610;
 
     SoundCPU* m_soundCpu;

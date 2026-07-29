@@ -73,6 +73,8 @@ public:
     void loadState(Buffer* buf);
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     // --- register / port helpers ---
     void writeRegister(u8 index, u8 value);
     void updateIRQ();

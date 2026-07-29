@@ -78,6 +78,8 @@ public:
     void loadState(Buffer* buf);
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     u8 readIO8(u32 offset);
     void writeIO8(u32 offset, u8 value);
     void updateWaitstates(u16 waitcnt);

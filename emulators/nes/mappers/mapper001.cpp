@@ -168,28 +168,25 @@ MirrorMode Mapper001::getMirrorMode() const {
     }
 }
 
+template <typename Visit>
+void Mapper001::visitState(Visit visit) {
+    Mapper::visitState(visit);
+    visit(m_shiftRegister);
+    visit(m_shiftCount);
+    visit(m_lastWriteCycle);
+    visit(m_control);
+    visit(m_chrBank0);
+    visit(m_chrBank1);
+    visit(m_prgBank);
+    visit(m_lastChrReg);
+}
+
 void Mapper001::saveState(Buffer* buf) {
-    Mapper::saveState(buf);
-    buffer_write(buf, &m_shiftRegister, sizeof(m_shiftRegister));
-    buffer_write(buf, &m_shiftCount, sizeof(m_shiftCount));
-    buffer_write(buf, &m_lastWriteCycle, sizeof(m_lastWriteCycle));
-    buffer_write(buf, &m_control, sizeof(m_control));
-    buffer_write(buf, &m_chrBank0, sizeof(m_chrBank0));
-    buffer_write(buf, &m_chrBank1, sizeof(m_chrBank1));
-    buffer_write(buf, &m_prgBank, sizeof(m_prgBank));
-    buffer_write(buf, &m_lastChrReg, sizeof(m_lastChrReg));
+    visitState(StateWriter{buf});
 }
 
 void Mapper001::loadState(Buffer* buf) {
-    Mapper::loadState(buf);
-    buffer_read(buf, &m_shiftRegister, sizeof(m_shiftRegister));
-    buffer_read(buf, &m_shiftCount, sizeof(m_shiftCount));
-    buffer_read(buf, &m_lastWriteCycle, sizeof(m_lastWriteCycle));
-    buffer_read(buf, &m_control, sizeof(m_control));
-    buffer_read(buf, &m_chrBank0, sizeof(m_chrBank0));
-    buffer_read(buf, &m_chrBank1, sizeof(m_chrBank1));
-    buffer_read(buf, &m_prgBank, sizeof(m_prgBank));
-    buffer_read(buf, &m_lastChrReg, sizeof(m_lastChrReg));
+    visitState(StateReader{buf});
     updateBanks();
 }
 

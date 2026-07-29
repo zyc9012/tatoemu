@@ -18,6 +18,8 @@ public:
     void loadState(Buffer* buf) override;
     
 protected:
+    template <typename Visit> void visitState(Visit visit);
+
     void updateBanks() override;
     bool isChrRamBank(u8 bank) const;
     

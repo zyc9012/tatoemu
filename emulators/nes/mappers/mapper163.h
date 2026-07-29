@@ -20,6 +20,8 @@ public:
     void loadState(Buffer* buf) override;
     
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     void updateState();
     
     u8 m_registers[5];

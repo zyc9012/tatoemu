@@ -162,22 +162,21 @@ void Mapper074::writeCHR(u16 address, u8 value) {
     }
 }
 
+template <typename Visit>
+void Mapper074::visitState(Visit visit) {
+    Mapper004::visitState(visit);
+    // The CHR RAM this mapper adds on top of MMC3
+    visit(m_chrRamBank);
+    visit(m_chrBankValue);
+    visit(m_chrRam);
+}
+
 void Mapper074::saveState(Buffer* buf) {
-    // Save base class state
-    Mapper004::saveState(buf);
-    // Save additional CHR RAM state
-    buffer_write(buf, m_chrRamBank, sizeof(m_chrRamBank));
-    buffer_write(buf, m_chrBankValue, sizeof(m_chrBankValue));
-    buffer_write(buf, m_chrRam, sizeof(m_chrRam));
+    visitState(StateWriter{buf});
 }
 
 void Mapper074::loadState(Buffer* buf) {
-    // Load base class state
-    Mapper004::loadState(buf);
-    // Load additional CHR RAM state
-    buffer_read(buf, m_chrRamBank, sizeof(m_chrRamBank));
-    buffer_read(buf, m_chrBankValue, sizeof(m_chrBankValue));
-    buffer_read(buf, m_chrRam, sizeof(m_chrRam));
+    visitState(StateReader{buf});
     updateBanks();
 }
 

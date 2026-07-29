@@ -1634,60 +1634,40 @@ void Video::drawTile32x32(s32 x, s32 y, u32 tileAddr, u32 palette, u32 flip, boo
 // Save/Load State
 // ============================================================================
 
+template <typename Visit>
+void Video::visitState(Visit visit) {
+    visit(m_vram);
+    visit(m_cpsRegs);
+
+    // Scroll offsets
+    visit(m_layer1XOffs);
+    visit(m_layer1YOffs);
+    visit(m_layer2XOffs);
+    visit(m_layer2YOffs);
+    visit(m_layer3XOffs);
+    visit(m_layer3YOffs);
+    visit(m_gfxScroll);
+
+    // Frame state
+    visit(m_scanline);
+    visit(m_cycles);
+    visit(m_cyclesPerFrame);
+    visit(m_cyclesPerScanline);
+    visit(m_paletteNeedsUpdate);
+}
+
 void Video::saveState(Buffer* buf) {
-    // Save VRAM
-    buffer_write(buf, m_vram.data(), m_vram.size());
-    
-    // Save registers
-    buffer_write(buf, m_cpsRegs.data(), m_cpsRegs.size());
-    
-    // Save scroll offsets
-    buffer_write(buf, &m_layer1XOffs, sizeof(m_layer1XOffs));
-    buffer_write(buf, &m_layer1YOffs, sizeof(m_layer1YOffs));
-    buffer_write(buf, &m_layer2XOffs, sizeof(m_layer2XOffs));
-    buffer_write(buf, &m_layer2YOffs, sizeof(m_layer2YOffs));
-    buffer_write(buf, &m_layer3XOffs, sizeof(m_layer3XOffs));
-    buffer_write(buf, &m_layer3YOffs, sizeof(m_layer3YOffs));
-    
-    // Save graphics scroll offsets
-    buffer_write(buf, m_gfxScroll, sizeof(m_gfxScroll));
-    
-    // Save state flags
-    buffer_write(buf, &m_scanline, sizeof(m_scanline));
-    buffer_write(buf, &m_cycles, sizeof(m_cycles));
-    buffer_write(buf, &m_cyclesPerFrame, sizeof(m_cyclesPerFrame));
-    buffer_write(buf, &m_cyclesPerScanline, sizeof(m_cyclesPerScanline));
-    buffer_write(buf, &m_paletteNeedsUpdate, sizeof(m_paletteNeedsUpdate));
+    visitState(StateWriter{buf});
 }
 
 void Video::loadState(Buffer* buf) {
-    // Load VRAM
-    buffer_read(buf, m_vram.data(), m_vram.size());
-    
-    // Load registers
-    buffer_read(buf, m_cpsRegs.data(), m_cpsRegs.size());
-    
-    // Load scroll offsets
-    buffer_read(buf, &m_layer1XOffs, sizeof(m_layer1XOffs));
-    buffer_read(buf, &m_layer1YOffs, sizeof(m_layer1YOffs));
-    buffer_read(buf, &m_layer2XOffs, sizeof(m_layer2XOffs));
-    buffer_read(buf, &m_layer2YOffs, sizeof(m_layer2YOffs));
-    buffer_read(buf, &m_layer3XOffs, sizeof(m_layer3XOffs));
-    buffer_read(buf, &m_layer3YOffs, sizeof(m_layer3YOffs));
-    
-    // Load graphics scroll offsets
-    buffer_read(buf, m_gfxScroll, sizeof(m_gfxScroll));
-    
-    // Load state flags
-    buffer_read(buf, &m_scanline, sizeof(m_scanline));
-    buffer_read(buf, &m_cycles, sizeof(m_cycles));
-    buffer_read(buf, &m_cyclesPerFrame, sizeof(m_cyclesPerFrame));
-    buffer_read(buf, &m_cyclesPerScanline, sizeof(m_cyclesPerScanline));
-    buffer_read(buf, &m_paletteNeedsUpdate, sizeof(m_paletteNeedsUpdate));
-    
-    // Force palette update after loading state
+    visitState(StateReader{buf});
+
+    // The palette the loaded registers describe has not been built yet.
     m_paletteNeedsUpdate = true;
 }
+
+
 
 // ============================================================================
 // CPS2 Memory Access Helpers

@@ -21,6 +21,18 @@ public:
     void loadState(Buffer* buf) override;
     
 protected:
+    // Defined here rather than in the .cpp because Mapper074 walks it too.
+    template <typename Visit> void visitState(Visit visit) {
+        Mapper::visitState(visit);
+        visit(m_bankSelect);
+        visit(m_bankData);
+        visit(m_irqLatch);
+        visit(m_irqCounter);
+        visit(m_irqEnable);
+        visit(m_irqReload);
+        visit(m_prgRamEnable);
+    }
+
     virtual void updateBanks();
     
     u8 m_bankSelect;

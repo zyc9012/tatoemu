@@ -479,45 +479,40 @@ u8 Cartridge::readEncryptedSoundROM8(u32 address) const {
     return 0;
 }
 
-void Cartridge::saveState(Buffer* buf) {
-    // Save CPS version
-    buffer_write(buf, &m_cpsVer, sizeof(m_cpsVer));
-    
-    // Save title and ROM set name for verification
+template <typename Visit>
+void Cartridge::visitState(Visit visit) {
+    visit(m_cpsVer);
+
+    // The names are recorded so that a state can be matched against the ROM.
     u32 titleLen = static_cast<u32>(m_title.length());
-    buffer_write(buf, &titleLen, sizeof(titleLen));
-    buffer_write(buf, m_title.c_str(), titleLen);
-    
+    visit(titleLen);
+    if constexpr (Visit::loading) {
+        m_title.resize(titleLen);
+    }
+    visit.bytes(m_title.data(), titleLen);
+
     u32 romSetNameLen = static_cast<u32>(m_romSetName.length());
-    buffer_write(buf, &romSetNameLen, sizeof(romSetNameLen));
-    buffer_write(buf, m_romSetName.c_str(), romSetNameLen);
-    
-    // Save decryption keys (CPS2 only, but save for both for compatibility)
-    buffer_write(buf, &m_decryptKey, sizeof(m_decryptKey));
-    buffer_write(buf, &m_decryptStart, sizeof(m_decryptStart));
-    buffer_write(buf, &m_decryptEnd, sizeof(m_decryptEnd));
+    visit(romSetNameLen);
+    if constexpr (Visit::loading) {
+        m_romSetName.resize(romSetNameLen);
+    }
+    visit.bytes(m_romSetName.data(), romSetNameLen);
+
+    // Decryption keys.  Only CPS2 uses them, but both boards record them.
+    visit(m_decryptKey);
+    visit(m_decryptStart);
+    visit(m_decryptEnd);
+}
+
+void Cartridge::saveState(Buffer* buf) {
+    visitState(StateWriter{buf});
 }
 
 void Cartridge::loadState(Buffer* buf) {
-    // Load CPS version
-    buffer_read(buf, &m_cpsVer, sizeof(m_cpsVer));
-    
-    // Load title and ROM set name for verification
-    u32 titleLen;
-    buffer_read(buf, &titleLen, sizeof(titleLen));
-    m_title.resize(titleLen);
-    buffer_read(buf, &m_title[0], titleLen);
-    
-    u32 romSetNameLen;
-    buffer_read(buf, &romSetNameLen, sizeof(romSetNameLen));
-    m_romSetName.resize(romSetNameLen);
-    buffer_read(buf, &m_romSetName[0], romSetNameLen);
-    
-    // Load decryption keys
-    buffer_read(buf, &m_decryptKey, sizeof(m_decryptKey));
-    buffer_read(buf, &m_decryptStart, sizeof(m_decryptStart));
-    buffer_read(buf, &m_decryptEnd, sizeof(m_decryptEnd));
+    visitState(StateReader{buf});
 }
+
+
 
 u32 Cartridge::calcGraphicsROMSizeFix(const GameInfo* gameInfo) {
     if (gameInfo->cpsVer == 1) {

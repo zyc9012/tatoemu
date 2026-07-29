@@ -27,6 +27,8 @@ public:
     float getAudioOutput() const override { return 0.0f; }
     
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     void updateChrMapping(u8 bankIndex, u8 value);
     
     // PRG: three 8KB switchable banks at $8000/$A000/$C000, last bank fixed

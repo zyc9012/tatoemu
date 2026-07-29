@@ -341,20 +341,21 @@ void Memory::writeZ80(u16 address, u8 value) {
 // Save states
 // ---------------------------------------------------------------------------
 
+template <typename Visit>
+void Memory::visitState(Visit visit) {
+    visit(m_workRam);
+    visit(m_z80Ram);
+    visit(m_z80BankBase);
+    visit(m_z80BankShift);
+    visit(m_z80BankLatch);
+}
+
 void Memory::saveState(Buffer* buf) {
-    buffer_write(buf, m_workRam.data(), m_workRam.size());
-    buffer_write(buf, m_z80Ram.data(), m_z80Ram.size());
-    buffer_write(buf, &m_z80BankBase, sizeof(m_z80BankBase));
-    buffer_write(buf, &m_z80BankShift, sizeof(m_z80BankShift));
-    buffer_write(buf, &m_z80BankLatch, sizeof(m_z80BankLatch));
+    visitState(StateWriter{buf});
 }
 
 void Memory::loadState(Buffer* buf) {
-    buffer_read(buf, m_workRam.data(), m_workRam.size());
-    buffer_read(buf, m_z80Ram.data(), m_z80Ram.size());
-    buffer_read(buf, &m_z80BankBase, sizeof(m_z80BankBase));
-    buffer_read(buf, &m_z80BankShift, sizeof(m_z80BankShift));
-    buffer_read(buf, &m_z80BankLatch, sizeof(m_z80BankLatch));
+    visitState(StateReader{buf});
 }
 
 } // namespace md

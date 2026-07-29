@@ -751,42 +751,32 @@ void VDP::composite(u32 line) {
 // Save states
 // ---------------------------------------------------------------------------
 
-void VDP::saveState(Buffer* buf) {
-    buffer_write(buf, m_vram.data(), m_vram.size());
-    buffer_write(buf, m_cram.data(), m_cram.size() * sizeof(u16));
-    buffer_write(buf, m_vsram.data(), m_vsram.size() * sizeof(u16));
-    buffer_write(buf, m_regs.data(), m_regs.size());
+template <typename Visit>
+void VDP::visitState(Visit visit) {
+    visit(m_vram);
+    visit(m_cram);
+    visit(m_vsram);
+    visit(m_regs);
 
-    buffer_write(buf, &m_addr, sizeof(m_addr));
-    buffer_write(buf, &m_code, sizeof(m_code));
-    buffer_write(buf, &m_pending, sizeof(m_pending));
-    buffer_write(buf, &m_readBuffer, sizeof(m_readBuffer));
-    buffer_write(buf, &m_dmaFillPending, sizeof(m_dmaFillPending));
-    buffer_write(buf, &m_status, sizeof(m_status));
-    buffer_write(buf, &m_line, sizeof(m_line));
-    buffer_write(buf, &m_hintCounter, sizeof(m_hintCounter));
-    buffer_write(buf, &m_vintPending, sizeof(m_vintPending));
-    buffer_write(buf, &m_hintPending, sizeof(m_hintPending));
-    buffer_write(buf, &m_oddFrame, sizeof(m_oddFrame));
+    visit(m_addr);
+    visit(m_code);
+    visit(m_pending);
+    visit(m_readBuffer);
+    visit(m_dmaFillPending);
+    visit(m_status);
+    visit(m_line);
+    visit(m_hintCounter);
+    visit(m_vintPending);
+    visit(m_hintPending);
+    visit(m_oddFrame);
+}
+
+void VDP::saveState(Buffer* buf) {
+    visitState(StateWriter{buf});
 }
 
 void VDP::loadState(Buffer* buf) {
-    buffer_read(buf, m_vram.data(), m_vram.size());
-    buffer_read(buf, m_cram.data(), m_cram.size() * sizeof(u16));
-    buffer_read(buf, m_vsram.data(), m_vsram.size() * sizeof(u16));
-    buffer_read(buf, m_regs.data(), m_regs.size());
-
-    buffer_read(buf, &m_addr, sizeof(m_addr));
-    buffer_read(buf, &m_code, sizeof(m_code));
-    buffer_read(buf, &m_pending, sizeof(m_pending));
-    buffer_read(buf, &m_readBuffer, sizeof(m_readBuffer));
-    buffer_read(buf, &m_dmaFillPending, sizeof(m_dmaFillPending));
-    buffer_read(buf, &m_status, sizeof(m_status));
-    buffer_read(buf, &m_line, sizeof(m_line));
-    buffer_read(buf, &m_hintCounter, sizeof(m_hintCounter));
-    buffer_read(buf, &m_vintPending, sizeof(m_vintPending));
-    buffer_read(buf, &m_hintPending, sizeof(m_hintPending));
-    buffer_read(buf, &m_oddFrame, sizeof(m_oddFrame));
+    visitState(StateReader{buf});
 
     for (u32 i = 0; i < CRAM_ENTRIES; i++) updatePaletteEntry(i);
 }

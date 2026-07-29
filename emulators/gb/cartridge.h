@@ -82,6 +82,8 @@ public:
     bool hasBattery() const;
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     void parseHeader();
     void updateRTC() const;
     void latchRTC() const;

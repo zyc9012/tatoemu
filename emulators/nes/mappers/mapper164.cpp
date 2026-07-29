@@ -55,18 +55,20 @@ void Mapper164::writeCHR(u16 address, u8 value) {
     m_cartridge->getCHR()[m_chrBankOffset + (address & 0x1FFF)] = value;
 }
 
+template <typename Visit>
+void Mapper164::visitState(Visit visit) {
+    Mapper::visitState(visit);
+    visit(m_prgBank);
+    visit(m_prgBankOffset);
+    visit(m_chrBankOffset);
+}
+
 void Mapper164::saveState(Buffer* buf) {
-    Mapper::saveState(buf);
-    buffer_write(buf, &m_prgBank, sizeof(m_prgBank));
-    buffer_write(buf, &m_prgBankOffset, sizeof(m_prgBankOffset));
-    buffer_write(buf, &m_chrBankOffset, sizeof(m_chrBankOffset));
+    visitState(StateWriter{buf});
 }
 
 void Mapper164::loadState(Buffer* buf) {
-    Mapper::loadState(buf);
-    buffer_read(buf, &m_prgBank, sizeof(m_prgBank));
-    buffer_read(buf, &m_prgBankOffset, sizeof(m_prgBankOffset));
-    buffer_read(buf, &m_chrBankOffset, sizeof(m_chrBankOffset));
+    visitState(StateReader{buf});
 }
 
 } // namespace nes

@@ -27,6 +27,8 @@ public:
     void loadState(Buffer* buf);
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     void updateDivider(u32 cycles);
     void updateTimer(u32 cycles);
     u32 getTimerFrequency() const;

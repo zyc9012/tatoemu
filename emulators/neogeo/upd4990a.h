@@ -31,6 +31,8 @@ public:
     void loadState(Buffer* buf);
 
 private:
+    template <typename Visit> void visitState(Visit visit);
+
     // Current time
     u32 m_seconds;
     u32 m_minutes;

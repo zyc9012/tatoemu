@@ -183,26 +183,24 @@ void Timer::write(u16 address, u8 value) {
     }
 }
 
+template <typename Visit>
+void Timer::visitState(Visit visit) {
+    visit(m_dividerCounter);
+    visit(m_div);
+    visit(m_tima);
+    visit(m_tma);
+    visit(m_tac);
+    visit(m_timerCounter);
+    visit(m_timerOverflow);
+    visit(m_overflowDelay);
+}
+
 void Timer::saveState(Buffer* buf) {
-    buffer_write(buf, &m_dividerCounter, sizeof(m_dividerCounter));
-    buffer_write(buf, &m_div, sizeof(m_div));
-    buffer_write(buf, &m_tima, sizeof(m_tima));
-    buffer_write(buf, &m_tma, sizeof(m_tma));
-    buffer_write(buf, &m_tac, sizeof(m_tac));
-    buffer_write(buf, &m_timerCounter, sizeof(m_timerCounter));
-    buffer_write(buf, &m_timerOverflow, sizeof(m_timerOverflow));
-    buffer_write(buf, &m_overflowDelay, sizeof(m_overflowDelay));
+    visitState(StateWriter{buf});
 }
 
 void Timer::loadState(Buffer* buf) {
-    buffer_read(buf, &m_dividerCounter, sizeof(m_dividerCounter));
-    buffer_read(buf, &m_div, sizeof(m_div));
-    buffer_read(buf, &m_tima, sizeof(m_tima));
-    buffer_read(buf, &m_tma, sizeof(m_tma));
-    buffer_read(buf, &m_tac, sizeof(m_tac));
-    buffer_read(buf, &m_timerCounter, sizeof(m_timerCounter));
-    buffer_read(buf, &m_timerOverflow, sizeof(m_timerOverflow));
-    buffer_read(buf, &m_overflowDelay, sizeof(m_overflowDelay));
+    visitState(StateReader{buf});
 }
 
 } // namespace gb

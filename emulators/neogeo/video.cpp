@@ -888,45 +888,36 @@ void Video::writeGraphicsRAM16(u32 address, u16 value) {
     m_graphicsRam[address + 1] = value & 0xFF;
 }
 
+template <typename Visit>
+void Video::visitState(Visit visit) {
+    visit(m_graphicsRam);
+
+    // Screen dimensions, which differ between games
+    visit(m_screenWidth);
+    visit(m_screenHeight);
+
+    // Frame state
+    visit(m_scanline);
+    visit(m_cycles);
+    visit(m_spriteFrameSpeed);
+    visit(m_spriteFrameTimer);
+    visit(m_spriteFrame);
+    visit(m_graphicsRamPointer);
+    visit(m_graphicsRamBank);
+    visit(m_graphicsRamModulo);
+}
+
 void Video::saveState(Buffer* buf) {
-    // Write graphics RAM
-    buffer_write(buf, m_graphicsRam.data(), m_graphicsRam.size());
-
-    // Write screen dimensions (for compatibility with different game resolutions)
-    buffer_write(buf, &m_screenWidth, sizeof(m_screenWidth));
-    buffer_write(buf, &m_screenHeight, sizeof(m_screenHeight));
-
-    // Write frame state
-    buffer_write(buf, &m_scanline, sizeof(m_scanline));
-    buffer_write(buf, &m_cycles, sizeof(m_cycles));
-    buffer_write(buf, &m_spriteFrameSpeed, sizeof(m_spriteFrameSpeed));
-    buffer_write(buf, &m_spriteFrameTimer, sizeof(m_spriteFrameTimer));
-    buffer_write(buf, &m_spriteFrame, sizeof(m_spriteFrame));
-    buffer_write(buf, &m_graphicsRamPointer, sizeof(m_graphicsRamPointer));
-    buffer_write(buf, &m_graphicsRamBank, sizeof(m_graphicsRamBank));
-    buffer_write(buf, &m_graphicsRamModulo, sizeof(m_graphicsRamModulo));
+    visitState(StateWriter{buf});
 }
 
 void Video::loadState(Buffer* buf) {
-    // Read graphics RAM
-    buffer_read(buf, m_graphicsRam.data(), m_graphicsRam.size());
+    visitState(StateReader{buf});
 
-    // Read screen dimensions
-    buffer_read(buf, &m_screenWidth, sizeof(m_screenWidth));
-    buffer_read(buf, &m_screenHeight, sizeof(m_screenHeight));
-
-    // Read frame state
-    buffer_read(buf, &m_scanline, sizeof(m_scanline));
-    buffer_read(buf, &m_cycles, sizeof(m_cycles));
-    buffer_read(buf, &m_spriteFrameSpeed, sizeof(m_spriteFrameSpeed));
-    buffer_read(buf, &m_spriteFrameTimer, sizeof(m_spriteFrameTimer));
-    buffer_read(buf, &m_spriteFrame, sizeof(m_spriteFrame));
-    buffer_read(buf, &m_graphicsRamPointer, sizeof(m_graphicsRamPointer));
-    buffer_read(buf, &m_graphicsRamBank, sizeof(m_graphicsRamBank));
-    buffer_read(buf, &m_graphicsRamModulo, sizeof(m_graphicsRamModulo));
-    
-    // Update palette
+    // The palette the loaded RAM describes has not been built yet.
     updatePalette();
 }
+
+
 
 } // namespace neogeo

@@ -116,18 +116,20 @@ void Controller::writeCtrl(u32 port, u8 value) {
     m_ctrl = value;
 }
 
+template <typename Visit>
+void Controller::visitState(Visit visit) {
+    visit(m_dataLatch);
+    visit(m_ctrl);
+    visit(m_thPhase);
+    visit(m_thIdleLines);
+}
+
 void Controller::saveState(Buffer* buf) {
-    buffer_write(buf, &m_dataLatch, sizeof(m_dataLatch));
-    buffer_write(buf, &m_ctrl, sizeof(m_ctrl));
-    buffer_write(buf, &m_thPhase, sizeof(m_thPhase));
-    buffer_write(buf, &m_thIdleLines, sizeof(m_thIdleLines));
+    visitState(StateWriter{buf});
 }
 
 void Controller::loadState(Buffer* buf) {
-    buffer_read(buf, &m_dataLatch, sizeof(m_dataLatch));
-    buffer_read(buf, &m_ctrl, sizeof(m_ctrl));
-    buffer_read(buf, &m_thPhase, sizeof(m_thPhase));
-    buffer_read(buf, &m_thIdleLines, sizeof(m_thIdleLines));
+    visitState(StateReader{buf});
 }
 
 } // namespace md

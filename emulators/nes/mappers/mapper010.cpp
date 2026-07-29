@@ -96,26 +96,24 @@ void Mapper010::writeCHR(u16 address, u8 value) {
     // CHR ROM - ignore writes
 }
 
+template <typename Visit>
+void Mapper010::visitState(Visit visit) {
+    Mapper::visitState(visit);
+    visit(m_prgBank);
+    visit(m_chrBank0FD);
+    visit(m_chrBank0FE);
+    visit(m_chrBank1FD);
+    visit(m_chrBank1FE);
+    visit(m_latch0);
+    visit(m_latch1);
+}
+
 void Mapper010::saveState(Buffer* buf) {
-    Mapper::saveState(buf);
-    buffer_write(buf, &m_prgBank, sizeof(m_prgBank));
-    buffer_write(buf, &m_chrBank0FD, sizeof(m_chrBank0FD));
-    buffer_write(buf, &m_chrBank0FE, sizeof(m_chrBank0FE));
-    buffer_write(buf, &m_chrBank1FD, sizeof(m_chrBank1FD));
-    buffer_write(buf, &m_chrBank1FE, sizeof(m_chrBank1FE));
-    buffer_write(buf, &m_latch0, sizeof(m_latch0));
-    buffer_write(buf, &m_latch1, sizeof(m_latch1));
+    visitState(StateWriter{buf});
 }
 
 void Mapper010::loadState(Buffer* buf) {
-    Mapper::loadState(buf);
-    buffer_read(buf, &m_prgBank, sizeof(m_prgBank));
-    buffer_read(buf, &m_chrBank0FD, sizeof(m_chrBank0FD));
-    buffer_read(buf, &m_chrBank0FE, sizeof(m_chrBank0FE));
-    buffer_read(buf, &m_chrBank1FD, sizeof(m_chrBank1FD));
-    buffer_read(buf, &m_chrBank1FE, sizeof(m_chrBank1FE));
-    buffer_read(buf, &m_latch0, sizeof(m_latch0));
-    buffer_read(buf, &m_latch1, sizeof(m_latch1));
+    visitState(StateReader{buf});
 }
 
 } // namespace nes

@@ -320,39 +320,35 @@ void Cartridge::loadBattery() {
     }
 }
 
-void Cartridge::saveState(Buffer* buf) {
+template <typename Visit>
+void Cartridge::visitState(Visit visit) {
+    // The ROM size is recorded but not acted on; the ROM comes from the file.
     u32 romSize = static_cast<u32>(m_rom.size());
-    buffer_write(buf, &romSize, sizeof(romSize));
-    buffer_write(buf, &m_saveType, sizeof(m_saveType));
-    u32 sramSize = static_cast<u32>(m_sram.size());
-    buffer_write(buf, &sramSize, sizeof(sramSize));
-    if (sramSize > 0) {
-        buffer_write(buf, m_sram.data(), sramSize);
-    }
-    buffer_write(buf, &m_flashState, sizeof(m_flashState));
-    buffer_write(buf, &m_flashBank, sizeof(m_flashBank));
-    buffer_write(buf, &m_flashIdMode, sizeof(m_flashIdMode));
+    visit(romSize);
+    visit(m_saveType);
     
-    // Save EEPROM state
-    m_eeprom.saveState(buf);
+    u32 sramSize = static_cast<u32>(m_sram.size());
+    visit(sramSize);
+    if (sramSize > 0) {
+        if constexpr (Visit::loading) {
+            m_sram.resize(sramSize);
+        }
+        visit.bytes(m_sram.data(), sramSize);
+    }
+    visit(m_flashState);
+    visit(m_flashBank);
+    visit(m_flashIdMode);
+    
+    // EEPROM state
+    m_eeprom.visitState(visit);
+}
+
+void Cartridge::saveState(Buffer* buf) {
+    visitState(StateWriter{buf});
 }
 
 void Cartridge::loadState(Buffer* buf) {
-    u32 romSize;
-    buffer_read(buf, &romSize, sizeof(romSize));
-    buffer_read(buf, &m_saveType, sizeof(m_saveType));
-    u32 sramSize;
-    buffer_read(buf, &sramSize, sizeof(sramSize));
-    if (sramSize > 0) {
-        m_sram.resize(sramSize);
-        buffer_read(buf, m_sram.data(), sramSize);
-    }
-    buffer_read(buf, &m_flashState, sizeof(m_flashState));
-    buffer_read(buf, &m_flashBank, sizeof(m_flashBank));
-    buffer_read(buf, &m_flashIdMode, sizeof(m_flashIdMode));
-    
-    // Load EEPROM state
-    m_eeprom.loadState(buf);
+    visitState(StateReader{buf});
 }
 
 } // namespace gba

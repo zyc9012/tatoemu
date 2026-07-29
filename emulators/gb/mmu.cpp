@@ -29,26 +29,24 @@ MMU::MMU()
 MMU::~MMU() {
 }
 
+template <typename Visit>
+void MMU::visitState(Visit visit) {
+    visit(m_wram);
+    visit(m_hram);
+    visit(m_ie);
+    visit(m_if);
+    visit(m_gbcMode);
+    visit(m_wramBank);
+    visit(m_speedSwitch);
+    visit(m_doubleSpeed);
+}
+
 void MMU::saveState(Buffer* buf) {
-    buffer_write(buf, m_wram.data(), m_wram.size());
-    buffer_write(buf, m_hram.data(), m_hram.size());
-    buffer_write(buf, &m_ie, sizeof(m_ie));
-    buffer_write(buf, &m_if, sizeof(m_if));
-    buffer_write(buf, &m_gbcMode, sizeof(m_gbcMode));
-    buffer_write(buf, &m_wramBank, sizeof(m_wramBank));
-    buffer_write(buf, &m_speedSwitch, sizeof(m_speedSwitch));
-    buffer_write(buf, &m_doubleSpeed, sizeof(m_doubleSpeed));
+    visitState(StateWriter{buf});
 }
 
 void MMU::loadState(Buffer* buf) {
-    buffer_read(buf, m_wram.data(), m_wram.size());
-    buffer_read(buf, m_hram.data(), m_hram.size());
-    buffer_read(buf, &m_ie, sizeof(m_ie));
-    buffer_read(buf, &m_if, sizeof(m_if));
-    buffer_read(buf, &m_gbcMode, sizeof(m_gbcMode));
-    buffer_read(buf, &m_wramBank, sizeof(m_wramBank));
-    buffer_read(buf, &m_speedSwitch, sizeof(m_speedSwitch));
-    buffer_read(buf, &m_doubleSpeed, sizeof(m_doubleSpeed));
+    visitState(StateReader{buf});
 }
 
 void MMU::setCartridge(Cartridge* cartridge) {
