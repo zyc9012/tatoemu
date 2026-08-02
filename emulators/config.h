@@ -24,6 +24,7 @@ namespace Key {
     inline SDL_Keycode Pause = SDLK_P;
     inline SDL_Keycode GameSpeedUp = SDLK_EQUALS;
     inline SDL_Keycode GameSpeedDown = SDLK_MINUS;
+    inline SDL_Keycode CheatConsole = SDLK_GRAVE;
 }
 
 } // namespace Config

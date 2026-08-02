@@ -162,6 +162,7 @@ The following options and control mappings can be customized within this config 
 - **F11** - Quick load state (backup 2)
 - **F12** - Quick load state (backup 3)
 - **P** - Pause / Resume
+- **`** - Toggle the on-screen cheat console
 
 ## Supported Systems and Cartridge/Board Types
 

@@ -29,11 +29,15 @@ public:
     void render(u32* buffer) override;
     void setDisplayAspectRatio(double aspectRatio) { m_displayAspectRatio = aspectRatio; }
 
+    // Drawn after the frame blit, before the present.
+    void setOverlayCallback(std::function<void(SDL_Renderer*)> cb) { m_overlay = std::move(cb); }
+
 private:
     SDL_Renderer* m_renderer;
     SDL_Texture* m_texture;
     u16 m_screenWidth;
     double m_displayAspectRatio;  // Display aspect ratio (may differ from pixel aspect ratio)
+    std::function<void(SDL_Renderer*)> m_overlay;
 };
 
 class SDLAudioDevice : public AudioDevice {
@@ -70,6 +74,12 @@ public:
     // Use this to drain platform-specific per-frame work (e.g. cheat console).
     void setFrameCallback(std::function<void()> cb) { m_frameCallback = std::move(cb); }
 
+    // Offered every SDL event before the core sees it; returning true consumes it.
+    void setEventCallback(std::function<bool(const SDL_Event&)> cb) { m_eventCallback = std::move(cb); }
+
+    // Drawn over the emulated frame. Survives a ROM reload.
+    void setOverlayCallback(std::function<void(SDL_Renderer*)> cb);
+
     CheatEngine& getCheatEngine() { return m_cheatEngine; }
     MemSearcher&  getSearcher()   { return m_searcher; }
     fs::path      getRomPath()    const { return m_romFilename; }
@@ -97,6 +107,8 @@ private:
 
     // Per-frame callback (optional, set by platform layer).
     std::function<void()> m_frameCallback;
+    std::function<bool(const SDL_Event&)> m_eventCallback;
+    std::function<void(SDL_Renderer*)> m_overlayCallback;
     
     // Cheat engine and memory searcher (per loaded ROM).
     CheatEngine m_cheatEngine;

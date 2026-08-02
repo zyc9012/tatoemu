@@ -99,6 +99,7 @@ static void createDefaultIni(const fs::path& iniPath) {
     fprintf(out, "Pause=%s\n", SDL_GetKeyName(Config::Key::Pause));
     fprintf(out, "SpeedUp=%s\n", SDL_GetKeyName(Config::Key::GameSpeedUp));
     fprintf(out, "SpeedDown=%s\n", SDL_GetKeyName(Config::Key::GameSpeedDown));
+    fprintf(out, "CheatConsole=%s\n", SDL_GetKeyName(Config::Key::CheatConsole));
     fprintf(out, "\n");
     fprintf(out, "[NES]\n");
     fprintf(out, "A=%s\n", SDL_GetKeyName(nes::Config::Key::ButtonA));
@@ -247,6 +248,7 @@ static int configHandler(void* /*user*/, const char* section, const char* name, 
         else if (key == "Pause") set_key(Config::Key::Pause);
         else if (key == "SpeedUp") set_key(Config::Key::GameSpeedUp);
         else if (key == "SpeedDown") set_key(Config::Key::GameSpeedDown);
+        else if (key == "CheatConsole") set_key(Config::Key::CheatConsole);
     } else if (sec == "NES") {
         if (key == "A") set_key(nes::Config::Key::ButtonA);
         else if (key == "B") set_key(nes::Config::Key::ButtonB);

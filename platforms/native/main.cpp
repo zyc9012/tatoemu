@@ -128,16 +128,16 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    CheatConsole console(romFile);
-    console.start();
-    emulator.setFrameCallback([&]{ console.drain(emulator.getCheatEngine(), emulator.getSearcher()); });
+    CheatConsole console(emulator.getCheatEngine(), emulator.getSearcher());
+    console.setKeyReleaseCallback([&](SDL_Keycode k) { emulator.handleKeyInput(k, false); });
+    emulator.setEventCallback([&](const SDL_Event& e) { return console.handleEvent(e); });
+    emulator.setOverlayCallback([&](SDL_Renderer* r) { console.render(r); });
 
     log_info("Starting emulation...");
     log_info("Press ESC to quit");
 
     emulator.run();
 
-    console.stop();
     return 0;
 }
 

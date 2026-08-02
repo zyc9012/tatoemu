@@ -57,6 +57,8 @@ void SDLVideoDevice::render(u32* buffer) {
     // Render texture
     SDL_RenderTexture(m_renderer, m_texture, nullptr, &destRect);
 
+    if (m_overlay) m_overlay(m_renderer);
+
     // Present
     SDL_RenderPresent(m_renderer);
 }
@@ -339,6 +341,7 @@ bool Emulator::initialize() {
 
     // Create video and audio devices
     m_videoDevice = std::make_unique<SDLVideoDevice>(m_renderer, m_texture, screenWidth, screenHeight);
+    m_videoDevice->setOverlayCallback(m_overlayCallback);
     m_audioDevice = std::make_unique<SDLAudioDevice>();
 
     // Initialize audio
@@ -367,6 +370,11 @@ bool Emulator::initialize() {
 bool Emulator::loadBootrom(const fs::path& filename) {
     m_bootromFilename = filename;
     return true;
+}
+
+void Emulator::setOverlayCallback(std::function<void(SDL_Renderer*)> cb) {
+    m_overlayCallback = std::move(cb);
+    if (m_videoDevice) m_videoDevice->setOverlayCallback(m_overlayCallback);
 }
 
 bool Emulator::loadROM(const fs::path& filename) {
@@ -484,6 +492,11 @@ bool Emulator::handleKeyInput(SDL_Keycode keycode, bool pressed) {
 void Emulator::handleInput() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        // The platform overlay (cheat console) gets first refusal on every event.
+        if (m_eventCallback && m_eventCallback(event)) {
+            continue;
+        }
+
         // Handle input through core first
         if (m_core && m_core->handleInput(event)) {
             continue;
