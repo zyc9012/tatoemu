@@ -27,6 +27,9 @@ public:
     ~SDLVideoDevice();
 
     void render(u32* buffer) override;
+
+    void present();
+
     void setDisplayAspectRatio(double aspectRatio) { m_displayAspectRatio = aspectRatio; }
 
     // Drawn after the frame blit, before the present.

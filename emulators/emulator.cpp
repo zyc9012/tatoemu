@@ -24,7 +24,10 @@ SDLVideoDevice::~SDLVideoDevice() {
 
 void SDLVideoDevice::render(u32* buffer) {
     SDL_UpdateTexture(m_texture, nullptr, buffer, m_screenWidth * sizeof(u32));
+    present();
+}
 
+void SDLVideoDevice::present() {
     SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
     SDL_RenderClear(m_renderer);
 
@@ -403,6 +406,7 @@ bool Emulator::loadROM(const fs::path& filename) {
 void Emulator::runFrame() {
     if (m_paused) {
         handleInput();
+        if (m_videoDevice) m_videoDevice->present();
         updateWindowStats();
         m_pacer.idle(SDL_GetTicks(), m_targetFrameTime);
         return;
