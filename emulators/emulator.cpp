@@ -375,8 +375,10 @@ bool Emulator::loadBootrom(const fs::path& filename) {
     return true;
 }
 
-void Emulator::setOverlayCallback(std::function<void(SDL_Renderer*)> cb) {
-    m_overlayCallback = std::move(cb);
+void Emulator::setOverlayCallback(std::function<void(SDL_Renderer*)> draw,
+                                  std::function<bool()> needsRedraw) {
+    m_overlayCallback = std::move(draw);
+    m_overlayNeedsRedraw = std::move(needsRedraw);
     if (m_videoDevice) m_videoDevice->setOverlayCallback(m_overlayCallback);
 }
 
@@ -406,7 +408,11 @@ bool Emulator::loadROM(const fs::path& filename) {
 void Emulator::runFrame() {
     if (m_paused) {
         handleInput();
-        if (m_videoDevice) m_videoDevice->present();
+        const bool overlayVisible = m_overlayNeedsRedraw && m_overlayNeedsRedraw();
+        if (m_videoDevice && (overlayVisible || m_overlayWasVisible)) {
+            m_videoDevice->present();
+        }
+        m_overlayWasVisible = overlayVisible;
         updateWindowStats();
         m_pacer.idle(SDL_GetTicks(), m_targetFrameTime);
         return;

@@ -81,7 +81,8 @@ public:
     void setEventCallback(std::function<bool(const SDL_Event&)> cb) { m_eventCallback = std::move(cb); }
 
     // Drawn over the emulated frame. Survives a ROM reload.
-    void setOverlayCallback(std::function<void(SDL_Renderer*)> cb);
+    void setOverlayCallback(std::function<void(SDL_Renderer*)> draw,
+                            std::function<bool()> needsRedraw = {});
 
     CheatEngine& getCheatEngine() { return m_cheatEngine; }
     MemSearcher&  getSearcher()   { return m_searcher; }
@@ -112,6 +113,8 @@ private:
     std::function<void()> m_frameCallback;
     std::function<bool(const SDL_Event&)> m_eventCallback;
     std::function<void(SDL_Renderer*)> m_overlayCallback;
+    std::function<bool()> m_overlayNeedsRedraw;
+    bool m_overlayWasVisible = false;
     
     // Cheat engine and memory searcher (per loaded ROM).
     CheatEngine m_cheatEngine;

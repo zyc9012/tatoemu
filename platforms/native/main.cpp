@@ -131,7 +131,8 @@ int main(int argc, char* argv[]) {
     CheatConsole console(emulator.getCheatEngine(), emulator.getSearcher());
     console.setKeyReleaseCallback([&](SDL_Keycode k) { emulator.handleKeyInput(k, false); });
     emulator.setEventCallback([&](const SDL_Event& e) { return console.handleEvent(e); });
-    emulator.setOverlayCallback([&](SDL_Renderer* r) { console.render(r); });
+    emulator.setOverlayCallback([&](SDL_Renderer* r) { console.render(r); },
+                                [&] { return console.isOpen(); });
 
     log_info("Starting emulation...");
     log_info("Press ESC to quit");
