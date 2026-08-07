@@ -99,18 +99,17 @@ void Core::update() {
         if (timerNext < cyclesToRun) cyclesToRun = timerNext;
         
         u32 cycles = m_cpu->step(cyclesToRun);
-        
-        m_ppu->step(cycles);
-        m_timer->step(cycles);
-        m_apu->step(cycles, m_gameSpeed);
-        
-        // Add DMA cycles if any DMA occurred
+
         u32 dmaCycles = m_ppu->getDMACycles();
         if (dmaCycles > 0) {
             m_ppu->clearDMACycles();
             cycles += dmaCycles;
         }
-        
+
+        m_ppu->step(cycles);
+        m_timer->step(cycles);
+        m_apu->step(cycles, m_gameSpeed);
+
         m_cyclesThisFrame += cycles;
     }
     
