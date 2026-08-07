@@ -92,6 +92,7 @@ public:
     
     // Palette access (for Video)
     u16 readPalette16(u32 address) const;
+    bool isPaletteDarkened() const { return m_darkenPalette; }
     
     // Text ROM selection (for Video)
     bool isBIOSTextROMEnabled() const { return m_biosTextRomEnabled; }

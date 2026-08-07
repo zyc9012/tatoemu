@@ -16,6 +16,7 @@ constexpr u32 IRQ_TIMER_FREQUENCY = 6000000;  // 6 MHz (IRQ timer)
 // Scanline information
 constexpr u32 VISIBLE_SCANLINES = 224;
 constexpr u32 TOTAL_SCANLINES = 264;
+constexpr u32 DISPLAY_START_SCANLINE = 40;  // First scanline of the active display period
 constexpr u32 SCANLINE_OFFSET = 0xF8;  // Offset for scanline counter
 
 // Cycles per frame

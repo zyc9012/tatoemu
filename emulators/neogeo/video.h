@@ -158,6 +158,7 @@ private:
     // Slice rendering (for partial screen updates)
     u32 m_sliceStart;
     u32 m_sliceEnd;
+    bool m_displayStarted;     // Palette latched and backdrop cleared for this frame
     
     TextBankMode m_textBankMode;
     std::array<u32, 40> m_bankLookupAddress;  // Column to address offset mapping
@@ -167,6 +168,7 @@ private:
     u32 m_maxSpriteBank;
     
     // Helper functions
+    void startDisplay();
     void clearScreen();
     void initTextBankSwitching();  // Initialize text bank switching tables
     

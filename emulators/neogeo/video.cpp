@@ -37,6 +37,7 @@ Video::Video()
     , m_screenHeight(224)
     , m_sliceStart(0x10)  // First visible scanline (Neo Geo Y coordinate)
     , m_sliceEnd(0xF0)    // Last visible scanline + 1 (0x10 + 224 = 0xF0 = 240)
+    , m_displayStarted(false)
     , m_textBankMode(TextBankMode::NONE)
     , m_maxSpriteBank(0x17d)
 {
@@ -229,13 +230,14 @@ void Video::step(u32 cycles) {
             // Trigger VBlank interrupt
             m_memory->vblankIRQ();
         }
+
+        if (!m_displayStarted && m_scanline >= DISPLAY_START_SCANLINE) {
+            startDisplay();
+        }
     }
 }
 
 void Video::newFrame() {
-    // Clear screen to backdrop color
-    clearScreen();
-
     // Reset bank position for first sprite
     m_bankXPos = 0;
     m_bankYPos = 0;
@@ -246,6 +248,16 @@ void Video::newFrame() {
     // Reset slice rendering
     m_sliceStart = 0x10;
     m_sliceEnd = 0xF0;
+    m_displayStarted = false;
+}
+
+// The palette and the backdrop colour are latched when the active display
+// begins, i.e. after the game's vblank handler has run.
+void Video::startDisplay() {
+    m_displayStarted = true;
+    updatePalette();
+    clearScreen();
+    calcSpriteBankLimit();
 }
 
 void Video::clearScreen() {
@@ -257,7 +269,7 @@ void Video::clearScreen() {
 
 void Video::updatePalette() {
     // Read palette bank control from memory
-    bool darken = false;  // TODO: Get from I/O register
+    bool darken = m_memory->isPaletteDarkened();
     
     // Convert all 4096 palette entries from 16-bit to 32-bit ARGB
     for (u32 i = 0; i < 4096; i++) {
@@ -266,7 +278,37 @@ void Video::updatePalette() {
     }
 }
 
-u32 Video::convertPaletteEntry(u16 entry, bool /* darken */) {
+// Output of the colour DAC for each 6-bit channel value. The resistor ladder is
+// taken from the AES/MVS schematics; the shadow latch (I/O port 2, 0x01/0x11)
+// switches in a 150 ohm pulldown, which dims the whole screen to roughly 56%.
+static const u8* paletteDacTable(bool darken) {
+    static const auto tables = [] {
+        constexpr double resistances[6] = { 8200.0, 3900.0, 2200.0, 1000.0, 470.0, 220.0 };
+        double conductance = 0.0;
+        for (double r : resistances) {
+            conductance += 1.0 / r;
+        }
+
+        std::array<std::array<u8, 64>, 2> t{};
+        for (u32 mode = 0; mode < 2; mode++) {
+            const double load = conductance + (mode ? 1.0 / 150.0 : 0.0);
+            for (u32 value = 0; value < 64; value++) {
+                double sum = 0.0;
+                for (u32 bit = 0; bit < 6; bit++) {
+                    if (value & (1u << bit)) {
+                        sum += 1.0 / resistances[bit];
+                    }
+                }
+                t[mode][value] = static_cast<u8>(sum / load * 255.0 + 0.5);
+            }
+        }
+        return t;
+    }();
+
+    return tables[darken ? 1 : 0].data();
+}
+
+u32 Video::convertPaletteEntry(u16 entry, bool darken) {
     // Neo Geo palette format (16-bit):
     // Bits 11-8: Red (4 bits)
     // Bits 7-4: Green (4 bits)
@@ -274,7 +316,7 @@ u32 Video::convertPaletteEntry(u16 entry, bool /* darken */) {
     // Bit 14: Red bit 4
     // Bit 13: Green bit 4
     // Bit 12: Blue bit 4
-    // Bit 15: Dark bit (contributes to bit 5 of each channel)
+    // Bit 15: Dark bit (shared LSB of all three channels)
     //
     // Each color is 6 bits (0-63), with resistor network weighting
     
@@ -291,12 +333,10 @@ u32 Video::convertPaletteEntry(u16 entry, bool /* darken */) {
     b |= (entry >> 9) & 8;           // Bit 12 -> bit 3
     b |= (entry >> 13) & 4;          // Bit 15 (dark) -> bit 2
     
-    // Scale from 6-bit (in bits 7-2) to 8-bit by replicating top bits to bottom
-    r = r | (r >> 6);
-    g = g | (g >> 6);
-    b = b | (b >> 6);
-    
-    return 0xFF000000 | (r << 16) | (g << 8) | b;
+    const u8* dac = paletteDacTable(darken);
+    return 0xFF000000 | (static_cast<u32>(dac[r >> 2]) << 16)
+                      | (static_cast<u32>(dac[g >> 2]) << 8)
+                      | static_cast<u32>(dac[b >> 2]);
 }
 
 void Video::renderSprites() {
@@ -311,12 +351,6 @@ void Video::renderSprites() {
     // Render to the current scanline
     m_sliceEnd = std::min((m_scanline + 248) % 264 - 5, static_cast<u32>(0xF0));
 
-    if (m_sliceStart == 0x10) {
-        // Only calculate once before the first sprite is rendered
-        updatePalette();
-        calcSpriteBankLimit();
-    }
-    
     // Render all sprite banks
     constexpr u32 MAX_SPRITE_BANKS = 0x17d;  // 381 sprite banks
     u32 numBanks = std::min(m_maxSpriteBank, MAX_SPRITE_BANKS);
