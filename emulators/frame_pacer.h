@@ -84,12 +84,12 @@ public:
             return;
         }
         if (remaining > 0.0) {
-            SDL_Delay(static_cast<u32>(remaining));
+            SDL_DelayNS(static_cast<u64>(remaining * 1e6));
         }
     }
 
     void idle(double /*now*/, double targetFrameTime) {
-        SDL_Delay(static_cast<u32>(targetFrameTime));
+        SDL_DelayNS(static_cast<u64>(targetFrameTime * 1e6));
         m_deadline = pacerNow();
     }
 
