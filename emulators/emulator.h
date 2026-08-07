@@ -9,6 +9,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <vector>
 #include <SDL3/SDL.h>
 
 enum class CoreType {
@@ -87,7 +88,7 @@ public:
     CheatEngine& getCheatEngine() { return m_cheatEngine; }
     MemSearcher&  getSearcher()   { return m_searcher; }
     fs::path      getRomPath()    const { return m_romFilename; }
-    
+
 private:
     bool initialize();
     void handleInput();
@@ -121,7 +122,7 @@ private:
     MemSearcher m_searcher;
     
     // Frame timing
-    u64 m_lastFrameTime;
+    double m_lastFrameTime;
     double m_targetFPS;
     double m_gameSpeed = 1.0;
     double m_targetFrameTime;
@@ -130,10 +131,8 @@ private:
     // Audio-driven synchronization
     int m_minAudioBufferSize;
     int m_maxAudioBufferSize;
-    
-    // Speed adjustment for audio sync (1.0 = normal speed)
-    double m_emulationSpeed;
-    
+    int m_audioTargetSize = 0;
+
     // Statistics for debugging (optional)
     u64 m_statsTimer;
     u64 m_frameCount;
